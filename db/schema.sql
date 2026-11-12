@@ -85,3 +85,23 @@ CREATE TABLE IF NOT EXISTS voice_order_requests (
  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id),
  FOREIGN KEY (order_id) REFERENCES orders(id)
 );
+
+-- Map each Meta WhatsApp phone number ID to exactly one restaurant.
+CREATE TABLE IF NOT EXISTS whatsapp_numbers (
+ phone_number_id VARCHAR(64) NOT NULL PRIMARY KEY,
+ restaurant_id BIGINT UNSIGNED NOT NULL,
+ active BOOLEAN NOT NULL DEFAULT TRUE,
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS whatsapp_inbound_messages (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ message_id VARCHAR(255) NOT NULL UNIQUE,
+ restaurant_id BIGINT UNSIGNED NOT NULL,
+ phone_number_id VARCHAR(64) NOT NULL,
+ sender VARCHAR(64) NOT NULL,
+ message_type VARCHAR(32) NOT NULL,
+ text_body TEXT NULL,
+ received_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
+ INDEX (restaurant_id,received_at)
+);
