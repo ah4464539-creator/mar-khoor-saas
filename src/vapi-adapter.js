@@ -1,5 +1,6 @@
 import express from 'express';
 import crypto from 'node:crypto';
+import {createVoiceOrderHandler} from './voice-tools.js';
 
 // Adapter for Vapi-style tool-calls payloads. Configure a private server URL
 // and verify the provider's current security options before production.
@@ -20,6 +21,21 @@ export function vapiToolAdapterRouter(pool){
    const id=call?.id;
    if(typeof id!=='string'||id.length>128)return res.status(400).json({error:'Invalid tool call ID'});
    const name=call?.function?.name;
+   if(name==='place_order'){
+    let args=call?.function?.arguments;
+    if(typeof args==='string'){try{args=JSON.parse(args)}catch{args=null}}
+    if(!args||typeof args!=='object'||Array.isArray(args)){results.push({toolCallId:id,result:{error:'Invalid arguments'}});continue}
+    // The provider call identifier is read from the message envelope, not the model's arguments.
+    const callId=message?.call?.id;
+    if(typeof callId!=='string'||!/^[-a-zA-Z0-9_:]{1,128}$/.test(callId)){results.push({toolCallId:id,result:{error:'Missing call ID'}});continue}
+    const payload={...args,call_id:callId};
+    const response=await new Promise(resolve=>{
+     const mockRes={statusCode:200,status(code){this.statusCode=code;return this},json(body){resolve({status:this.statusCode,body});return this}};
+     Promise.resolve(createVoiceOrderHandler(pool)({params:{assistantId},body:payload},mockRes)).catch(()=>resolve({status:503,body:{error:'Order unavailable'}}));
+    });
+    results.push({toolCallId:id,result:response.body});
+    continue;
+   }
    if(name!=='get_menu'){results.push({toolCallId:id,result:{error:'Unsupported tool'}});continue}
    try{
     const [mapped]=await pool.execute('SELECT r.id,r.name,r.currency,r.locale FROM voice_assistants v JOIN restaurants r ON r.id=v.restaurant_id WHERE v.assistant_id=? AND v.active=1 LIMIT 1',[assistantId]);
