@@ -3,6 +3,7 @@ import express from 'express';
 import mysql from 'mysql2/promise';
 import { authRouter } from './auth.js';
 import { apiRouter } from './api.js';
+import { operationsRouter } from './operations.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -21,6 +22,7 @@ const pool = mysql.createPool({
 app.use(express.static(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public')));
 app.use('/auth', authRouter(pool));
 app.use('/api', apiRouter(pool));
+app.use('/api', operationsRouter(pool));
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'mar-khoor-api' }));
 app.get('/health/database', async (_req, res) => {
   try { await pool.query('SELECT 1'); res.json({ status: 'ok', database: 'connected' }); }
