@@ -64,8 +64,8 @@ export function integrationRouter(pool){
     if(!mapped.length)continue;
     const [result]=await pool.execute('INSERT IGNORE INTO whatsapp_inbound_messages(message_id,restaurant_id,phone_number_id,sender,message_type,text_body) VALUES (?,?,?,?,?,?)',[msg.id,mapped[0].restaurant_id,msg.phoneId,msg.from,msg.type,msg.body]);
     processed+=result.affectedRows;
-    if(result.affectedRows&&msg.type==='text'&&msg.body?.trim()){
-     await pool.execute("INSERT INTO whatsapp_ai_jobs(inbound_message_id,restaurant_id) SELECT ?,? FROM whatsapp_ai_settings WHERE restaurant_id=? AND enabled=1 ON DUPLICATE KEY UPDATE inbound_message_id=inbound_message_id",[msg.id,mapped[0].restaurant_id,mapped[0].restaurant_id]);
+    if(msg.type==='text'&&msg.body?.trim()){
+     await pool.execute("INSERT INTO whatsapp_ai_jobs(inbound_message_id,restaurant_id) SELECT m.message_id,m.restaurant_id FROM whatsapp_inbound_messages m JOIN whatsapp_ai_settings s ON s.restaurant_id=m.restaurant_id AND s.enabled=1 WHERE m.message_id=? AND m.restaurant_id=? AND m.phone_number_id=? ON DUPLICATE KEY UPDATE inbound_message_id=inbound_message_id",[msg.id,mapped[0].restaurant_id,msg.phoneId]);
     }
    }
    let updated_statuses=0;
