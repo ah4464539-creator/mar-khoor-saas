@@ -29,6 +29,13 @@ export function operationsRouter(pool) {
   try{const [result]=await pool.execute('UPDATE menu_items SET name=?,description=?,price_minor=?,active=? WHERE id=? AND restaurant_id=?',[name.trim(),description,price_minor,active,id,req.restaurantId]);if(!result.affectedRows)return res.status(404).json({error:'Item not found'});res.json({updated:true});}
   catch{res.status(503).json({error:'Database unavailable'});}
  });
+ router.get('/restaurants/:restaurantId/analytics',async(req,res)=>{
+  try{
+   const [counts]=await pool.execute("SELECT COUNT(*) AS total_orders,COALESCE(SUM(CASE WHEN status='completed' THEN total_minor ELSE 0 END),0) AS completed_revenue_minor,COUNT(CASE WHEN status='pending' THEN 1 END) AS pending_orders,COUNT(CASE WHEN status='completed' THEN 1 END) AS completed_orders FROM orders WHERE restaurant_id=?",[req.restaurantId]);
+   const [recent]=await pool.execute("SELECT DATE(created_at) AS day,COUNT(*) AS orders,COALESCE(SUM(CASE WHEN status='completed' THEN total_minor ELSE 0 END),0) AS completed_revenue_minor FROM orders WHERE restaurant_id=? AND created_at>=CURRENT_DATE - INTERVAL 29 DAY GROUP BY DATE(created_at) ORDER BY day DESC",[req.restaurantId]);
+   res.json({summary:counts[0],last_30_days:recent});
+  }catch{res.status(503).json({error:'Analytics unavailable'});}
+ });
  router.get('/restaurants/:restaurantId/orders',async(req,res)=>{
   try{const [orders]=await pool.execute('SELECT id,customer_name,status,total_minor,created_at FROM orders WHERE restaurant_id=? ORDER BY id DESC LIMIT 100',[req.restaurantId]);res.json({orders});}
   catch{res.status(503).json({error:'Database unavailable'});}
