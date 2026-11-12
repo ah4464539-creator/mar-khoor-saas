@@ -28,5 +28,9 @@ test('Vapi place_order writes once and retries return same order',async()=>{
   const first=await send();assert.equal(first.status,200);assert.deepEqual((await first.json()).results[0].result,{order_id:88,status:'pending',total_minor:1000});
   const second=await send();assert.equal(second.status,200);assert.deepEqual((await second.json()).results[0].result,{order_id:88,status:'already_received'});
   assert.equal(commits,1);
+  payload.message.toolCallList[0].function.arguments.confirmed=false;
+  const rejected=await send();assert.equal(rejected.status,200);
+  assert.equal((await rejected.json()).results[0].result.error,'Invalid confirmed order');
+  assert.equal(commits,1);
  }finally{await new Promise(r=>server.close(r));if(old===undefined)delete process.env.VAPI_TOOL_SECRET;else process.env.VAPI_TOOL_SECRET=old}
 });
