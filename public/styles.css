@@ -77,3 +77,38 @@ input:not([type=checkbox]), select { min-width: 0; flex: 1 1 180px; max-width: 1
 .worker-metrics { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 9px 18px; max-width: 480px; }
 .worker-metrics dd { margin: 0; font-weight: 800; }
 #search-label { display: grid; gap: 7px; max-width: 480px; margin-top: 20px; }
+
+/* Mar-Khoor Green & Gold approved design foundation; shared across existing pages. */
+:root{--ink:#10251c;--muted:#54675c;--accent:#075e35;--line:#dce9de;--wash:#effaf2;--radius:20px;--gold:#ffd91a;--forest:#00492d}
+body{background:#f6faf7}
+.top{box-shadow:0 3px 20px #0b49220a}
+.brand{font-size:19px;letter-spacing:-.025em}
+.brand span{color:#0d914d}
+.top nav a{border-radius:12px;padding:9px 12px}
+.top nav a:hover{background:#eaf6ee;text-decoration:none}
+.landing .hero{position:relative;overflow:hidden;background:radial-gradient(ellipse at 82% 32%,#d3f9d9 0%,transparent 58%),linear-gradient(130deg,#fbfffc,#e9f9ed);min-height:560px}
+.landing .hero:before{content:"";position:absolute;width:370px;height:370px;border-radius:50%;right:-110px;top:-120px;background:#ffd91a33;pointer-events:none}
+.landing .hero h1{font-weight:900;max-width:11ch}
+.landing .hero h1 em{color:#008d4b}
+.landing .eyebrow{display:inline-block;border-radius:99px;background:#dff7e4;padding:9px 13px;letter-spacing:.09em}
+.landing .button:not(.secondary){background:var(--gold);color:#182217;border-radius:16px;box-shadow:0 8px 20px #ba9b1730}
+.landing .button.secondary{border-radius:16px;box-shadow:0 5px 14px #164a2014}
+.hero-preview{position:relative;background:linear-gradient(145deg,#006c40,#003c27);border:6px solid #fff;border-radius:28px;box-shadow:0 26px 65px #0c533c30}
+.hero-preview a{background:#ffffff12;border-color:#ffffff30;border-radius:15px}
+.hero-preview a:hover{background:#ffffff28}
+.tiles article,.cards article,.panel,.menu-grid article{box-shadow:0 8px 28px #16462a0a;transition:box-shadow .2s ease,transform .2s ease}
+.tiles article:hover,.menu-grid article:hover{box-shadow:0 15px 34px #16462a1b;transform:translateY(-3px)}
+aside{background:linear-gradient(170deg,#00613a,#003b28);color:white;border:0}
+aside .brand,aside .navlabel,aside .asidefoot{color:#e6fff0}
+aside .brand span{color:#ffd91a}
+aside>a:not(.brand){color:#e5f4e9}
+aside>a.selected{background:var(--gold);color:#172617}
+aside>a:not(.brand):hover{background:#ffffff20;color:white;text-decoration:none}
+aside>a.selected:hover{background:#ffe54d;color:#172617}
+.cards article{border-top:4px solid #16a35d}
+.cards strong{color:#075e35}
+button,.button{border-radius:12px}
+button:hover{box-shadow:0 6px 16px #064f2b22}
+input:not([type=checkbox]):focus,select:focus{border-color:#15884c;box-shadow:0 0 0 3px #159a4b20;outline:none}
+@media(max-width:800px){aside{background:#005235}aside>a:not(.brand){color:#e5f4e9}}
+@media(prefers-reduced-motion:reduce){.tiles article:hover,.menu-grid article:hover{transform:none}}
