@@ -1,0 +1,23 @@
+import 'dotenv/config';
+import express from 'express';
+import mysql from 'mysql2/promise';
+
+const app = express();
+app.disable('x-powered-by');
+app.use(express.json({ limit: '1mb' }));
+const pool = mysql.createPool({
+  host: process.env.DB_HOST || '127.0.0.1',
+  port: Number(process.env.DB_PORT || 3306),
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  waitForConnections: true,
+  connectionLimit: 10,
+});
+app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'mar-khoor-api' }));
+app.get('/health/database', async (_req, res) => {
+  try { await pool.query('SELECT 1'); res.json({ status: 'ok', database: 'connected' }); }
+  catch { res.status(503).json({ status: 'unavailable', database: 'disconnected' }); }
+});
+const port = Number(process.env.PORT || 3001);
+app.listen(port, () => console.log(`Mar-Khoor API listening on ${port}`));
