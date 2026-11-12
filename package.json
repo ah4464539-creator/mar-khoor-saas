@@ -5,7 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "node --watch src/server.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "migrate": "node scripts/migrate.js",
+    "onboard": "node scripts/onboard.js",
+    "create-super-admin": "node scripts/create-super-admin.js",
+    "test": "node --test"
   },
   "dependencies": {
     "dotenv": "^16.4.7",
