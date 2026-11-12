@@ -36,6 +36,22 @@ export function apiRouter(pool) {
    res.json({assistant_id:assistantId,restaurant_id:restaurantId,active});
   }catch{res.status(503).json({error:'Mapping unavailable'});}
  });
+ router.put('/platform/whatsapp-numbers/:phoneId',requireAuth,async(req,res)=>{
+  if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});
+  const phoneId=req.params.phoneId,restaurantId=req.body?.restaurant_id,active=req.body?.active;
+  if(!/^[0-9]{1,64}$/.test(phoneId)||!Number.isSafeInteger(restaurantId)||restaurantId<1||typeof active!=='boolean')return res.status(400).json({error:'Invalid mapping'});
+  try{
+   const [restaurants]=await pool.execute('SELECT id FROM restaurants WHERE id=? LIMIT 1',[restaurantId]);
+   if(!restaurants.length)return res.status(404).json({error:'Restaurant not found'});
+   await pool.execute('INSERT INTO whatsapp_numbers(phone_number_id,restaurant_id,active) VALUES (?,?,?) ON DUPLICATE KEY UPDATE restaurant_id=VALUES(restaurant_id),active=VALUES(active)',[phoneId,restaurantId,active]);
+   res.json({phone_number_id:phoneId,restaurant_id:restaurantId,active});
+  }catch{res.status(503).json({error:'Mapping unavailable'});}
+ });
+ router.get('/platform/whatsapp-numbers',requireAuth,async(req,res)=>{
+  if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});
+  try{const [rows]=await pool.query('SELECT w.phone_number_id,w.restaurant_id,r.name AS restaurant_name,w.active FROM whatsapp_numbers w JOIN restaurants r ON r.id=w.restaurant_id ORDER BY w.phone_number_id LIMIT 200');res.json({numbers:rows});}
+  catch{res.status(503).json({error:'Mapping unavailable'});}
+ });
  router.get('/my/restaurants',requireAuth,async(req,res)=>{
   try {
    const [rows]=await pool.execute('SELECT r.id,r.name,r.slug,r.currency,r.locale,m.role FROM restaurant_members m JOIN restaurants r ON r.id=m.restaurant_id WHERE m.user_id=? ORDER BY r.name',[req.user.id]);
