@@ -32,5 +32,9 @@ test('Vapi place_order writes once and retries return same order',async()=>{
   const rejected=await send();assert.equal(rejected.status,200);
   assert.equal((await rejected.json()).results[0].result.error,'Invalid confirmed order');
   assert.equal(commits,1);
+  payload.message.toolCallList[0].function.arguments={customer_name:'Customer',confirmed:true,items:[{menu_item_id:5,quantity:2}],restaurant_id:999,call_id:'forged-call'};
+  const replay=await send();assert.equal(replay.status,200);
+  assert.equal((await replay.json()).results[0].result.status,'already_received');
+  assert.equal(commits,1);
  }finally{await new Promise(r=>server.close(r));if(old===undefined)delete process.env.VAPI_TOOL_SECRET;else process.env.VAPI_TOOL_SECRET=old}
 });
