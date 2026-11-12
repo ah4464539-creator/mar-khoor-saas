@@ -41,4 +41,11 @@ jobs:
       - name: Apply MariaDB schema
         run: npm run migrate
       - name: Run automated tests
-        run: npm test
+        run: node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=test-results.xml
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: node-test-results
+          path: test-results.xml
+          if-no-files-found: warn
