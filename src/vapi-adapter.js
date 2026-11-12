@@ -1,0 +1,35 @@
+import express from 'express';
+import crypto from 'node:crypto';
+
+// Adapter for Vapi-style tool-calls payloads. Configure a private server URL
+// and verify the provider's current security options before production.
+export function vapiToolAdapterRouter(pool){
+ const router=express.Router();
+ router.post('/tools',express.json({limit:'128kb'}),async(req,res)=>{
+  const secret=process.env.VAPI_TOOL_SECRET;
+  const provided=req.get('x-markhoor-tool-secret')||'';
+  if(!secret)return res.status(503).json({error:'Not configured'});
+  const a=Buffer.from(provided),b=Buffer.from(secret);
+  if(a.length!==b.length||!crypto.timingSafeEqual(a,b))return res.status(401).json({error:'Unauthorized'});
+  const message=req.body?.message;
+  const calls=message?.toolCallList;
+  const assistantId=message?.assistant?.id||message?.assistantId;
+  if(!Array.isArray(calls)||calls.length<1||calls.length>10||typeof assistantId!=='string'||!/^[a-zA-Z0-9_-]{1,128}$/.test(assistantId))return res.status(400).json({error:'Invalid tool call envelope'});
+  const results=[];
+  for(const call of calls){
+   const id=call?.id;
+   if(typeof id!=='string'||id.length>128)return res.status(400).json({error:'Invalid tool call ID'});
+   const name=call?.function?.name;
+   if(name!=='get_menu'){results.push({toolCallId:id,result:{error:'Unsupported tool'}});continue}
+   try{
+    const [mapped]=await pool.execute('SELECT r.id,r.name,r.currency,r.locale FROM voice_assistants v JOIN restaurants r ON r.id=v.restaurant_id WHERE v.assistant_id=? AND v.active=1 LIMIT 1',[assistantId]);
+    if(!mapped.length){results.push({toolCallId:id,result:{error:'Assistant not mapped'}});continue}
+    const restaurant=mapped[0];
+    const [items]=await pool.execute('SELECT id,name,description,price_minor FROM menu_items WHERE restaurant_id=? AND active=1 ORDER BY id',[restaurant.id]);
+    results.push({toolCallId:id,result:{restaurant:{name:restaurant.name,currency:restaurant.currency,locale:restaurant.locale},items}});
+   }catch{results.push({toolCallId:id,result:{error:'Menu unavailable'}})}
+  }
+  res.json({results});
+ });
+ return router;
+}
