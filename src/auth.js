@@ -2,7 +2,6 @@ import crypto from 'node:crypto';
 import { promisify } from 'node:util';
 import express from 'express';
 const scrypt = promisify(crypto.scrypt);
-const router = express.Router();
 const attempts = new Map();
 const WINDOW_MS=15*60*1000, MAX_ATTEMPTS=10;
 function rateKey(req,email){return (req.ip||'unknown')+'|'+email;}
@@ -29,6 +28,7 @@ export function requireAuth(req,res,next) {
  req.user=session;next();
 }
 export function authRouter(pool) {
+ const router = express.Router();
  router.post('/login', async (req,res) => {
   const {email,password} = req.body || {};
   if (typeof email !== 'string' || typeof password !== 'string' || email.length > 254 || password.length > 1024)
