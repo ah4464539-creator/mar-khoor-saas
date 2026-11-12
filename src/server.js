@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import mysql from 'mysql2/promise';
+import { authRouter } from './auth.js';
 
 const app = express();
 app.disable('x-powered-by');
@@ -14,6 +15,7 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
 });
+app.use('/auth', authRouter(pool));
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'mar-khoor-api' }));
 app.get('/health/database', async (_req, res) => {
   try { await pool.query('SELECT 1'); res.json({ status: 'ok', database: 'connected' }); }
