@@ -6,6 +6,7 @@ import { apiRouter } from './api.js';
 import { operationsRouter } from './operations.js';
 import { checkoutRouter } from './checkout.js';
 import { integrationRouter } from './integrations.js';
+import { voiceToolsRouter } from './voice-tools.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -27,6 +28,7 @@ app.use('/auth', authRouter(pool));
 app.use('/api', apiRouter(pool));
 app.use('/api', operationsRouter(pool));
 app.use('/api', checkoutRouter(pool));
+app.use('/voice-tools', voiceToolsRouter(pool));
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'mar-khoor-api' }));
 app.get('/health/database', async (_req, res) => {
   try { await pool.query('SELECT 1'); res.json({ status: 'ok', database: 'connected' }); }
