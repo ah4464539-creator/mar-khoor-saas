@@ -18,3 +18,11 @@ Limitations: no live provider verification yet; no customer consent flow, per-cu
 6. Monitor `whatsapp_ai_jobs` for `failed` and stale `processing` records; do not automatically retry them until provider acceptance has been reconciled to avoid duplicates.
 
 Production launch remains blocked until provider credentials, real end-to-end testing, operational monitoring, and data retention/privacy requirements are configured.
+
+## Production monitoring
+
+Super admin can query `GET /api/platform/whatsapp-ai/monitor` with their bearer token. It returns job counts by state, processing jobs older than 10 minutes, pending jobs older than 5 minutes, and outgoing delivery states for the past 24 hours. Treat nonzero stale processing, delayed pending, or a growing failed count as an operational alert. The endpoint does not include customer message text and is not public.
+
+Each worker invocation logs a structured `whatsapp_ai_worker_complete` JSON line with claimed, sent, failed and duration_ms. Forward server logs to your host's log collection. Schedule the worker every minute, prevent overlapping cron invocations where possible, and monitor job counts. Never auto-requeue stale processing jobs without checking whether Meta already accepted the send.
+
+Run `npm test` and review the GitHub Actions result before enabling live messaging. Test files have been committed, but live provider tests require a configured deployment.
