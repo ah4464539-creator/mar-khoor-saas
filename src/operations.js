@@ -29,6 +29,16 @@ export function operationsRouter(pool) {
   try{const [result]=await pool.execute('UPDATE menu_items SET name=?,description=?,price_minor=?,active=? WHERE id=? AND restaurant_id=?',[name.trim(),description,price_minor,active,id,req.restaurantId]);if(!result.affectedRows)return res.status(404).json({error:'Item not found'});res.json({updated:true});}
   catch{res.status(503).json({error:'Database unavailable'});}
  });
+ router.get('/restaurants/:restaurantId/whatsapp/messages',async(req,res)=>{
+  const before=req.query.before===undefined?null:Number(req.query.before);
+  if(before!==null&&(!Number.isSafeInteger(before)||before<1))return res.status(400).json({error:'Invalid cursor'});
+  try{
+   const sql='SELECT id,message_id,phone_number_id,sender,message_type,text_body,received_at FROM whatsapp_inbound_messages WHERE restaurant_id=?'+(before===null?'':' AND id<?')+' ORDER BY id DESC LIMIT 50';
+   const args=before===null?[req.restaurantId]:[req.restaurantId,before];
+   const [messages]=await pool.execute(sql,args);
+   res.json({messages,next_cursor:messages.length===50?messages[messages.length-1].id:null});
+  }catch{res.status(503).json({error:'WhatsApp inbox unavailable'});}
+ });
  router.get('/restaurants/:restaurantId/analytics',async(req,res)=>{
   try{
    const [counts]=await pool.execute("SELECT COUNT(*) AS total_orders,COALESCE(SUM(CASE WHEN status='completed' THEN total_minor ELSE 0 END),0) AS completed_revenue_minor,COUNT(CASE WHEN status='pending' THEN 1 END) AS pending_orders,COUNT(CASE WHEN status='completed' THEN 1 END) AS completed_orders FROM orders WHERE restaurant_id=?",[req.restaurantId]);
