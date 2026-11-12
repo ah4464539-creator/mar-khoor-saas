@@ -13,6 +13,16 @@ export function apiRouter(pool) {
    res.json({restaurants:restaurants[0].count,users:users[0].count,orders:orders[0].count});
   } catch {res.status(503).json({error:'Database unavailable'});}
  });
+ router.get('/platform/whatsapp-ai/monitor',requireAuth,async(req,res)=>{
+  if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});
+  try{
+   const [jobs]=await pool.execute("SELECT status,COUNT(*) AS count FROM whatsapp_ai_jobs GROUP BY status");
+   const [stale]=await pool.execute("SELECT COUNT(*) AS count FROM whatsapp_ai_jobs WHERE status='processing' AND created_at<NOW()-INTERVAL 10 MINUTE");
+   const [oldPending]=await pool.execute("SELECT COUNT(*) AS count FROM whatsapp_ai_jobs WHERE status='pending' AND created_at<NOW()-INTERVAL 5 MINUTE");
+   const [outbound]=await pool.execute("SELECT status,COUNT(*) AS count FROM whatsapp_outbound_messages WHERE sent_at>=NOW()-INTERVAL 24 HOUR GROUP BY status");
+   res.set('Cache-Control','no-store').json({jobs,stale_processing:Number(stale[0]?.count||0),delayed_pending:Number(oldPending[0]?.count||0),outbound_last_24h:outbound});
+  }catch{res.status(503).json({error:'WhatsApp monitoring unavailable'});}
+ });
  router.get('/platform/restaurants',requireAuth,async(req,res)=>{
   if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});
   try{const [rows]=await pool.query('SELECT r.id,r.name,r.slug,r.country_code,r.currency,r.locale,COUNT(m.user_id) AS members FROM restaurants r LEFT JOIN restaurant_members m ON m.restaurant_id=r.id GROUP BY r.id ORDER BY r.id DESC LIMIT 100');res.json({restaurants:rows});}
