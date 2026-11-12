@@ -7,7 +7,7 @@ export async function processWhatsAppAIJobs(pool,{fetcher=fetch}={}){
  const [jobs]=await pool.execute("SELECT j.inbound_message_id,j.restaurant_id,m.phone_number_id,m.sender,m.text_body,r.name,r.locale,r.currency FROM whatsapp_ai_jobs j JOIN whatsapp_inbound_messages m ON m.message_id=j.inbound_message_id AND m.restaurant_id=j.restaurant_id JOIN whatsapp_ai_settings s ON s.restaurant_id=j.restaurant_id AND s.enabled=1 JOIN restaurants r ON r.id=j.restaurant_id JOIN whatsapp_numbers w ON w.phone_number_id=m.phone_number_id AND w.restaurant_id=j.restaurant_id AND w.active=1 WHERE j.status='pending' AND m.received_at>=NOW()-INTERVAL 24 HOUR ORDER BY j.created_at LIMIT 10");
  let sent=0,failed=0;
  for(const job of jobs){
-  const [claimed]=await pool.execute("UPDATE whatsapp_ai_jobs SET status='processing' WHERE inbound_message_id=? AND status='pending'",[job.inbound_message_id]);
+  const [claimed]=await pool.execute("UPDATE whatsapp_ai_jobs j JOIN whatsapp_ai_settings s ON s.restaurant_id=j.restaurant_id AND s.enabled=1 SET j.status='processing' WHERE j.inbound_message_id=? AND j.restaurant_id=? AND j.status='pending'",[job.inbound_message_id,job.restaurant_id]);
   if(!claimed.affectedRows)continue;
   try{
    const [items]=await pool.execute('SELECT name,description,price_minor FROM menu_items WHERE restaurant_id=? AND active=1 ORDER BY id LIMIT 100',[job.restaurant_id]);
@@ -19,6 +19,8 @@ export async function processWhatsAppAIJobs(pool,{fetcher=fetch}={}){
    if(typeof reply!=='string'||!reply||reply.length>1000)throw Error('Invalid AI reply');
    const version=process.env.WHATSAPP_GRAPH_VERSION||'v23.0';
    if(!/^v[0-9]{1,2}[.][0-9]{1,2}$/.test(version))throw Error('Invalid Graph version');
+   const [stillEnabled]=await pool.execute('SELECT enabled FROM whatsapp_ai_settings WHERE restaurant_id=?',[job.restaurant_id]);
+   if(!stillEnabled.length||!stillEnabled[0].enabled)throw Error('AI disabled before send');
    const meta=await fetcher('https://graph.facebook.com/'+version+'/'+job.phone_number_id+'/messages',{method:'POST',headers:{Authorization:'Bearer '+metaToken,'Content-Type':'application/json'},body:JSON.stringify({messaging_product:'whatsapp',to:job.sender,type:'text',text:{body:reply}}),signal:AbortSignal.timeout(10000)});
    if(!meta.ok)throw Error('WhatsApp provider unavailable');
    const data=await meta.json(),id=data?.messages?.[0]?.id;
