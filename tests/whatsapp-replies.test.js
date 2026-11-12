@@ -12,6 +12,7 @@ test('WhatsApp replies reject other tenants and send only to eligible sender',as
   queries.push({sql,args});
   if(sql.includes('FROM users WHERE email=?'))return [[{id:3,email:'owner@example.com',password_hash:hash,platform_role:'user'}]];
   if(sql.includes('FROM restaurant_members'))return args[0]===9?[[{role:'admin'}]]:[[]];
+  if(sql.startsWith('INSERT INTO whatsapp_outbound_messages'))return [{affectedRows:1}];
   if(sql.includes('FROM whatsapp_inbound_messages'))return args[1]===9&&args[0]==='wamid.test'?[[{phone_number_id:'12345',sender:'306900000000'}]]:[[]];
   throw Error('Unexpected SQL: '+sql);
  }};
