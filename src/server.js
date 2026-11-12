@@ -4,11 +4,14 @@ import mysql from 'mysql2/promise';
 import { authRouter } from './auth.js';
 import { apiRouter } from './api.js';
 import { operationsRouter } from './operations.js';
+import { checkoutRouter } from './checkout.js';
+import { integrationRouter } from './integrations.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const app = express();
 app.disable('x-powered-by');
+app.use('/integrations', integrationRouter());
 app.use(express.json({ limit: '1mb' }));
 const pool = mysql.createPool({
   host: process.env.DB_HOST || '127.0.0.1',
@@ -23,6 +26,7 @@ app.use(express.static(path.resolve(path.dirname(fileURLToPath(import.meta.url))
 app.use('/auth', authRouter(pool));
 app.use('/api', apiRouter(pool));
 app.use('/api', operationsRouter(pool));
+app.use('/api', checkoutRouter(pool));
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'mar-khoor-api' }));
 app.get('/health/database', async (_req, res) => {
   try { await pool.query('SELECT 1'); res.json({ status: 'ok', database: 'connected' }); }
