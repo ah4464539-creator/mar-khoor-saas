@@ -1,5 +1,7 @@
 import 'dotenv/config';
 import mysql from 'mysql2/promise';
+import {pathToFileURL} from 'node:url';
+import {resolve} from 'node:path';
 
 export async function processWhatsAppAIJobs(pool,{fetcher=fetch}={}){
  const key=process.env.OPENAI_API_KEY,metaToken=process.env.WHATSAPP_ACCESS_TOKEN;
@@ -40,7 +42,7 @@ export async function processWhatsAppAIJobs(pool,{fetcher=fetch}={}){
  return {claimed:jobs.length,sent,failed};
 }
 
-if(process.argv[1]&&import.meta.url===new URL('file://'+process.argv[1]).href){
+if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href){
  const pool=mysql.createPool({host:process.env.DB_HOST||'127.0.0.1',port:Number(process.env.DB_PORT||3306),user:process.env.DB_USER,password:process.env.DB_PASSWORD,database:process.env.DB_NAME});
  try{console.log(await processWhatsAppAIJobs(pool))}finally{await pool.end()}
 }
