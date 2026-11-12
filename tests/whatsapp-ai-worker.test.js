@@ -12,7 +12,7 @@ test('AI worker replies using mapped restaurant menu and stores outbound history
   if(sql.startsWith('SELECT j.inbound_message_id'))return [[job]];
   if(sql.startsWith('UPDATE whatsapp_ai_jobs j JOIN'))return [{affectedRows:1}];
   if(sql.startsWith('SELECT name,description'))return [[{name:'Soup',description:'Vegetable',price_minor:450}]];
-  if(sql.startsWith('SELECT enabled FROM whatsapp_ai_settings'))return [[{enabled:1}]];
+  if(sql.startsWith('SELECT s.enabled FROM whatsapp_ai_settings'))return [[{enabled:1}]];
   if(sql.startsWith('INSERT INTO whatsapp_outbound_messages'))return [{affectedRows:1}];
   if(sql.startsWith("UPDATE whatsapp_ai_jobs SET status='sent'"))return [{affectedRows:1}];
   throw Error('Unexpected SQL: '+sql);
@@ -40,7 +40,7 @@ test('AI worker refuses to send after restaurant disables auto-reply',async()=>{
   if(sql.startsWith('SELECT j.inbound_message_id'))return [[{inbound_message_id:'wamid.in-2',restaurant_id:8,phone_number_id:'67890',sender:'306900000001',text_body:'Hi',name:'Cafe',locale:'en',currency:'EUR'}]];
   if(sql.startsWith('UPDATE whatsapp_ai_jobs j JOIN'))return [{affectedRows:1}];
   if(sql.startsWith('SELECT name,description'))return [[]];
-  if(sql.startsWith('SELECT enabled FROM whatsapp_ai_settings'))return [[{enabled:0}]];
+  if(sql.startsWith('SELECT s.enabled FROM whatsapp_ai_settings'))return [[{enabled:0}]];
   if(sql.startsWith("UPDATE whatsapp_ai_jobs SET status='failed'"))return [{affectedRows:1}];
   throw Error('Unexpected SQL: '+sql);
  }};
