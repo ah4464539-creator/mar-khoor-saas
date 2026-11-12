@@ -120,3 +120,19 @@ CREATE TABLE IF NOT EXISTS whatsapp_outbound_messages (
  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
  INDEX (restaurant_id,id)
 );
+
+-- AI auto-reply is disabled by default for every restaurant.
+CREATE TABLE IF NOT EXISTS whatsapp_ai_settings (
+ restaurant_id BIGINT UNSIGNED PRIMARY KEY,
+ enabled BOOLEAN NOT NULL DEFAULT FALSE,
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS whatsapp_ai_jobs (
+ inbound_message_id VARCHAR(255) PRIMARY KEY,
+ restaurant_id BIGINT UNSIGNED NOT NULL,
+ status ENUM('pending','processing','sent','failed') NOT NULL DEFAULT 'pending',
+ last_error VARCHAR(255) NULL,
+ outbound_message_id VARCHAR(255) NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+);
