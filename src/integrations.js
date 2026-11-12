@@ -33,12 +33,19 @@ export function integrationRouter(pool){
   let payload;
   try{payload=JSON.parse(req.body.toString('utf8'))}catch{return res.status(400).json({error:'Invalid JSON'})}
   if(payload?.object!=='whatsapp_business_account'||!Array.isArray(payload.entry))return res.status(400).json({error:'Invalid WhatsApp event'});
-  const messages=[];
+  const messages=[],statuses=[];
   for(const entry of payload.entry){
    if(!Array.isArray(entry?.changes))continue;
    for(const change of entry.changes){
     if(change?.field!=='messages')continue;
     const phoneId=change.value?.metadata?.phone_number_id;
+    if(Array.isArray(change.value?.statuses)){
+     for(const event of change.value.statuses){
+      if(typeof phoneId==='string'&&/^[0-9]{1,64}$/.test(phoneId)&&typeof event?.id==='string'&&event.id.length<=255&&/^wamid[.]/.test(event.id)&&['sent','delivered','read','failed'].includes(event.status)){
+       statuses.push({phoneId,id:event.id,status:event.status});
+      }
+     }
+    }
     if(!Array.isArray(change.value?.messages))continue;
     for(const msg of change.value.messages){
      if(typeof phoneId!=='string'||!/^[0-9]{1,64}$/.test(phoneId)||typeof msg?.id!=='string'||msg.id.length>255||!/^wamid[.]/.test(msg.id)||typeof msg.from!=='string'||!/^[0-9]{5,20}$/.test(msg.from))continue;
@@ -48,7 +55,7 @@ export function integrationRouter(pool){
     }
    }
   }
-  if(!messages.length)return res.status(202).json({received:true,processed:0});
+  if(!messages.length&&!statuses.length)return res.status(202).json({received:true,processed:0});
   if(!pool)return res.status(503).json({error:'Message storage unavailable'});
   try{
    let processed=0;
@@ -58,7 +65,15 @@ export function integrationRouter(pool){
     const [result]=await pool.execute('INSERT IGNORE INTO whatsapp_inbound_messages(message_id,restaurant_id,phone_number_id,sender,message_type,text_body) VALUES (?,?,?,?,?,?)',[msg.id,mapped[0].restaurant_id,msg.phoneId,msg.from,msg.type,msg.body]);
     processed+=result.affectedRows;
    }
-   return res.status(202).json({received:true,processed});
+   let updated_statuses=0;
+   for(const event of statuses){
+    const [result]=await pool.execute(
+     "UPDATE whatsapp_outbound_messages o JOIN whatsapp_numbers w ON w.phone_number_id=o.phone_number_id AND w.restaurant_id=o.restaurant_id AND w.active=1 SET o.status=?,o.status_at=NOW() WHERE o.message_id=? AND o.phone_number_id=? AND (o.status='accepted' OR (o.status='sent' AND ? IN ('delivered','read','failed')) OR (o.status='delivered' AND ?='read'))",
+     [event.status,event.id,event.phoneId,event.status,event.status]
+    );
+    updated_statuses+=result.affectedRows;
+   }
+   return res.status(202).json({received:true,processed,updated_statuses});
   }catch{return res.status(503).json({error:'Message storage unavailable'});}
 
  });
