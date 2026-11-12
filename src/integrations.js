@@ -64,6 +64,9 @@ export function integrationRouter(pool){
     if(!mapped.length)continue;
     const [result]=await pool.execute('INSERT IGNORE INTO whatsapp_inbound_messages(message_id,restaurant_id,phone_number_id,sender,message_type,text_body) VALUES (?,?,?,?,?,?)',[msg.id,mapped[0].restaurant_id,msg.phoneId,msg.from,msg.type,msg.body]);
     processed+=result.affectedRows;
+    if(result.affectedRows&&msg.type==='text'&&msg.body?.trim()){
+     await pool.execute("INSERT INTO whatsapp_ai_jobs(inbound_message_id,restaurant_id) SELECT ?,? FROM whatsapp_ai_settings WHERE restaurant_id=? AND enabled=1 ON DUPLICATE KEY UPDATE inbound_message_id=inbound_message_id",[msg.id,mapped[0].restaurant_id,mapped[0].restaurant_id]);
+    }
    }
    let updated_statuses=0;
    for(const event of statuses){
