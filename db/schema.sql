@@ -62,3 +62,13 @@ CREATE TABLE IF NOT EXISTS audit_logs (
  FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL,
  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE SET NULL
 );
+
+-- Explicit, server-managed Vapi assistant to restaurant mapping.
+CREATE TABLE IF NOT EXISTS voice_assistants (
+ assistant_id VARCHAR(128) NOT NULL PRIMARY KEY,
+ restaurant_id BIGINT UNSIGNED NOT NULL,
+ active BOOLEAN NOT NULL DEFAULT TRUE,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
+ INDEX (restaurant_id,active)
+);
