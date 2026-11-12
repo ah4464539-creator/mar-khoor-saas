@@ -1,11 +1,11 @@
 const form=document.querySelector('#login'),status=document.querySelector('#status'),target=document.querySelector('#restaurants');
-let token='',restaurantId=null;
+let token='',restaurantId=null,restaurantCurrency='';
 let refreshing=false;
 setInterval(async()=>{if(!restaurantId||!token||document.hidden||refreshing)return;refreshing=true;try{await refresh()}catch(e){status.textContent='Auto-refresh: '+e.message}finally{refreshing=false}},15000);
 const api=async(path,options={})=>{const r=await fetch(path,{...options,headers:{...options.headers,Authorization:'Bearer '+token}});const data=await r.json();if(!r.ok)throw Error(data.error||'Request failed');return data};
 async function refresh(){
  const [menu,orders,analytics]=await Promise.all([api('/api/restaurants/'+restaurantId+'/menu'),api('/api/restaurants/'+restaurantId+'/orders'),api('/api/restaurants/'+restaurantId+'/analytics')]);
- const summary=analytics.summary;document.querySelector('#analytics').textContent='Total orders: '+summary.total_orders+' · Pending: '+summary.pending_orders+' · Completed: '+summary.completed_orders+' · Completed revenue: '+(Number(summary.completed_revenue_minor)/100).toFixed(2);
+ const summary=analytics.summary;document.querySelector('#analytics').textContent='Total orders: '+summary.total_orders+' · Pending: '+summary.pending_orders+' · Completed: '+summary.completed_orders+' · Completed revenue: '+(Number(summary.completed_revenue_minor)/100).toFixed(2)+' '+restaurantCurrency;
  const items=document.querySelector('#items');items.replaceChildren();
  for(const item of menu.items){const p=document.createElement('p'),button=document.createElement('button');p.textContent=item.name+' — '+(item.price_minor/100).toFixed(2)+' · '+(item.active?'Active':'Hidden')+' ';button.textContent=item.active?'Hide':'Show';button.addEventListener('click',async()=>{try{await api('/api/restaurants/'+restaurantId+'/menu/'+item.id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({...item,active:!item.active})});await refresh()}catch(e){status.textContent=e.message}});p.append(button);items.append(p)}
  const list=document.querySelector('#orders');list.replaceChildren();
@@ -15,7 +15,7 @@ form.addEventListener('submit',async e=>{e.preventDefault();status.textContent='
  const response=await fetch('/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:document.querySelector('#email').value,password:document.querySelector('#password').value})});
  const data=await response.json();if(!response.ok)throw Error(data.error||'Login failed');token=data.token;
  const result=await api('/api/my/restaurants');target.replaceChildren();
- for(const restaurant of result.restaurants){const button=document.createElement('button');button.textContent=restaurant.name+' · '+restaurant.role;button.addEventListener('click',async()=>{restaurantId=restaurant.id;document.querySelector('#management').hidden=false;try{await refresh();status.textContent='Loaded '+restaurant.name}catch(e){status.textContent=e.message}});target.append(button)}
+ for(const restaurant of result.restaurants){const button=document.createElement('button');button.textContent=restaurant.name+' · '+restaurant.role;button.addEventListener('click',async()=>{restaurantId=restaurant.id;restaurantCurrency=restaurant.currency;document.querySelector('#management').hidden=false;try{await refresh();status.textContent='Loaded '+restaurant.name}catch(e){status.textContent=e.message}});target.append(button)}
  if(!result.restaurants.length)target.textContent='No restaurants assigned.';status.textContent='Account loaded.';
 }catch(err){status.textContent=err.message}});
 document.querySelector('#add-item').addEventListener('submit',async e=>{e.preventDefault();if(!restaurantId)return;try{
