@@ -14,7 +14,7 @@ export function vapiToolAdapterRouter(pool){
   if(a.length!==b.length||!crypto.timingSafeEqual(a,b))return res.status(401).json({error:'Unauthorized'});
   const message=req.body?.message;
   const calls=message?.toolCallList;
-  const assistantId=message?.assistant?.id||message?.assistantId;
+  const assistantId=message?.assistant?.id||message?.assistantId||message?.call?.assistantId;
   if(!Array.isArray(calls)||calls.length<1||calls.length>10||typeof assistantId!=='string'||!/^[a-zA-Z0-9_-]{1,128}$/.test(assistantId))return res.status(400).json({error:'Invalid tool call envelope'});
   const results=[];
   for(const call of calls){
@@ -29,6 +29,7 @@ export function vapiToolAdapterRouter(pool){
     const callId=message?.call?.id;
     if(typeof callId!=='string'||!/^[-a-zA-Z0-9_:]{1,128}$/.test(callId)){results.push({toolCallId:id,result:{error:'Missing call ID'}});continue}
     const payload={...args,call_id:callId};
+    // Never accept tenant identity or call ID supplied by model-generated arguments.
     const response=await new Promise(resolve=>{
      const mockRes={statusCode:200,status(code){this.statusCode=code;return this},json(body){resolve({status:this.statusCode,body});return this}};
      Promise.resolve(createVoiceOrderHandler(pool)({params:{assistantId},body:payload},mockRes)).catch(()=>resolve({status:503,body:{error:'Order unavailable'}}));
