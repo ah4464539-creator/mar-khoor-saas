@@ -6,7 +6,20 @@ const api=async(path,options={})=>{const r=await fetch(path,{...options,headers:
 async function refresh(){
  const [menu,orders,analytics,inbox]=await Promise.all([api('/api/restaurants/'+restaurantId+'/menu'),api('/api/restaurants/'+restaurantId+'/orders'),api('/api/restaurants/'+restaurantId+'/analytics'),api('/api/restaurants/'+restaurantId+'/whatsapp/messages')]);
  const inboxEl=document.querySelector('#whatsapp-inbox');inboxEl.replaceChildren();if(!inbox.messages.length)inboxEl.textContent='No messages yet.';
- for(const message of inbox.messages){const p=document.createElement('p');p.textContent=message.sender+' · '+message.message_type+' · '+(message.text_body||'[Non-text message]');inboxEl.append(p)}
+ for(const message of inbox.messages){
+  const p=document.createElement('p');p.textContent=message.sender+' · '+message.message_type+' · '+(message.text_body||'[Non-text message]');
+  if(message.message_type==='text'){
+   const form=document.createElement('form'),input=document.createElement('input'),button=document.createElement('button');
+   input.placeholder='Write reply';input.maxLength=4096;input.required=true;button.textContent='Send reply';
+   form.append(input,button);
+   form.addEventListener('submit',async e=>{e.preventDefault();button.disabled=true;try{
+    await api('/api/restaurants/'+restaurantId+'/whatsapp/replies',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message_id:message.message_id,text:input.value})});
+    input.value='';status.textContent='WhatsApp reply sent';
+   }catch(err){status.textContent=err.message}finally{button.disabled=false}});
+   p.append(form);
+  }
+  inboxEl.append(p);
+ }
  const summary=analytics.summary;document.querySelector('#analytics').textContent='Total orders: '+summary.total_orders+' · Pending: '+summary.pending_orders+' · Completed: '+summary.completed_orders+' · Completed revenue: '+(Number(summary.completed_revenue_minor)/100).toFixed(2)+' '+restaurantCurrency;
  const items=document.querySelector('#items');items.replaceChildren();
  for(const item of menu.items){const p=document.createElement('p'),button=document.createElement('button');p.textContent=item.name+' — '+(item.price_minor/100).toFixed(2)+' · '+(item.active?'Active':'Hidden')+' ';button.textContent=item.active?'Hide':'Show';button.addEventListener('click',async()=>{try{await api('/api/restaurants/'+restaurantId+'/menu/'+item.id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({...item,active:!item.active})});await refresh()}catch(e){status.textContent=e.message}});p.append(button);items.append(p)}
