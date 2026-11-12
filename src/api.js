@@ -13,6 +13,11 @@ export function apiRouter(pool) {
    res.json({restaurants:restaurants[0].count,users:users[0].count,orders:orders[0].count});
   } catch {res.status(503).json({error:'Database unavailable'});}
  });
+ router.get('/platform/restaurants',requireAuth,async(req,res)=>{
+  if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});
+  try{const [rows]=await pool.query('SELECT r.id,r.name,r.slug,r.country_code,r.currency,r.locale,COUNT(m.user_id) AS members FROM restaurants r LEFT JOIN restaurant_members m ON m.restaurant_id=r.id GROUP BY r.id ORDER BY r.id DESC LIMIT 100');res.json({restaurants:rows});}
+  catch{res.status(503).json({error:'Database unavailable'});}
+ });
  router.get('/my/restaurants',requireAuth,async(req,res)=>{
   try {
    const [rows]=await pool.execute('SELECT r.id,r.name,r.slug,r.currency,r.locale,m.role FROM restaurant_members m JOIN restaurants r ON r.id=m.restaurant_id WHERE m.user_id=? ORDER BY r.name',[req.user.id]);
