@@ -1,6 +1,6 @@
 import express from 'express';
 import crypto from 'node:crypto';
-export function integrationRouter(){
+export function integrationRouter(pool){
  const router=express.Router();
  // Integration foundation only. Never treat inbound events as orders until authenticated and validated.
  router.post('/webhooks/vapi',express.raw({type:'application/json',limit:'256kb'}),(req,res)=>{
@@ -22,7 +22,7 @@ export function integrationRouter(){
   if(req.query['hub.mode']!=='subscribe'||req.query['hub.verify_token']!==token||typeof req.query['hub.challenge']!=='string')return res.sendStatus(403);
   return res.status(200).type('text/plain').send(req.query['hub.challenge']);
  });
- router.post('/webhooks/whatsapp',express.raw({type:'application/json',limit:'256kb'}),(req,res)=>{
+ router.post('/webhooks/whatsapp',express.raw({type:'application/json',limit:'256kb'}),async(req,res)=>{
   const secret=process.env.META_APP_SECRET;
   if(!secret)return res.status(503).json({error:'Not configured'});
   if(!Buffer.isBuffer(req.body))return res.status(400).json({error:'Invalid body'});
@@ -33,8 +33,34 @@ export function integrationRouter(){
   let payload;
   try{payload=JSON.parse(req.body.toString('utf8'))}catch{return res.status(400).json({error:'Invalid JSON'})}
   if(payload?.object!=='whatsapp_business_account'||!Array.isArray(payload.entry))return res.status(400).json({error:'Invalid WhatsApp event'});
-  // No customer messages are persisted or acted on until tenant routing is implemented.
-  return res.status(202).json({received:true,processed:false});
+  const messages=[];
+  for(const entry of payload.entry){
+   if(!Array.isArray(entry?.changes))continue;
+   for(const change of entry.changes){
+    if(change?.field!=='messages')continue;
+    const phoneId=change.value?.metadata?.phone_number_id;
+    if(!Array.isArray(change.value?.messages))continue;
+    for(const msg of change.value.messages){
+     if(typeof phoneId!=='string'||!/^[0-9]{1,64}$/.test(phoneId)||typeof msg?.id!=='string'||msg.id.length>255||!/^wamid[.]/.test(msg.id)||typeof msg.from!=='string'||!/^[0-9]{5,20}$/.test(msg.from))continue;
+     const type=typeof msg.type==='string'?msg.type.slice(0,32):'unknown';
+     const body=type==='text'&&typeof msg.text?.body==='string'?msg.text.body.slice(0,10000):null;
+     messages.push({phoneId,id:msg.id,from:msg.from,type,body});
+    }
+   }
+  }
+  if(!messages.length)return res.status(202).json({received:true,processed:0});
+  if(!pool)return res.status(503).json({error:'Message storage unavailable'});
+  try{
+   let processed=0;
+   for(const msg of messages){
+    const [mapped]=await pool.execute('SELECT restaurant_id FROM whatsapp_numbers WHERE phone_number_id=? AND active=1 LIMIT 1',[msg.phoneId]);
+    if(!mapped.length)continue;
+    const [result]=await pool.execute('INSERT IGNORE INTO whatsapp_inbound_messages(message_id,restaurant_id,phone_number_id,sender,message_type,text_body) VALUES (?,?,?,?,?,?)',[msg.id,mapped[0].restaurant_id,msg.phoneId,msg.from,msg.type,msg.body]);
+    processed+=result.affectedRows;
+   }
+   return res.status(202).json({received:true,processed});
+  }catch{return res.status(503).json({error:'Message storage unavailable'});}
+
  });
  return router;
 }
