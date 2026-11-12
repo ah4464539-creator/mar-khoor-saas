@@ -112,3 +112,65 @@ button:hover{box-shadow:0 6px 16px #064f2b22}
 input:not([type=checkbox]):focus,select:focus{border-color:#15884c;box-shadow:0 0 0 3px #159a4b20;outline:none}
 @media(max-width:800px){aside{background:#005235}aside>a:not(.brand){color:#e5f4e9}}
 @media(prefers-reduced-motion:reduce){.tiles article:hover,.menu-grid article:hover{transform:none}}
+
+/* Green & Gold layouts for the landing page, workspaces, and storefront. */
+.landing .hero h1 { max-width: 17ch; font-size: clamp(38px, 5.1vw, 73px); }
+.landing .hero { padding-block: clamp(36px, 6vw, 92px); }
+.top nav .nav-cta, .top nav .nav-cta:hover { background: var(--gold); color: var(--ink); }
+.feature-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  padding: 20px max(5vw, 20px);
+  background: var(--wash);
+}
+.feature-strip a {
+  display: grid;
+  min-height: 48px;
+  place-items: center;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: white;
+  text-align: center;
+  font-weight: 750;
+}
+.feature-strip a:hover { border-color: var(--accent); }
+.dashboard .workspace { padding: clamp(20px, 3vw, 42px); }
+.dashboard h1, .storefront h1 { font-size: clamp(34px, 4vw, 54px); }
+.dashboard .panel h2, .storefront .panel h2 { font-size: 23px; }
+.dashboard-panels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.dashboard-panels > .panel { margin: 0; min-width: 0; }
+#items > p, #orders > p, #tenant-list > p, #cart > p {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-block: 9px;
+  margin: 0;
+  border-bottom: 1px solid var(--line);
+}
+.storefront .customer { max-width: 1440px; padding: clamp(16px, 3.5vw, 48px); }
+.storefront-banner {
+  padding: clamp(20px, 4vw, 48px);
+  border-radius: var(--radius);
+  color: white;
+  background: radial-gradient(ellipse at top right, #218753, transparent 63%), var(--forest);
+}
+.storefront-banner .muted { color: #dcf3e3; }
+.storefront-banner .lookup { max-width: 600px; }
+.storefront-banner button, #order-form button { background: var(--gold); color: var(--ink); }
+.storefront-content { display: grid; gap: 20px; align-items: start; }
+.storefront-content:has(#checkout:not([hidden])) { grid-template-columns: minmax(0, 1fr) minmax(260px, .42fr); }
+.storefront .menu-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); }
+.storefront .menu-grid article { display: flex; align-items: flex-start; flex-direction: column; }
+.storefront .menu-grid article strong { margin-top: auto; }
+.storefront .menu-grid article p:empty { display: none; }
+.cart-total { display: flex; justify-content: space-between; gap: 10px; padding: 10px; background: #fff8cb; border-radius: 10px; }
+@media (max-width: 900px) {
+  .storefront-content:has(#checkout:not([hidden])), .dashboard-panels { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 520px) {
+  .feature-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .landing .hero { min-height: 0; }
+}
