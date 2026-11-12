@@ -13,7 +13,6 @@ import { fileURLToPath } from 'node:url';
 
 const app = express();
 app.disable('x-powered-by');
-app.use(express.json({ limit: '1mb' }));
 const pool = mysql.createPool({
   host: process.env.DB_HOST || '127.0.0.1',
   port: Number(process.env.DB_PORT || 3306),
@@ -24,6 +23,7 @@ const pool = mysql.createPool({
   connectionLimit: 10,
 });
 app.use('/integrations', integrationRouter(pool));
+app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public')));
 app.use('/auth', authRouter(pool));
 app.use('/api', apiRouter(pool));
