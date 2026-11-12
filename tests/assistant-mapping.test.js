@@ -11,7 +11,7 @@ test('only super admin can manage assistant mapping',async()=>{
  const pool={
   async execute(sql,args){
    queries.push({sql,args});
-   if(sql.includes('FROM users WHERE email='))return [[{id:3,email:'admin@example.com',password_hash:hash,platform_role:'user'}]];
+   if(sql.includes('FROM users WHERE email=?'))return [[{id:3,email:'admin@example.com',password_hash:hash,platform_role:'user'}]];
    if(sql.includes('SELECT id FROM restaurants'))return [[{id:9}]];
    if(sql.includes('INSERT INTO voice_assistants'))return [{affectedRows:1}];
    return [[]];
