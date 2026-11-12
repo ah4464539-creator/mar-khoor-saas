@@ -39,6 +39,12 @@ export function operationsRouter(pool) {
    res.json({messages,next_cursor:messages.length===50?messages[messages.length-1].id:null});
   }catch{res.status(503).json({error:'WhatsApp inbox unavailable'});}
  });
+ router.get('/restaurants/:restaurantId/whatsapp/outbound',async(req,res)=>{
+  try{
+   const [messages]=await pool.execute('SELECT id,message_id,recipient,text_body,status,sent_at,status_at FROM whatsapp_outbound_messages WHERE restaurant_id=? ORDER BY id DESC LIMIT 50',[req.restaurantId]);
+   res.json({messages});
+  }catch{res.status(503).json({error:'Outgoing history unavailable'});}
+ });
  router.post('/restaurants/:restaurantId/whatsapp/replies',async(req,res)=>{
   const messageId=req.body?.message_id,text=req.body?.text;
   if(typeof messageId!=='string'||messageId.length>255||!/^wamid[.]/.test(messageId)||typeof text!=='string'||!text.trim()||text.length>4096)return res.status(400).json({error:'Invalid reply'});
@@ -59,7 +65,10 @@ export function operationsRouter(pool) {
    const data=await response.json();
    const outboundId=data?.messages?.[0]?.id;
    if(typeof outboundId!=='string')return res.status(502).json({error:'WhatsApp response missing message ID'});
-   return res.status(200).json({sent:true,message_id:outboundId});
+   try{
+    await pool.execute('INSERT INTO whatsapp_outbound_messages(message_id,restaurant_id,phone_number_id,recipient,text_body) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE message_id=message_id',[outboundId,req.restaurantId,phoneId,sender,text.trim()]);
+   }catch{return res.status(503).json({sent:true,message_id:outboundId,history_saved:false});}
+   return res.status(200).json({sent:true,message_id:outboundId,history_saved:true});
   }catch{return res.status(503).json({error:'WhatsApp sending unavailable'});}
  });
  router.get('/restaurants/:restaurantId/analytics',async(req,res)=>{
