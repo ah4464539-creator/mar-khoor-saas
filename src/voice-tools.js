@@ -28,7 +28,12 @@ export function voiceToolsRouter(pool){
   }catch{res.status(503).json({error:'Voice menu unavailable'});}
  });
 
- router.post('/assistants/:assistantId/orders',async(req,res)=>{
+ router.post('/assistants/:assistantId/orders',createVoiceOrderHandler(pool));
+ return router;
+}
+
+export function createVoiceOrderHandler(pool){
+ return async(req,res)=>{
   const assistantId=req.params.assistantId;
   const {call_id,customer_name,confirmed,items}=req.body||{};
   if(!/^[a-zA-Z0-9_-]{1,128}$/.test(assistantId)||typeof call_id!=='string'||!/^[-a-zA-Z0-9_:]{1,128}$/.test(call_id)||confirmed!==true||typeof customer_name!=='string'||!customer_name.trim()||customer_name.length>160||!Array.isArray(items)||items.length<1||items.length>30)return res.status(400).json({error:'Invalid confirmed order'});
@@ -65,6 +70,5 @@ export function voiceToolsRouter(pool){
    res.status(201).json({order_id:order.insertId,status:'pending',total_minor:total});
   }catch{if(connection)await connection.rollback().catch(()=>{});res.status(503).json({error:'Voice order unavailable'});}
   finally{connection?.release();}
- });
- return router;
+ };
 }
