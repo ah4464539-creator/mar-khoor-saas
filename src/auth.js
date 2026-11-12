@@ -16,6 +16,12 @@ async function checkPassword(password, stored) {
  const actual = await scrypt(password, Buffer.from(salt,'hex'), 64);
  return crypto.timingSafeEqual(actual, Buffer.from(expected,'hex'));
 }
+export function requireAuth(req,res,next) {
+ const match=/^Bearer ([a-f0-9]{64})$/.exec(req.get('authorization')||'');
+ const session=match && sessions.get(crypto.createHash('sha256').update(match[1]).digest('hex'));
+ if(!session || session.expires<Date.now())return res.status(401).json({error:'Unauthorized'});
+ req.user=session;next();
+}
 export function authRouter(pool) {
  router.post('/login', async (req,res) => {
   const {email,password} = req.body || {};
