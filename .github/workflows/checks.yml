@@ -27,6 +27,7 @@ jobs:
       DB_USER: markhoor_test
       DB_PASSWORD: test-password
       DB_NAME: markhoor_test
+      DB_INTEGRATION_TEST: '1'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
