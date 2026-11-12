@@ -12,10 +12,12 @@ export function vapiToolAdapterRouter(pool){
   if(!secret)return res.status(503).json({error:'Not configured'});
   const a=Buffer.from(provided),b=Buffer.from(secret);
   if(a.length!==b.length||!crypto.timingSafeEqual(a,b))return res.status(401).json({error:'Unauthorized'});
-  const message=req.body?.message;
+  if(!req.body||typeof req.body!=='object'||Array.isArray(req.body))return res.status(400).json({error:'Invalid request'});
+  const message=req.body.message;
   const calls=message?.toolCallList;
   const assistantId=message?.assistant?.id||message?.assistantId||message?.call?.assistantId;
   if(!Array.isArray(calls)||calls.length<1||calls.length>10||typeof assistantId!=='string'||!/^[a-zA-Z0-9_-]{1,128}$/.test(assistantId))return res.status(400).json({error:'Invalid tool call envelope'});
+  if(new Set(calls.map(c=>c?.id)).size!==calls.length)return res.status(400).json({error:'Duplicate tool call ID'});
   const results=[];
   for(const call of calls){
    const id=call?.id;
@@ -28,7 +30,7 @@ export function vapiToolAdapterRouter(pool){
     // The provider call identifier is read from the message envelope, not the model's arguments.
     const callId=message?.call?.id;
     if(typeof callId!=='string'||!/^[-a-zA-Z0-9_:]{1,128}$/.test(callId)){results.push({toolCallId:id,result:{error:'Missing call ID'}});continue}
-    const payload={...args,call_id:callId};
+    const payload={customer_name:args.customer_name,confirmed:args.confirmed,items:args.items,call_id:callId};
     // Never accept tenant identity or call ID supplied by model-generated arguments.
     const response=await new Promise(resolve=>{
      const mockRes={statusCode:200,status(code){this.statusCode=code;return this},json(body){resolve({status:this.statusCode,body});return this}};
