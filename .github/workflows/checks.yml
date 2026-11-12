@@ -6,6 +6,27 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11
+        env:
+          MARIADB_ROOT_PASSWORD: test-root-password
+          MARIADB_DATABASE: markhoor_test
+          MARIADB_USER: markhoor_test
+          MARIADB_PASSWORD: test-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_USER: markhoor_test
+      DB_PASSWORD: test-password
+      DB_NAME: markhoor_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -16,5 +37,7 @@ jobs:
       - name: Syntax check
         run: |
           for file in src/*.js scripts/*.js public/*.js tests/*.js; do node --check "$file"; done
-      - name: Run tests
+      - name: Apply MariaDB schema
+        run: npm run migrate
+      - name: Run automated tests
         run: npm test
