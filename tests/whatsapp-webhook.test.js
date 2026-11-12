@@ -19,7 +19,7 @@ test('WhatsApp webhook verification and signed event intake',async()=>{
   assert.equal((await post('sha256='+'0'.repeat(64))).status,401);
   const signature='sha256='+crypto.createHmac('sha256','test-meta-app-secret').update(body).digest('hex');
   const accepted=await post(signature);assert.equal(accepted.status,202);
-  assert.deepEqual(await accepted.json(),{received:true,processed:false});
+  assert.deepEqual(await accepted.json(),{received:true,processed:0});
  }finally{
   await new Promise(r=>server.close(r));
   if(prevToken===undefined)delete process.env.WHATSAPP_VERIFY_TOKEN;else process.env.WHATSAPP_VERIFY_TOKEN=prevToken;
