@@ -10,6 +10,7 @@ test('signed WhatsApp text is tenant-routed and replay safe',async()=>{
  const pool={async execute(sql,args){
   queries.push({sql,args});
   if(sql.includes('FROM whatsapp_numbers'))return args[0]==='12345'?[[{restaurant_id:7}]]:[[]];
+  if(sql.startsWith('INSERT INTO whatsapp_ai_jobs'))return [{affectedRows:0}];
   if(sql.startsWith('INSERT IGNORE')){const id=args[0];if(inserted.has(id))return [{affectedRows:0}];inserted.add(id);return [{affectedRows:1}]}
   throw Error('Unexpected SQL');
  }};
