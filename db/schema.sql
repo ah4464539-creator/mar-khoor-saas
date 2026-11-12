@@ -72,3 +72,16 @@ CREATE TABLE IF NOT EXISTS voice_assistants (
  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
  INDEX (restaurant_id,active)
 );
+
+CREATE TABLE IF NOT EXISTS voice_order_requests (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ assistant_id VARCHAR(128) NOT NULL,
+ call_id VARCHAR(128) NOT NULL,
+ restaurant_id BIGINT UNSIGNED NOT NULL,
+ order_id BIGINT UNSIGNED NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ UNIQUE KEY uq_voice_call (assistant_id,call_id),
+ FOREIGN KEY (assistant_id) REFERENCES voice_assistants(assistant_id),
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id),
+ FOREIGN KEY (order_id) REFERENCES orders(id)
+);
