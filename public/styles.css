@@ -174,3 +174,38 @@ input:not([type=checkbox]):focus,select:focus{border-color:#15884c;box-shadow:0 
   .feature-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .landing .hero { min-height: 0; }
 }
+
+/* Approved Green & Gold: consistent four-page visual finish. */
+.section-kicker{margin:0 0 12px;color:#0d8450;font-size:12px;font-weight:850;letter-spacing:.16em;text-transform:uppercase}
+.page-heading{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:18px;margin-bottom:12px}
+.page-heading h1{margin:0}
+.live-pill{display:inline-flex;align-items:center;border:1px solid #bce5c7;border-radius:100px;background:#e6f9e9;color:#08623b;padding:10px 14px;font-size:12px;font-weight:800}
+.dashboard .workspace{background:radial-gradient(ellipse at top right,#e4f7e8,transparent 45%),#f7faf7}
+.dashboard .panel{border:1px solid #e1ebdf;background:#fff;box-shadow:0 12px 30px #063f2010}
+.dashboard .panel h2{color:#143b29}
+.dashboard .cards article{background:linear-gradient(140deg,#fff,#f2fbf3);border-top:0;border-left:5px solid #e7c640}
+.dashboard .cards article:nth-child(2){border-left-color:#0d8b50}
+.dashboard .cards article:nth-child(3){border-left-color:#7ebc91}
+.dashboard .cards article span{font-size:13px;font-weight:700;color:#607668}
+.dashboard .cards article strong{font-size:clamp(30px,3vw,44px);letter-spacing:-.045em}
+.dashboard .operational-grid .panel{min-height:210px}
+.dashboard .order-desk{border-top:4px solid #e7c640}
+.dashboard .panel button{background:#075e35;color:#fff}
+.dashboard .panel button:hover{background:#00492d}
+.dashboard .panel form button{flex:0 0 auto}
+.dashboard aside{position:sticky;top:0;height:100vh}
+.dashboard aside>a:not(.brand){font-weight:650}
+.dashboard aside .navlabel{color:#b5d8c1}
+.dashboard aside .asidefoot{border-top:1px solid #ffffff25;padding-top:20px}
+.landing .hero h1 em{display:inline;color:#087b46}
+.landing .hero .lead{font-size:clamp(16px,1.5vw,20px)}
+.landing .tiles article{border-top:4px solid #e7c640}
+.landing .tiles article:nth-child(2){border-top-color:#0d8b50}
+.landing .tiles article:nth-child(3){border-top-color:#7ebc91}
+.landing .landing-section h2{max-width:20ch}
+.storefront-banner{box-shadow:0 20px 40px #00492d22}
+.storefront-banner .section-kicker{color:#ffdc4a}
+.storefront .cart-panel{position:sticky;top:20px;border-top:5px solid #e7c640;box-shadow:0 16px 35px #00492d16}
+.storefront .menu-grid article{border-bottom:3px solid #e9cf55}
+.storefront .menu-grid article button{background:#075e35}
+@media(max-width:800px){.dashboard aside{position:static;height:auto}.page-heading{align-items:flex-start}.storefront .cart-panel{position:static}}
