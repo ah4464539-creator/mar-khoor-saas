@@ -39,6 +39,29 @@ export function operationsRouter(pool) {
    res.json({messages,next_cursor:messages.length===50?messages[messages.length-1].id:null});
   }catch{res.status(503).json({error:'WhatsApp inbox unavailable'});}
  });
+ router.post('/restaurants/:restaurantId/whatsapp/replies',async(req,res)=>{
+  const messageId=req.body?.message_id,text=req.body?.text;
+  if(typeof messageId!=='string'||messageId.length>255||!/^wamid[.]/.test(messageId)||typeof text!=='string'||!text.trim()||text.length>4096)return res.status(400).json({error:'Invalid reply'});
+  const token=process.env.WHATSAPP_ACCESS_TOKEN;
+  const version=process.env.WHATSAPP_GRAPH_VERSION||'v23.0';
+  if(!token||!/^v[0-9]{1,2}[.][0-9]{1,2}$/.test(version))return res.status(503).json({error:'WhatsApp sending not configured'});
+  try{
+   const [rows]=await pool.execute("SELECT m.phone_number_id,m.sender FROM whatsapp_inbound_messages m JOIN whatsapp_numbers w ON w.phone_number_id=m.phone_number_id AND w.restaurant_id=m.restaurant_id AND w.active=1 WHERE m.message_id=? AND m.restaurant_id=? AND m.received_at>=NOW()-INTERVAL 24 HOUR AND m.message_type='text' LIMIT 1",[messageId,req.restaurantId]);
+   if(!rows.length)return res.status(409).json({error:'No eligible recent inbound message'});
+   const {phone_number_id:phoneId,sender}=rows[0];
+   if(!/^[0-9]{1,64}$/.test(phoneId)||!/^[0-9]{5,20}$/.test(sender))return res.status(409).json({error:'Invalid recipient'});
+   const response=await fetch('https://graph.facebook.com/'+version+'/'+phoneId+'/messages',{
+    method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+    body:JSON.stringify({messaging_product:'whatsapp',recipient_type:'individual',to:sender,type:'text',text:{body:text.trim()}}),
+    signal:AbortSignal.timeout(10000)
+   });
+   if(!response.ok)return res.status(502).json({error:'WhatsApp provider rejected message'});
+   const data=await response.json();
+   const outboundId=data?.messages?.[0]?.id;
+   if(typeof outboundId!=='string')return res.status(502).json({error:'WhatsApp response missing message ID'});
+   return res.status(200).json({sent:true,message_id:outboundId});
+  }catch{return res.status(503).json({error:'WhatsApp sending unavailable'});}
+ });
  router.get('/restaurants/:restaurantId/analytics',async(req,res)=>{
   try{
    const [counts]=await pool.execute("SELECT COUNT(*) AS total_orders,COALESCE(SUM(CASE WHEN status='completed' THEN total_minor ELSE 0 END),0) AS completed_revenue_minor,COUNT(CASE WHEN status='pending' THEN 1 END) AS pending_orders,COUNT(CASE WHEN status='completed' THEN 1 END) AS completed_orders FROM orders WHERE restaurant_id=?",[req.restaurantId]);
