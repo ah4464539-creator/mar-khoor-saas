@@ -105,3 +105,18 @@ CREATE TABLE IF NOT EXISTS whatsapp_inbound_messages (
  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
  INDEX (restaurant_id,received_at)
 );
+
+-- Outgoing WhatsApp replies and their latest Meta delivery state.
+CREATE TABLE IF NOT EXISTS whatsapp_outbound_messages (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ message_id VARCHAR(255) NOT NULL UNIQUE,
+ restaurant_id BIGINT UNSIGNED NOT NULL,
+ phone_number_id VARCHAR(64) NOT NULL,
+ recipient VARCHAR(64) NOT NULL,
+ text_body TEXT NOT NULL,
+ status ENUM('accepted','sent','delivered','read','failed') NOT NULL DEFAULT 'accepted',
+ sent_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ status_at TIMESTAMP NULL DEFAULT NULL,
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
+ INDEX (restaurant_id,id)
+);
