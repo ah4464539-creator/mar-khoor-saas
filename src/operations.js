@@ -39,6 +39,15 @@ export function operationsRouter(pool) {
    res.json({messages,next_cursor:messages.length===50?messages[messages.length-1].id:null});
   }catch{res.status(503).json({error:'WhatsApp inbox unavailable'});}
  });
+ router.get('/restaurants/:restaurantId/whatsapp/ai-settings',async(req,res)=>{
+  try{const [rows]=await pool.execute('SELECT enabled FROM whatsapp_ai_settings WHERE restaurant_id=?',[req.restaurantId]);res.json({enabled:Boolean(rows[0]?.enabled)});}
+  catch{res.status(503).json({error:'AI settings unavailable'});}
+ });
+ router.put('/restaurants/:restaurantId/whatsapp/ai-settings',async(req,res)=>{
+  if(typeof req.body?.enabled!=='boolean')return res.status(400).json({error:'Invalid setting'});
+  try{await pool.execute('INSERT INTO whatsapp_ai_settings(restaurant_id,enabled) VALUES (?,?) ON DUPLICATE KEY UPDATE enabled=VALUES(enabled)',[req.restaurantId,req.body.enabled]);res.json({enabled:req.body.enabled});}
+  catch{res.status(503).json({error:'AI settings unavailable'});}
+ });
  router.get('/restaurants/:restaurantId/whatsapp/outbound',async(req,res)=>{
   try{
    const [messages]=await pool.execute('SELECT id,message_id,recipient,text_body,status,sent_at,status_at FROM whatsapp_outbound_messages WHERE restaurant_id=? ORDER BY id DESC LIMIT 50',[req.restaurantId]);
