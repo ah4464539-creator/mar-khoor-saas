@@ -25,3 +25,9 @@ On that Vapi assistant, enable `keypadInputPlan` with `enabled: true` and `delim
 Tell the assistant to announce the staff option in the restaurant's language. When the caller asks for the owner or staff, say “Press 0 to speak to staff.” When Vapi supplies the keypad entry `0`, invoke the transfer tool without a destination. For a refusal, explain that staff transfer is unavailable and offer to continue taking the order. The server checks both the active assistant and the inbound provider line before returning the staff destination.
 
 Before publishing a new ordering number, apply the additive schema on staging and test with an actual phone call. Verify that pressing 0 makes the configured staff phone ring and that the staff member can answer. Verify that normal ordering still reaches the same restaurant.
+
+### Regional line assignment on paid restaurant login
+
+With `REGIONAL_VOICE_ONBOARDING=true`, a restaurant admin's login assigns an available activated line for the restaurant's country. The assignment is atomic across the line inventory, public number and assistant mapping. Existing public numbers are preserved. If the country inventory is empty, login returns `awaiting_local_number`; subsequent logins can retry after inventory is replenished.
+
+The billing integration must maintain `restaurant_paid_voice_access` from verified payment and subscription events. The regional telephony integration must stock `regional_voice_lines` with activated numbers, each already connected to its own Vapi assistant configured with the `get_menu` and `place_order` tools. Instruct assistants to fetch the current menu and restaurant locale before discussing items, and to use the returned item IDs and confirm orders before submission. MariaDB supplies active items and current prices at request time, and order submission validates them again.

@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { promisify } from 'node:util';
 import express from 'express';
+import {assignRegionalVoiceLine} from './voice-onboarding.js';
 const scrypt = promisify(crypto.scrypt);
 const attempts = new Map();
 const WINDOW_MS=15*60*1000, MAX_ATTEMPTS=10;
@@ -42,7 +43,22 @@ export function authRouter(pool) {
    clearAttempt(key);
    const token = crypto.randomBytes(32).toString('hex');
    sessions.set(crypto.createHash('sha256').update(token).digest('hex'), {id:rows[0].id,email:rows[0].email,platformRole:rows[0].platform_role,expires:Date.now()+86400000});
-   res.json({token,expiresIn:86400});
+   const voiceOnboarding=[];
+   if(process.env.REGIONAL_VOICE_ONBOARDING==='true'){
+    try{
+     const [memberships]=await pool.execute(
+      "SELECT restaurant_id FROM restaurant_members WHERE user_id=? AND role='admin' ORDER BY restaurant_id",
+      [rows[0].id]);
+     for(const {restaurant_id} of memberships){
+      const result=await assignRegionalVoiceLine(pool,restaurant_id,rows[0].id)
+       .catch(()=>({status:'temporarily_unavailable'}));
+      voiceOnboarding.push({restaurant_id,...result});
+     }
+    }catch{
+     voiceOnboarding.push({status:'temporarily_unavailable'});
+    }
+   }
+   res.json({token,expiresIn:86400,...(voiceOnboarding.length ? {voiceOnboarding} : {})});
   } catch {res.status(503).json({error:'Authentication unavailable'});}
  });
  router.post('/logout',requireAuth,(req,res)=>{const token=req.get('authorization').slice(7);sessions.delete(crypto.createHash('sha256').update(token).digest('hex'));res.json({loggedOut:true});});

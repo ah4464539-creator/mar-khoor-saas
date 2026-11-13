@@ -151,3 +151,21 @@ CREATE TABLE IF NOT EXISTS restaurant_voice_routes (
  staff_phone VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
 );
+
+-- Written by the billing integration after confirming an active paid voice plan.
+CREATE TABLE IF NOT EXISTS restaurant_paid_voice_access (
+ restaurant_id BIGINT UNSIGNED PRIMARY KEY,
+ paid_until DATETIME NOT NULL,
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+);
+
+-- Add only provider-activated lines already attached to their dedicated Vapi assistants.
+CREATE TABLE IF NOT EXISTS regional_voice_lines (
+ phone_number_id VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin PRIMARY KEY,
+ assistant_id VARCHAR(128) NOT NULL UNIQUE,
+ phone VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL UNIQUE,
+ country_code CHAR(2) NOT NULL,
+ restaurant_id BIGINT UNSIGNED UNIQUE,
+ INDEX (country_code,restaurant_id,phone_number_id),
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id)
+);
