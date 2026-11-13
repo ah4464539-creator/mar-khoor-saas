@@ -43,12 +43,17 @@
 </div>
 </section>
 <section class="panel">
-<h2>AI chat assistant</h2>
+<h2>AI Builder</h2>
 <form id="chat-profile-form" hidden>
 <label>Assistant name <input name="display_name" maxlength="100"></label>
 <label>Website greeting <input name="greeting" maxlength="300"></label>
 <label><input name="web_enabled" type="checkbox"> Enable website chat</label>
-<button>Save assistant</button>
+<label>Tone <select name="tone"><option value="friendly">Friendly</option><option value="professional">Professional</option><option value="concise">Concise</option></select></label>
+<label>Reply language <select name="reply_language"><option value="auto">Match customer</option><option value="en">English</option><option value="ur">Urdu</option><option value="el">Greek</option></select></label>
+<button type="submit">Save assistant</button>
+<label>Preview question <input name="preview_question" maxlength="500" placeholder="What is on the menu?"></label>
+<button type="button" id="chat-preview-button">Test reply</button>
+<p id="chat-preview-reply" role="status"></p>
 </form>
 <p id="chat-profile-status" role="status"></p>
 </section>

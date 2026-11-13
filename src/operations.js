@@ -1,5 +1,6 @@
 import express from 'express';
 import { requireAuth } from './auth.js';
+import {restaurantChat,validChatStyle} from './restaurant-chat.js';
 export function operationsRouter(pool) {
  const router=express.Router();
  const access=async(req,res,next)=>{
@@ -15,21 +16,41 @@ export function operationsRouter(pool) {
  router.use('/restaurants/:restaurantId',requireAuth,access);
  router.get('/restaurants/:restaurantId/chat-profile',async(req,res)=>{
   try{
-   const [rows]=await pool.execute('SELECT c.display_name,c.greeting,c.web_enabled FROM restaurants r LEFT JOIN restaurant_chat_profiles c ON c.restaurant_id=r.id WHERE r.id=?',[req.restaurantId]);
+   const [rows]=await pool.execute('SELECT c.display_name,c.greeting,c.web_enabled,c.tone,c.reply_language FROM restaurants r LEFT JOIN restaurant_chat_profiles c ON c.restaurant_id=r.id WHERE r.id=?',[req.restaurantId]);
    if(!rows.length)return res.status(404).json({error:'Restaurant not found'});
    const profile=rows[0];
-   res.json({display_name:profile.display_name??'',greeting:profile.greeting??'',web_enabled:Boolean(profile.web_enabled??true)});
+   res.json({display_name:profile.display_name??'',greeting:profile.greeting??'',web_enabled:Boolean(profile.web_enabled??true),tone:profile.tone??'friendly',reply_language:profile.reply_language??'auto'});
   }catch{res.status(503).json({error:'Chat assistant settings unavailable'});}
  });
  router.put('/restaurants/:restaurantId/chat-profile',async(req,res)=>{
-  const {display_name,greeting,web_enabled}=req.body??{};
-  if(typeof display_name!=='string'||display_name.length>100||typeof greeting!=='string'||greeting.length>300||typeof web_enabled!=='boolean'){
+  const {display_name,greeting,web_enabled,tone='friendly',reply_language='auto'}=req.body??{};
+  if(typeof display_name!=='string'||display_name.length>100||typeof greeting!=='string'||greeting.length>300||typeof web_enabled!=='boolean'||!validChatStyle(tone,reply_language)){
    return res.status(400).json({error:'Invalid chat assistant settings'});
   }
   try{
-   await pool.execute('INSERT INTO restaurant_chat_profiles (restaurant_id,display_name,greeting,web_enabled) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE display_name=VALUES(display_name),greeting=VALUES(greeting),web_enabled=VALUES(web_enabled)',[req.restaurantId,display_name.trim(),greeting.trim(),web_enabled]);
+   await pool.execute('INSERT INTO restaurant_chat_profiles (restaurant_id,display_name,greeting,web_enabled,tone,reply_language) VALUES (?,?,?,?,?,?) ON DUPLICATE KEY UPDATE display_name=VALUES(display_name),greeting=VALUES(greeting),web_enabled=VALUES(web_enabled),tone=VALUES(tone),reply_language=VALUES(reply_language)',[req.restaurantId,display_name.trim(),greeting.trim(),web_enabled,tone,reply_language]);
    res.json({saved:true});
   }catch{res.status(503).json({error:'Chat assistant settings unavailable'});}
+ });
+ const previewRequests=new Map();
+ let previewReset=0;
+ router.post('/restaurants/:restaurantId/chat-profile/preview',async(req,res)=>{
+  const {display_name,tone,reply_language,message}=req.body??{};
+  if(typeof display_name!=='string'||display_name.length>100||!validChatStyle(tone,reply_language)||typeof message!=='string'||!message.trim()||message.length>500){
+   return res.status(400).json({error:'Enter a valid assistant style and a question of up to 500 characters.'});
+  }
+  const key=process.env.OPENAI_API_KEY;
+  if(!key)return res.status(503).json({error:'AI preview is unavailable until the server AI key is configured.'});
+  const now=Date.now();
+  if(now>=previewReset){previewRequests.clear();previewReset=now+60000;}
+  const count=previewRequests.get(req.restaurantId)??0;
+  if(count>=5)return res.status(429).json({error:'Preview limit reached. Try again in a minute.'});
+  previewRequests.set(req.restaurantId,count+1);
+  try{
+   const [rows]=await pool.execute('SELECT id,name,locale,currency FROM restaurants WHERE id=?',[req.restaurantId]);
+   if(!rows.length)return res.status(404).json({error:'Restaurant not found'});
+   res.set('Cache-Control','no-store').json(await restaurantChat(pool,{...rows[0],display_name,tone,reply_language},message.trim(),{key}));
+  }catch{res.status(503).json({error:'AI preview unavailable'});}
  });
  router.get('/restaurants/:restaurantId/menu',async(req,res)=>{
   try{const [items]=await pool.execute('SELECT id,name,description,price_minor,active FROM menu_items WHERE restaurant_id=? ORDER BY id DESC',[req.restaurantId]);res.json({items});}

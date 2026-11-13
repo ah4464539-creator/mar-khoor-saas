@@ -80,6 +80,8 @@ const chatProfileForm=document.querySelector('#chat-profile-form');
 const chatProfileStatus=document.querySelector('#chat-profile-status');
 async function loadChatProfile(id){
  chatProfileForm.hidden=true;
+ document.querySelector('#chat-preview-reply').textContent='';
+ chatProfileForm.elements.preview_question.value='';
  chatProfileStatus.textContent='Loading assistant settings…';
  try{
   const profile=await api('/api/restaurants/'+id+'/chat-profile');
@@ -87,6 +89,8 @@ async function loadChatProfile(id){
   chatProfileForm.elements.display_name.value=profile.display_name;
   chatProfileForm.elements.greeting.value=profile.greeting;
   chatProfileForm.elements.web_enabled.checked=profile.web_enabled;
+  chatProfileForm.elements.tone.value=profile.tone;
+  chatProfileForm.elements.reply_language.value=profile.reply_language;
   chatProfileForm.hidden=false;
   chatProfileStatus.textContent='';
  }catch(error){
@@ -101,10 +105,29 @@ chatProfileForm.addEventListener('submit',async event=>{
  button.disabled=true;
  try{
   await api('/api/restaurants/'+id+'/chat-profile',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-   display_name:data.get('display_name'),greeting:data.get('greeting'),web_enabled:data.has('web_enabled')
+   display_name:data.get('display_name'),greeting:data.get('greeting'),web_enabled:data.has('web_enabled'),tone:data.get('tone'),reply_language:data.get('reply_language')
   })});
   if(id===restaurantId)chatProfileStatus.textContent='Assistant saved.';
  }catch(error){
   if(id===restaurantId)chatProfileStatus.textContent=error.message;
+ }finally{button.disabled=false;}
+});
+
+document.querySelector('#chat-preview-button').addEventListener('click',async event=>{
+ const button=event.currentTarget;
+ const id=restaurantId;
+ const data=new FormData(chatProfileForm);
+ const output=document.querySelector('#chat-preview-reply');
+ const message=data.get('preview_question').trim();
+ if(!message){output.textContent='Enter a preview question.';return;}
+ button.disabled=true;
+ output.textContent='Generating preview…';
+ try{
+  const result=await api('/api/restaurants/'+id+'/chat-profile/preview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+   message,display_name:data.get('display_name'),tone:data.get('tone'),reply_language:data.get('reply_language')
+  })});
+  if(id===restaurantId)output.textContent=result.reply;
+ }catch(error){
+  if(id===restaurantId)output.textContent=error.message;
  }finally{button.disabled=false;}
 });

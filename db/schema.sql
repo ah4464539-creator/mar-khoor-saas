@@ -177,3 +177,7 @@ CREATE TABLE IF NOT EXISTS restaurant_chat_profiles (
  web_enabled BOOLEAN NOT NULL DEFAULT TRUE,
  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
 );
+
+ALTER TABLE restaurant_chat_profiles
+ ADD COLUMN IF NOT EXISTS tone VARCHAR(16) NOT NULL DEFAULT 'friendly',
+ ADD COLUMN IF NOT EXISTS reply_language VARCHAR(16) NOT NULL DEFAULT 'auto';

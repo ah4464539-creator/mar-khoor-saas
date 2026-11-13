@@ -172,7 +172,7 @@ export function apiRouter(pool) {
   chatRequests.set(req.ip,count+1);
   chatTotal++;
   try{
-   const [rows]=await pool.execute('SELECT r.id,r.name,r.locale,r.currency,c.display_name,c.web_enabled FROM restaurants r LEFT JOIN restaurant_chat_profiles c ON c.restaurant_id=r.id WHERE r.slug=? LIMIT 1',[req.params.slug]);
+   const [rows]=await pool.execute('SELECT r.id,r.name,r.locale,r.currency,c.display_name,c.tone,c.reply_language,c.web_enabled FROM restaurants r LEFT JOIN restaurant_chat_profiles c ON c.restaurant_id=r.id WHERE r.slug=? LIMIT 1',[req.params.slug]);
    if(!rows.length)return res.status(404).json({error:'Restaurant not found.'});
    if(rows[0].web_enabled===0)return res.status(404).json({error:'Chat is disabled for this restaurant.'});
    res.json(await restaurantChat(pool,rows[0],message.trim(),{key}));
