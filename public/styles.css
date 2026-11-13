@@ -257,3 +257,13 @@ aside :focus-visible { outline-color: #ffe642; }
   .hero-channels .feature-icon { display: none; }
   .restaurant-dashboard .kpi-cards { grid-template-columns: minmax(0, 1fr); }
 }
+
+.brand { display:inline-flex; align-items:center; gap:8px; }
+.brand img, .landing .brand img, .platform-dashboard aside .brand img { width:38px; height:38px; flex:none; }
+.brand .wordmark { color:inherit; font-size:16px; font-weight:750; letter-spacing:.035em; }
+.brand .wordmark b { color:#846000; font-weight:750; }
+aside .brand, .platform-dashboard aside .brand, .storefront .top .brand {
+  display:inline-flex; align-items:center; color:#003b26; background:#f6fcf8; border-radius:10px; padding:5px 9px;
+}
+.restaurant-dashboard .kpi-cards article { min-height:96px; border-top:2px solid #d9b64b; }
+.restaurant-dashboard .kpi-cards article .metric-icon { flex:0 0 44px; color:#003b26; background:#dff2e6; }
