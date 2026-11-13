@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Build Your Plan | MAR-KHOOR AI</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/build-plan.js" defer></script>
+</head>
+<body class="landing">
+  <header class="top"><a class="brand" href="/">◈ MAR-KHOOR <span>AI</span></a></header>
+  <main class="landing-section">
+    <h1>Build Your Plan</h1>
+    <div class="tiles">
+      <article>
+        <form id="plan">
+          <label for="country">Restaurant country or territory</label>
+          <select id="country" required><option value="">Select a country</option></select>
+          <fieldset>
+            <legend>Services</legend>
+            <p><label><input type="checkbox" name="service" value="website"> Website Builder</label></p>
+            <p><label><input type="checkbox" name="service" value="webAi"> Web AI Assistant</label></p>
+            <p><label><input type="checkbox" name="service" value="whatsapp"> WhatsApp Business</label></p>
+            <p><label><input type="checkbox" name="service" value="voice" id="voice"> AI Call Assistant</label></p>
+          </fieldset>
+          <fieldset id="phone" hidden disabled>
+            <legend>Phone number</legend>
+            <p><label><input type="radio" name="number" value="existing" checked> Connect or forward my existing number</label></p>
+            <p><label><input type="radio" name="number" value="new"> Request a local number</label></p>
+          </fieldset>
+        </form>
+      </article>
+      <article>
+        <h2>Plan summary</h2>
+        <ul id="items"></ul>
+        <p id="usage" class="muted"></p>
+        <p id="total" role="status">Select your country and services to see your estimate.</p>
+      </article>
+    </div>
+  </main>
+</body>
+</html>
