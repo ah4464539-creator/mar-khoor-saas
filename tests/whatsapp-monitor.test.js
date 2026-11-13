@@ -4,7 +4,13 @@ import express from 'express';
 import {apiRouter} from '../src/api.js';
 import {authRouter,hashPassword} from '../src/auth.js';
 
-test('WhatsApp monitoring is restricted to super admin and aggregates job health',async()=>{
+test('WhatsApp monitoring is restricted to super admin and aggregates job health',async(t)=>{
+ const previousOwner = process.env.SUPER_ADMIN_OWNER_EMAIL;
+ process.env.SUPER_ADMIN_OWNER_EMAIL = 'owner@example.com';
+ t.after(() => {
+  if (previousOwner === undefined) delete process.env.SUPER_ADMIN_OWNER_EMAIL;
+  else process.env.SUPER_ADMIN_OWNER_EMAIL = previousOwner;
+ });
  const password='monitor-test-password',hash=await hashPassword(password);
  const pool={async execute(sql,args=[]){
   if(sql.includes('FROM users WHERE email=?'))return [[{id:5,email:'owner@example.com',password_hash:hash,platform_role:'super_admin'}]];
