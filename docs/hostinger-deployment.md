@@ -33,7 +33,7 @@ Never commit real credentials or paste them into a public URL, HTML, or browser 
 - Live Meta and OpenAI provider credentials, approved phone-number configuration and actual provider send/receive test.
 - Scheduler, error monitoring, backups, retention/privacy and customer consent arrangements.
 - Current login sessions are held in memory and are **development-only**; replace with a durable session store before multi-instance or production launch.
-- Current Vapi inbound webhook is an authenticated stub, not full call-processing integration.
+- Vapi webhook stores call lifecycle events but has not been verified with a live Vapi call and has no HMAC signature check yet (see `docs/vapi-integration.md`).
 - Payments are intentionally deferred.
 
 ## CI
