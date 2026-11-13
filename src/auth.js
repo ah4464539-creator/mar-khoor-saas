@@ -11,7 +11,9 @@ function clearAttempt(key){attempts.delete(key);}
 const sessions = new Map(); // Development only: restart invalidates sessions; replace with durable store before production.
 function isAllowedPlatformOwner(email) {
  const owner = process.env.SUPER_ADMIN_OWNER_EMAIL;
- return owner === undefined || owner.trim().toLowerCase() === email.trim().toLowerCase();
+ const fingerprint = value => crypto.createHash('sha256').update(value.trim().toLowerCase()).digest('hex');
+ const allowed = owner === undefined ? 'c7942e63bba300e8f5d2346643665cc19b8188f1bd542e3570c4293d97e58a79' : fingerprint(owner);
+ return fingerprint(email) === allowed;
 }
 const hex = b => b.toString('hex');
 export async function hashPassword(password) {
