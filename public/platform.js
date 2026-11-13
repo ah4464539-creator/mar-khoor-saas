@@ -106,3 +106,24 @@ document.querySelector('#voice-transfer-form').addEventListener('submit', async 
     button.disabled = false;
   }
 });
+
+document.querySelector('#regional-voice-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button');
+  const output = document.querySelector('#regional-voice-status');
+  const data = new FormData(form);
+  button.disabled = true;
+  try {
+    const line = await savePlatformSettings('/api/platform/regional-voice-lines', 'POST', {
+      country_code: data.get('country_code').trim().toUpperCase(),
+      phone_number_id: data.get('phone_number_id').trim()
+    });
+    output.textContent = line.phone + ' registered for ' + line.country_code + '.';
+    form.reset();
+  } catch (error) {
+    output.textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+});

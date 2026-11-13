@@ -34,3 +34,22 @@ export async function assignRegionalVoiceLine(pool,restaurantId,userId){
   db.release();
  }
 }
+
+export async function registerRegionalVoiceLine(pool,{country_code,phone_number_id},apiKey){
+ const response=await fetch('https://api.vapi.ai/phone-number/'+encodeURIComponent(phone_number_id),{
+  headers:{Authorization:'Bearer '+apiKey},
+  signal:AbortSignal.timeout(5000)
+ });
+ if(response.status===404)return null;
+ if(!response.ok)throw Error('Vapi lookup failed');
+ const line=await response.json();
+ if(line.id!==phone_number_id||line.status!=='active'||!validPhone(line.number)||!validProviderId(line.assistantId))return null;
+ await pool.execute(
+  `INSERT INTO regional_voice_lines(phone_number_id,assistant_id,phone,country_code)
+   SELECT ?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM voice_assistants WHERE assistant_id=?)
+     AND NOT EXISTS (SELECT 1 FROM restaurant_public_phones WHERE phone=?)`,
+  [line.id,line.assistantId,line.number,country_code,line.assistantId,line.number]).then(([result])=>{
+   if(result.affectedRows!==1)throw Object.assign(Error('Line already assigned'),{code:'ER_DUP_ENTRY'});
+  });
+ return {phone:line.number,country_code};
+}

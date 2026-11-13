@@ -1,6 +1,7 @@
 import express from 'express';
 import { requireAuth } from './auth.js';
 import {validPhone,validProviderId} from './voice-routing.js';
+import {registerRegionalVoiceLine} from './voice-onboarding.js';
 export function apiRouter(pool) {
  const router=express.Router();
  router.get('/platform/summary',requireAuth,async(req,res)=>{
@@ -92,6 +93,23 @@ export function apiRouter(pool) {
   }catch(error){
    if(error.code==='ER_DUP_ENTRY')return res.status(409).json({error:'That Vapi number is already assigned to another restaurant.'});
    res.status(503).json({error:'Voice transfer settings unavailable.'});
+  }
+ });
+ router.post('/platform/regional-voice-lines',requireAuth,async(req,res)=>{
+  if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});
+  const {country_code,phone_number_id}=req.body??{};
+  if(typeof country_code!=='string'||!/^[A-Z]{2}$/.test(country_code)||!validProviderId(phone_number_id)){
+   return res.status(400).json({error:'Enter a two-letter country code and a Vapi phone number ID.'});
+  }
+  const key=process.env.VAPI_PRIVATE_KEY;
+  if(!key)return res.status(503).json({error:'Vapi inventory credentials are missing.'});
+  try{
+   const line=await registerRegionalVoiceLine(pool,{country_code,phone_number_id},key);
+   if(!line)return res.status(422).json({error:'Vapi must show an active number with a dedicated assistant.'});
+   res.status(201).json(line);
+  }catch(error){
+   if(error.code==='ER_DUP_ENTRY')return res.status(409).json({error:'Number or assistant is already registered or assigned.'});
+   res.status(503).json({error:'Voice inventory unavailable.'});
   }
  });
  router.get('/platform/voice-assistants',requireAuth,async(req,res)=>{
