@@ -25,16 +25,16 @@ test('Vapi place_order writes once and retries return same order',async()=>{
  const payload={message:{assistant:{id:'assistant-1'},call:{id:'call-88'},toolCallList:[{id:'tool-1',function:{name:'place_order',arguments:{customer_name:'Customer',confirmed:true,items:[{menu_item_id:5,quantity:2}]}}}]}};
  const send=()=>fetch(url,{method:'POST',headers:{'Content-Type':'application/json','x-markhoor-tool-secret':'adapter-order-secret'},body:JSON.stringify(payload)});
  try{
-  const first=await send();assert.equal(first.status,200);assert.deepEqual((await first.json()).results[0].result,{order_id:88,status:'pending',total_minor:1000});
-  const second=await send();assert.equal(second.status,200);assert.deepEqual((await second.json()).results[0].result,{order_id:88,status:'already_received'});
+  const first=await send();assert.equal(first.status,200);assert.deepEqual(JSON.parse((await first.json()).results[0].result),{order_id:88,status:'pending',total_minor:1000});
+  const second=await send();assert.equal(second.status,200);assert.deepEqual(JSON.parse((await second.json()).results[0].result),{order_id:88,status:'already_received'});
   assert.equal(commits,1);
   payload.message.toolCallList[0].function.arguments.confirmed=false;
   const rejected=await send();assert.equal(rejected.status,200);
-  assert.equal((await rejected.json()).results[0].result.error,'Invalid confirmed order');
+  assert.equal((await rejected.json()).results[0].error,'Invalid confirmed order');
   assert.equal(commits,1);
   payload.message.toolCallList[0].function.arguments={customer_name:'Customer',confirmed:true,items:[{menu_item_id:5,quantity:2}],restaurant_id:999,call_id:'forged-call'};
   const replay=await send();assert.equal(replay.status,200);
-  assert.equal((await replay.json()).results[0].result.status,'already_received');
+  assert.equal(JSON.parse((await replay.json()).results[0].result).status,'already_received');
   assert.equal(commits,1);
  }finally{await new Promise(r=>server.close(r));if(old===undefined)delete process.env.VAPI_TOOL_SECRET;else process.env.VAPI_TOOL_SECRET=old}
 });

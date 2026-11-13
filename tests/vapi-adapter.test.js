@@ -20,11 +20,11 @@ test('Vapi tool adapter rejects unauthorized calls and returns mapped menu',asyn
  const send=headers=>fetch(url,{method:'POST',headers:{'Content-Type':'application/json',...headers},body:JSON.stringify(payload)});
  try{
   assert.equal((await send({})).status,401);
-  const response=await send({'x-markhoor-tool-secret':'adapter-test-secret'});
+  const response=await send({Authorization:'Bearer adapter-test-secret'});
   assert.equal(response.status,200);
   const result=await response.json();
   assert.equal(result.results[0].toolCallId,'tool-1');
-  assert.equal(result.results[0].result.items[0].price_minor,250);
+  assert.equal(JSON.parse(result.results[0].result).items[0].price_minor,250);
   assert.deepEqual(queries[0].args,['assistant-123']);
   assert.deepEqual(queries[1].args,[17]);
   const duplicate={message:{assistant:{id:'assistant-123'},toolCallList:[{id:'same',function:{name:'get_menu'}},{id:'same',function:{name:'get_menu'}}]}};

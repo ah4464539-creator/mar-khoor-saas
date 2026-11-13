@@ -8,14 +8,14 @@ export function vapiToolAdapterRouter(pool){
  const router=express.Router();
  router.post('/tools',express.json({limit:'128kb'}),async(req,res)=>{
   const secret=process.env.VAPI_TOOL_SECRET;
-  const provided=req.get('x-markhoor-tool-secret')||'';
+  const provided=req.get('authorization')?.match(/^Bearer (.+)$/i)?.[1]??req.get('x-markhoor-tool-secret')??'';
   if(!secret)return res.status(503).json({error:'Not configured'});
   const a=Buffer.from(provided),b=Buffer.from(secret);
   if(a.length!==b.length||!crypto.timingSafeEqual(a,b))return res.status(401).json({error:'Unauthorized'});
   if(!req.body||typeof req.body!=='object'||Array.isArray(req.body))return res.status(400).json({error:'Invalid request'});
   const message=req.body.message;
   const calls=message?.toolCallList;
-  const assistantId=message?.assistant?.id||message?.assistantId||message?.call?.assistantId;
+  const assistantId=message?.assistant?.id||message?.assistantId||message?.call?.assistantId||message?.call?.assistant?.id;
   if(!Array.isArray(calls)||calls.length<1||calls.length>10||typeof assistantId!=='string'||!/^[a-zA-Z0-9_-]{1,128}$/.test(assistantId))return res.status(400).json({error:'Invalid tool call envelope'});
   if(new Set(calls.map(c=>c?.id)).size!==calls.length)return res.status(400).json({error:'Duplicate tool call ID'});
   const results=[];
@@ -48,7 +48,9 @@ export function vapiToolAdapterRouter(pool){
     results.push({toolCallId:id,result:{restaurant:{name:restaurant.name,currency:restaurant.currency,locale:restaurant.locale},items}});
    }catch{results.push({toolCallId:id,result:{error:'Menu unavailable'}})}
   }
-  res.json({results});
+  res.json({results:results.map(({toolCallId,result})=>result.error
+   ? {toolCallId,error:result.error}
+   : {toolCallId,result:JSON.stringify(result)})});
  });
  return router;
 }
