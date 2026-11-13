@@ -9,7 +9,7 @@
 7. Run `npm run dev`, open `http://localhost:3001` and visit the platform, restaurant and customer pages.
 
 ## Integration note
-`/integrations/webhooks/vapi` is a placeholder acknowledgement endpoint. It uses a custom shared-secret header and does not yet verify the actual Vapi provider signature or process call events. Do not connect production Vapi traffic until authentication and event contracts are implemented.
+`/integrations/webhooks/vapi` stores Vapi call lifecycle events (`status-update`, `end-of-call-report`) behind a shared secret. It does not yet verify a Vapi HMAC signature and has not been tested against a live call. See [Vapi integration status](vapi-integration.md).
 
 ## Security note
 The login sessions are currently in-memory. Production requires durable session storage, HTTPS, CSRF/cookie strategy if switching to cookies, rate limiting, operational logging, and authorization tests.

@@ -39,6 +39,25 @@ export function operationsRouter(pool) {
    res.json({messages,next_cursor:messages.length===50?messages[messages.length-1].id:null});
   }catch{res.status(503).json({error:'WhatsApp inbox unavailable'});}
  });
+ router.get('/restaurants/:restaurantId/voice-calls',async(req,res)=>{
+  const before=req.query.before===undefined?null:Number(req.query.before);
+  if(before!==null&&(!Number.isSafeInteger(before)||before<1))return res.status(400).json({error:'Invalid cursor'});
+  try{
+   const sql='SELECT c.id,c.call_id,c.status,c.ended_reason,c.started_at,c.ended_at,r.order_id FROM voice_calls c LEFT JOIN voice_order_requests r ON r.assistant_id=c.assistant_id AND r.call_id=c.call_id WHERE c.restaurant_id=?'+(before===null?'':' AND c.id<?')+' ORDER BY c.id DESC LIMIT 50';
+   const args=before===null?[req.restaurantId]:[req.restaurantId,before];
+   const [calls]=await pool.execute(sql,args);
+   res.json({calls,next_cursor:calls.length===50?calls[calls.length-1].id:null});
+  }catch{res.status(503).json({error:'Call history unavailable'});}
+ });
+ router.get('/restaurants/:restaurantId/voice-calls/:callRowId',async(req,res)=>{
+  const id=Number(req.params.callRowId);
+  if(!Number.isSafeInteger(id)||id<1)return res.status(400).json({error:'Invalid call'});
+  try{
+   const [rows]=await pool.execute('SELECT c.id,c.call_id,c.status,c.ended_reason,c.transcript,c.started_at,c.ended_at,r.order_id FROM voice_calls c LEFT JOIN voice_order_requests r ON r.assistant_id=c.assistant_id AND r.call_id=c.call_id WHERE c.id=? AND c.restaurant_id=? LIMIT 1',[id,req.restaurantId]);
+   if(!rows.length)return res.status(404).json({error:'Call not found'});
+   res.json({call:rows[0]});
+  }catch{res.status(503).json({error:'Call history unavailable'});}
+ });
  router.get('/restaurants/:restaurantId/whatsapp/ai-settings',async(req,res)=>{
   try{const [rows]=await pool.execute('SELECT enabled FROM whatsapp_ai_settings WHERE restaurant_id=?',[req.restaurantId]);res.json({enabled:Boolean(rows[0]?.enabled)});}
   catch{res.status(503).json({error:'AI settings unavailable'});}

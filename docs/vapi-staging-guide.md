@@ -23,7 +23,7 @@ These are **Mar-Khoor endpoints**, not a claim of Vapi's native tool schema.
 ## Important integration gap
 Vapi's current native tool-call envelope, credentials mechanism, and server URL configuration must be verified against the provider's current documentation before wiring these endpoints. A server-side adapter should extract the authenticated Vapi assistant/call IDs from provider-verified requests, then call the internal endpoints. Do **not** trust caller-supplied assistant or call IDs as proof of origin.
 
-The existing `/integrations/webhooks/vapi` endpoint is an acknowledgement-only placeholder; it is **not** a production Vapi webhook implementation.
+`/integrations/webhooks/vapi` records call lifecycle events in `voice_calls` (see [Vapi integration status](vapi-integration.md)). It is shared-secret protected only and unverified against live Vapi traffic.
 
 ## Testing
 - `npm test` runs mocked API tests.

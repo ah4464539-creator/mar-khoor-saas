@@ -86,6 +86,25 @@ CREATE TABLE IF NOT EXISTS voice_order_requests (
  FOREIGN KEY (order_id) REFERENCES orders(id)
 );
 
+-- Call lifecycle from Vapi status-update / end-of-call-report events.
+-- Transcripts contain customer speech: apply your own retention policy.
+CREATE TABLE IF NOT EXISTS voice_calls (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ assistant_id VARCHAR(128) NOT NULL,
+ call_id VARCHAR(128) NOT NULL,
+ restaurant_id BIGINT UNSIGNED NOT NULL,
+ status VARCHAR(32) NOT NULL,
+ ended_reason VARCHAR(128) NULL,
+ transcript MEDIUMTEXT NULL,
+ started_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ ended_at TIMESTAMP NULL DEFAULT NULL,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ UNIQUE KEY uq_voice_call_log (assistant_id,call_id),
+ FOREIGN KEY (assistant_id) REFERENCES voice_assistants(assistant_id),
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
+ INDEX (restaurant_id,id)
+);
+
 -- Map each Meta WhatsApp phone number ID to exactly one restaurant.
 CREATE TABLE IF NOT EXISTS whatsapp_numbers (
  phone_number_id VARCHAR(64) NOT NULL PRIMARY KEY,

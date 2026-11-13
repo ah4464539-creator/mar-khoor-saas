@@ -1,19 +1,26 @@
 import express from 'express';
 import crypto from 'node:crypto';
+import {parseVapiEvent,processVapiEvent} from './vapi-events.js';
 export function integrationRouter(pool){
  const router=express.Router();
  // Integration foundation only. Never treat inbound events as orders until authenticated and validated.
- router.post('/webhooks/vapi',express.raw({type:'application/json',limit:'256kb'}),(req,res)=>{
+ router.post('/webhooks/vapi',express.raw({type:'application/json',limit:'256kb'}),async(req,res)=>{
   const secret=process.env.VAPI_WEBHOOK_SECRET;
   if(!secret)return res.status(503).json({error:'Webhook not configured'});
-  const provided=req.get('x-markhoor-webhook-secret')||'';
+  // Vapi custom credentials can send the secret as a Bearer token, in X-Vapi-Secret, or in a custom header.
+  const provided=req.get('authorization')?.match(/^Bearer (.+)$/i)?.[1]||req.get('x-vapi-secret')||req.get('x-markhoor-webhook-secret')||'';
   const a=Buffer.from(provided),b=Buffer.from(secret);
   if(a.length!==b.length||!crypto.timingSafeEqual(a,b))return res.status(401).json({error:'Unauthorized'});
   let payload;
   try{payload=JSON.parse(req.body.toString('utf8'))}catch{return res.status(400).json({error:'Invalid JSON'})}
   if(!payload||typeof payload!=='object'||Array.isArray(payload))return res.status(400).json({error:'Invalid event'});
-  // Intentionally acknowledge only; real Vapi event mapping and durable processing are pending.
-  return res.status(202).json({received:true,processed:false});
+  // Only call lifecycle events (status-update, end-of-call-report) are stored. Everything else is acknowledged and ignored.
+  if(parseVapiEvent(payload).kind==='ignored')return res.status(202).json({received:true,processed:false});
+  if(!pool)return res.status(503).json({error:'Call storage unavailable'});
+  try{
+   const result=await processVapiEvent(pool,payload);
+   return res.status(202).json({received:true,processed:result.processed});
+  }catch{return res.status(503).json({error:'Call storage unavailable'});}
  });
  // Meta WhatsApp Cloud API verification and signed event intake.
  router.get('/webhooks/whatsapp',(req,res)=>{
