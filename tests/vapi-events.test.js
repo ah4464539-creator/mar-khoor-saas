@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {parseVapiEvent,processVapiEvent} from '../src/vapi-events.js';
+import crypto from 'node:crypto';
+import {parseVapiEvent,processVapiEvent,verifyVapiHmac} from '../src/vapi-events.js';
 
 const call={id:'call-1',assistantId:'asst-1'};
 
@@ -67,4 +68,34 @@ test('processVapiEvent ignores unmapped assistants without writing',async()=>{
  const result=await processVapiEvent(pool,{message:{type:'status-update',status:'ended',call}});
  assert.deepEqual(result,{processed:false,reason:'assistant_not_mapped'});
  assert.equal(pool.queries.length,1);
+});
+
+const sign=(secret,timestamp,body)=>crypto.createHmac('sha256',secret).update(timestamp+'.'+body).digest('hex');
+
+test('verifyVapiHmac accepts a valid signature over {timestamp}.{body}',()=>{
+ const body=Buffer.from('{"message":{"type":"status-update"}}');
+ const now=1800000000000,timestamp='1800000000';
+ const signature=sign('hmac-secret',timestamp,body.toString());
+ assert.equal(verifyVapiHmac({body,signature,timestamp,secret:'hmac-secret',now}),true);
+ assert.equal(verifyVapiHmac({body,signature:'sha256='+signature.toUpperCase(),timestamp,secret:'hmac-secret',now}),true);
+ // millisecond timestamps are accepted too
+ const ms='1800000000000';
+ assert.equal(verifyVapiHmac({body,signature:sign('hmac-secret',ms,body.toString()),timestamp:ms,secret:'hmac-secret',now}),true);
+});
+
+test('verifyVapiHmac rejects tampering, wrong secrets, stale or malformed input',()=>{
+ const body=Buffer.from('{"a":1}');
+ const now=1800000000000,timestamp='1800000000';
+ const signature=sign('hmac-secret',timestamp,body.toString());
+ const ok={body,signature,timestamp,secret:'hmac-secret',now};
+ assert.equal(verifyVapiHmac({...ok,body:Buffer.from('{"a":2}')}),false);
+ assert.equal(verifyVapiHmac({...ok,secret:'other'}),false);
+ assert.equal(verifyVapiHmac({...ok,now:now+301000}),false);
+ assert.equal(verifyVapiHmac({...ok,now:now-301000}),false);
+ assert.equal(verifyVapiHmac({...ok,timestamp:'1800000001'}),false);
+ assert.equal(verifyVapiHmac({...ok,signature:'zz'}),false);
+ assert.equal(verifyVapiHmac({...ok,signature:''}),false);
+ assert.equal(verifyVapiHmac({...ok,timestamp:'not-a-number'}),false);
+ assert.equal(verifyVapiHmac({...ok,body:'{"a":1}'}),false);
+ assert.equal(verifyVapiHmac({...ok,secret:''}),false);
 });

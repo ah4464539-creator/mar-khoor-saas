@@ -9,6 +9,8 @@
 // Tenant identity is never taken from the payload: the restaurant is resolved
 // from the server-side voice_assistants mapping.
 
+import crypto from 'node:crypto';
+
 const ASSISTANT_ID = /^[a-zA-Z0-9_-]{1,128}$/;
 const CALL_ID = /^[-a-zA-Z0-9_:]{1,128}$/;
 const STATUSES = new Set(['scheduled', 'queued', 'ringing', 'in-progress', 'forwarding', 'ended']);
@@ -69,4 +71,19 @@ export async function processVapiEvent(pool, payload) {
     [event.assistantId, event.callId, restaurantId, event.endedReason, event.transcript]
   );
   return { processed: true };
+}
+
+// Verifies a Vapi HMAC credential: signature = HMAC-SHA256(secret, `${timestamp}.${rawBody}`),
+// hex encoded (the format shown in the Vapi dashboard). Rejects stale timestamps to limit replays.
+// The timestamp must be numeric (seconds or milliseconds since the epoch).
+export function verifyVapiHmac({body,signature,timestamp,secret,now=Date.now(),toleranceSeconds=300}){
+  if(!Buffer.isBuffer(body)||typeof secret!=='string'||!secret)return false;
+  if(typeof signature!=='string'||typeof timestamp!=='string'||!/^[0-9]{9,16}$/.test(timestamp))return false;
+  const raw=Number(timestamp);
+  const ms=raw>1e12?raw:raw*1000;
+  if(Math.abs(now-ms)>toleranceSeconds*1000)return false;
+  const hex=signature.trim().replace(/^sha256=/i,'').toLowerCase();
+  if(!/^[a-f0-9]{64}$/.test(hex))return false;
+  const expected=crypto.createHmac('sha256',secret).update(timestamp+'.').update(body).digest();
+  return crypto.timingSafeEqual(Buffer.from(hex,'hex'),expected);
 }

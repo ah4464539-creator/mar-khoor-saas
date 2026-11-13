@@ -1,16 +1,29 @@
 import express from 'express';
 import crypto from 'node:crypto';
-import {parseVapiEvent,processVapiEvent} from './vapi-events.js';
+import {parseVapiEvent,processVapiEvent,verifyVapiHmac} from './vapi-events.js';
 export function integrationRouter(pool){
  const router=express.Router();
  // Integration foundation only. Never treat inbound events as orders until authenticated and validated.
  router.post('/webhooks/vapi',express.raw({type:'application/json',limit:'256kb'}),async(req,res)=>{
   const secret=process.env.VAPI_WEBHOOK_SECRET;
-  if(!secret)return res.status(503).json({error:'Webhook not configured'});
-  // Vapi custom credentials can send the secret as a Bearer token, in X-Vapi-Secret, or in a custom header.
-  const provided=req.get('authorization')?.match(/^Bearer (.+)$/i)?.[1]||req.get('x-vapi-secret')||req.get('x-markhoor-webhook-secret')||'';
-  const a=Buffer.from(provided),b=Buffer.from(secret);
-  if(a.length!==b.length||!crypto.timingSafeEqual(a,b))return res.status(401).json({error:'Unauthorized'});
+  const hmacSecret=process.env.VAPI_WEBHOOK_HMAC_SECRET;
+  if(!secret&&!hmacSecret)return res.status(503).json({error:'Webhook not configured'});
+  if(!Buffer.isBuffer(req.body))return res.status(400).json({error:'Invalid body'});
+  let authorized=false;
+  // Option 1: shared secret. Vapi custom credentials can send it as a Bearer token, in X-Vapi-Secret, or in a custom header.
+  if(secret){
+   const provided=req.get('authorization')?.match(/^Bearer (.+)$/i)?.[1]||req.get('x-vapi-secret')||req.get('x-markhoor-webhook-secret')||'';
+   const a=Buffer.from(provided),b=Buffer.from(secret);
+   authorized=a.length===b.length&&crypto.timingSafeEqual(a,b);
+  }
+  // Option 2: Vapi HMAC credential (header names are configurable in Vapi; defaults match its dashboard example).
+  if(!authorized&&hmacSecret){
+   const headerName=name=>/^[a-z0-9-]{1,64}$/i.test(name||'')?name:null;
+   const sigHeader=headerName(process.env.VAPI_HMAC_SIGNATURE_HEADER)||'x-signature';
+   const tsHeader=headerName(process.env.VAPI_HMAC_TIMESTAMP_HEADER)||'x-timestamp';
+   authorized=verifyVapiHmac({body:req.body,signature:req.get(sigHeader)||'',timestamp:req.get(tsHeader)||'',secret:hmacSecret});
+  }
+  if(!authorized)return res.status(401).json({error:'Unauthorized'});
   let payload;
   try{payload=JSON.parse(req.body.toString('utf8'))}catch{return res.status(400).json({error:'Invalid JSON'})}
   if(!payload||typeof payload!=='object'||Array.isArray(payload))return res.status(400).json({error:'Invalid event'});
