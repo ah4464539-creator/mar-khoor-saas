@@ -137,7 +137,9 @@ export function apiRouter(pool) {
   try{
    const [restaurants]=await pool.execute('SELECT id FROM restaurants WHERE id=? LIMIT 1',[restaurantId]);
    if(!restaurants.length)return res.status(404).json({error:'Restaurant not found'});
-   await pool.execute('INSERT INTO whatsapp_numbers(phone_number_id,restaurant_id,active) VALUES (?,?,?) ON DUPLICATE KEY UPDATE restaurant_id=VALUES(restaurant_id),active=VALUES(active)',[phoneId,restaurantId,active]);
+   await pool.execute('INSERT INTO whatsapp_numbers(phone_number_id,restaurant_id,active) VALUES (?,?,?) ON DUPLICATE KEY UPDATE active=IF(restaurant_id=VALUES(restaurant_id),VALUES(active),active)',[phoneId,restaurantId,active]);
+   const [mapped]=await pool.execute('SELECT restaurant_id FROM whatsapp_numbers WHERE phone_number_id=?',[phoneId]);
+   if(String(mapped[0]?.restaurant_id)!==String(restaurantId))return res.status(409).json({error:'This WhatsApp number belongs to another restaurant.'});
    res.json({phone_number_id:phoneId,restaurant_id:restaurantId,active});
   }catch{res.status(503).json({error:'Mapping unavailable'});}
  });

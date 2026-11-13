@@ -6,7 +6,7 @@ test('AI worker replies using mapped restaurant menu and stores outbound history
  const oldAI=process.env.OPENAI_API_KEY,oldMeta=process.env.WHATSAPP_ACCESS_TOKEN;
  process.env.OPENAI_API_KEY='test-ai-key';process.env.WHATSAPP_ACCESS_TOKEN='test-meta-token';
  const queries=[],requests=[];
- const job={inbound_message_id:'wamid.in-1',restaurant_id:7,phone_number_id:'12345',sender:'306900000000',text_body:'What is on the menu?',name:'Test Cafe',locale:'en',currency:'EUR'};
+ const job={inbound_message_id:'wamid.in-1',restaurant_id:7,phone_number_id:'12345',sender:'306900000000',text_body:'What is on the menu?',name:'Test Cafe',slug:'cheema-cafe',locale:'en',currency:'EUR'};
  const pool={async execute(sql,args=[]){
   queries.push({sql,args});
   if(sql.startsWith('SELECT j.inbound_message_id'))return [[job]];
@@ -17,13 +17,14 @@ test('AI worker replies using mapped restaurant menu and stores outbound history
   if(sql.startsWith("UPDATE whatsapp_ai_jobs SET status='sent'"))return [{affectedRows:1}];
   throw Error('Unexpected SQL: '+sql);
  }};
- const fetcher=async(url,options)=>{requests.push({url,body:JSON.parse(options.body)});if(url.includes('api.openai.com'))return {ok:true,json:async()=>({choices:[{message:{content:'Soup costs 4.50 EUR.'}}]})};return {ok:true,json:async()=>({messages:[{id:'wamid.out-1'}]})}};
+ const fetcher=async(url,options)=>{requests.push({url,body:JSON.parse(options.body)});if(url.includes('api.openai.com'))return {ok:true,json:async()=>({choices:[{message:{content:JSON.stringify({reply:'Soup costs 4.50 EUR.',wants_order:true})}}]})};return {ok:true,json:async()=>({messages:[{id:'wamid.out-1'}]})}};
  try{
   const result=await processWhatsAppAIJobs(pool,{fetcher});
   assert.deepEqual(result,{claimed:1,sent:1,failed:0});
   assert.equal(requests.length,2);
-  assert.match(requests[0].body.messages[0].content,/Test Cafe/);
-  assert.match(requests[0].body.messages[0].content,/Soup/);
+  assert.match(requests[0].body.messages[1].content,/Test Cafe/);
+  assert.match(requests[0].body.messages[1].content,/Soup/);
+  assert.match(requests[1].body.text.body,/menu\.html\?restaurant=cheema-cafe$/);
   assert.equal(requests[1].body.to,'306900000000');
   assert.equal(queries.find(q=>q.sql.startsWith('INSERT INTO whatsapp_outbound_messages')).args[1],7);
  }finally{
@@ -44,7 +45,7 @@ test('AI worker refuses to send after restaurant disables auto-reply',async()=>{
   if(sql.startsWith("UPDATE whatsapp_ai_jobs SET status='failed'"))return [{affectedRows:1}];
   throw Error('Unexpected SQL: '+sql);
  }};
- const fetcher=async(url)=>{calls.push(url);return {ok:true,json:async()=>({choices:[{message:{content:'Hello'}}]})}};
+ const fetcher=async(url)=>{calls.push(url);return {ok:true,json:async()=>({choices:[{message:{content:JSON.stringify({reply:'Hello',wants_order:false})}}]})}};
  try{
   const result=await processWhatsAppAIJobs(pool,{fetcher});
   assert.deepEqual(result,{claimed:1,sent:0,failed:1});

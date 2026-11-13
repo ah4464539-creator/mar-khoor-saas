@@ -86,6 +86,15 @@
 <h2>Restaurants directory</h2>
 <div id="tenant-list" class="muted">Sign in to load tenants.</div>
 </section>
+<section class="panel">
+<h2>Restaurant WhatsApp number</h2>
+<form id="whatsapp-number-form">
+<label>Restaurant ID <input name="restaurant_id" type="number" min="1" required></label>
+<label>Meta phone number ID <input name="phone_number_id" inputmode="numeric" pattern="[0-9]{1,64}" maxlength="64" required></label>
+<button>Connect restaurant number</button>
+</form>
+<p id="whatsapp-number-status" role="status"></p>
+</section>
 <section class="panel" id="whatsapp-worker">
 <h2>WhatsApp worker</h2>
 <p id="worker-status" role="status">Sign in to view job and delivery counts.</p><dl id="worker-metrics" class="worker-metrics"></dl>

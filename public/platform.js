@@ -127,3 +127,23 @@ document.querySelector('#regional-voice-form').addEventListener('submit', async 
     button.disabled = false;
   }
 });
+
+document.querySelector('#whatsapp-number-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button');
+  const output = document.querySelector('#whatsapp-number-status');
+  const data = new FormData(form);
+  button.disabled = true;
+  try {
+    await savePlatformSettings('/api/platform/whatsapp-numbers/' + encodeURIComponent(data.get('phone_number_id')), 'PUT', {
+      restaurant_id: Number(data.get('restaurant_id')),
+      active: true
+    });
+    output.textContent = 'Number mapped. Enable AI replies in the restaurant workspace.';
+  } catch (error) {
+    output.textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+});
