@@ -23,7 +23,30 @@ async function refresh(){
   }
   inboxEl.append(p);
  }
- const summary=analytics.summary;document.querySelector('#analytics').textContent='Total orders: '+summary.total_orders+' · Pending: '+summary.pending_orders+' · Completed: '+summary.completed_orders+' · Completed revenue: '+(Number(summary.completed_revenue_minor)/100).toFixed(2)+' '+restaurantCurrency;
+ const summary = analytics.summary;
+ const revenue = (Number(summary.completed_revenue_minor) / 100).toFixed(2) + ' ' + restaurantCurrency;
+ const metrics = [
+  ['▤', 'Total orders', summary.total_orders],
+  ['◷', 'Pending orders', summary.pending_orders],
+  ['✓', 'Completed orders', summary.completed_orders],
+  ['▥', 'Completed revenue', revenue],
+ ];
+ const analyticsPanel = document.querySelector('#analytics');
+ analyticsPanel.replaceChildren(...metrics.map(([symbol, label, value]) => {
+  const card = document.createElement('article');
+  const icon = document.createElement('span');
+  icon.className = 'metric-icon';
+  icon.setAttribute('aria-hidden', 'true');
+  icon.textContent = symbol;
+  const body = document.createElement('div');
+  const title = document.createElement('span');
+  title.textContent = label;
+  const number = document.createElement('strong');
+  number.textContent = value;
+  body.append(title, number);
+  card.append(icon, body);
+  return card;
+ }));
  const items=document.querySelector('#items');items.replaceChildren();
  for(const item of menu.items){const p=document.createElement('p'),button=document.createElement('button');p.textContent=item.name+' — '+(item.price_minor/100).toFixed(2)+' · '+(item.active?'Active':'Hidden')+' ';button.textContent=item.active?'Hide':'Show';button.addEventListener('click',async()=>{try{await api('/api/restaurants/'+restaurantId+'/menu/'+item.id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({...item,active:!item.active})});await refresh()}catch(e){status.textContent=e.message}});p.append(button);items.append(p)}
  const list=document.querySelector('#orders');list.replaceChildren();
