@@ -65,7 +65,7 @@ form.addEventListener('submit',async e=>{e.preventDefault();status.textContent='
   voiceStatus.textContent=messages[entry?.status]??'';
  }
  if(result.restaurants.length===1)showVoiceStatus(result.restaurants[0]);
- for(const restaurant of result.restaurants){const button=document.createElement('button');button.textContent=restaurant.name+' · '+restaurant.role;button.addEventListener('click',async()=>{showVoiceStatus(restaurant);restaurantId=restaurant.id;restaurantCurrency=restaurant.currency;document.querySelector('#management').hidden=false;try{await refresh();status.textContent='Loaded '+restaurant.name}catch(e){status.textContent=e.message}});target.append(button)}
+ for(const restaurant of result.restaurants){const button=document.createElement('button');button.textContent=restaurant.name+' · '+restaurant.role;button.addEventListener('click',async()=>{showVoiceStatus(restaurant);restaurantId=restaurant.id;void loadChatProfile(restaurant.id);restaurantCurrency=restaurant.currency;document.querySelector('#management').hidden=false;try{await refresh();status.textContent='Loaded '+restaurant.name}catch(e){status.textContent=e.message}});target.append(button)}
  if(!result.restaurants.length)target.textContent='No restaurants assigned.';status.textContent='Account loaded.';
 }catch(err){status.textContent=err.message}});
 document.querySelector('#add-item').addEventListener('submit',async e=>{e.preventDefault();if(!restaurantId)return;try{
@@ -75,3 +75,36 @@ document.querySelector('#add-item').addEventListener('submit',async e=>{e.preven
 }catch(err){status.textContent=err.message}});
 
 document.querySelector('#whatsapp-ai-enabled').addEventListener('change',async e=>{if(!restaurantId)return;const enabled=e.target.checked;e.target.disabled=true;try{await api('/api/restaurants/'+restaurantId+'/whatsapp/ai-settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled})});status.textContent='WhatsApp AI '+(enabled?'enabled':'disabled')}catch(err){e.target.checked=!enabled;status.textContent=err.message}finally{e.target.disabled=false}});
+
+const chatProfileForm=document.querySelector('#chat-profile-form');
+const chatProfileStatus=document.querySelector('#chat-profile-status');
+async function loadChatProfile(id){
+ chatProfileForm.hidden=true;
+ chatProfileStatus.textContent='Loading assistant settings…';
+ try{
+  const profile=await api('/api/restaurants/'+id+'/chat-profile');
+  if(id!==restaurantId)return;
+  chatProfileForm.elements.display_name.value=profile.display_name;
+  chatProfileForm.elements.greeting.value=profile.greeting;
+  chatProfileForm.elements.web_enabled.checked=profile.web_enabled;
+  chatProfileForm.hidden=false;
+  chatProfileStatus.textContent='';
+ }catch(error){
+  if(id===restaurantId)chatProfileStatus.textContent=error.message;
+ }
+}
+chatProfileForm.addEventListener('submit',async event=>{
+ event.preventDefault();
+ const id=restaurantId;
+ const data=new FormData(chatProfileForm);
+ const button=chatProfileForm.querySelector('button');
+ button.disabled=true;
+ try{
+  await api('/api/restaurants/'+id+'/chat-profile',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+   display_name:data.get('display_name'),greeting:data.get('greeting'),web_enabled:data.has('web_enabled')
+  })});
+  if(id===restaurantId)chatProfileStatus.textContent='Assistant saved.';
+ }catch(error){
+  if(id===restaurantId)chatProfileStatus.textContent=error.message;
+ }finally{button.disabled=false;}
+});

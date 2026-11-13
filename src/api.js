@@ -172,8 +172,9 @@ export function apiRouter(pool) {
   chatRequests.set(req.ip,count+1);
   chatTotal++;
   try{
-   const [rows]=await pool.execute('SELECT id,name,locale,currency FROM restaurants WHERE slug=? LIMIT 1',[req.params.slug]);
+   const [rows]=await pool.execute('SELECT r.id,r.name,r.locale,r.currency,c.display_name,c.web_enabled FROM restaurants r LEFT JOIN restaurant_chat_profiles c ON c.restaurant_id=r.id WHERE r.slug=? LIMIT 1',[req.params.slug]);
    if(!rows.length)return res.status(404).json({error:'Restaurant not found.'});
+   if(rows[0].web_enabled===0)return res.status(404).json({error:'Chat is disabled for this restaurant.'});
    res.json(await restaurantChat(pool,rows[0],message.trim(),{key}));
   }catch{
    res.status(503).json({error:'Chat is temporarily unavailable. You can still order from the menu.'});
@@ -186,7 +187,13 @@ export function apiRouter(pool) {
    if(!restaurants.length)return res.status(404).json({error:'Restaurant not found'});
    const restaurant=restaurants[0];
    const [items]=await pool.execute('SELECT id,name,description,price_minor FROM menu_items WHERE restaurant_id=? AND active=1 ORDER BY id',[restaurant.id]);
-   res.json({restaurant,items,chat_enabled:process.env.WEB_CHAT_ENABLED==='true'&&Boolean(process.env.OPENAI_API_KEY)});
+   let chatProfile=null;
+   if(process.env.WEB_CHAT_ENABLED==='true'&&process.env.OPENAI_API_KEY){
+    const [profiles]=await pool.execute('SELECT display_name,greeting,web_enabled FROM restaurant_chat_profiles WHERE restaurant_id=?',[restaurant.id]);
+    const profile=profiles[0];
+    if(profile?.web_enabled!==0)chatProfile={name:profile?.display_name||restaurant.name+' Assistant',greeting:profile?.greeting||''};
+   }
+   res.json({restaurant,items,chat_enabled:Boolean(chatProfile),chat_profile:chatProfile});
   } catch {res.status(503).json({error:'Database unavailable'});}
  });
  return router;

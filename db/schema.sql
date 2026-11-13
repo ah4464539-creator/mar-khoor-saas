@@ -169,3 +169,11 @@ CREATE TABLE IF NOT EXISTS regional_voice_lines (
  INDEX (country_code,restaurant_id,phone_number_id),
  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id)
 );
+
+CREATE TABLE IF NOT EXISTS restaurant_chat_profiles (
+ restaurant_id BIGINT UNSIGNED PRIMARY KEY,
+ display_name VARCHAR(100) NOT NULL,
+ greeting VARCHAR(300) NOT NULL,
+ web_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+);

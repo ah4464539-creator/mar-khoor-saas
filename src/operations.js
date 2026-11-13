@@ -13,6 +13,24 @@ export function operationsRouter(pool) {
   }catch{res.status(503).json({error:'Database unavailable'});}
  };
  router.use('/restaurants/:restaurantId',requireAuth,access);
+ router.get('/restaurants/:restaurantId/chat-profile',async(req,res)=>{
+  try{
+   const [rows]=await pool.execute('SELECT c.display_name,c.greeting,c.web_enabled FROM restaurants r LEFT JOIN restaurant_chat_profiles c ON c.restaurant_id=r.id WHERE r.id=?',[req.restaurantId]);
+   if(!rows.length)return res.status(404).json({error:'Restaurant not found'});
+   const profile=rows[0];
+   res.json({display_name:profile.display_name??'',greeting:profile.greeting??'',web_enabled:Boolean(profile.web_enabled??true)});
+  }catch{res.status(503).json({error:'Chat assistant settings unavailable'});}
+ });
+ router.put('/restaurants/:restaurantId/chat-profile',async(req,res)=>{
+  const {display_name,greeting,web_enabled}=req.body??{};
+  if(typeof display_name!=='string'||display_name.length>100||typeof greeting!=='string'||greeting.length>300||typeof web_enabled!=='boolean'){
+   return res.status(400).json({error:'Invalid chat assistant settings'});
+  }
+  try{
+   await pool.execute('INSERT INTO restaurant_chat_profiles (restaurant_id,display_name,greeting,web_enabled) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE display_name=VALUES(display_name),greeting=VALUES(greeting),web_enabled=VALUES(web_enabled)',[req.restaurantId,display_name.trim(),greeting.trim(),web_enabled]);
+   res.json({saved:true});
+  }catch{res.status(503).json({error:'Chat assistant settings unavailable'});}
+ });
  router.get('/restaurants/:restaurantId/menu',async(req,res)=>{
   try{const [items]=await pool.execute('SELECT id,name,description,price_minor,active FROM menu_items WHERE restaurant_id=? ORDER BY id DESC',[req.restaurantId]);res.json({items});}
   catch{res.status(503).json({error:'Database unavailable'});}

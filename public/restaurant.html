@@ -43,6 +43,16 @@
 </div>
 </section>
 <section class="panel">
+<h2>AI chat assistant</h2>
+<form id="chat-profile-form" hidden>
+<label>Assistant name <input name="display_name" maxlength="100"></label>
+<label>Website greeting <input name="greeting" maxlength="300"></label>
+<label><input name="web_enabled" type="checkbox"> Enable website chat</label>
+<button>Save assistant</button>
+</form>
+<p id="chat-profile-status" role="status"></p>
+</section>
+<section class="panel">
 <h2>WhatsApp inbox</h2>
 <label><input id="whatsapp-ai-enabled" type="checkbox"> AI auto-replies (opt-in)</label>
 <div id="whatsapp-inbox" class="muted">
