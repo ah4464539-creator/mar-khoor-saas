@@ -34,7 +34,11 @@ app.use('/integrations/vapi', vapiToolAdapterRouter(pool));
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'mar-khoor-api' }));
 app.get('/health/database', async (_req, res) => {
   try { await pool.query('SELECT 1'); res.json({ status: 'ok', database: 'connected' }); }
-  catch { res.status(503).json({ status: 'unavailable', database: 'disconnected' }); }
+  catch (error) {
+    const code = /^[A-Z][A-Z0-9_]{1,63}$/.test(error?.code ?? '') ? error.code : 'UNKNOWN';
+    console.warn('MariaDB health check failed:', code);
+    res.status(503).json({ status: 'unavailable', database: 'disconnected' });
+  }
 });
 const port = Number(process.env.PORT || 3001);
 app.listen(port, () => console.log(`Mar-Khoor API listening on ${port}`));
