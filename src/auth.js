@@ -9,6 +9,10 @@ function throttle(key){const now=Date.now(),value=attempts.get(key);if(!value||v
 function clearAttempt(key){attempts.delete(key);}
 
 const sessions = new Map(); // Development only: restart invalidates sessions; replace with durable store before production.
+function isAllowedPlatformOwner(email) {
+ const owner = process.env.SUPER_ADMIN_OWNER_EMAIL;
+ return owner === undefined || owner.trim().toLowerCase() === email.trim().toLowerCase();
+}
 const hex = b => b.toString('hex');
 export async function hashPassword(password) {
  const salt = crypto.randomBytes(16);
@@ -25,6 +29,8 @@ export function requireAuth(req,res,next) {
  const match=/^Bearer ([a-f0-9]{64})$/.exec(req.get('authorization')||'');
  const session=match && sessions.get(crypto.createHash('sha256').update(match[1]).digest('hex'));
  if(!session || session.expires<Date.now())return res.status(401).json({error:'Unauthorized'});
+ if(session.platformRole==='super_admin' && !isAllowedPlatformOwner(session.email))
+  return res.status(403).json({error:'Forbidden'});
  req.user=session;next();
 }
 export function authRouter(pool) {
@@ -39,6 +45,10 @@ export function authRouter(pool) {
   try {
    const [rows] = await pool.execute('SELECT id,email,password_hash,platform_role FROM users WHERE email=? LIMIT 1',[email.trim().toLowerCase()]);
    if (!rows.length || !(await checkPassword(password,rows[0].password_hash))){throttle(key);return res.status(401).json({error:'Invalid credentials'});}
+   if (rows[0].platform_role === 'super_admin' && !isAllowedPlatformOwner(rows[0].email)) {
+    throttle(key);
+    return res.status(401).json({error:'Invalid credentials'});
+   }
    clearAttempt(key);
    const token = crypto.randomBytes(32).toString('hex');
    sessions.set(crypto.createHash('sha256').update(token).digest('hex'), {id:rows[0].id,email:rows[0].email,platformRole:rows[0].platform_role,expires:Date.now()+86400000});
@@ -50,6 +60,8 @@ export function authRouter(pool) {
   const match = /^Bearer ([a-f0-9]{64})$/.exec(req.get('authorization') || '');
   const session = match && sessions.get(crypto.createHash('sha256').update(match[1]).digest('hex'));
   if (!session || session.expires < Date.now()) return res.status(401).json({error:'Unauthorized'});
+  if(session.platformRole==='super_admin' && !isAllowedPlatformOwner(session.email))
+   return res.status(403).json({error:'Forbidden'});
   try {
    const [rows] = await pool.execute('SELECT restaurant_id,role FROM restaurant_members WHERE user_id=?',[session.id]);
    res.json({user:{id:session.id,email:session.email,platformRole:session.platformRole},memberships:rows});
