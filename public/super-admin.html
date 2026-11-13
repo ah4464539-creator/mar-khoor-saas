@@ -62,6 +62,17 @@
 </form>
 <p id="phone-settings-status" role="status"></p>
 </section>
+<section class="panel">
+<h2>AI call transfer</h2>
+<p>Save the dedicated storefront number first. Pressing 0 routes callers to the staff number when transfer is enabled in Vapi.</p>
+<form id="voice-transfer-form">
+<input name="restaurant_id" aria-label="Restaurant ID for transfer" type="number" min="1" step="1" placeholder="Restaurant ID" required>
+<input name="phone_number_id" aria-label="Vapi phone number ID" placeholder="Vapi phone number ID" maxlength="128" required>
+<input name="staff_phone" aria-label="Private staff phone" type="tel" placeholder="Staff number in international format" maxlength="16" required>
+<button>Save transfer settings</button>
+</form>
+<p id="voice-transfer-status" role="status"></p>
+</section>
 <section class="panel" id="directory">
 <h2>Restaurants directory</h2>
 <div id="tenant-list" class="muted">Sign in to load tenants.</div>

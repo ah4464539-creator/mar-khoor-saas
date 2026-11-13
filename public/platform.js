@@ -85,3 +85,24 @@ document.querySelector('#restaurant-phone-form').addEventListener('submit', asyn
     button.disabled = false;
   }
 });
+
+document.querySelector('#voice-transfer-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button');
+  const output = document.querySelector('#voice-transfer-status');
+  button.disabled = true;
+  try {
+    const data = new FormData(form);
+    const restaurantId = encodeURIComponent(data.get('restaurant_id'));
+    await savePlatformSettings('/api/platform/restaurants/' + restaurantId + '/voice-transfer', 'PUT', {
+      phone_number_id: data.get('phone_number_id').trim(),
+      staff_phone: data.get('staff_phone').trim()
+    });
+    output.textContent = 'Staff transfer settings saved.';
+  } catch (error) {
+    output.textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+});

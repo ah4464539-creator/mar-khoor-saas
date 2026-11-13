@@ -143,3 +143,11 @@ CREATE TABLE IF NOT EXISTS restaurant_public_phones (
  phone VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL UNIQUE,
  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS restaurant_voice_routes (
+ restaurant_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+ phone_number_id VARCHAR(128) CHARACTER SET ascii COLLATE ascii_bin NOT NULL UNIQUE,
+ ai_phone VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ staff_phone VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+);

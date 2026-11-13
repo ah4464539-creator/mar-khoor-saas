@@ -1,5 +1,6 @@
 import express from 'express';
 import { requireAuth } from './auth.js';
+import {validPhone,validProviderId} from './voice-routing.js';
 export function apiRouter(pool) {
  const router=express.Router();
  router.get('/platform/summary',requireAuth,async(req,res)=>{
@@ -66,6 +67,31 @@ export function apiRouter(pool) {
    if(error.code==='ER_DUP_ENTRY')return res.status(409).json({error:'This number belongs to another restaurant.'});
    if(error.code==='ER_NO_REFERENCED_ROW_2')return res.status(404).json({error:'Restaurant not found.'});
    res.status(503).json({error:'Phone settings unavailable.'});
+  }
+ });
+ router.put('/platform/restaurants/:id/voice-transfer',requireAuth,async(req,res)=>{
+  if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});
+  const id=Number(req.params.id);
+  const {phone_number_id,staff_phone}=req.body??{};
+  if(!Number.isSafeInteger(id)||id<1||!validProviderId(phone_number_id)||!validPhone(staff_phone)){
+   return res.status(400).json({error:'Enter the restaurant ID, Vapi phone number ID and staff phone in international format.'});
+  }
+  try{
+   const [phones]=await pool.execute('SELECT restaurant_id,phone FROM restaurant_public_phones WHERE restaurant_id=? OR phone=?',[id,staff_phone]);
+   if(phones.some(line=>line.phone===staff_phone))return res.status(409).json({error:'Use a staff number separate from the public ordering numbers.'});
+   const aiPhone=phones.find(line=>String(line.restaurant_id)===String(id))?.phone;
+   if(!aiPhone)return res.status(409).json({error:'Save the dedicated storefront number first.'});
+   await pool.execute(
+    `INSERT INTO restaurant_voice_routes (restaurant_id,phone_number_id,ai_phone,staff_phone) VALUES (?,?,?,?)
+     ON DUPLICATE KEY UPDATE phone_number_id=IF(restaurant_id=VALUES(restaurant_id),VALUES(phone_number_id),phone_number_id),
+     ai_phone=IF(restaurant_id=VALUES(restaurant_id),VALUES(ai_phone),ai_phone),
+     staff_phone=IF(restaurant_id=VALUES(restaurant_id),VALUES(staff_phone),staff_phone)`,[id,phone_number_id,aiPhone,staff_phone]);
+   const [saved]=await pool.execute('SELECT phone_number_id FROM restaurant_voice_routes WHERE restaurant_id=?',[id]);
+   if(saved[0]?.phone_number_id!==phone_number_id)return res.status(409).json({error:'That Vapi number is already assigned to another restaurant.'});
+   res.json({configured:true});
+  }catch(error){
+   if(error.code==='ER_DUP_ENTRY')return res.status(409).json({error:'That Vapi number is already assigned to another restaurant.'});
+   res.status(503).json({error:'Voice transfer settings unavailable.'});
   }
  });
  router.get('/platform/voice-assistants',requireAuth,async(req,res)=>{

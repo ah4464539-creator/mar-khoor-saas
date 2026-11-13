@@ -1,17 +1,45 @@
 import express from 'express';
 import crypto from 'node:crypto';
+import {validPhone,validProviderId} from './voice-routing.js';
 import {createVoiceOrderHandler} from './voice-tools.js';
 
 // Adapter for Vapi-style tool-calls payloads. Configure a private server URL
 // and verify the provider's current security options before production.
 export function vapiToolAdapterRouter(pool){
  const router=express.Router();
- router.post('/tools',express.json({limit:'128kb'}),async(req,res)=>{
+ const parseBody=express.json({limit:'128kb'});
+ const requireVapiSecret=(req,res,next)=>{
   const secret=process.env.VAPI_TOOL_SECRET;
   const provided=req.get('authorization')?.match(/^Bearer (.+)$/i)?.[1]??req.get('x-markhoor-tool-secret')??'';
   if(!secret)return res.status(503).json({error:'Not configured'});
   const a=Buffer.from(provided),b=Buffer.from(secret);
   if(a.length!==b.length||!crypto.timingSafeEqual(a,b))return res.status(401).json({error:'Unauthorized'});
+  next();
+ };
+ router.post('/transfer',requireVapiSecret,parseBody,async(req,res)=>{
+  const message=req.body?.message;
+  const {type,assistantId,phoneNumberId}=message?.call??{};
+  if(message?.type!=='transfer-destination-request'||type!=='inboundPhoneCall'||
+     !validProviderId(assistantId)||!validProviderId(phoneNumberId)){
+   return res.status(400).json({error:'Invalid inbound transfer request'});
+  }
+  try{
+   const [routes]=await pool.execute(
+    `SELECT route.staff_phone
+     FROM restaurant_voice_routes route
+     JOIN voice_assistants assistant ON assistant.restaurant_id=route.restaurant_id
+     JOIN restaurant_public_phones line ON line.restaurant_id=route.restaurant_id AND line.phone=route.ai_phone
+     WHERE assistant.assistant_id=? AND assistant.active=1 AND route.phone_number_id=?
+       AND NOT EXISTS (SELECT 1 FROM restaurant_public_phones public_line WHERE public_line.phone=route.staff_phone)
+     LIMIT 1`,[assistantId,phoneNumberId]);
+   const number=routes[0]?.staff_phone;
+   if(!validPhone(number))return res.json({error:'Staff transfer is unavailable. Offer to continue taking the order.'});
+   res.json({destination:{type:'number',number}});
+  }catch{
+   res.json({error:'Staff transfer is temporarily unavailable. Offer to continue taking the order.'});
+  }
+ });
+ router.post('/tools',requireVapiSecret,parseBody,async(req,res)=>{
   if(!req.body||typeof req.body!=='object'||Array.isArray(req.body))return res.status(400).json({error:'Invalid request'});
   const message=req.body.message;
   const calls=message?.toolCallList;
