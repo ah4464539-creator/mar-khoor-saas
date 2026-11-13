@@ -28,6 +28,46 @@ export function apiRouter(pool) {
   try{const [rows]=await pool.query('SELECT r.id,r.name,r.slug,r.country_code,r.currency,r.locale,COUNT(m.user_id) AS members FROM restaurants r LEFT JOIN restaurant_members m ON m.restaurant_id=r.id GROUP BY r.id ORDER BY r.id DESC LIMIT 100');res.json({restaurants:rows});}
   catch{res.status(503).json({error:'Database unavailable'});}
  });
+ router.post('/platform/restaurants',requireAuth,async(req,res)=>{
+  if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});
+  const {name,slug,country_code,currency,locale}=req.body??{};
+  const valid=(value,pattern)=>typeof value==='string'&&pattern.test(value);
+  if(!valid(name,/^.{1,160}$/u)||!name.trim()||!valid(slug,/^[a-z0-9]+(?:-[a-z0-9]+)*$/)||slug.length>160||
+     !valid(country_code,/^[A-Z]{2}$/)||!valid(currency,/^[A-Z]{3}$/)||!valid(locale,/^[a-zA-Z0-9-]{2,20}$/)){
+   return res.status(400).json({error:'Enter a name, URL slug, two-letter country, three-letter currency and locale.'});
+  }
+  try{
+   if(!Intl.supportedValuesOf('currency').includes(currency)||!Intl.getCanonicalLocales(locale).length){
+    return res.status(400).json({error:'Invalid currency or locale.'});
+   }
+  }catch{return res.status(400).json({error:'Invalid locale.'});}
+  try{
+   const [created]=await pool.execute('INSERT INTO restaurants(name,slug,country_code,currency,locale) VALUES (?,?,?,?,?)',[name.trim(),slug,country_code,currency,locale]);
+   res.status(201).json({id:created.insertId,slug});
+  }catch(error){
+   if(error.code==='ER_DUP_ENTRY')return res.status(409).json({error:'This restaurant slug is already in use.'});
+   res.status(503).json({error:'Restaurant could not be created.'});
+  }
+ });
+ router.put('/platform/restaurants/:id/public-phone',requireAuth,async(req,res)=>{
+  if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});
+  const id=Number(req.params.id);
+  const phone=req.body?.phone;
+  if(!Number.isSafeInteger(id)||id<1||typeof phone!=='string'||(phone!==''&&!/^\+[1-9][0-9]{6,14}$/.test(phone))){
+   return res.status(400).json({error:'Enter a restaurant ID and a phone in international format, or leave phone blank to remove it.'});
+  }
+  try{
+   if(!phone){await pool.execute('DELETE FROM restaurant_public_phones WHERE restaurant_id=?',[id]);return res.json({phone:null});}
+   await pool.execute('INSERT INTO restaurant_public_phones(restaurant_id,phone) VALUES (?,?) ON DUPLICATE KEY UPDATE phone=IF(restaurant_id=VALUES(restaurant_id),VALUES(phone),phone)',[id,phone]);
+   const [rows]=await pool.execute('SELECT phone FROM restaurant_public_phones WHERE restaurant_id=?',[id]);
+   if(rows[0]?.phone!==phone)return res.status(409).json({error:'This number belongs to another restaurant.'});
+   res.json({phone});
+  }catch(error){
+   if(error.code==='ER_DUP_ENTRY')return res.status(409).json({error:'This number belongs to another restaurant.'});
+   if(error.code==='ER_NO_REFERENCED_ROW_2')return res.status(404).json({error:'Restaurant not found.'});
+   res.status(503).json({error:'Phone settings unavailable.'});
+  }
+ });
  router.get('/platform/voice-assistants',requireAuth,async(req,res)=>{
   if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});
   try{
@@ -71,7 +111,7 @@ export function apiRouter(pool) {
  router.get('/public/restaurants/:slug/menu',async(req,res)=>{
   if(!/^[a-z0-9-]{1,160}$/.test(req.params.slug))return res.status(400).json({error:'Invalid slug'});
   try {
-   const [restaurants]=await pool.execute('SELECT id,name,slug,currency,locale FROM restaurants WHERE slug=? LIMIT 1',[req.params.slug]);
+   const [restaurants]=await pool.execute('SELECT r.id,r.name,r.slug,r.country_code,r.currency,r.locale,p.phone FROM restaurants r LEFT JOIN restaurant_public_phones p ON p.restaurant_id=r.id WHERE r.slug=? LIMIT 1',[req.params.slug]);
    if(!restaurants.length)return res.status(404).json({error:'Restaurant not found'});
    const restaurant=restaurants[0];
    const [items]=await pool.execute('SELECT id,name,description,price_minor FROM menu_items WHERE restaurant_id=? AND active=1 ORDER BY id',[restaurant.id]);

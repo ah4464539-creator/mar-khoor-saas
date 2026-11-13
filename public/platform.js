@@ -31,3 +31,57 @@ async function loadWorkerMetrics(token) {
     if (token === platformToken) output.textContent = error.message;
   }
 }
+
+async function savePlatformSettings(path, method, data) {
+  if (!platformToken) throw Error('Sign in first.');
+  const response = await fetch(path, {
+    method,
+    headers: {Authorization: 'Bearer ' + platformToken, 'Content-Type': 'application/json'},
+    body: JSON.stringify(data)
+  });
+  const result = await response.json();
+  if (!response.ok) throw Error(result.error || 'Unable to save settings.');
+  return result;
+}
+
+document.querySelector('#create-restaurant').addEventListener('submit', async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button');
+  const output = document.querySelector('#onboarding-status');
+  const link = document.querySelector('#onboarding-link');
+  button.disabled = true;
+  link.hidden = true;
+  try {
+    const data = Object.fromEntries(new FormData(form));
+    data.country_code = data.country_code.toUpperCase();
+    data.currency = data.currency.toUpperCase();
+    const restaurant = await savePlatformSettings('/api/platform/restaurants', 'POST', data);
+    output.textContent = 'Restaurant created. ID: ' + restaurant.id;
+    link.href = '/menu.html?restaurant=' + encodeURIComponent(restaurant.slug);
+    link.hidden = false;
+    document.querySelector('#restaurant-phone-form [name=restaurant_id]').value = restaurant.id;
+    form.reset();
+  } catch (error) {
+    output.textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+});
+
+document.querySelector('#restaurant-phone-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button');
+  const output = document.querySelector('#phone-settings-status');
+  button.disabled = true;
+  try {
+    const data = new FormData(form);
+    const result = await savePlatformSettings('/api/platform/restaurants/' + encodeURIComponent(data.get('restaurant_id')) + '/public-phone', 'PUT', {phone: data.get('phone').trim()});
+    output.textContent = result.phone ? 'Storefront phone saved.' : 'Storefront phone removed.';
+  } catch (error) {
+    output.textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+});

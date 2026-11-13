@@ -136,3 +136,10 @@ CREATE TABLE IF NOT EXISTS whatsapp_ai_jobs (
  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
 );
+
+
+CREATE TABLE IF NOT EXISTS restaurant_public_phones (
+ restaurant_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+ phone VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL UNIQUE,
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+);

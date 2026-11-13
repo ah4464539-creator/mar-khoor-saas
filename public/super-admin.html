@@ -38,6 +38,30 @@
 </p>
 </section>
 <div class="dashboard-panels operational-grid">
+<section class="panel" id="restaurant-onboarding">
+<h2>Restaurant onboarding</h2>
+<p>Create a storefront for the restaurant's country, currency and language.</p>
+<form id="create-restaurant">
+<input name="name" aria-label="Restaurant name" placeholder="Restaurant name" required maxlength="160">
+<input name="slug" aria-label="Restaurant slug" placeholder="URL slug, e.g. xanthi-cafe" pattern="[a-z0-9]+(-[a-z0-9]+)*" required maxlength="160">
+<input name="country_code" aria-label="Country code" placeholder="Country code, e.g. GR" pattern="[A-Za-z]{2}" required maxlength="2">
+<input name="currency" aria-label="Currency" placeholder="Currency, e.g. EUR" pattern="[A-Za-z]{3}" required maxlength="3">
+<input name="locale" aria-label="Locale" placeholder="Language and region, e.g. el-GR" required maxlength="20">
+<button>Create restaurant</button>
+</form>
+<p id="onboarding-status" role="status"></p>
+<a id="onboarding-link" hidden>Open customer storefront</a>
+</section>
+<section class="panel">
+<h2>Restaurant phone number</h2>
+<p>Enter a business number after verifying it and setting up inbound routing with the phone provider. The storefront will show this number to all customers.</p>
+<form id="restaurant-phone-form">
+<input name="restaurant_id" aria-label="Restaurant ID for phone" type="number" min="1" step="1" placeholder="Restaurant ID" required>
+<input name="phone" aria-label="International phone number" type="tel" placeholder="+30… (blank removes it)" maxlength="16">
+<button>Save storefront phone</button>
+</form>
+<p id="phone-settings-status" role="status"></p>
+</section>
 <section class="panel" id="directory">
 <h2>Restaurants directory</h2>
 <div id="tenant-list" class="muted">Sign in to load tenants.</div>
