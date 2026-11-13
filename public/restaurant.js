@@ -26,10 +26,10 @@ async function refresh(){
  const summary = analytics.summary;
  const revenue = (Number(summary.completed_revenue_minor) / 100).toFixed(2) + ' ' + restaurantCurrency;
  const metrics = [
-  ['▤', 'Total orders', summary.total_orders],
-  ['◷', 'Pending orders', summary.pending_orders],
-  ['✓', 'Completed orders', summary.completed_orders],
-  ['▥', 'Completed revenue', revenue],
+  ['M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6m-6 4h6m-6 4h4', 'Total orders', summary.total_orders],
+  ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm0-15v5l3 2', 'Pending orders', summary.pending_orders],
+  ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM8 12l3 3 5-6', 'Completed orders', summary.completed_orders],
+  ['M4 4v16h16M8 16l4-5 3 2 5-7m-4 0h4v4', 'Completed revenue', revenue],
  ];
  const analyticsPanel = document.querySelector('#analytics');
  analyticsPanel.replaceChildren(...metrics.map(([symbol, label, value]) => {
@@ -37,7 +37,14 @@ async function refresh(){
   const icon = document.createElement('span');
   icon.className = 'metric-icon';
   icon.setAttribute('aria-hidden', 'true');
-  icon.textContent = symbol;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  for (const [key, value] of Object.entries({ width: '24', height: '24', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.7', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })) {
+   svg.setAttribute(key, value);
+  }
+  const path = document.createElementNS(svg.namespaceURI, 'path');
+  path.setAttribute('d', symbol);
+  svg.append(path);
+  icon.append(svg);
   const body = document.createElement('div');
   const title = document.createElement('span');
   title.textContent = label;
