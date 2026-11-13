@@ -37,3 +37,7 @@ Super admins can register a dedicated line in **Regional AI number inventory** u
 ### WhatsApp chatbot ordering
 
 Map the Meta phone number ID to the restaurant in Super Admin and enable WhatsApp AI in that restaurant's dashboard. The worker reads the latest active menu from MariaDB. When a customer wants to order, the chatbot includes the restaurant's storefront link, where the customer reviews and submits their order. Set `WHATSAPP_STOREFRONT_URL` to the staging HTTPS origin for staging tests. Use `npm run whatsapp-ai:once` to process queued messages in a test run. Schedule the worker on the deployment for ongoing replies.
+
+### Website chatbot
+
+Set `WEB_CHAT_ENABLED=true` and `OPENAI_API_KEY` on the server. The chatbot appears on each restaurant's ordering page after its menu loads. Website and WhatsApp share the restaurant-scoped reply logic. Chat replies can direct customers to the ordering form, where they submit their orders.

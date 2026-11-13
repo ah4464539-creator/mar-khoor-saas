@@ -2,6 +2,7 @@ import express from 'express';
 import { requireAuth } from './auth.js';
 import {validPhone,validProviderId} from './voice-routing.js';
 import {registerRegionalVoiceLine} from './voice-onboarding.js';
+import {restaurantChat} from './restaurant-chat.js';
 export function apiRouter(pool) {
  const router=express.Router();
  router.get('/platform/summary',requireAuth,async(req,res)=>{
@@ -154,6 +155,30 @@ export function apiRouter(pool) {
    res.json({restaurants:rows});
   } catch {res.status(503).json({error:'Database unavailable'});}
  });
+ const chatRequests=new Map();
+ let chatWindowEnds=0, chatTotal=0;
+ router.post('/public/restaurants/:slug/chat',async(req,res)=>{
+  res.set('Cache-Control','no-store');
+  const key=process.env.OPENAI_API_KEY;
+  if(process.env.WEB_CHAT_ENABLED!=='true'||!key)return res.status(503).json({error:'Chat is unavailable. You can still browse the menu and order.'});
+  const message=req.body?.message;
+  if(typeof message!=='string'||!message.trim()||message.length>500||!/^[-a-z0-9]{1,160}$/.test(req.params.slug)){
+   return res.status(400).json({error:'Enter a question of up to 500 characters.'});
+  }
+  const now=Date.now();
+  if(now>=chatWindowEnds){chatRequests.clear();chatTotal=0;chatWindowEnds=now+60000;}
+  const count=chatRequests.get(req.ip)??0;
+  if(count>=6||chatTotal>=60)return res.status(429).json({error:'Chat is busy. Try again in a minute.'});
+  chatRequests.set(req.ip,count+1);
+  chatTotal++;
+  try{
+   const [rows]=await pool.execute('SELECT id,name,locale,currency FROM restaurants WHERE slug=? LIMIT 1',[req.params.slug]);
+   if(!rows.length)return res.status(404).json({error:'Restaurant not found.'});
+   res.json(await restaurantChat(pool,rows[0],message.trim(),{key}));
+  }catch{
+   res.status(503).json({error:'Chat is temporarily unavailable. You can still order from the menu.'});
+  }
+ });
  router.get('/public/restaurants/:slug/menu',async(req,res)=>{
   if(!/^[a-z0-9-]{1,160}$/.test(req.params.slug))return res.status(400).json({error:'Invalid slug'});
   try {
@@ -161,7 +186,7 @@ export function apiRouter(pool) {
    if(!restaurants.length)return res.status(404).json({error:'Restaurant not found'});
    const restaurant=restaurants[0];
    const [items]=await pool.execute('SELECT id,name,description,price_minor FROM menu_items WHERE restaurant_id=? AND active=1 ORDER BY id',[restaurant.id]);
-   res.json({restaurant,items});
+   res.json({restaurant,items,chat_enabled:process.env.WEB_CHAT_ENABLED==='true'&&Boolean(process.env.OPENAI_API_KEY)});
   } catch {res.status(503).json({error:'Database unavailable'});}
  });
  return router;

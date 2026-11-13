@@ -37,6 +37,17 @@
 <p id="order-status" role="status">
 </p>
 </main>
+<section class="workspace customer">
+<details id="restaurant-chat" hidden>
+<summary>Ask about the menu</summary>
+<form id="restaurant-chat-form">
+<label>Your question <input name="message" maxlength="500" required></label>
+<button>Send</button>
+</form>
+<p id="restaurant-chat-reply" role="status"></p>
+<a href="#menu" id="restaurant-chat-order" hidden>Browse menu and order</a>
+</details>
+</section>
 <script type="module" src="/menu.js">
 </script>
 </body>

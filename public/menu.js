@@ -9,7 +9,44 @@ function renderCart(){const root=document.querySelector('#cart');root.replaceChi
     cartSubtotal.textContent = new Intl.NumberFormat(undefined, { style: 'currency', currency: restaurant.currency }).format(subtotal / 100);
   }
 }
-form.addEventListener('submit',async e=>{e.preventDefault();target.replaceChildren();phoneLink.hidden=true;phoneLink.removeAttribute('href');storeName.textContent='Discover the menu';menuSearch.value='';menuSearchLabel.hidden=true;document.querySelector('#order-status').textContent='';cart.clear();renderCart();status.textContent='Loading menu…';try{const slug=document.querySelector('#slug').value.trim();const r=await fetch('/api/public/restaurants/'+encodeURIComponent(slug)+'/menu');const data=await r.json();if(!r.ok)throw Error(data.error||'Menu unavailable');restaurant=data.restaurant;storeName.textContent=restaurant.name;if(restaurant.phone){phoneLink.href='tel:'+restaurant.phone;phoneLink.textContent='Call '+restaurant.phone;phoneLink.hidden=false;}for(const item of data.items){const card=document.createElement('article'),title=document.createElement('h3'),desc=document.createElement('p'),price=document.createElement('strong'),add=document.createElement('button');title.textContent=item.name;desc.textContent=item.description||'';price.textContent=new Intl.NumberFormat(undefined,{style:'currency',currency:data.restaurant.currency}).format(item.price_minor/100);add.textContent='Add to order';add.addEventListener('click',()=>{const existing=cart.get(item.id);if(existing&&existing.quantity>=99)return;cart.set(item.id,{...item,quantity:(existing?.quantity||0)+1});renderCart()});card.append(title,desc,price,add);target.append(card)}menuSearchLabel.hidden=!data.items.length;status.textContent=data.restaurant.name+' · '+data.items.length+' available items';if(!data.items.length)target.textContent='No menu items yet.'}catch(err){restaurant=null;status.textContent=err.message}});
+const chat=document.querySelector('#restaurant-chat');
+const chatForm=document.querySelector('#restaurant-chat-form');
+const chatReply=document.querySelector('#restaurant-chat-reply');
+const chatOrder=document.querySelector('#restaurant-chat-order');
+let chatRequest=0, menuRequest=0;
+form.addEventListener('submit',()=>{
+ chatRequest++;
+ chat.hidden=true;
+ chatReply.textContent='';
+ chatOrder.hidden=true;
+ chatForm.reset();
+ chatForm.querySelector('button').disabled=false;
+});
+chatForm.addEventListener('submit',async event=>{
+ event.preventDefault();
+ if(!restaurant||chat.hidden)return;
+ const request=++chatRequest;
+ const button=chatForm.querySelector('button');
+ button.disabled=true;
+ chatOrder.hidden=true;
+ chatReply.textContent='Checking the menu…';
+ try{
+  const response=await fetch('/api/public/restaurants/'+encodeURIComponent(restaurant.slug)+'/chat',{
+   method:'POST',headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({message:new FormData(chatForm).get('message')})
+  });
+  const result=await response.json();
+  if(request!==chatRequest)return;
+  if(!response.ok)throw Error(result.error);
+  chatReply.textContent=result.reply;
+  chatOrder.hidden=!result.wantsOrder;
+ }catch(error){
+  if(request===chatRequest)chatReply.textContent=error.message;
+ }finally{
+  if(request===chatRequest)button.disabled=false;
+ }
+});
+form.addEventListener('submit',async e=>{e.preventDefault();const load=++menuRequest;restaurant=null;target.replaceChildren();phoneLink.hidden=true;phoneLink.removeAttribute('href');storeName.textContent='Discover the menu';menuSearch.value='';menuSearchLabel.hidden=true;document.querySelector('#order-status').textContent='';cart.clear();renderCart();status.textContent='Loading menu…';try{const slug=document.querySelector('#slug').value.trim();const r=await fetch('/api/public/restaurants/'+encodeURIComponent(slug)+'/menu');const data=await r.json();if(load!==menuRequest)return;if(!r.ok)throw Error(data.error||'Menu unavailable');restaurant=data.restaurant;storeName.textContent=restaurant.name;chat.hidden=!data.chat_enabled;if(restaurant.phone){phoneLink.href='tel:'+restaurant.phone;phoneLink.textContent='Call '+restaurant.phone;phoneLink.hidden=false;}for(const item of data.items){const card=document.createElement('article'),title=document.createElement('h3'),desc=document.createElement('p'),price=document.createElement('strong'),add=document.createElement('button');title.textContent=item.name;desc.textContent=item.description||'';price.textContent=new Intl.NumberFormat(undefined,{style:'currency',currency:data.restaurant.currency}).format(item.price_minor/100);add.textContent='Add to order';add.addEventListener('click',()=>{const existing=cart.get(item.id);if(existing&&existing.quantity>=99)return;cart.set(item.id,{...item,quantity:(existing?.quantity||0)+1});renderCart()});card.append(title,desc,price,add);target.append(card)}menuSearchLabel.hidden=!data.items.length;status.textContent=data.restaurant.name+' · '+data.items.length+' available items';if(!data.items.length)target.textContent='No menu items yet.'}catch(err){if(load===menuRequest){restaurant=null;status.textContent=err.message}}});
 document.querySelector('#order-form').addEventListener('submit',async e=>{e.preventDefault();const output=document.querySelector('#order-status');if(!restaurant||!cart.size)return;const submit=e.currentTarget.querySelector('button');submit.disabled=true;output.textContent='Placing order…';try{const r=await fetch('/api/public/restaurants/'+encodeURIComponent(restaurant.slug)+'/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({customer_name:document.querySelector('#customer-name').value,items:[...cart.values()].map(i=>({menu_item_id:i.id,quantity:i.quantity}))})});const data=await r.json();if(!r.ok)throw Error(data.error||'Order failed');output.textContent='Order #'+data.order_id+' received. Status: '+data.status;cart.clear();renderCart();}catch(err){output.textContent=err.message}finally{submit.disabled=false}});
 
 const menuSearch = document.querySelector('#menu-search');
