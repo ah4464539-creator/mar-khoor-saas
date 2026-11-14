@@ -42,6 +42,20 @@
 <div id="items">
 </div>
 </section>
+<section class="panel" id="plan">
+<h2>My plan</h2>
+<p class="muted">Choose services. Prices depend on your country. Your order becomes active after the platform owner confirms your payment.</p>
+<form id="plan-form">
+<p><label><input type="checkbox" name="service" value="website"> Website Builder</label></p>
+<p><label><input type="checkbox" name="service" value="webAi"> Web AI Assistant</label></p>
+<p><label><input type="checkbox" name="service" value="whatsapp"> WhatsApp Business</label></p>
+<p><label><input type="checkbox" name="service" value="voice"> AI Call Assistant</label></p>
+<p id="plan-number" hidden><label><input type="checkbox" id="plan-new-number"> Add a dedicated local phone number</label></p>
+<button>Place order</button>
+</form>
+<p id="plan-status" role="status" class="muted"></p>
+<div id="plan-orders" class="muted"></div>
+</section>
 <section class="panel">
 <h2>WhatsApp inbox</h2>
 <label><input id="whatsapp-ai-enabled" type="checkbox"> AI auto-replies (opt-in)</label>

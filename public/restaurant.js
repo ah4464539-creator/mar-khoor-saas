@@ -4,6 +4,7 @@ let refreshing=false;
 setInterval(async()=>{if(!restaurantId||!token||document.hidden||refreshing)return;refreshing=true;try{await refresh()}catch(e){status.textContent='Auto-refresh: '+e.message}finally{refreshing=false}},15000);
 const api=async(path,options={})=>{const r=await fetch(path,{...options,headers:{...options.headers,Authorization:'Bearer '+token}});const data=await r.json();if(!r.ok)throw Error(data.error||'Request failed');return data};
 async function refresh(){
+ loadPlanOrders().catch(error=>{planOrders.textContent=error.message});
  const [menu,orders,analytics,inbox,outbound,aiSettings]=await Promise.all([api('/api/restaurants/'+restaurantId+'/menu'),api('/api/restaurants/'+restaurantId+'/orders'),api('/api/restaurants/'+restaurantId+'/analytics'),api('/api/restaurants/'+restaurantId+'/whatsapp/messages'),api('/api/restaurants/'+restaurantId+'/whatsapp/outbound'),api('/api/restaurants/'+restaurantId+'/whatsapp/ai-settings')]);
  document.querySelector('#whatsapp-ai-enabled').checked=aiSettings.enabled;
  const sentEl=document.querySelector('#whatsapp-outbound');sentEl.replaceChildren();if(!outbound.messages.length)sentEl.textContent='No outgoing messages yet.';
@@ -73,3 +74,37 @@ document.querySelector('#add-item').addEventListener('submit',async e=>{e.preven
 }catch(err){status.textContent=err.message}});
 
 document.querySelector('#whatsapp-ai-enabled').addEventListener('change',async e=>{if(!restaurantId)return;const enabled=e.target.checked;e.target.disabled=true;try{await api('/api/restaurants/'+restaurantId+'/whatsapp/ai-settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled})});status.textContent='WhatsApp AI '+(enabled?'enabled':'disabled')}catch(err){e.target.checked=!enabled;status.textContent=err.message}finally{e.target.disabled=false}});
+
+// My plan: services, optional dedicated number, and the restaurant's own orders.
+const usd=cents=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(cents/100);
+const planForm=document.querySelector('#plan-form'),planStatus=document.querySelector('#plan-status'),planOrders=document.querySelector('#plan-orders'),planNumber=document.querySelector('#plan-number');
+planForm.addEventListener('change',()=>{planNumber.hidden=!planForm.querySelector('input[value="voice"]').checked});
+async function loadPlanOrders(){
+ if(!restaurantId)return;
+ const data=await api('/api/restaurants/'+restaurantId+'/plan-orders');
+ planOrders.replaceChildren();
+ if(!data.orders.length){planOrders.textContent='No plan orders yet.';return}
+ for(const order of data.orders){
+  const p=document.createElement('p');
+  p.textContent='#'+order.id+' · '+order.features.join(', ')+(order.number_mode==='new'?' + dedicated number':'')+' · '+usd(order.monthly_minor)+' / month · first payment '+usd(order.first_payment_minor)+' · '+order.status.replace('_',' ')+' ';
+  if(order.status==='pending_payment'){
+   const cancel=document.createElement('button');cancel.textContent='Cancel';
+   cancel.addEventListener('click',async()=>{try{await api('/api/restaurants/'+restaurantId+'/plan-orders/'+order.id+'/cancel',{method:'POST'});await loadPlanOrders()}catch(error){planStatus.textContent=error.message}});
+   p.append(cancel);
+  }
+  planOrders.append(p);
+ }
+}
+planForm.addEventListener('submit',async e=>{
+ e.preventDefault();
+ if(!restaurantId){planStatus.textContent='Select your restaurant first.';return}
+ const features=[...planForm.querySelectorAll('input[name="service"]:checked')].map(input=>input.value);
+ if(!features.length){planStatus.textContent='Select at least one service.';return}
+ const numberMode=features.includes('voice')&&document.querySelector('#plan-new-number').checked?'new':'existing';
+ const button=planForm.querySelector('button');button.disabled=true;
+ try{
+  const result=await api('/api/restaurants/'+restaurantId+'/plan-orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({features,numberMode})});
+  planStatus.textContent='Order #'+result.order_id+' created: '+usd(result.monthly_minor)+' per month, first payment '+usd(result.first_payment_minor)+'. It becomes active after the platform owner confirms your payment.';
+  await loadPlanOrders();
+ }catch(error){planStatus.textContent=error.message}finally{button.disabled=false}
+});

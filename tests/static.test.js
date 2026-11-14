@@ -10,3 +10,11 @@ test('public menu uses safe text rendering',()=>assert.match(read('public/menu.j
 test('server mounts registration, plan orders and database-backed quotes',()=>{const server=read('src/server.js');for(const name of ['registrationRouter','plansRouter','loadCatalog'])assert.ok(server.includes(name));});
 test('schema has number routing and plan order tables',()=>{const sql=read('db/schema.sql');for(const name of ['number_routes','plan_orders'])assert.ok(sql.includes('CREATE TABLE IF NOT EXISTS '+name));});
 test('plan order and number routes are limited to the right roles',()=>{const src=read('src/plans.js');assert.match(src,/superOnly/);assert.match(src,/role='admin'/);assert.match(src,/onlyFrom: 'pending_payment'/)});
+test('homepage has a clear registration button and the new panels render text safely',()=>{
+ const home=read('public/index.html');
+ assert.match(home,/class="button" href="\/register\.html">Register your restaurant/);
+ assert.match(home,/class="nav-cta" href="\/register\.html"/);
+ for(const file of ['public/register.js','public/restaurant.js','public/platform.js'])assert.ok(!/innerHTML/.test(read(file)),file+' must not use innerHTML');
+ assert.match(read('public/restaurant.html'),/id="plan-form"/);
+ assert.match(read('public/super-admin.html'),/id="route-form"/);
+});
