@@ -1,0 +1,36 @@
+.platform-dashboard {
+  --ink: #f7f5ff;
+  --muted: #ccc5df;
+  --accent: #c3aaff;
+  --surface: #181d34;
+  --line: #494065;
+  color: var(--ink);
+  background: #101528;
+  color-scheme: dark;
+}
+.platform-dashboard .workspace { background: #101528; width: 100%; max-width: 1500px; margin-inline: auto; }
+.platform-dashboard aside { background: #15182e; }
+.platform-dashboard aside .brand { display: flex; background: transparent; color: var(--ink); }
+.platform-dashboard aside .brand img { width: 38px; height: auto; }
+.platform-dashboard :is(.navlabel,.wordmark) { color: var(--ink); }
+.platform-dashboard aside > a:not(.brand) { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.platform-dashboard aside > a.selected { color: var(--ink); background: #352955; }
+.platform-dashboard :is(.panel,.kpi-cards article) { color: var(--ink); background: var(--surface); border-color: var(--line); box-shadow: none; }
+.platform-dashboard .access-panel { border-top: 2px solid #a284f4; }
+.platform-dashboard .kpi-cards article .metric-icon, .platform-dashboard .live-pill { background: #362855; color: #e6d8ff; }
+.platform-dashboard :is(.access-panel button,button) { color: #fff; background: #6338cf; border-color: #a284f4; min-height: 44px; }
+.platform-dashboard :is(input:not([type="checkbox"]),select,textarea) { color: var(--ink); background: #101528; border-color: #8273a7; }
+.platform-dashboard input::placeholder { color: #bbb3cf; opacity: 1; }
+.platform-dashboard :focus-visible { outline-color: #c7adff; }
+.platform-dashboard :is(#login,#assistant-form,#route-form) { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%, 190px),1fr)); align-items: end; }
+.platform-dashboard form label { display: grid; gap: 6px; color: var(--ink); min-width: 0; }
+.platform-dashboard form label :is(input,select) { width: 100%; }
+.platform-dashboard .operational-grid section { scroll-margin-top: 16px; }
+@media(max-width: 800px) {
+  .platform-dashboard aside { align-items: center; }
+  .platform-dashboard .workspace { padding: 16px; }
+}
+@media(max-width: 520px) {
+  .platform-dashboard :is(#login,#assistant-form,#route-form) { grid-template-columns: minmax(0,1fr); }
+  .platform-dashboard form label :is(input,select) { font-size: 16px; }
+}
