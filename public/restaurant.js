@@ -65,6 +65,7 @@ form.addEventListener('submit',async e=>{e.preventDefault();status.textContent='
  const response=await fetch('/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:document.querySelector('#email').value,password:document.querySelector('#password').value})});
  const data=await response.json();if(!response.ok)throw Error(data.error||'Login failed');token=data.token;
  const result=await api('/api/my/restaurants');target.replaceChildren();
+ document.body.classList.remove('signing-in');
  for(const restaurant of result.restaurants){const button=document.createElement('button');button.textContent=restaurant.name+' · '+restaurant.role;button.addEventListener('click',async()=>{restaurantId=restaurant.id;restaurantCurrency=restaurant.currency;document.querySelector('#management').hidden=false;try{await refresh();status.textContent='Loaded '+restaurant.name}catch(e){status.textContent=e.message}});target.append(button)}
  if(!result.restaurants.length)target.textContent='No restaurants assigned.';status.textContent='Account loaded.';
 }catch(err){status.textContent=err.message}});
