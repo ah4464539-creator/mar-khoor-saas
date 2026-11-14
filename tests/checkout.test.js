@@ -21,6 +21,7 @@ function fakePool({available=true}={}){
    if(sql.startsWith('SELECT id FROM restaurants'))return [[{id:9}]];
    if(sql.startsWith('INSERT INTO orders')){state.orders.push(args);return [{insertId:77}]}
    if(sql.startsWith('INSERT INTO order_items')){state.lines.push(args);return [{insertId:88}]}
+   if(sql.startsWith('INSERT INTO order_tracking')){state.tracking=args;return [{affectedRows:1}]}
    throw Error('Unexpected SQL '+sql);
   },
   async query(sql,args){
@@ -35,7 +36,10 @@ test('checkout commits database-priced order atomically',async()=>{
  await serve(pool,async base=>{
   const response=await fetch(base+'/api/public/restaurants/test-cafe/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({customer_name:'Customer',items:[{menu_item_id:5,quantity:2}]})});
   assert.equal(response.status,201);
-  assert.deepEqual(await response.json(),{order_id:77,status:'pending',total_minor:2598});
+  const body=await response.json();
+  assert.equal(body.order_id,77);assert.equal(body.status,'pending');assert.equal(body.total_minor,2598);
+  assert.match(body.tracking_token,/^[a-f0-9]{48}$/);
+  assert.equal(pool.state.tracking[0],77);assert.notEqual(pool.state.tracking[1],body.tracking_token);assert.match(pool.state.tracking[1],/^[a-f0-9]{64}$/);
  });
  assert.equal(pool.state.commits,1);assert.equal(pool.state.rollbacks,0);
  assert.deepEqual(pool.state.orders[0],[9,'Customer',2598]);

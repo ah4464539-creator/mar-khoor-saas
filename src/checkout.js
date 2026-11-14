@@ -1,5 +1,5 @@
 import express from 'express';
-import crypto from 'node:crypto';
+import { newTrackingToken, hashTrackingToken, getOrderTracking } from './order-tracking.js';
 export function checkoutRouter(pool){
  const router=express.Router();
  // In production apply per-IP/restaurant rate limiting and abuse controls at the reverse proxy.
@@ -28,10 +28,18 @@ export function checkoutRouter(pool){
    for(const item of menu){total+=Number(item.price_minor)*quantities.get(item.id);if(!Number.isSafeInteger(total)||total>1000000000){await connection.rollback();return res.status(400).json({error:'Order total exceeds limit'});}}
    const [created]=await connection.execute('INSERT INTO orders (restaurant_id,customer_name,total_minor) VALUES (?,?,?)',[restaurantId,customer_name.trim(),total]);
    for(const item of menu)await connection.execute('INSERT INTO order_items (order_id,menu_item_id,name_snapshot,quantity,unit_price_minor) VALUES (?,?,?,?,?)',[created.insertId,item.id,item.name,quantities.get(item.id),item.price_minor]);
+   const trackingToken=newTrackingToken();
+   await connection.execute('INSERT INTO order_tracking (order_id,token_hash) VALUES (?,?)',[created.insertId,hashTrackingToken(trackingToken)]);
    await connection.commit();
-   res.status(201).json({order_id:created.insertId,status:'pending',total_minor:total});
+   res.status(201).json({order_id:created.insertId,status:'pending',total_minor:total,tracking_token:trackingToken});
   }catch(e){if(connection)await connection.rollback().catch(()=>{});res.status(503).json({error:'Order service unavailable'});}
   finally{connection?.release();}
+ });
+ // The token is sent in a header so it stays out of URLs and logs.
+ router.get('/public/orders/:orderId/status',async(req,res)=>{
+  const result=await getOrderTracking(pool,Number(req.params.orderId),req.get('x-tracking-token'));
+  res.set('Cache-Control','no-store');
+  res.status(result.status).json(result.body);
  });
  return router;
 }

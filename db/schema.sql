@@ -197,3 +197,11 @@ CREATE TABLE IF NOT EXISTS sessions (
  INDEX (expires_at),
  INDEX (user_id)
 );
+
+-- Customer order tracking: only a hash of the tracking token is stored.
+CREATE TABLE IF NOT EXISTS order_tracking (
+ order_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+ token_hash CHAR(64) NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+);
