@@ -22,6 +22,12 @@
 .registration-panel #register .field.full{grid-column:1/-1}
 .registration-panel #register label{position:static;float:none;display:block;margin:0;color:#123e2a;font-weight:700;font-size:.92rem}
 .registration-panel #register input,.registration-panel #register select{position:static;float:none;display:block;width:100%;min-width:0;max-width:100%;height:48px;padding:12px;border:1px solid #c8d8cd;border-radius:10px;background:#fff;color:#123e2a;box-sizing:border-box}
+/* Override inherited landing-page form sizing and grid stretching. */
+.registration-panel #register{grid-auto-rows:min-content!important;align-content:start!important;align-items:start!important}
+.registration-panel #register .field{height:auto!important;min-height:0!important;align-self:start!important;justify-content:flex-start!important;display:flex!important;flex-direction:column!important}
+.registration-panel #register input,.registration-panel #register select{height:48px!important;min-height:48px!important;max-height:48px!important;line-height:normal!important;flex:0 0 48px!important;padding:10px 12px!important;align-self:stretch!important}
+.registration-panel #register .field.full{grid-column:1/-1}
+@media(max-width:540px){.registration-panel #register{grid-template-columns:minmax(0,1fr)!important}}
 .registration-panel #register input:focus,.registration-panel #register select:focus{outline:2px solid #c9a456;outline-offset:1px}
 .registration-panel #register button{grid-column:1/-1;display:block;position:static;float:none;width:100%;padding:15px 20px;margin:8px 0 0;background:linear-gradient(90deg,#08673b,#064a2f);color:#fff;border:0;border-radius:11px;font-weight:750;cursor:pointer}
 .registration-panel #register button:disabled{opacity:.55;cursor:wait}
