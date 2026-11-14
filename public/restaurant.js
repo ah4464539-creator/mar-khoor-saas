@@ -233,7 +233,40 @@ const setupForm = document.querySelector('#setup-form');
 const setupSummary = document.querySelector('#setup-summary');
 const setupStatus = document.querySelector('#setup-status');
 const openSetup = document.querySelector('#open-setup');
+const nextSetup = document.querySelector('#next-setup');
+const deferSetup = document.querySelector('#defer-setup');
+const setupProgress = document.querySelector('#setup-progress');
+const setupDestinations = {
+ website: ['Configure website', '#website'],
+ voice: ['Review AI Call Assistant in My Plans', '#plan'],
+ menu: ['Add menu items', '#menu-management'],
+};
 let setupSelection = 0;
+
+function selectedSetupServices() {
+ return [...setupForm.querySelectorAll('input[name="service"]:checked')].map(input => input.value);
+}
+
+function updateSetupActions() {
+ const selected = selectedSetupServices().length > 0;
+ nextSetup.disabled = !selected;
+ deferSetup.textContent = selected ? 'Save and continue later' : 'Skip for now';
+}
+
+function showSetupProgress(services, skipped) {
+ setupProgress.replaceChildren();
+ for (const service of services) {
+  if (!Object.hasOwn(setupDestinations, service)) continue;
+  const [label, href] = setupDestinations[service];
+  const row = document.createElement('p');
+  const link = document.createElement('a');
+  link.textContent = label;
+  link.href = href;
+  row.append(link);
+  setupProgress.append(row);
+ }
+ setupProgress.hidden = skipped || !setupProgress.childElementCount;
+}
 
 async function loadSetup(restaurant) {
  const selection = ++setupSelection;
@@ -248,16 +281,20 @@ async function loadSetup(restaurant) {
   setupSummary.textContent = data.skipped ? 'Setup skipped. You can continue at any time.'
    : data.saved ? data.services.length + ' of 3 services selected for setup.' : 'Choose the services you want to configure.';
   for (const input of setupForm.querySelectorAll('input')) input.checked = data.services.includes(input.value);
+  updateSetupActions();
+  showSetupProgress(data.services, data.skipped);
   openSetup.disabled = false;
-  if (!data.saved) setupDialog.showModal();
+  if (!data.saved && !location.hash) setupDialog.showModal();
  } catch (error) {
   if (selection === setupSelection) setupSummary.textContent = error.message;
  }
 }
 
-async function saveSetup(skipped) {
+async function saveSetup(advance) {
  const selection = setupSelection;
- const services = [...setupForm.querySelectorAll('input:checked')].map(input => input.value);
+ const services = selectedSetupServices();
+ const skipped = services.length === 0;
+ if (advance && skipped) return;
  const controls = [...setupForm.querySelectorAll('button,input')];
  controls.forEach(control => { control.disabled = true; });
  setupStatus.textContent = 'Saving setup…';
@@ -267,18 +304,29 @@ async function saveSetup(skipped) {
   });
   if (selection !== setupSelection) return;
   setupSummary.textContent = skipped ? 'Setup skipped. You can continue at any time.' : services.length + ' of 3 services selected for setup.';
+  showSetupProgress(services, skipped);
   setupDialog.close();
+  if (advance) {
+   const destination = setupDestinations[services[0]][1];
+   if (location.hash === destination) {
+    const panel = document.querySelector(destination);
+    panel.scrollIntoView({ block: 'start' });
+   } else {
+    location.hash = destination;
+   }
+  }
  } catch (error) {
   if (selection === setupSelection) setupStatus.textContent = error.message;
  } finally {
   controls.forEach(control => { control.disabled = false; });
+  updateSetupActions();
  }
 }
 
 openSetup.addEventListener('click', () => { setupStatus.textContent = ''; setupDialog.showModal(); });
-document.querySelector('#close-setup').addEventListener('click', () => setupDialog.close());
-document.querySelector('#skip-setup').addEventListener('click', () => saveSetup(true));
-setupForm.addEventListener('submit', event => { event.preventDefault(); saveSetup(false); });
+setupForm.addEventListener('change', updateSetupActions);
+deferSetup.addEventListener('click', () => saveSetup(false));
+setupForm.addEventListener('submit', event => { event.preventDefault(); saveSetup(true); });
 
 try { token = localStorage.getItem(sessionKey) || ''; } catch {}
 if (token) loadAccount().catch(() => {

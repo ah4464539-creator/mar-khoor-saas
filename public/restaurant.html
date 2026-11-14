@@ -45,19 +45,23 @@
 <h2>Restaurant setup</h2>
 <p id="setup-summary">Loading setup…</p>
 <button type="button" id="open-setup" disabled>Continue setup</button>
+<nav id="setup-progress" aria-label="Selected services" hidden></nav>
 </section>
 <dialog id="setup-dialog" aria-labelledby="setup-title">
 <form id="setup-form">
 <p class="eyebrow">First-time setup</p>
 <h2 id="setup-title">Set up your restaurant</h2>
-<p>Choose which services to set up. Saving your choices keeps them as a draft.</p>
+<p>Choose the services you want to configure.</p>
 <div class="setup-options">
 <label><input type="checkbox" name="service" value="website"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h18v13H3zM8 21h8m-4-4v4"/></svg><span><strong>AI Website Builder</strong><small>Configure and publish your restaurant site.</small></span></label>
 <label><input type="checkbox" name="service" value="voice"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 14v-3a9 9 0 0 1 18 0v3m-18 0v3a2 2 0 0 0 2 2h2v-7H5a2 2 0 0 0-2 2zm18 0v3a2 2 0 0 1-2 2h-2v-7h2a2 2 0 0 1 2 2z"/></svg><span><strong>AI Call Assistant</strong><small>Plan your restaurant phone setup.</small></span></label>
 <label><input type="checkbox" name="service" value="menu"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3v6a3 3 0 0 0 6 0V3M7 3v18m12 0V3c-3 2-4 5-4 9h4"/></svg><span><strong>Smart Menu &amp; Order Management</strong><small>Add menu items and manage customer orders.</small></span></label>
 </div>
 <p id="setup-status" role="status"></p>
-<div class="setup-actions"><button type="button" id="close-setup">Continue later</button><button type="button" id="skip-setup">Skip for now</button><button type="submit">Save draft</button></div>
+<div class="setup-actions">
+<button type="button" id="defer-setup">Skip for now</button>
+<button type="submit" id="next-setup" disabled>Next</button>
+</div>
 </form>
 </dialog>
 <div class="dashboard-panels operational-grid">
