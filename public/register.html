@@ -7,81 +7,57 @@
   <title>Register your restaurant | MAR-KHOOR AI</title>
   <link rel="stylesheet" href="/styles.css">
   <style>
-    .registration-shell{max-width:1000px;margin:32px auto;display:grid;grid-template-columns:minmax(0,1.4fr) minmax(260px,1fr);gap:24px}
-    .registration-panel,.registration-aside{border:1px solid #d5e1d7;border-radius:22px;padding:28px;background:#fff;box-shadow:0 16px 40px #123a2610}
-    .registration-panel{border-top:7px solid #c9a456}
-    .registration-panel h1{color:#153e2a;margin:0 0 10px}.registration-panel p{color:#506458}
-    /* Wide landscape desktop layout: two form columns, details alongside. */
-    .registration-shell{max-width:1360px;width:calc(100% - 32px);grid-template-columns:minmax(0,2fr) minmax(300px,1fr);align-items:stretch}
-    .registration-panel #register{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:22px;row-gap:0;align-content:start}
-    .registration-panel #register label{grid-column:auto}
-    .registration-panel #register button{grid-column:1/-1;justify-self:start}
-    @media(min-width:900px){
-      .registration-panel #register label[for="restaurant-name"]{grid-column:1;grid-row:1}
-      .registration-panel #register #restaurant-name{grid-column:1;grid-row:2}
-      .registration-panel #register label[for="country"]{grid-column:2;grid-row:1}
-      .registration-panel #register #country{grid-column:2;grid-row:2}
-      .registration-panel #register label[for="email"]{grid-column:1;grid-row:3}
-      .registration-panel #register #email{grid-column:1;grid-row:4}
-      .registration-panel #register label[for="password"]{grid-column:2;grid-row:3}
-      .registration-panel #register #password{grid-column:2;grid-row:4}
-      .registration-panel #register label[for="confirm-password"]{grid-column:1;grid-row:5}
-      .registration-panel #register #confirm-password{grid-column:1;grid-row:6}
-      .registration-panel #register button{grid-row:7}
-    }
-    @media(max-width:899px){
-      .registration-shell{grid-template-columns:1fr;width:100%}
-      .registration-panel #register{display:flex!important;flex-direction:column}
-    }
-    /* Isolate form from legacy global .landing / .tiles form rules. */
-    .registration-panel #register{display:flex;flex-direction:column;align-items:stretch;gap:0;width:100%;margin:0}
-    .registration-panel #register label{display:block;float:none;position:static;width:100%;max-width:none;box-sizing:border-box;font-weight:650;margin:17px 0 6px;line-height:1.4;text-align:left}
-    .registration-panel #register input,.registration-panel #register select{display:block;float:none;position:static;flex:none;width:100%;min-width:0;max-width:100%;box-sizing:border-box;margin:0;clear:both}
-    .registration-panel #register button{display:block;align-self:flex-start;float:none;position:static;width:auto;max-width:100%;clear:both}
-    .registration-panel label{display:block;font-weight:650;margin:17px 0 6px}
-    .registration-panel input,.registration-panel select{width:100%;box-sizing:border-box;padding:13px;border:1px solid #c5d3c8;border-radius:10px;background:white;color:#173b2b}
-    .registration-panel input:focus,.registration-panel select:focus{outline:3px solid #b7d7b9}
-    .registration-panel button{background:#176443;color:white;border:0;border-radius:10px;padding:14px 22px;margin-top:24px;cursor:pointer;font-weight:700}
-    .registration-panel button:disabled{opacity:.6;cursor:wait}
-    .registration-aside{background:#123d2c;color:#fff}.registration-aside h2,.registration-aside p{color:#fff}
-    .registration-aside li{margin:16px 0;line-height:1.6}
-    .step-label{color:#96702d!important;font-weight:700;letter-spacing:.07em;text-transform:uppercase;font-size:.8rem}
-    #status:not(:empty){padding:12px;border-radius:9px;background:#fff1e7;color:#8d3218}
-    #done{background:#eff8f1;border-radius:14px;padding:18px;margin-top:20px}
-    @media(max-width:760px){.registration-shell{grid-template-columns:1fr}.registration-panel,.registration-aside{padding:20px}}
-  </style>
+.registration-shell{max-width:1260px;margin:30px auto;display:grid;grid-template-columns:minmax(270px,.85fr) minmax(0,1.5fr);min-height:560px;border-radius:24px;overflow:hidden;box-shadow:0 22px 65px #062c2033;background:#fff}
+.registration-aside{padding:clamp(24px,4vw,52px);background:linear-gradient(145deg,#062c20dd,#092a20f0),url('/assets/chef.webp') center/cover;color:#fff;display:flex;flex-direction:column;justify-content:center}
+.registration-aside h2{font-size:clamp(30px,3.2vw,48px);line-height:1.12;margin:14px 0;color:#fff}
+.registration-aside h2 em{color:#efc96d;font-style:normal}
+.registration-aside p,.registration-aside li{color:#e3eee8}
+.registration-aside ul{padding-left:22px;line-height:2}
+.registration-panel{min-width:0;padding:clamp(24px,4vw,52px);background:#fff}
+.registration-panel h1{color:#103d2c;font-size:clamp(25px,2.5vw,38px);line-height:1.15;margin:16px 0 8px}
+.registration-panel p{color:#52645b}
+.step-label{color:#99732d!important;font-weight:750;letter-spacing:.08em;font-size:.8rem}
+.registration-panel #register{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 18px;align-items:start;width:100%;margin-top:22px}
+.registration-panel #register .field{display:flex;flex-direction:column;min-width:0;gap:8px;margin-bottom:18px}
+.registration-panel #register .field.full{grid-column:1/-1}
+.registration-panel #register label{position:static;float:none;display:block;margin:0;color:#123e2a;font-weight:700;font-size:.92rem}
+.registration-panel #register input,.registration-panel #register select{position:static;float:none;display:block;width:100%;min-width:0;max-width:100%;height:48px;padding:12px;border:1px solid #c8d8cd;border-radius:10px;background:#fff;color:#123e2a;box-sizing:border-box}
+.registration-panel #register input:focus,.registration-panel #register select:focus{outline:2px solid #c9a456;outline-offset:1px}
+.registration-panel #register button{grid-column:1/-1;display:block;position:static;float:none;width:100%;padding:15px 20px;margin:8px 0 0;background:linear-gradient(90deg,#08673b,#064a2f);color:#fff;border:0;border-radius:11px;font-weight:750;cursor:pointer}
+.registration-panel #register button:disabled{opacity:.55;cursor:wait}
+#status:not(:empty){padding:12px;background:#fff1e7;color:#8d3218;border-radius:10px}
+#done{padding:20px;border-radius:14px;background:#eff8f1}
+@media(max-width:900px){.registration-shell{grid-template-columns:1fr}.registration-aside{min-height:210px}.registration-aside ul{columns:2}}
+@media(max-width:540px){.registration-shell{margin:12px auto;border-radius:16px}.registration-aside,.registration-panel{padding:24px}.registration-aside ul{columns:1}.registration-panel #register{grid-template-columns:1fr}.registration-panel #register .field{grid-column:1/-1}}
+</style>
   <script src="/register.js" defer></script>
 </head>
 <body class="landing">
   <header class="top"><a class="brand" href="/"><img src="data:image/png;base64,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" width="38" height="38" alt=""><span class="wordmark">MAR-KHOOR <b>AI</b></span></a></header>
   <main class="landing-section">
     <div class="registration-shell">
+      <aside class="registration-aside">
+        <p style="color:#efc96d;font-weight:800;letter-spacing:.1em">MAR-KHOOR AI</p>
+        <h2>Grow your <em>restaurant with AI</em></h2>
+        <p>One private workspace for your restaurant.</p>
+        <ul><li>Online menu and orders</li><li>AI phone ordering setup</li><li>WhatsApp integration setup</li><li>Multilingual support</li></ul>
+      </aside>
       <section class="registration-panel">
-        <p class="step-label">MAR-KHOOR AI · Restaurant onboarding</p>
+        <p class="step-label">RESTAURANT PARTNER REGISTRATION</p>
         <h1>Register your restaurant</h1>
-        <p>Start your secure restaurant workspace in a few steps.</p>
+        <p>Create your account and start managing your restaurant in minutes.</p>
         <form id="register">
-          <label for="restaurant-name">Restaurant name *</label>
-          <input id="restaurant-name" required maxlength="160" autocomplete="organization" placeholder="e.g. Cheema Cafe">
-          <label for="country">Country or territory *</label>
-          <select id="country" required><option value="">Select a country</option></select>
-          <label for="email">Owner email address *</label>
-          <input id="email" type="email" required maxlength="254" autocomplete="username" placeholder="owner@example.com">
-          <label for="password">Create password (12+ characters) *</label>
-          <input id="password" type="password" required minlength="12" maxlength="1024" autocomplete="new-password">
-          <label for="confirm-password">Confirm password *</label>
-          <input id="confirm-password" type="password" required minlength="12" maxlength="1024" autocomplete="new-password">
+          <div class="field"><label for="restaurant-name">Restaurant name *</label><input id="restaurant-name" required maxlength="160" autocomplete="organization" placeholder="e.g. Cheema Cafe"></div>
+          <div class="field"><label for="country">Country or territory *</label><select id="country" required><option value="">Select country</option></select></div>
+          <div class="field full"><label for="email">Owner email address *</label><input id="email" type="email" required maxlength="254" autocomplete="username" placeholder="owner@example.com"></div>
+          <div class="field"><label for="password">Password (12+ characters) *</label><input id="password" type="password" required minlength="12" maxlength="1024" autocomplete="new-password"></div>
+          <div class="field"><label for="confirm-password">Confirm password *</label><input id="confirm-password" type="password" required minlength="12" maxlength="1024" autocomplete="new-password"></div>
           <button type="submit">Create my restaurant →</button>
         </form>
         <p id="status" role="status" aria-live="polite"></p>
         <div id="done" hidden><h2>Restaurant created</h2><p id="done-text"></p><a class="button" href="/restaurant.html">Sign in to your workspace</a></div>
+        <p style="margin-top:22px">Already registered? <a href="/restaurant.html">Sign in</a></p>
       </section>
-      <aside class="registration-aside">
-        <h2>Your restaurant, powered by AI</h2>
-        <p>One private workspace for your restaurant operations.</p>
-        <ul><li>Manage menus, products and offers</li><li>Receive and manage online orders</li><li>Configure AI voice and WhatsApp when integrations are available</li><li>Choose services after registration</li></ul>
-        <p>Already registered? <a href="/restaurant.html" style="color:#f4d58c">Sign in</a></p>
-      </aside>
     </div>
   </main>
 </body>
