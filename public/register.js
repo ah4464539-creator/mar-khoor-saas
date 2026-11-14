@@ -16,6 +16,9 @@ for (const { code, name } of regions) country.add(new Option(name, code));
 
 form.addEventListener('submit', async event => {
   event.preventDefault();
+  const password = document.querySelector('#password').value;
+  const confirm = document.querySelector('#confirm-password').value;
+  if (password !== confirm) { status.textContent = 'Passwords do not match'; return; }
   const button = form.querySelector('button');
   button.disabled = true;
   status.textContent = 'Creating your restaurant…';
