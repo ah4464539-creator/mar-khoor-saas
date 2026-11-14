@@ -113,3 +113,78 @@
 .mk-owner .setup-options span { display: grid; min-width: 0; gap: 8px; }
 .mk-owner .setup-options strong { color: var(--ink); }
 .mk-owner .setup-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
+
+
+/* Shared brand and form details */
+:is(.mk-home,.mk-register,.mk-owner) .brand img {
+  width: 38px;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: contain;
+}
+:is(.mk-register,.mk-owner) { color-scheme: dark; accent-color: #9e7bff; }
+.ui-icon { width: 18px; height: 18px; flex: none; color: var(--accent); vertical-align: middle; }
+.mk-register #register .field label .ui-icon { margin-inline-end: 8px; }
+.mk-register .registration-aside li { padding-inline-start: 0; }
+.mk-register .registration-panel a { color: #dbccff; }
+.mk-register #status:not(:empty) { background: #341e35; color: #ffd7e6; }
+
+.mk-owner .layout > aside .brand { background: transparent; color: var(--ink); width: fit-content; }
+.mk-owner aside > a.selected { background: #302551; color: #fff; }
+.mk-owner #owner-navigation a, .mk-owner aside > a.selected {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 9px;
+}
+.mk-owner #owner-navigation a:hover { background: #2b2348; }
+.mk-owner .workspace { width: 100%; max-width: 1480px; margin-inline: auto; }
+.mk-owner.signing-in .workspace { align-content: start; padding-top: clamp(24px, 7vh, 78px); }
+.mk-owner.signing-in .mk-login-grid { margin: 0 auto; }
+.mk-owner .access-panel { margin: 0; padding: clamp(20px, 4vw, 42px); }
+.mk-owner .access-panel h2 { font-size: clamp(25px, 3vw, 36px); }
+.mk-owner #login { display: grid; gap: 14px; }
+.mk-owner .login-field { display: grid; gap: 7px; min-width: 0; }
+.mk-owner .login-field label, .mk-owner .login-show { display: flex; align-items: center; gap: 8px; }
+.mk-owner #login input:not([type="checkbox"]) { width: 100%; min-height: 46px; }
+.mk-owner #login button { min-height: 44px; }
+.mk-owner #status:not(:empty) { padding: 10px 14px; background: #221d3b; border-radius: 9px; }
+.mk-owner .setup-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.mk-owner .setup-summary button { margin-inline-start: auto; }
+.mk-owner .setup-summary p { margin: 0; }
+.mk-owner .kpi-cards article { border-top-color: #7253b7; }
+
+.mk-owner #setup-form { display: grid; align-items: start; gap: 14px; margin: 0; }
+.mk-owner #setup-form p { margin: 0; }
+.mk-owner #setup-form .eyebrow { color: #d8c6ff; background: #2e214e; justify-self: start; }
+.mk-owner .setup-options label { display: grid; grid-template-columns: auto auto minmax(0,1fr); }
+.mk-owner .setup-options label:has(input:checked) { border-color: #b496ff; background: #2e214e; }
+.mk-owner .setup-actions { align-items: center; }
+.mk-owner .setup-actions button { min-height: 44px; }
+.mk-owner .setup-actions button[type="button"] { background: #25203d; }
+
+.mk-owner #add-item { display: grid; grid-template-columns: minmax(0,1fr) minmax(72px,105px) auto; align-items: end; }
+.mk-owner #add-item label, .mk-owner .site-field { display: grid; gap: 6px; min-width: 0; }
+.mk-owner #add-item input { width: 100%; }
+.mk-owner #plan-form { display: grid; }
+.mk-owner #plan-form p { margin: 0; }
+.mk-owner #plan-form button { justify-self: start; }
+.mk-owner #site-form { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+.mk-owner .site-field :is(input,select,textarea) { width: 100%; }
+.mk-owner .site-field textarea { padding: 11px 12px; border-radius: 11px; font: inherit; resize: vertical; }
+.mk-owner :is(.site-description,.site-about,.site-address,.site-actions) { grid-column: 1 / -1; }
+.mk-owner .site-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.mk-owner #orders:not(:empty) { margin-top: 10px; }
+@media (max-width: 820px) {
+  .mk-owner #owner-navigation { display: flex; flex-wrap: wrap; }
+  .mk-owner .operational-grid { grid-template-columns: minmax(0,1fr); }
+}
+@media (max-width: 570px) {
+  .mk-owner.signing-in .mk-login-intro { display: none; }
+  .mk-owner #add-item, .mk-owner #site-form { grid-template-columns: minmax(0,1fr); }
+  .mk-owner .setup-actions { justify-content: start; }
+  .mk-owner .setup-summary button { margin-inline-start: 0; }
+  .mk-register .registration-shell { margin-top: 0; }
+  .mk-register .registration-panel { grid-row: 1; }
+}

@@ -59,6 +59,7 @@ async function refresh(){
  const items=document.querySelector('#items');items.replaceChildren();
  for(const item of menu.items){const p=document.createElement('p'),button=document.createElement('button');p.textContent=item.name+' — '+(item.price_minor/100).toFixed(2)+' · '+(item.active?'Active':'Hidden')+' ';button.textContent=item.active?'Hide':'Show';button.addEventListener('click',async()=>{try{await api('/api/restaurants/'+restaurantId+'/menu/'+item.id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({...item,active:!item.active})});await refresh()}catch(e){status.textContent=e.message}});p.append(button);items.append(p)}
  const list=document.querySelector('#orders');list.replaceChildren();
+ if (!orders.orders.length) list.textContent = 'No orders yet.';
  for(const order of orders.orders){const p=document.createElement('p');p.textContent='#'+order.id+' · '+(order.customer_name||'Customer')+' · '+order.status+' · '+(order.total_minor/100).toFixed(2)+' ';const transitions={pending:['accepted','cancelled'],accepted:['preparing','cancelled'],preparing:['ready'],ready:['completed']};for(const next of transitions[order.status]||[]){const btn=document.createElement('button');btn.textContent=next;btn.addEventListener('click',async()=>{try{await api('/api/restaurants/'+restaurantId+'/orders/'+order.id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:next})});await refresh();status.textContent='Order #'+order.id+' updated'}catch(e){status.textContent=e.message}});p.append(btn)}list.append(p)}
 }
 const sessionKey = 'mar-khoor.owner-session';
@@ -67,6 +68,7 @@ const logoutButton = document.querySelector('#owner-logout');
 async function loadAccount() {
  const result = await api('/api/my/restaurants');
  target.replaceChildren();
+ target.closest(".mk-restaurant-list").hidden = result.restaurants.length < 2;
  document.body.classList.remove('signing-in');
  document.querySelector('.mk-login-grid').hidden = true;
  logoutButton.hidden = false;
@@ -183,9 +185,10 @@ const siteConfig=()=>({headline:siteField('headline').value,tagline:siteField('t
 const siteJson={'Content-Type':'application/json'};
 document.querySelector('#site-generate').addEventListener('click',async e=>{
  if(!restaurantId){siteStatus.textContent='Select your restaurant first.';return}
- e.currentTarget.disabled=true;siteStatus.textContent='Writing…';
+ const button = e.currentTarget;
+ button.disabled=true;siteStatus.textContent='Writing…';
  try{const data=await api('/api/restaurants/'+restaurantId+'/site/generate',{method:'POST',headers:siteJson,body:JSON.stringify({description:siteField('description').value})});showSite(data);siteStatus.textContent=data.source==='ai'?'Draft written by AI and saved. Edit anything you like.':'AI is not available, so a basic draft was saved. Edit it below.'}
- catch(error){siteStatus.textContent=error.message}finally{e.currentTarget.disabled=false}
+ catch(error){siteStatus.textContent=error.message}finally{button.disabled=false}
 });
 siteForm.addEventListener('submit',async e=>{
  e.preventDefault();if(!restaurantId){siteStatus.textContent='Select your restaurant first.';return}
@@ -258,3 +261,4 @@ if (token) loadAccount().catch(() => {
  token = '';
  try { localStorage.removeItem(sessionKey); } catch {}
 });
+
