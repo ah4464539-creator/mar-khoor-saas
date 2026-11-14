@@ -267,3 +267,17 @@
 .mk-owner .plan-services label { display: flex; align-items: center; min-height: 44px; padding: 8px; gap: 8px; border-radius: 8px; background: #201a37; cursor: pointer; }
 .mk-owner .plan-services label:has(input:checked) { background: #392858; }
 .mk-owner .plan-services #plan-number { grid-column: 1 / -1; }
+
+/* Keep sign-in text legible over both the photograph and the form. */
+.mk-owner.signing-in .mk-login-intro .eyebrow {
+  color: #f5ebff;
+  background: #302052;
+  border: 1px solid #9c80ce;
+}
+.mk-owner.signing-in .mk-login-intro > p:not(.eyebrow) { color: #eee9fa; }
+.mk-owner .access-panel { background: #171c35; }
+.mk-owner .access-panel :is(label,.muted,.login-register) { color: #e7e1f5; }
+.mk-owner #login input:not([type="checkbox"]) { background: #101629; color: #f7f5ff; border-color: #8273a7; }
+.mk-owner #login input::placeholder { color: #bbb3cf; opacity: 1; }
+.mk-owner .access-panel #login button { color: #fff; background: #6338cf; }
+.mk-owner .access-panel .login-register a { color: #dfceff; text-decoration: underline; text-underline-offset: .18em; }
