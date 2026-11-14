@@ -2,6 +2,7 @@ import express from 'express';
 import { requireAuth } from './auth.js';
 import { normalizeRoute } from './number-routes.js';
 import { createPlanOrder, listPlanOrders, changeOrderStatus } from './plan-orders.js';
+import { addNumberProvisioningRoutes, telnyxConfigured } from './number-provisioning.js';
 import { audit } from './security.js';
 
 export function plansRouter(pool) {
@@ -20,16 +21,19 @@ export function plansRouter(pool) {
   } catch { res.status(503).json({ error: 'Database unavailable' }); }
  };
 
+ addNumberProvisioningRoutes(router, pool, requireAuth, superOnly);
+
  // Super admin: country-wise number routes.
  router.get('/platform/number-routes', requireAuth, superOnly, async (_req, res) => {
   try {
    const [routes] = await pool.query('SELECT country_code,provider,mode,monthly_minor,setup_minor,requirements FROM number_routes ORDER BY country_code');
-   res.json({ routes });
+   res.json({ routes, telnyx_configured: telnyxConfigured() });
   } catch { res.status(503).json({ error: 'Routes unavailable' }); }
  });
  router.put('/platform/number-routes/:country', requireAuth, superOnly, async (req, res) => {
   const { route, error } = normalizeRoute(req.params.country, req.body);
   if (error) return res.status(400).json({ error });
+  if (route.mode === 'auto' && !telnyxConfigured()) return res.status(503).json({ error: 'Telnyx is not configured' });
   try {
    await pool.execute(
     'INSERT INTO number_routes(country_code,provider,mode,monthly_minor,setup_minor,requirements) VALUES (?,?,?,?,?,?) ON DUPLICATE KEY UPDATE provider=VALUES(provider),mode=VALUES(mode),monthly_minor=VALUES(monthly_minor),setup_minor=VALUES(setup_minor),requirements=VALUES(requirements)',

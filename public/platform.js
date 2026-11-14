@@ -41,13 +41,16 @@ async function platformApi(path, options = {}) {
   return data;
 }
 const nextStatuses = { pending_payment: ['paid', 'cancelled'], paid: ['provisioning', 'cancelled'], provisioning: ['active', 'cancelled'], active: ['cancelled'], cancelled: [] };
+let telnyxCountries = new Set();
 async function loadRoutes() {
-  const { routes } = await platformApi('/api/platform/number-routes');
+  const { routes, telnyx_configured } = await platformApi('/api/platform/number-routes');
+  telnyxCountries = new Set(routes.filter(route => route.provider === 'telnyx' && route.mode === 'auto').map(route => route.country_code));
+  document.querySelector('#route-mode option[value=auto]').disabled = !telnyx_configured;
   const root = document.querySelector('#route-list');
   root.replaceChildren();
   for (const route of routes) {
     const row = document.createElement('p');
-    row.textContent = route.country_code + ' · ' + route.provider + ' · ' + (route.mode === 'unavailable' ? 'not available'
+    row.textContent = route.country_code + ' · ' + route.provider + ' · ' + route.mode + ' · ' + (route.mode === 'unavailable' ? 'not available'
       : usd(route.monthly_minor) + ' / month · ' + usd(route.setup_minor ?? 0) + ' setup') + (route.requirements ? ' · ' + route.requirements : '');
     root.append(row);
   }
@@ -74,10 +77,15 @@ async function loadOrders() {
       row.append(button);
     }
     root.append(row);
+    if (order.number_mode === 'new' && order.status === 'provisioning' && telnyxCountries.has(order.country_code)) {
+      const panel = document.createElement('div');
+      panel.append(provisioningButton('Manage Telnyx number', panel, () => showTelnyxOrder(order.id, panel)));
+      root.append(panel);
+    }
   }
   if (!orders.length) root.textContent = 'No plan orders yet.';
 }
-const loadPlatformPlans = () => Promise.all([loadRoutes(), loadOrders()]);
+const loadPlatformPlans = async () => { await loadRoutes(); await loadOrders(); };
 document.querySelector('#route-form').addEventListener('submit', async event => {
   event.preventDefault();
   const output = document.querySelector('#route-status');
@@ -89,6 +97,67 @@ document.querySelector('#route-form').addEventListener('submit', async event => 
   try {
     await platformApi('/api/platform/number-routes/' + encodeURIComponent(document.querySelector('#route-country').value.trim().toUpperCase()), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     output.textContent = 'Route saved.';
-    await loadRoutes();
+    await loadPlatformPlans();
   } catch (error) { output.textContent = error.message; }
 });
+
+function provisioningButton(label, panel, action) {
+  const button = document.createElement('button');
+  button.textContent = label;
+  button.addEventListener('click', async () => {
+    button.disabled = true;
+    const status = document.createElement('p');
+    status.setAttribute('role', 'status');
+    try {
+      await action();
+    } catch (error) {
+      status.textContent = error.message;
+      panel.append(status);
+    } finally { button.disabled = false; }
+  });
+  return button;
+}
+
+async function showTelnyxOrder(orderId, panel) {
+  const path = '/api/platform/plan-orders/' + orderId + '/telnyx';
+  const post = (suffix, body) => platformApi(path + suffix, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  });
+  const current = await platformApi(path);
+  if (current.customer_reference) {
+    const summary = document.createElement('p');
+    summary.textContent = current.phone_number + ' · ' + current.status + ' · Reference ' + current.customer_reference;
+    const providerId = document.createElement('input');
+    providerId.placeholder = 'Matching Telnyx order ID';
+    providerId.setAttribute('aria-label', 'Telnyx order ID');
+    providerId.hidden = Boolean(current.provider_order_id);
+    const refresh = provisioningButton('Refresh Telnyx status', panel, async () => {
+      await post('/refresh', { provider_order_id: providerId.value.trim() });
+      await showTelnyxOrder(orderId, panel);
+    });
+    panel.replaceChildren(summary, providerId, refresh);
+    return;
+  }
+
+  const { numbers } = await platformApi(path + '/available');
+  if (!numbers.length) {
+    panel.textContent = 'No eligible Telnyx numbers are currently available.';
+    return;
+  }
+  const choice = document.createElement('select');
+  choice.setAttribute('aria-label', 'Available Telnyx numbers');
+  for (const number of numbers) {
+    const cost = number.cost_information;
+    const price = cost ? ' · ' + (cost.monthly_cost ?? '?') + ' / month · ' + (cost.upfront_cost ?? '?') + ' upfront ' + (cost.currency ?? '') : ' · check price in Telnyx';
+    choice.add(new Option(number.phone_number + price, number.phone_number));
+  }
+  const purchase = provisioningButton('Buy selected number', panel, async () => {
+    if (!window.confirm('Confirm Telnyx purchase for ' + choice.selectedOptions[0].textContent + '. This may charge the Mar-Khoor Telnyx account.')) return;
+    try {
+      await post('', { phone_number: choice.value, confirm_purchase: true });
+    } finally {
+      await showTelnyxOrder(orderId, panel);
+    }
+  });
+  panel.replaceChildren(choice, purchase);
+}

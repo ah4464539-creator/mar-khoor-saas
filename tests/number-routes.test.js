@@ -19,8 +19,9 @@ test('normalizeRoute accepts a manual route and rejects bad input',()=>{
   assert.ok(normalizeRoute(country,input).error,JSON.stringify([country,input]));
 });
 
-test('a route cannot claim automatic provisioning before an adapter exists',()=>{
- assert.match(normalizeRoute('AE',{provider:'telnyx',mode:'auto',monthly_minor:1}).error,/not implemented/);
+test('automatic routes require a supported provider',()=>{
+ assert.equal(normalizeRoute('AE',{provider:'telnyx',mode:'auto',monthly_minor:1}).route.mode, 'auto');
+ assert.match(normalizeRoute('AE',{provider:'twilio',mode:'auto',monthly_minor:1}).error,/not implemented/);
 });
 
 test('unavailable routes need no prices',()=>{

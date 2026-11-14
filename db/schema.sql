@@ -213,3 +213,12 @@ CREATE TABLE IF NOT EXISTS restaurant_websites (
  theme ENUM('classic','midnight') NOT NULL,
  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS telnyx_number_orders (
+ plan_order_id BIGINT UNSIGNED PRIMARY KEY,
+ phone_number VARCHAR(16) NOT NULL,
+ customer_reference VARCHAR(64) NOT NULL UNIQUE,
+ provider_order_id CHAR(36) UNIQUE,
+ provider_status VARCHAR(64) NOT NULL DEFAULT 'needs_review',
+ FOREIGN KEY (plan_order_id) REFERENCES plan_orders(id)
+);

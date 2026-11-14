@@ -3,9 +3,7 @@
 
 export const PROVIDERS = ['telnyx', 'twilio', 'didww', 'manual'];
 export const MODES = ['auto', 'manual', 'unavailable'];
-// Providers whose API adapter is implemented. Empty for now: every number is provisioned by hand,
-// so a route cannot claim `auto` yet.
-export const AUTOMATED_PROVIDERS = [];
+export const AUTOMATED_PROVIDERS = ['telnyx'];
 
 const price = value => Number.isSafeInteger(value) && value >= 0 && value <= 10000000;
 
