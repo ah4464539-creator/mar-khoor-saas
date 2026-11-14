@@ -24,35 +24,55 @@
 <div class="layout">
 <aside><a class="brand" href="/"><img src="/assets/approved-markhor.png" width="34" height="34" alt=""><span class="wordmark">Mar-Khoor</span></a>
 <div class="navlabel">RESTAURANT</div><a href="/super-admin.html">Platform</a><a class="selected" aria-current="page" href="/restaurant.html">Restaurant Overview</a>
-<div class="asidefoot">Restaurant Workspace</div>
+<nav id="owner-navigation" aria-label="Restaurant workspace" hidden>
+<a href="#restaurant-setup">Setup</a><a href="#website-builder">Website Builder</a><a href="#menu-management">Menu</a><a href="#order-desk">Orders</a><a href="#analytics">Analytics</a>
+</nav><div class="asidefoot">Restaurant Workspace</div>
 </aside>
 <main class="workspace">
 <div class="page-heading">
 <div>
-<h1>Restaurant Dashboard</h1>
-</div><span class="live-pill">Restaurant workspace</span>
+<h1 id="owner-heading">Restaurant Dashboard</h1>
+</div><button type="button" id="owner-logout" hidden>Sign out</button>
 </div>
 <p class="muted">Sign in to view restaurants assigned to your account.</p>
 <div class="mk-login-grid"><div class="mk-login-intro"><p class="eyebrow">Restaurant Login</p><h1>Manage Your Restaurant Anywhere</h1><p>Access your dashboard, orders and menu from one workspace.</p></div><section class="panel access-panel">
 <h2>Welcome back</h2><p class="muted">Sign in to manage your restaurant.</p>
-<form id="login"><div class="login-field"><label for="email">Owner Email *</label><input id="email" aria-label="Email address" type="email" placeholder="owner@example.com" required autocomplete="username"></div><div class="login-field"><label for="password">Password *</label><input id="password" aria-label="Password" type="password" placeholder="Enter your password" required autocomplete="current-password"></div><label class="login-show"><input id="login-show-password" type="checkbox"> Show password</label><button type="submit">Sign In →</button>
+<form id="login"><div class="login-field"><label for="email">Owner Email *</label><input id="email" aria-label="Email address" type="email" placeholder="owner@example.com" required autocomplete="username"></div><div class="login-field"><label for="password">Password *</label><input id="password" aria-label="Password" type="password" placeholder="Enter your password" required autocomplete="current-password"></div><label class="login-show"><input id="login-show-password" type="checkbox"> Show password</label><label class="login-show"><input id="remember-login" type="checkbox"> Remember me</label><button type="submit">Sign in</button>
 </form>
-<p class="login-register">New restaurant owner? <a href="/register.html">Register your restaurant</a></p><p id="status" role="status" class="muted">
-</p>
-</section></div>
+<p class="login-register">New restaurant owner? <a href="/register.html">Register your restaurant</a></p></section></div>
+<p id="status" role="status" class="muted"></p>
 <section class="panel mk-restaurant-list">
 <h2>My restaurants</h2>
 <div id="restaurants" class="muted">Sign in to load your restaurants.</div>
 </section>
 <div id="management" hidden>
+<section class="panel setup-summary" id="restaurant-setup" hidden>
+<h2>Restaurant setup</h2>
+<p id="setup-summary">Loading setup…</p>
+<button type="button" id="open-setup" disabled>Continue setup</button>
+</section>
+<dialog id="setup-dialog" aria-labelledby="setup-title">
+<form id="setup-form">
+<p class="eyebrow">First-time setup</p>
+<h2 id="setup-title">Set up your restaurant</h2>
+<p>Choose which services to set up. Saving your choices keeps them as a draft.</p>
+<div class="setup-options">
+<label><input type="checkbox" name="service" value="website"><span><strong>AI Website Builder</strong><small>Configure and publish your restaurant site.</small></span></label>
+<label><input type="checkbox" name="service" value="voice"><span><strong>AI Call Assistant</strong><small>Plan your restaurant phone setup.</small></span></label>
+<label><input type="checkbox" name="service" value="menu"><span><strong>Smart Menu &amp; Order Management</strong><small>Add menu items and manage customer orders.</small></span></label>
+</div>
+<p id="setup-status" role="status"></p>
+<div class="setup-actions"><button type="button" id="close-setup">Continue later</button><button type="button" id="skip-setup">Skip for now</button><button type="submit">Save draft</button></div>
+</form>
+</dialog>
 <section id="analytics" class="cards kpi-cards" aria-label="Restaurant analytics" aria-live="polite">Loading analytics…</section>
 <div class="dashboard-panels operational-grid">
-<section class="panel order-desk">
+<section class="panel order-desk" id="order-desk">
 <h2><span class="order-indicator" aria-hidden="true"></span>Live Orders</h2>
 <div id="orders">
 </div>
 </section>
-<section class="panel">
+<section class="panel" id="menu-management">
 <h2>Menu &amp; Items</h2>
 <form id="add-item"><input id="item-name" aria-label="Menu item name" placeholder="Item name" required maxlength="180"><input id="item-price" aria-label="Menu item price" type="number" min="0" step="0.01" placeholder="Price" required><button>Add item</button>
 </form>
