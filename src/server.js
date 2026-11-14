@@ -43,14 +43,9 @@ app.use('/api/restaurants/:restaurantId/site/generate', rateLimit({ windowMs: 60
 app.use('/api', rateLimit({ windowMs: 10 * 60 * 1000, max: 1500, name: 'api' }));
 app.use(express.json({ limit: '1mb' }));
 const publicDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
-app.get('/super-admin', (_req, res) => res.sendFile(path.join(publicDirectory, 'super-admin.html')));
-app.use((req, res, next) => {
-  let pathname;
-  try { pathname = decodeURIComponent(req.path); }
-  catch { return res.sendStatus(400); }
-  const normalizedPath = path.posix.normalize(pathname.replaceAll('\\', '/')).toLowerCase();
-  if (normalizedPath === '/super-admin.html') return res.sendStatus(404);
-  next();
+app.get('/super-admin', (_req, res) => {
+  res.set('X-Robots-Tag', 'noindex, nofollow');
+  res.sendFile(path.resolve(publicDirectory, '../src/views/super-admin.html'), { cacheControl: false });
 });
 app.use(express.static(publicDirectory));
 app.post('/api/public/plan-quote', async (req, res) => {
