@@ -11,6 +11,7 @@ export function numbersRouter(pool) {
 
  router.get('/platform/plan-orders/:orderId/number-candidates', requireAuth, superOnly, guard(async (req, res) => send(res, await listCandidates(pool, Number(req.params.orderId)))));
  router.post('/platform/plan-orders/:orderId/number', requireAuth, superOnly, guard(async (req, res) => {
+  if (req.body?.confirm_purchase !== true) return res.status(400).json({ error: 'Select a number and confirm the purchase' });
   const result = await purchaseNumber(pool, Number(req.params.orderId), req.body?.phone_number);
   await audit(pool, { actorUserId: req.user.id, action: 'number.purchase:' + Number(req.params.orderId) + ':' + result.status });
   send(res, result);

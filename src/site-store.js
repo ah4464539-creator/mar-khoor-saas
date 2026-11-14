@@ -4,7 +4,7 @@ import { defaultSiteConfig, sanitizeSiteConfig } from './site-builder.js';
 const parse = (text, restaurant) => { try { return sanitizeSiteConfig(JSON.parse(text), restaurant); } catch { return defaultSiteConfig(restaurant); } };
 
 export async function loadRestaurant(pool, restaurantId) {
-  const [rows] = await pool.execute('SELECT id,name,slug,country_code,currency FROM restaurants WHERE id=? LIMIT 1', [restaurantId]);
+  const [rows] = await pool.execute('SELECT id,name,slug,country_code,currency,locale FROM restaurants WHERE id=? LIMIT 1', [restaurantId]);
   return rows[0] ?? null;
 }
 
@@ -44,9 +44,9 @@ export async function setPublished(pool, restaurant, published) {
 export async function loadPublicSite(pool, slug) {
   if (typeof slug !== 'string' || !/^[a-z0-9-]{1,160}$/.test(slug)) return null;
   const [rows] = await pool.execute(
-    'SELECT r.id,r.name,r.slug,r.country_code,r.currency,s.config FROM restaurants r JOIN restaurant_sites s ON s.restaurant_id=r.id AND s.published=1 WHERE r.slug=? LIMIT 1', [slug]);
+    'SELECT r.id,r.name,r.slug,r.country_code,r.currency,r.locale,s.config FROM restaurants r JOIN restaurant_sites s ON s.restaurant_id=r.id AND s.published=1 WHERE r.slug=? LIMIT 1', [slug]);
   if (!rows.length) return null;
-  const restaurant = { id: rows[0].id, name: rows[0].name, slug: rows[0].slug, country_code: rows[0].country_code, currency: rows[0].currency };
+  const restaurant = { id: rows[0].id, name: rows[0].name, slug: rows[0].slug, country_code: rows[0].country_code, currency: rows[0].currency, locale: rows[0].locale };
   const [items] = await pool.execute('SELECT name,description,price_minor FROM menu_items WHERE restaurant_id=? AND active=1 ORDER BY id LIMIT 100', [restaurant.id]);
   return { restaurant, config: parse(rows[0].config, restaurant), items };
 }

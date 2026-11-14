@@ -147,3 +147,31 @@ test('number routes are super-admin only, mounted, and the table exists',()=>{
  assert.ok(readFileSync(new URL('../src/server.js',import.meta.url),'utf8').includes('numbersRouter(pool)'));
  assert.match(readFileSync(new URL('../db/schema.sql',import.meta.url),'utf8'),/CREATE TABLE IF NOT EXISTS restaurant_numbers/);
 });
+
+test('order sends a customer reference, and the search excludes best-effort numbers',async()=>{
+ let body,url;
+ await orderNumber({apiKey:'k',phoneNumber:'+971400000001',customerReference:'mar-khoor-5-x',fetcher:async(u,o)=>{body=JSON.parse(o.body);return ok({data:{id:'o1',status:'pending'}})}});
+ assert.equal(body.customer_reference,'mar-khoor-5-x');
+ const found=await searchNumbers({apiKey:'k',country:'AE',fetcher:async u=>{url=new URL(u);return ok({data:[{phone_number:'+971400000001',best_effort:true},{phone_number:'+971400000002',best_effort:false}]})}});
+ assert.equal(url.searchParams.get('filter[best_effort]'),'false');
+ assert.deepEqual(found.map(n=>n.phone_number),['+971400000002']);
+});
+
+test('purchase sends a reference; a provider error is a clean failure but a timeout is an unknown outcome kept claimed',async()=>{
+ let sentBody;
+ const okPool=db();
+ await purchaseNumber(okPool,5,'+971400000001',{...keys,fetcher:async(u,o)=>u.includes('telnyx')?(sentBody=JSON.parse(o.body),ok({data:{id:'o',status:'pending'}})):ok({id:'x'})});
+ assert.match(sentBody.customer_reference,/^mar-khoor-5-[0-9a-f-]{36}$/);
+ const timeoutPool=db();
+ const result=await purchaseNumber(timeoutPool,5,'+971400000001',{...keys,fetcher:async()=>{throw Error('The operation timed out')}});
+ assert.equal(result.status,502);
+ assert.match(result.body.error,/outcome is unknown/);
+ assert.match(result.body.customer_reference,/^mar-khoor-5-/);
+ assert.ok(!statuses(timeoutPool).some(s=>s.includes("status='failed'")));
+ assert.ok(timeoutPool.log.some(q=>q.sql.includes('SET last_error=?')&&String(q.args[0]).includes('Check Telnyx')));
+});
+
+test('buying requires an explicit confirm_purchase flag from the admin screen',()=>{
+ assert.match(readFileSync(new URL('../src/numbers.js',import.meta.url),'utf8'),/confirm_purchase !== true/);
+ assert.match(readFileSync(new URL('../public/platform.js',import.meta.url),'utf8'),/confirm_purchase: true/);
+});

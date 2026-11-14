@@ -5,6 +5,7 @@ export async function importTelnyxNumber({ apiKey, credentialId, number, assista
     method: 'POST',
     headers: { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({ provider: 'telnyx', number, credentialId, assistantId, name: String(name).slice(0, 40) }),
+    redirect: 'error',
     signal: AbortSignal.timeout(20000),
   });
   let data = null;

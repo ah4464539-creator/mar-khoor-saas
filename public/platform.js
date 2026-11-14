@@ -100,7 +100,7 @@ async function findNumbers(order) {
         if (!confirm('Buy ' + item.phone_number + ' for order #' + order.id + '? This spends real money.')) return;
         buy.disabled = true;
         try {
-          const result = await platformApi('/api/platform/plan-orders/' + order.id + '/number', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone_number: item.phone_number }) });
+          const result = await platformApi('/api/platform/plan-orders/' + order.id + '/number', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone_number: item.phone_number, confirm_purchase: true }) });
           numberStatus(result.note || ('Number ' + result.phone_number + ' is ' + result.status + '.'));
           root.replaceChildren();
           await Promise.all([loadNumbers(), loadOrders()]);

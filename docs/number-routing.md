@@ -47,4 +47,6 @@ Nothing is bought automatically. Flow for an order that asked for a new number:
 
 Environment variables (names only): `TELNYX_API_KEY`, `VAPI_API_KEY`, `VAPI_TELNYX_CREDENTIAL_ID` (the Telnyx credential you add once in Vapi), and optionally `TELNYX_REQUIREMENT_GROUP_<COUNTRY>` (for example `TELNYX_REQUIREMENT_GROUP_AE`) for countries that need a requirement group on the order.
 
+Each order carries a customer reference (`mar-khoor-<order>-<uuid>`). If Telnyx gives an error answer, the row is `failed` (nothing was bought). If Telnyx does not answer at all (timeout), the purchase outcome is unknown: the row stays claimed with the reference in `last_error`, no second purchase is possible, and you must check the Telnyx portal for that reference before doing anything else. The buy request must also carry `confirm_purchase: true`, which the admin screen sends only after the confirmation dialog.
+
 Safety: super admin only; one number per order and one order per number (database unique keys, so a double click cannot buy twice); keys never leave the server; every purchase and retry is written to the audit log. Telnyx only lets you order numbers returned by a recent search, so buy soon after searching. Verify the first purchase in a country with a cheap local number before promising prices to restaurants.

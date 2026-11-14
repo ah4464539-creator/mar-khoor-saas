@@ -7,6 +7,7 @@ async function call(fetcher, apiKey, path, options = {}) {
   const response = await fetcher(BASE + path, {
     ...options,
     headers: { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json', Accept: 'application/json' },
+    redirect: 'error',
     signal: AbortSignal.timeout(20000),
   });
   let data = null;
@@ -20,10 +21,10 @@ async function call(fetcher, apiKey, path, options = {}) {
 
 export async function searchNumbers({ apiKey, country, type = 'local', limit = 5, fetcher = fetch }) {
   if (!/^[A-Z]{2}$/.test(country)) throw Error('Invalid country');
-  const query = new URLSearchParams({ 'filter[country_code]': country, 'filter[phone_number_type]': type, 'filter[limit]': String(Math.min(Math.max(limit, 1), 10)) });
+  const query = new URLSearchParams({ 'filter[country_code]': country, 'filter[phone_number_type]': type, 'filter[limit]': String(Math.min(Math.max(limit, 1), 10)), 'filter[best_effort]': 'false' });
   const data = await call(fetcher, apiKey, '/available_phone_numbers?' + query);
   return (data?.data ?? [])
-    .filter(item => typeof item?.phone_number === 'string' && E164.test(item.phone_number))
+    .filter(item => typeof item?.phone_number === 'string' && E164.test(item.phone_number) && !item.best_effort)
     .filter(item => !Array.isArray(item.features) || item.features.some(f => f?.name === 'voice'))
     .map(item => ({
       phone_number: item.phone_number,
@@ -34,10 +35,12 @@ export async function searchNumbers({ apiKey, country, type = 'local', limit = 5
 }
 
 // Only numbers returned by a recent search can be ordered. Some countries need a requirement group.
-export async function orderNumber({ apiKey, phoneNumber, requirementGroupId, fetcher = fetch }) {
+// customerReference lets you find the order in the Telnyx portal if the outcome of a call is unknown.
+export async function orderNumber({ apiKey, phoneNumber, requirementGroupId, customerReference, fetcher = fetch }) {
   if (!E164.test(phoneNumber)) throw Error('Invalid phone number');
   const body = { phone_numbers: [{ phone_number: phoneNumber }] };
   if (requirementGroupId) body.requirement_group_id = requirementGroupId;
+  if (customerReference) body.customer_reference = customerReference;
   const data = await call(fetcher, apiKey, '/number_orders', { method: 'POST', body: JSON.stringify(body) });
   const id = data?.data?.id;
   if (typeof id !== 'string' || !id) throw Error('Telnyx returned no order id');

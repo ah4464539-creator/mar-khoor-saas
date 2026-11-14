@@ -80,3 +80,9 @@ test('AI output is sanitized and cannot set phone, address or hours',async()=>{
  assert.ok(sent.messages[0].content.includes('untrusted'));
  assert.ok(sent.messages[1].content.includes('Zinger Burger'));
 });
+
+test('page language follows the restaurant locale and rejects odd values',()=>{
+ const html=renderSitePage({restaurant:{...restaurant,locale:'ur'},config:defaultSiteConfig(restaurant),items});
+ assert.match(html,/<html lang="ur" dir="auto">/);
+ assert.match(renderSitePage({restaurant:{...restaurant,locale:'x"><script>'},config:defaultSiteConfig(restaurant),items}),/<html lang="en" dir="auto">/);
+});

@@ -2,6 +2,7 @@
 // Flow: super admin searches candidates for a paid order, picks ONE number and confirms.
 // Then: claim row -> Telnyx order -> (when Telnyx says success) import into Vapi bound to the
 // restaurant's single active assistant. Nothing is bought without an explicit admin action.
+import { randomUUID } from 'node:crypto';
 import { searchNumbers, orderNumber, getOrderStatus, E164 } from './providers/telnyx.js';
 import { importTelnyxNumber } from './providers/vapi-numbers.js';
 
@@ -67,12 +68,20 @@ export async function purchaseNumber(pool, orderId, phoneNumber, deps = defaultD
   }
   const row = { id: rowId, restaurant_id: order.restaurant_id, plan_order_id: order.id, phone_number: phoneNumber };
 
+  const reference = 'mar-khoor-' + order.id + '-' + randomUUID();
   let ordered;
   try {
-    ordered = await orderNumber({ apiKey: deps.telnyxKey, phoneNumber, requirementGroupId: process.env['TELNYX_REQUIREMENT_GROUP_' + order.country_code], fetcher: deps.fetcher });
+    ordered = await orderNumber({ apiKey: deps.telnyxKey, phoneNumber, requirementGroupId: process.env['TELNYX_REQUIREMENT_GROUP_' + order.country_code], customerReference: reference, fetcher: deps.fetcher });
   } catch (error) {
-    await pool.execute("UPDATE restaurant_numbers SET status='failed',last_error=? WHERE id=?", [String(error.message).slice(0, 255), rowId]);
-    return fail(502, 'Telnyx order failed: ' + error.message);
+    if (error.providerStatus) {
+      // Telnyx answered with an error: nothing was bought.
+      await pool.execute("UPDATE restaurant_numbers SET status='failed',last_error=? WHERE id=?", [String(error.message).slice(0, 255), rowId]);
+      return fail(502, 'Telnyx order failed: ' + error.message);
+    }
+    // No answer (timeout/network): the order may or may not exist. Keep the claim so it cannot be bought twice.
+    await pool.execute("UPDATE restaurant_numbers SET last_error=? WHERE id=?", [('Outcome unknown. Check Telnyx for reference ' + reference).slice(0, 255), rowId]);
+    console.warn(JSON.stringify({ event: 'telnyx_purchase_needs_review', plan_order_id: order.id }));
+    return { status: 502, body: { error: 'Telnyx did not answer, so the purchase outcome is unknown. Check the Telnyx portal for reference ' + reference + ' before doing anything else.', customer_reference: reference } };
   }
   await pool.execute('UPDATE restaurant_numbers SET provider_order_id=? WHERE id=?', [ordered.orderId, rowId]);
   if (ordered.status !== 'success') {
