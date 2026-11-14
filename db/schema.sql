@@ -222,3 +222,10 @@ CREATE TABLE IF NOT EXISTS telnyx_number_orders (
  provider_status VARCHAR(64) NOT NULL DEFAULT 'needs_review',
  FOREIGN KEY (plan_order_id) REFERENCES plan_orders(id)
 );
+
+CREATE TABLE IF NOT EXISTS restaurant_setup (
+ restaurant_id BIGINT UNSIGNED PRIMARY KEY,
+ selected_services JSON NOT NULL,
+ skipped BOOLEAN NOT NULL DEFAULT FALSE,
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+);

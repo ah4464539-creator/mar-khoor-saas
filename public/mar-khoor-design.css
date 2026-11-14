@@ -95,3 +95,21 @@
 .mk-owner .access-panel :is(h2,label) { color: var(--ink); }
 .mk-owner .access-panel #login button { background: #7047df; color: white; }
 .mk-owner .layout > aside { background: #101528; }
+.mk-owner:not(.signing-in) .workspace { background: #0e1326; }
+.mk-owner #owner-navigation { display: grid; gap: .35rem; }
+.mk-owner .setup-summary { margin-bottom: 18px; }
+.mk-owner #setup-dialog {
+  width: min(880px, calc(100% - 28px));
+  max-height: calc(100% - 28px);
+  padding: clamp(18px, 4vw, 42px);
+  border: 1px solid #6e54ae;
+  border-radius: 20px;
+  color: var(--ink);
+  background: #12172c;
+}
+.mk-owner #setup-dialog::backdrop { background: #080a17b8; }
+.mk-owner .setup-options { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,190px),1fr)); gap: 14px; }
+.mk-owner .setup-options label { display: flex; gap: 10px; align-items: start; padding: 18px; border: 1px solid #514173; border-radius: 12px; background: #201c39; }
+.mk-owner .setup-options span { display: grid; min-width: 0; gap: 8px; }
+.mk-owner .setup-options strong { color: var(--ink); }
+.mk-owner .setup-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }

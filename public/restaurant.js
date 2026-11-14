@@ -60,14 +60,67 @@ async function refresh(){
  const list=document.querySelector('#orders');list.replaceChildren();
  for(const order of orders.orders){const p=document.createElement('p');p.textContent='#'+order.id+' · '+(order.customer_name||'Customer')+' · '+order.status+' · '+(order.total_minor/100).toFixed(2)+' ';const transitions={pending:['accepted','cancelled'],accepted:['preparing','cancelled'],preparing:['ready'],ready:['completed']};for(const next of transitions[order.status]||[]){const btn=document.createElement('button');btn.textContent=next;btn.addEventListener('click',async()=>{try{await api('/api/restaurants/'+restaurantId+'/orders/'+order.id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:next})});await refresh();status.textContent='Order #'+order.id+' updated'}catch(e){status.textContent=e.message}});p.append(btn)}list.append(p)}
 }
-form.addEventListener('submit',async e=>{e.preventDefault();status.textContent='Signing in…';try{
- const response=await fetch('/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:document.querySelector('#email').value,password:document.querySelector('#password').value})});
- const data=await response.json();if(!response.ok)throw Error(data.error||'Login failed');token=data.token;
- const result=await api('/api/my/restaurants');target.replaceChildren();
+const sessionKey = 'mar-khoor.owner-session';
+const logoutButton = document.querySelector('#owner-logout');
+
+async function loadAccount() {
+ const result = await api('/api/my/restaurants');
+ target.replaceChildren();
  document.body.classList.remove('signing-in');
- for(const restaurant of result.restaurants){const button=document.createElement('button');button.textContent=restaurant.name+' · '+restaurant.role;button.addEventListener('click',async()=>{restaurantId=restaurant.id;restaurantCurrency=restaurant.currency;document.querySelector('#management').hidden=false;loadWebsite(restaurant);try{await refresh();status.textContent='Loaded '+restaurant.name}catch(e){status.textContent=e.message}});target.append(button)}
- if(!result.restaurants.length)target.textContent='No restaurants assigned.';status.textContent='Account loaded.';
-}catch(err){status.textContent=err.message}});
+ document.querySelector('.mk-login-grid').hidden = true;
+ logoutButton.hidden = false;
+ for (const restaurant of result.restaurants) {
+  const button = document.createElement('button');
+  button.textContent = restaurant.name + ' · ' + restaurant.role;
+  button.addEventListener('click', () => openRestaurant(restaurant));
+  target.append(button);
+ }
+ status.textContent = result.restaurants.length ? '' : 'No restaurants assigned.';
+ if (result.restaurants.length === 1) await openRestaurant(result.restaurants[0]);
+}
+
+async function openRestaurant(restaurant) {
+ restaurantId = restaurant.id;
+ restaurantCurrency = restaurant.currency;
+ document.querySelector('#owner-heading').textContent = restaurant.name;
+ document.querySelector('#management').hidden = false;
+ document.querySelector('#owner-navigation').hidden = restaurant.role !== 'admin';
+ loadWebsite(restaurant);
+ loadSetup(restaurant);
+ try { await refresh(); } catch (error) { status.textContent = error.message; }
+}
+
+form.addEventListener('submit', async event => {
+ event.preventDefault();
+ const submit = form.querySelector('button[type=submit]');
+ submit.disabled = true;
+ status.textContent = 'Signing in…';
+ try {
+  const response = await fetch('/auth/login', {
+   method: 'POST', headers: { 'Content-Type': 'application/json' },
+   body: JSON.stringify({ email: document.querySelector('#email').value, password: document.querySelector('#password').value }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw Error(data.error || 'Login failed');
+  token = data.token;
+  await loadAccount();
+  if (document.querySelector('#remember-login').checked) {
+   try { localStorage.setItem(sessionKey, token); } catch {}
+  }
+  form.reset();
+ } catch (error) { status.textContent = error.message; }
+ finally { submit.disabled = false; }
+});
+
+logoutButton.addEventListener('click', async () => {
+ logoutButton.disabled = true;
+ try {
+  await api('/auth/logout', { method: 'POST' });
+  try { localStorage.removeItem(sessionKey); } catch {}
+  location.reload();
+ } catch (error) { status.textContent = error.message; logoutButton.disabled = false; }
+});
+
 document.querySelector('#add-item').addEventListener('submit',async e=>{e.preventDefault();if(!restaurantId)return;try{
  const name=document.querySelector('#item-name').value,amount=Number(document.querySelector('#item-price').value),price_minor=Math.round(amount*100);
  if(!Number.isFinite(amount)||amount<0||!Number.isSafeInteger(price_minor))throw Error('Invalid price');
@@ -179,4 +232,63 @@ websiteForm.addEventListener('submit', event => {
     showPublishedWebsite(data);
     websiteStatus.textContent = 'Website published.';
   });
+});
+
+const setupPanel = document.querySelector('#restaurant-setup');
+const setupDialog = document.querySelector('#setup-dialog');
+const setupForm = document.querySelector('#setup-form');
+const setupSummary = document.querySelector('#setup-summary');
+const setupStatus = document.querySelector('#setup-status');
+const openSetup = document.querySelector('#open-setup');
+let setupSelection = 0;
+
+async function loadSetup(restaurant) {
+ const selection = ++setupSelection;
+ setupPanel.hidden = restaurant.role !== 'admin';
+ openSetup.disabled = true;
+ if (setupDialog.open) setupDialog.close();
+ if (setupPanel.hidden) return;
+ setupSummary.textContent = 'Loading setup…';
+ try {
+  const data = await api('/api/restaurants/' + restaurant.id + '/setup');
+  if (selection !== setupSelection) return;
+  setupSummary.textContent = data.skipped ? 'Setup skipped. You can continue at any time.'
+   : data.saved ? data.services.length + ' of 3 services selected for setup.' : 'Choose the services you want to configure.';
+  for (const input of setupForm.querySelectorAll('input')) input.checked = data.services.includes(input.value);
+  openSetup.disabled = false;
+  if (!data.saved) setupDialog.showModal();
+ } catch (error) {
+  if (selection === setupSelection) setupSummary.textContent = error.message;
+ }
+}
+
+async function saveSetup(skipped) {
+ const selection = setupSelection;
+ const services = [...setupForm.querySelectorAll('input:checked')].map(input => input.value);
+ const controls = [...setupForm.querySelectorAll('button,input')];
+ controls.forEach(control => { control.disabled = true; });
+ setupStatus.textContent = 'Saving setup…';
+ try {
+  await api('/api/restaurants/' + restaurantId + '/setup', {
+   method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ services, skipped }),
+  });
+  if (selection !== setupSelection) return;
+  setupSummary.textContent = skipped ? 'Setup skipped. You can continue at any time.' : services.length + ' of 3 services selected for setup.';
+  setupDialog.close();
+ } catch (error) {
+  if (selection === setupSelection) setupStatus.textContent = error.message;
+ } finally {
+  controls.forEach(control => { control.disabled = false; });
+ }
+}
+
+openSetup.addEventListener('click', () => { setupStatus.textContent = ''; setupDialog.showModal(); });
+document.querySelector('#close-setup').addEventListener('click', () => setupDialog.close());
+document.querySelector('#skip-setup').addEventListener('click', () => saveSetup(true));
+setupForm.addEventListener('submit', event => { event.preventDefault(); saveSetup(false); });
+
+try { token = localStorage.getItem(sessionKey) || ''; } catch {}
+if (token) loadAccount().catch(() => {
+ token = '';
+ try { localStorage.removeItem(sessionKey); } catch {}
 });
