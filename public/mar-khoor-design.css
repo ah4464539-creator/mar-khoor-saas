@@ -188,3 +188,8 @@
   .mk-register .registration-shell { margin-top: 0; }
   .mk-register .registration-panel { grid-row: 1; }
 }
+
+.mk-owner.signing-in .layout > aside, .mk-register .registration-aside {
+  position: static;
+  height: auto;
+}
