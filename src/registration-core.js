@@ -1,5 +1,6 @@
 // Restaurant self-registration: validation and the transactional insert.
 // No express import here, so it can be tested with a mock pool.
+import { audit } from './security.js';
 
 const RESERVED = new Set(['admin', 'api', 'auth', 'r', 'public', 'health', 'integrations', 'voice-tools', 'login', 'register', 'super-admin', 'menu', 'restaurant', 'build-plan', 'www']);
 const EUR = new Set('AT BE CY DE EE ES FI FR GR HR IE IT LT LU LV MT NL PT SI SK'.split(' '));
@@ -46,6 +47,7 @@ export async function registerRestaurant(pool, body, hashPassword) {
     step = 'member';
     await connection.execute("INSERT INTO restaurant_members(restaurant_id,user_id,role) VALUES (?,?,'admin')", [restaurant.insertId, user.insertId]);
     await connection.commit();
+    await audit(pool, { actorUserId: user.insertId, restaurantId: restaurant.insertId, action: 'restaurant.register' });
     return { status: 201, body: { restaurant_id: restaurant.insertId, slug, country, currency } };
   } catch (error) {
     if (connection) await connection.rollback().catch(() => {});

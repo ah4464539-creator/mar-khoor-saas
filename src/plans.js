@@ -2,6 +2,7 @@ import express from 'express';
 import { requireAuth } from './auth.js';
 import { normalizeRoute } from './number-routes.js';
 import { createPlanOrder, listPlanOrders, changeOrderStatus } from './plan-orders.js';
+import { audit } from './security.js';
 
 export function plansRouter(pool) {
  const router = express.Router();
@@ -34,6 +35,7 @@ export function plansRouter(pool) {
     'INSERT INTO number_routes(country_code,provider,mode,monthly_minor,setup_minor,requirements) VALUES (?,?,?,?,?,?) ON DUPLICATE KEY UPDATE provider=VALUES(provider),mode=VALUES(mode),monthly_minor=VALUES(monthly_minor),setup_minor=VALUES(setup_minor),requirements=VALUES(requirements)',
     [route.country_code, route.provider, route.mode, route.monthly_minor, route.setup_minor, route.requirements]
    );
+   await audit(pool, { actorUserId: req.user.id, action: 'number_route.set:' + route.country_code + ':' + route.provider + ':' + route.mode });
    res.json({ route });
   } catch { res.status(503).json({ error: 'Routes unavailable' }); }
  });
@@ -44,6 +46,7 @@ export function plansRouter(pool) {
  });
  router.put('/platform/plan-orders/:orderId/status', requireAuth, superOnly, async (req, res) => {
   const result = await changeOrderStatus(pool, Number(req.params.orderId), req.body?.status);
+  if (result.status === 200) await audit(pool, { actorUserId: req.user.id, action: 'plan_order.status:' + Number(req.params.orderId) + ':' + String(req.body?.status) });
   res.status(result.status).json(result.body);
  });
 
@@ -53,12 +56,14 @@ export function plansRouter(pool) {
  });
  router.post('/restaurants/:restaurantId/plan-orders', requireAuth, restaurantAdmin, async (req, res) => {
   const result = await createPlanOrder(pool, req.restaurantId, req.body);
+  if (result.status === 201) await audit(pool, { actorUserId: req.user.id, restaurantId: req.restaurantId, action: 'plan_order.create' });
   res.status(result.status).json(result.body);
  });
  router.post('/restaurants/:restaurantId/plan-orders/:orderId/cancel', requireAuth, restaurantAdmin, async (req, res) => {
   const orderId = Number(req.params.orderId);
   // A restaurant may cancel only before payment; later changes go through the super admin.
   const current = await changeOrderStatus(pool, orderId, 'cancelled', { restaurantId: req.restaurantId, onlyFrom: 'pending_payment' });
+  if (current.status === 200) await audit(pool, { actorUserId: req.user.id, restaurantId: req.restaurantId, action: 'plan_order.cancel:' + orderId });
   res.status(current.status).json(current.body);
  });
  return router;

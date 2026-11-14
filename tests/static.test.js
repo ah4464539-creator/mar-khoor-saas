@@ -18,9 +18,15 @@ test('homepage has a clear registration button and the new panels render text sa
  assert.match(read('public/restaurant.html'),/id="plan-form"/);
  assert.match(read('public/super-admin.html'),/id="route-form"/);
 });
-test('register form stacks its fields in one column',()=>{const html=read('public/register.html');assert.match(html,/#register \{[^}]*flex-direction: column/);assert.match(html,/#register input, #register select \{[^}]*width: 100%/)});
+test('register page has every field the script reads',()=>{const html=read('public/register.html'),js=read('public/register.js');for(const id of ['register','restaurant-name','country','email','password','status','done'])assert.ok(html.includes('id="'+id+'"'),id);for(const id of ['#register','#restaurant-name','#country','#email','#password'])assert.ok(js.includes(id),id)});
 test('server uses database-backed sessions and schema has the sessions table',()=>{
  assert.match(read('src/server.js'),/useSessionStore\(createDbSessionStore\(pool\)\)/);
  assert.match(read('db/schema.sql'),/CREATE TABLE IF NOT EXISTS sessions/);
  assert.ok(!/new Map\(\)\s*;?\s*\/\/ Development only/.test(read('src/auth.js')));
+});
+test('server enables proxy trust, security headers, rate limits and a JSON error handler',()=>{
+ const server=read('src/server.js');
+ for(const text of ['parseTrustProxy','securityHeaders','rateLimit(','jsonErrorHandler',"'/api/public/restaurants/:slug/orders'"])assert.ok(server.includes(text),text);
+ assert.ok(server.indexOf('jsonErrorHandler);')>server.indexOf("app.use('/api', plansRouter"));
+ assert.ok(read('src/plans.js').includes("audit(pool"));
 });

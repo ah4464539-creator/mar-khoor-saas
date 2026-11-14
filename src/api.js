@@ -1,5 +1,6 @@
 import express from 'express';
 import { requireAuth } from './auth.js';
+import { audit } from './security.js';
 export function apiRouter(pool) {
  const router=express.Router();
  router.get('/platform/summary',requireAuth,async(req,res)=>{
@@ -43,6 +44,7 @@ export function apiRouter(pool) {
    const [restaurants]=await pool.execute('SELECT id FROM restaurants WHERE id=? LIMIT 1',[restaurantId]);
    if(!restaurants.length)return res.status(404).json({error:'Restaurant not found'});
    await pool.execute('INSERT INTO voice_assistants(assistant_id,restaurant_id,active) VALUES (?,?,?) ON DUPLICATE KEY UPDATE restaurant_id=VALUES(restaurant_id),active=VALUES(active)',[assistantId,restaurantId,active]);
+   await audit(pool,{actorUserId:req.user.id,restaurantId,action:'voice_assistant.map:'+assistantId+':'+(active?'on':'off')});
    res.json({assistant_id:assistantId,restaurant_id:restaurantId,active});
   }catch{res.status(503).json({error:'Mapping unavailable'});}
  });
@@ -54,6 +56,7 @@ export function apiRouter(pool) {
    const [restaurants]=await pool.execute('SELECT id FROM restaurants WHERE id=? LIMIT 1',[restaurantId]);
    if(!restaurants.length)return res.status(404).json({error:'Restaurant not found'});
    await pool.execute('INSERT INTO whatsapp_numbers(phone_number_id,restaurant_id,active) VALUES (?,?,?) ON DUPLICATE KEY UPDATE restaurant_id=VALUES(restaurant_id),active=VALUES(active)',[phoneId,restaurantId,active]);
+   await audit(pool,{actorUserId:req.user.id,restaurantId,action:'whatsapp_number.map:'+phoneId+':'+(active?'on':'off')});
    res.json({phone_number_id:phoneId,restaurant_id:restaurantId,active});
   }catch{res.status(503).json({error:'Mapping unavailable'});}
  });

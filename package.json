@@ -9,6 +9,7 @@
     "migrate": "node scripts/migrate.js",
     "onboard": "node scripts/onboard.js",
     "create-super-admin": "node scripts/create-super-admin.js",
+    "purge-old-data": "node scripts/purge-old-data.js",
     "test": "node --test",
     "integrations:check": "node scripts/check-integrations.js",
     "whatsapp-ai:once": "node src/whatsapp-ai-worker.js"
