@@ -82,12 +82,36 @@ async function loadAccount() {
  if (result.restaurants.length === 1) await openRestaurant(result.restaurants[0]);
 }
 
+const ownerNavigation = document.querySelector('#owner-navigation');
+const ownerOverview = document.querySelector('#owner-overview');
+const messageViews = [...document.querySelectorAll('.owner-message-view')];
+const overviewLink = document.querySelector('aside .selected');
+
+function updateWorkspaceView(focusHeading = false) {
+ if (!restaurantId) return;
+ const activeView = messageViews.find(view => '#' + view.id === location.hash);
+ ownerOverview.hidden = Boolean(activeView);
+ messageViews.forEach(view => { view.hidden = view !== activeView; });
+ for (const link of [overviewLink, ...ownerNavigation.querySelectorAll('a')]) {
+  const current = link === overviewLink ? !location.hash || location.hash === overviewLink.hash : link.hash === location.hash;
+  if (current) link.setAttribute('aria-current', link === overviewLink ? 'page' : 'location');
+  else link.removeAttribute('aria-current');
+ }
+ if (focusHeading && activeView) {
+  activeView.querySelector('h2').focus({ preventScroll: true });
+  document.querySelector('#owner-workspace').scrollIntoView({ block: 'start' });
+ }
+}
+
+window.addEventListener('hashchange', () => updateWorkspaceView(true));
+
 async function openRestaurant(restaurant) {
  restaurantId = restaurant.id;
  restaurantCurrency = restaurant.currency;
  document.querySelector('#owner-heading').textContent = restaurant.name;
  document.querySelector('#management').hidden = false;
- document.querySelector('#owner-navigation').hidden = restaurant.role !== 'admin';
+ ownerNavigation.hidden = restaurant.role !== 'admin';
+ updateWorkspaceView();
  loadSetup(restaurant);
  try { await refresh(); } catch (error) { status.textContent = error.message; }
 }

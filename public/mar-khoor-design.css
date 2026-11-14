@@ -193,3 +193,71 @@
   position: static;
   height: auto;
 }
+
+/* Owner navigation and compact screens */
+.mk-owner .layout { grid-template-columns: clamp(212px, 18vw, 246px) minmax(0, 1fr); }
+.mk-owner aside > a:not(.brand), .mk-owner #owner-navigation a {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-height: 44px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  color: #ddd7f1;
+  font-size: .875rem;
+  font-weight: 650;
+  line-height: 1.3;
+}
+.mk-owner aside > a.selected { background: transparent; }
+.mk-owner aside a[aria-current] {
+  color: #fff;
+  background: #302451;
+  box-shadow: inset 3px 0 #ab8afc;
+}
+.mk-owner aside a .ui-icon { width: 20px; height: 20px; }
+.mk-owner .owner-nav-label {
+  color: var(--muted);
+  font-size: .75rem;
+  font-weight: 700;
+  padding: 12px 11px 2px;
+}
+.mk-owner .owner-message-view { max-width: 960px; }
+.mk-owner .owner-message-view h2 { margin-bottom: 16px; }
+.mk-owner .owner-message-view label { display: block; margin-bottom: 12px; }
+.mk-owner .setup-options label {
+  grid-template-columns: 38px minmax(0, 1fr) 16px;
+  align-content: start;
+  align-items: start;
+  gap: 10px;
+  cursor: pointer;
+}
+.mk-owner .setup-options .ui-icon {
+  grid-area: 1 / 1;
+  width: 38px;
+  height: 38px;
+  padding: 7px;
+  border-radius: 10px;
+  color: #e4d7ff;
+  background: #38295e;
+}
+.mk-owner .setup-options span { grid-area: 1 / 2; }
+.mk-owner .setup-options input { grid-area: 1 / 3; margin: 3px 0 0; }
+.mk-owner .setup-options { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.mk-register .register-steps li { overflow-wrap: anywhere; }
+:is(.mk-register,.mk-owner) input:not([type=checkbox]), .mk-owner textarea { font-size: max(16px, 1em); }
+@media (max-width: 950px) {
+  .mk-owner .layout { grid-template-columns: minmax(0, 1fr); }
+  .mk-owner:not(.signing-in) .layout > aside { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; }
+  .mk-owner #owner-navigation { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%, 126px),1fr)); width: 100%; }
+  .mk-owner .owner-nav-label { grid-column: 1 / -1; padding-top: 8px; }
+}
+@media (max-width: 740px) {
+  .mk-owner .setup-options { grid-template-columns: minmax(0,1fr); }
+  .mk-owner #setup-dialog { overflow-y: auto; }
+  .mk-home .hero { padding-block: clamp(32px, 8vw, 64px); }
+  .mk-home .hero h1 { overflow-wrap: anywhere; }
+}
+@media (max-width: 390px) {
+  .mk-register .registration-panel { padding-inline: 16px; }
+  .mk-owner .setup-actions button { flex: 1 1 100%; }
+}

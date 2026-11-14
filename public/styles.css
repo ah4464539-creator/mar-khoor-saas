@@ -267,3 +267,17 @@ aside .brand, .platform-dashboard aside .brand, .storefront .top .brand {
 }
 .restaurant-dashboard .kpi-cards article { min-height:96px; border-top:2px solid #d9b64b; }
 .restaurant-dashboard .kpi-cards article .metric-icon { flex:0 0 44px; color:#003b26; background:#dff2e6; }
+
+/* Shared sizing for storefronts, dashboard panels, and forms. */
+:where(.layout, .workspace, .dashboard-panels, .storefront-content, form) > * { min-width: 0; }
+:where(input, select, textarea) { max-width: 100%; }
+:where(.panel, .customer, .landing-section) { overflow-wrap: anywhere; }
+@media (max-width: 800px) {
+  .top { flex-wrap: wrap; gap: 10px; }
+  .top nav { flex-wrap: wrap; min-width: 0; }
+  :where(.storefront,.platform-dashboard) form :is(input:not([type=checkbox]), select, textarea) { font-size: 16px; }
+}
+@media (max-width: 480px) {
+  :where(.storefront,.platform-dashboard) form > :is(input:not([type=checkbox]), select, textarea) { flex-basis: 100%; }
+  :where(.storefront,.dashboard) button { min-height: 44px; }
+}

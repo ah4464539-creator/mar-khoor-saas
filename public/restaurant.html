@@ -12,12 +12,16 @@
 <body class="dashboard restaurant-dashboard mk-owner signing-in">
 <div class="layout">
 <aside><a class="brand" href="/"><img src="/assets/approved-markhor.svg" width="34" height="34" alt=""><span class="wordmark">Mar-Khoor</span></a>
-<div class="navlabel">RESTAURANT</div><a href="/super-admin.html">Platform</a><a class="selected" aria-current="page" href="/restaurant.html"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8v10H3z"/></svg>Restaurant Overview</a>
+<div class="navlabel">RESTAURANT</div><a href="/super-admin.html"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/></svg>Platform</a><a class="selected" aria-current="page" href="#owner-overview"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8v10H3z"/></svg>Restaurant Overview</a>
 <nav id="owner-navigation" aria-label="Restaurant workspace" hidden>
-<a href="#restaurant-setup"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14v18H5zM8 8h8m-8 4h8m-8 4h5"/></svg>Setup</a><a href="#website"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h18v13H3zM8 21h8m-4-4v4"/></svg>Website Builder</a><a href="#menu-management"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3v6a3 3 0 0 0 6 0V3M7 3v18m12 0V3c-3 2-4 5-4 9h4"/></svg>Menu</a><a href="#order-desk"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14v18H5zM8 8h8m-8 4h8m-8 4h5"/></svg>Orders</a><a href="#analytics"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3v17h16M8 15l4-4 4 2 4-7"/></svg>Analytics</a>
-</nav><div class="asidefoot">Restaurant Workspace</div>
+<a href="#restaurant-setup"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14v18H5zM8 8h8m-8 4h8m-8 4h5"/></svg>Restaurant Setup</a><a href="#website"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h18v13H3zM8 21h8m-4-4v4"/></svg>My Website</a><a href="#menu-management"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3v6a3 3 0 0 0 6 0V3M7 3v18m12 0V3c-3 2-4 5-4 9h4"/></svg>Menu &amp; Items</a><a href="#order-desk"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14v18H5zM8 8h8m-8 4h8m-8 4h5"/></svg>Live Orders</a><a href="#analytics"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3v17h16M8 15l4-4 4 2 4-7"/></svg>Analytics</a>
+<a href="#plan"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18m-14 5h4"/></svg>My Plans</a>
+<span class="owner-nav-label">WhatsApp</span>
+<a href="#whatsapp-inbox-view"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16l2 10v5H2v-5zM2 14h6l2 3h4l2-3h6"/></svg><span>Inbox</span></a>
+<a href="#whatsapp-outgoing-view"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4zM22 2 11 13"/></svg><span>Outgoing messages</span></a>
+</nav>
 </aside>
-<main class="workspace">
+<main class="workspace" id="owner-workspace">
 <div class="page-heading">
 <div>
 <h1 id="owner-heading">Restaurant Dashboard</h1>
@@ -35,6 +39,7 @@
 <div id="restaurants" class="muted">Sign in to load your restaurants.</div>
 </section>
 <div id="management" hidden>
+<div id="owner-overview">
 <section id="analytics" class="cards kpi-cards" aria-label="Restaurant analytics" aria-live="polite">Loading analytics…</section>
 <section class="panel setup-summary" id="restaurant-setup" hidden>
 <h2>Restaurant setup</h2>
@@ -68,8 +73,10 @@
 <div id="items">
 </div>
 </section>
-<section class="panel" id="plan">
-<h2>My plan</h2>
+</div>
+</div>
+<section class="panel owner-message-view" id="plan" hidden>
+<h2 tabindex="-1">My Plans</h2>
 <p class="muted">Choose services. Prices depend on your country. Your order becomes active after the platform owner confirms your payment.</p>
 <form id="plan-form">
 <p><label><input type="checkbox" name="service" value="website"> Website Builder</label></p>
@@ -82,8 +89,8 @@
 <p id="plan-status" role="status" class="muted"></p>
 <div id="plan-orders" class="muted"></div>
 </section>
-<section class="panel" id="website">
-<h2>My website</h2>
+<section class="panel owner-message-view" id="website" hidden>
+<h2 tabindex="-1">My Website</h2>
 <p class="muted">Describe your restaurant and the AI writes the text for your page. You can edit everything, then publish. The page is built from a fixed safe template.</p>
 <form id="site-form">
 <div class="site-field site-description"><label for="site-description">Restaurant description</label><textarea id="site-description" rows="3" maxlength="500" aria-label="About your restaurant" placeholder="e.g. Family-run burger place in Lahore, known for crispy zinger burgers"></textarea></div>
@@ -100,18 +107,17 @@
 <p id="site-status" role="status" class="muted"></p>
 <p id="site-link" class="muted"></p>
 </section>
-<section class="panel">
-<h2>WhatsApp inbox</h2>
+<section class="panel owner-message-view" id="whatsapp-inbox-view" hidden>
+<h2 tabindex="-1">WhatsApp Inbox</h2>
 <label><input id="whatsapp-ai-enabled" type="checkbox"> AI auto-replies (opt-in)</label>
 <div id="whatsapp-inbox" class="muted">
 </div>
 </section>
-<section class="panel">
-<h2>Outgoing WhatsApp messages</h2>
+<section class="panel owner-message-view" id="whatsapp-outgoing-view" hidden>
+<h2 tabindex="-1">Outgoing WhatsApp Messages</h2>
 <div id="whatsapp-outbound" class="muted">
 </div>
 </section>
-</div>
 </div>
 </main>
 </div>
