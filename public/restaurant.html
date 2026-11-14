@@ -79,11 +79,14 @@
 <h2 tabindex="-1">My Plans</h2>
 <p class="muted">Choose services. Prices depend on your country. Your order becomes active after the platform owner confirms your payment.</p>
 <form id="plan-form">
+<fieldset class="plan-services">
+<legend>Services</legend>
 <p><label><input type="checkbox" name="service" value="website"> Website Builder</label></p>
 <p><label><input type="checkbox" name="service" value="webAi"> Web AI Assistant</label></p>
 <p><label><input type="checkbox" name="service" value="whatsapp"> WhatsApp Business</label></p>
 <p><label><input type="checkbox" name="service" value="voice"> AI Call Assistant</label></p>
 <p id="plan-number" hidden><label><input type="checkbox" id="plan-new-number"> Add a dedicated local phone number</label></p>
+</fieldset>
 <button>Place order</button>
 </form>
 <p id="plan-status" role="status" class="muted"></p>
