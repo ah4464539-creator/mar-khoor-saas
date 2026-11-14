@@ -7,6 +7,9 @@ import { apiRouter } from './api.js';
 import { operationsRouter } from './operations.js';
 import { checkoutRouter } from './checkout.js';
 import { integrationRouter } from './integrations.js';
+import { registrationRouter } from './registration.js';
+import { plansRouter } from './plans.js';
+import { loadCatalog } from './plan-orders.js';
 import { voiceToolsRouter } from './voice-tools.js';
 import { vapiToolAdapterRouter } from './vapi-adapter.js';
 import path from 'node:path';
@@ -26,18 +29,20 @@ const pool = mysql.createPool({
 app.use('/integrations', integrationRouter(pool));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public')));
-app.post('/api/public/plan-quote', (req, res) => {
+app.post('/api/public/plan-quote', async (req, res) => {
   try {
-    res.json(quotePlan(req.body));
+    res.json(quotePlan(req.body, await loadCatalog(pool)));
   } catch (error) {
-    if (!(error instanceof TypeError)) throw error;
-    res.status(400).json({ error: error.message });
+    if (error instanceof TypeError) return res.status(400).json({ error: error.message });
+    res.status(503).json({ error: 'Quote unavailable' });
   }
 });
 app.use('/auth', authRouter(pool));
+app.use('/auth', registrationRouter(pool));
 app.use('/api', apiRouter(pool));
 app.use('/api', operationsRouter(pool));
 app.use('/api', checkoutRouter(pool));
+app.use('/api', plansRouter(pool));
 app.use('/voice-tools', voiceToolsRouter(pool));
 app.use('/integrations/vapi', vapiToolAdapterRouter(pool));
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'mar-khoor-api' }));

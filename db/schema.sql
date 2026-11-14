@@ -155,3 +155,34 @@ CREATE TABLE IF NOT EXISTS whatsapp_ai_jobs (
  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
 );
+
+-- Country-wise phone number routing, managed by the super admin.
+-- Prices are USD cents. mode: auto (provider API; not implemented yet), manual (done by hand), unavailable.
+CREATE TABLE IF NOT EXISTS number_routes (
+ country_code CHAR(2) NOT NULL PRIMARY KEY,
+ provider VARCHAR(32) NOT NULL,
+ mode ENUM('auto','manual','unavailable') NOT NULL DEFAULT 'manual',
+ monthly_minor INT UNSIGNED NULL,
+ setup_minor INT UNSIGNED NULL,
+ requirements VARCHAR(500) NOT NULL DEFAULT '',
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- A restaurant's plan "cart". The quote is a snapshot taken server-side at order time.
+-- Payment is confirmed manually by the super admin until a payment provider is added.
+CREATE TABLE IF NOT EXISTS plan_orders (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ restaurant_id BIGINT UNSIGNED NOT NULL,
+ country_code CHAR(2) NOT NULL,
+ features VARCHAR(255) NOT NULL,
+ number_mode ENUM('existing','new') NOT NULL DEFAULT 'existing',
+ quote MEDIUMTEXT NOT NULL,
+ monthly_minor INT UNSIGNED NOT NULL,
+ first_payment_minor INT UNSIGNED NOT NULL,
+ status ENUM('pending_payment','paid','provisioning','active','cancelled') NOT NULL DEFAULT 'pending_payment',
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
+ INDEX (restaurant_id,status),
+ INDEX (status,id)
+);

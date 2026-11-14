@@ -5,7 +5,7 @@ const features = {
   voice: 'AI Call Assistant'
 };
 
-function readCatalog(raw) {
+export function readCatalog(raw) {
   try {
     return JSON.parse(raw || '{}') || {};
   } catch {
