@@ -11,6 +11,28 @@
     .registration-panel,.registration-aside{border:1px solid #d5e1d7;border-radius:22px;padding:28px;background:#fff;box-shadow:0 16px 40px #123a2610}
     .registration-panel{border-top:7px solid #c9a456}
     .registration-panel h1{color:#153e2a;margin:0 0 10px}.registration-panel p{color:#506458}
+    /* Wide landscape desktop layout: two form columns, details alongside. */
+    .registration-shell{max-width:1360px;width:calc(100% - 32px);grid-template-columns:minmax(0,2fr) minmax(300px,1fr);align-items:stretch}
+    .registration-panel #register{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:22px;row-gap:0;align-content:start}
+    .registration-panel #register label{grid-column:auto}
+    .registration-panel #register button{grid-column:1/-1;justify-self:start}
+    @media(min-width:900px){
+      .registration-panel #register label[for="restaurant-name"]{grid-column:1;grid-row:1}
+      .registration-panel #register #restaurant-name{grid-column:1;grid-row:2}
+      .registration-panel #register label[for="country"]{grid-column:2;grid-row:1}
+      .registration-panel #register #country{grid-column:2;grid-row:2}
+      .registration-panel #register label[for="email"]{grid-column:1;grid-row:3}
+      .registration-panel #register #email{grid-column:1;grid-row:4}
+      .registration-panel #register label[for="password"]{grid-column:2;grid-row:3}
+      .registration-panel #register #password{grid-column:2;grid-row:4}
+      .registration-panel #register label[for="confirm-password"]{grid-column:1;grid-row:5}
+      .registration-panel #register #confirm-password{grid-column:1;grid-row:6}
+      .registration-panel #register button{grid-row:7}
+    }
+    @media(max-width:899px){
+      .registration-shell{grid-template-columns:1fr;width:100%}
+      .registration-panel #register{display:flex!important;flex-direction:column}
+    }
     /* Isolate form from legacy global .landing / .tiles form rules. */
     .registration-panel #register{display:flex;flex-direction:column;align-items:stretch;gap:0;width:100%;margin:0}
     .registration-panel #register label{display:block;float:none;position:static;width:100%;max-width:none;box-sizing:border-box;font-weight:650;margin:17px 0 6px;line-height:1.4;text-align:left}
