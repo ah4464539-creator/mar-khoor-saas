@@ -45,7 +45,7 @@ export async function requireAuth(req, res, next) {
 }
 export function authRouter(pool) {
  const router = express.Router();
- router.post('/login', async (req,res) => {
+ const login = platformOnly => async (req,res) => {
   const {email,password} = req.body || {};
   if (typeof email !== 'string' || typeof password !== 'string' || email.length > 254 || password.length > 1024)
    return res.status(400).json({error:'Invalid credentials'});
@@ -54,17 +54,20 @@ export function authRouter(pool) {
   if(current && current.until>Date.now() && current.count>=MAX_ATTEMPTS)return res.status(429).json({error:'Too many attempts; retry later'});
   try {
    const [rows] = await pool.execute('SELECT id,email,password_hash,platform_role FROM users WHERE email=? LIMIT 1',[email.trim().toLowerCase()]);
-   if (!rows.length || !(await checkPassword(password,rows[0].password_hash))){throttle(key);return res.status(401).json({error:'Invalid credentials'});}
+   if (!rows.length || (platformOnly && rows[0].platform_role !== 'super_admin') || !(await checkPassword(password,rows[0].password_hash))){throttle(key);return res.status(401).json({error:'Invalid credentials'});}
    if (rows[0].platform_role === 'super_admin' && !isAllowedPlatformOwner(rows[0].email)) {
     throttle(key);
     return res.status(401).json({error:'Invalid credentials'});
    }
    clearAttempt(key);
    const token = crypto.randomBytes(32).toString('hex');
-   await store.create(hashToken(token), {id:rows[0].id,email:rows[0].email,platformRole:rows[0].platform_role}, SESSION_SECONDS);
-   res.json({token,expiresIn:SESSION_SECONDS});
+   const expiresIn = rows[0].platform_role === 'super_admin' ? 3600 : SESSION_SECONDS;
+   await store.create(hashToken(token), {id:rows[0].id,email:rows[0].email,platformRole:rows[0].platform_role}, expiresIn);
+   res.json({token,expiresIn});
   } catch {res.status(503).json({error:'Authentication unavailable'});}
- });
+ };
+ router.post('/login', login(false));
+ router.post('/platform-login', login(true));
  router.post('/logout',requireAuth,async(req,res)=>{try{await store.delete(hashToken(bearer(req)));res.json({loggedOut:true});}catch{res.status(503).json({error:'Authentication unavailable'});}});
  router.get('/me', requireAuth, async (req,res) => {
   try {

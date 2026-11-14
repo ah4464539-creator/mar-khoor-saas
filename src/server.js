@@ -36,13 +36,23 @@ const pool = mysql.createPool({
 });
 useSessionStore(createDbSessionStore(pool));
 app.use('/integrations', integrationRouter(pool));
-app.use('/auth/login', rateLimit({ windowMs: 15 * 60 * 1000, max: 30, methods: ['POST'], name: 'login' }));
+app.use(['/auth/login', '/auth/platform-login'], rateLimit({ windowMs: 15 * 60 * 1000, max: 30, methods: ['POST'], name: 'login' }));
 app.use('/api/public', rateLimit({ windowMs: 60 * 1000, max: 120, name: 'public' }));
 app.use('/api/public/restaurants/:slug/orders', rateLimit({ windowMs: 10 * 60 * 1000, max: 20, methods: ['POST'], name: 'orders' }));
 app.use('/api/restaurants/:restaurantId/site/generate', rateLimit({ windowMs: 60 * 60 * 1000, max: 10, methods: ['POST'], name: 'site-generate' }));
 app.use('/api', rateLimit({ windowMs: 10 * 60 * 1000, max: 1500, name: 'api' }));
 app.use(express.json({ limit: '1mb' }));
-app.use(express.static(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public')));
+const publicDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
+app.get('/super-admin', (_req, res) => res.sendFile(path.join(publicDirectory, 'super-admin.html')));
+app.use((req, res, next) => {
+  let pathname;
+  try { pathname = decodeURIComponent(req.path); }
+  catch { return res.sendStatus(400); }
+  const normalizedPath = path.posix.normalize(pathname.replaceAll('\\', '/')).toLowerCase();
+  if (normalizedPath === '/super-admin.html') return res.sendStatus(404);
+  next();
+});
+app.use(express.static(publicDirectory));
 app.post('/api/public/plan-quote', async (req, res) => {
   try {
     res.json(quotePlan(req.body, await loadCatalog(pool)));
