@@ -16,10 +16,11 @@ for (const { code, name } of regions) country.add(new Option(name, code));
 
 form.addEventListener('submit', async event => {
   event.preventDefault();
+  if (stage < steps.length - 1) { next.click(); return; }
   const password = document.querySelector('#password').value;
   const confirm = document.querySelector('#confirm-password').value;
   if (password !== confirm) { status.textContent = 'Passwords do not match'; return; }
-  const button = form.querySelector('button');
+  const button = document.querySelector('#create-restaurant');
   button.disabled = true;
   status.textContent = 'Creating your restaurant…';
   try {
@@ -45,3 +46,29 @@ form.addEventListener('submit', async event => {
     button.disabled = false;
   }
 });
+
+const steps = [...form.querySelectorAll('fieldset')];
+const indicators = [...document.querySelectorAll('.register-steps li')];
+const previous = document.querySelector('#previous-step');
+const next = document.querySelector('#next-step');
+const create = document.querySelector('#create-restaurant');
+let stage = 0;
+
+function changeStage(index) {
+  stage = index;
+  steps.forEach((step, i) => { step.hidden = step.disabled = i !== stage; });
+  indicators.forEach((indicator, i) => {
+    if (i === stage) indicator.setAttribute('aria-current', 'step');
+    else indicator.removeAttribute('aria-current');
+  });
+  previous.hidden = stage === 0;
+  next.hidden = stage === steps.length - 1;
+  create.hidden = !next.hidden;
+  status.textContent = '';
+  steps[stage].querySelector('input, select').focus();
+}
+
+next.addEventListener('click', () => {
+  if (form.reportValidity()) changeStage(stage + 1);
+});
+previous.addEventListener('click', () => changeStage(stage - 1));

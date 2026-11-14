@@ -13,6 +13,26 @@ export function operationsRouter(pool) {
   }catch{res.status(503).json({error:'Database unavailable'});}
  };
  router.use('/restaurants/:restaurantId',requireAuth,access);
+ const setupServices = ['website', 'voice', 'menu'];
+ router.get('/restaurants/:restaurantId/setup', async (req,res,next) => {
+  try {
+   const [rows] = await pool.execute('SELECT selected_services,skipped FROM restaurant_setup WHERE restaurant_id=?',[req.restaurantId]);
+   const row = rows[0];
+   res.json({ saved: Boolean(row), services: row ? JSON.parse(row.selected_services) : [], skipped: Boolean(row?.skipped) });
+  } catch(error) { next(error); }
+ });
+ router.put('/restaurants/:restaurantId/setup', async (req,res,next) => {
+  const { services, skipped } = req.body ?? {};
+  if (!Array.isArray(services) || services.length > setupServices.length ||
+      services.some(service => !setupServices.includes(service)) || typeof skipped !== 'boolean') {
+   return res.status(400).json({ error: 'Invalid setup options' });
+  }
+  try {
+   await pool.execute('INSERT INTO restaurant_setup (restaurant_id,selected_services,skipped) VALUES (?,?,?) ON DUPLICATE KEY UPDATE selected_services=VALUES(selected_services),skipped=VALUES(skipped)',
+    [req.restaurantId,JSON.stringify([...new Set(services)]),skipped]);
+   res.json({ saved: true });
+  } catch(error) { next(error); }
+ });
  router.get('/restaurants/:restaurantId/menu',async(req,res)=>{
   try{const [items]=await pool.execute('SELECT id,name,description,price_minor,active FROM menu_items WHERE restaurant_id=? ORDER BY id DESC',[req.restaurantId]);res.json({items});}
   catch{res.status(503).json({error:'Database unavailable'});}
