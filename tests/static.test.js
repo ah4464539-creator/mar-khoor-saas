@@ -35,3 +35,8 @@ test('dashboard has a website panel that renders text safely',()=>{
  const js=read('public/restaurant.js');
  assert.ok(js.includes('/site/publish'));assert.ok(!js.includes('innerHTML'));
 });
+test('number provisioning UI is explicit and renders text safely',()=>{
+ const js=read('public/platform.js');
+ assert.ok(js.includes('confirm('));assert.ok(js.includes('/number-candidates'));assert.ok(!js.includes('innerHTML'));
+ assert.match(read('public/super-admin.html'),/id="number-candidates"/);
+});

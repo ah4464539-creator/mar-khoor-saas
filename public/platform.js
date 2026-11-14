@@ -73,11 +73,65 @@ async function loadOrders() {
       });
       row.append(button);
     }
+    if (order.number_mode === 'new' && ['paid', 'provisioning'].includes(order.status)) {
+      const find = document.createElement('button');
+      find.textContent = 'Find numbers';
+      find.addEventListener('click', () => findNumbers(order));
+      row.append(find);
+    }
     root.append(row);
   }
   if (!orders.length) root.textContent = 'No plan orders yet.';
 }
-const loadPlatformPlans = () => Promise.all([loadRoutes(), loadOrders()]);
+const numberStatus = message => { document.querySelector('#number-status').textContent = message; };
+async function findNumbers(order) {
+  const root = document.querySelector('#number-candidates');
+  root.replaceChildren();
+  numberStatus('Searching ' + order.country_code + '…');
+  try {
+    const data = await platformApi('/api/platform/plan-orders/' + order.id + '/number-candidates');
+    numberStatus(data.candidates.length ? 'Pick one number for order #' + order.id + '.' : 'No numbers found for ' + order.country_code + '.');
+    for (const item of data.candidates) {
+      const row = document.createElement('p');
+      row.textContent = item.phone_number + ' · provider cost ' + (item.monthly_cost ?? '?') + ' ' + (item.currency ?? '') + ' / month, upfront ' + (item.upfront_cost ?? '?') + ' ';
+      const buy = document.createElement('button');
+      buy.textContent = 'Buy this number';
+      buy.addEventListener('click', async () => {
+        if (!confirm('Buy ' + item.phone_number + ' for order #' + order.id + '? This spends real money.')) return;
+        buy.disabled = true;
+        try {
+          const result = await platformApi('/api/platform/plan-orders/' + order.id + '/number', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone_number: item.phone_number }) });
+          numberStatus(result.note || ('Number ' + result.phone_number + ' is ' + result.status + '.'));
+          root.replaceChildren();
+          await Promise.all([loadNumbers(), loadOrders()]);
+        } catch (error) { numberStatus(error.message); buy.disabled = false; }
+      });
+      row.append(buy);
+      root.append(row);
+    }
+  } catch (error) { numberStatus(error.message); }
+}
+async function loadNumbers() {
+  const { numbers } = await platformApi('/api/platform/numbers');
+  const root = document.querySelector('#number-list');
+  root.replaceChildren();
+  for (const n of numbers) {
+    const row = document.createElement('p');
+    row.textContent = n.phone_number + ' · ' + n.restaurant_name + ' · order #' + n.plan_order_id + ' · ' + n.status.replace('_', ' ') + (n.last_error ? ' · ' + n.last_error : '') + ' ';
+    if (['pending_provider', 'import_failed'].includes(n.status)) {
+      const retry = document.createElement('button');
+      retry.textContent = 'Retry import';
+      retry.addEventListener('click', async () => {
+        try { const result = await platformApi('/api/platform/numbers/' + n.id + '/retry', { method: 'POST' }); numberStatus('Number is ' + result.status + '.'); await loadNumbers(); }
+        catch (error) { numberStatus(error.message); }
+      });
+      row.append(retry);
+    }
+    root.append(row);
+  }
+  if (!numbers.length) root.textContent = 'No numbers bought yet.';
+}
+const loadPlatformPlans = () => Promise.all([loadRoutes(), loadOrders(), loadNumbers()]);
 document.querySelector('#route-form').addEventListener('submit', async event => {
   event.preventDefault();
   const output = document.querySelector('#route-status');

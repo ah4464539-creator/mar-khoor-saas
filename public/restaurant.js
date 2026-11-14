@@ -84,6 +84,7 @@ async function loadPlanOrders(){
  if(!restaurantId)return;
  const data=await api('/api/restaurants/'+restaurantId+'/plan-orders');
  planOrders.replaceChildren();
+ try{const owned=await api('/api/restaurants/'+restaurantId+'/numbers');for(const n of owned.numbers){const p=document.createElement('p');p.textContent='Your dedicated phone number: '+n.phone_number;planOrders.append(p)}}catch{}
  if(!data.orders.length){planOrders.textContent='No plan orders yet.';return}
  for(const order of data.orders){
   const p=document.createElement('p');

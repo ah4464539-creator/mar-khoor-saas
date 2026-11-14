@@ -215,3 +215,24 @@ CREATE TABLE IF NOT EXISTS restaurant_sites (
  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
 );
+
+-- Dedicated phone numbers bought for a restaurant (one per plan order). Bought only by an explicit super admin action.
+CREATE TABLE IF NOT EXISTS restaurant_numbers (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ restaurant_id BIGINT UNSIGNED NOT NULL,
+ plan_order_id BIGINT UNSIGNED NOT NULL,
+ country_code CHAR(2) NOT NULL,
+ phone_number VARCHAR(20) NOT NULL,
+ provider VARCHAR(32) NOT NULL,
+ provider_order_id VARCHAR(64) NULL,
+ vapi_phone_id VARCHAR(64) NULL,
+ status ENUM('ordering','pending_provider','import_failed','active','failed') NOT NULL DEFAULT 'ordering',
+ last_error VARCHAR(255) NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ UNIQUE KEY uq_number_order (plan_order_id),
+ UNIQUE KEY uq_number_value (phone_number),
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
+ FOREIGN KEY (plan_order_id) REFERENCES plan_orders(id),
+ INDEX (restaurant_id,status)
+);

@@ -33,3 +33,18 @@ USD cents. Services without a price show "pricing pending" and cannot be ordered
 
 ## Adding a provider later
 A provider adapter should expose: search numbers, order a number, submit documents, check status, import into Vapi and link the assistant. Add providers only when a country needs a cheaper or easier option than the existing ones.
+
+## Telnyx provisioning (human-confirmed)
+**Status: built and unit-tested against mocks that follow Telnyx's and Vapi's published API reference. Not yet tried against the live Telnyx or Vapi APIs.**
+
+Nothing is bought automatically. Flow for an order that asked for a new number:
+1. Route the country to `telnyx` with mode `manual` (super admin, "Phone numbers by country").
+2. The restaurant places the order, you confirm payment (status `paid`).
+3. Map exactly one active Vapi assistant to the restaurant (existing Voice integrations panel).
+4. In "Plan orders" press **Find numbers**. The server searches Telnyx (`GET /v2/available_phone_numbers`, local numbers with voice). Compare the provider cost shown with the price you charge.
+5. Press **Buy this number** and confirm. The server claims the number in `restaurant_numbers`, orders it (`POST /v2/number_orders`), and when Telnyx reports `success` imports it into Vapi (`POST /phone-number`, provider `telnyx`) bound to the restaurant's assistant. The plan order moves to `provisioning`; move it to `active` yourself when the restaurant has tested a call.
+6. If Telnyx leaves the order `pending` (many countries need identity documents or a requirement group first) the number shows `pending provider`. Finish the documents in the Telnyx portal, then press **Retry import**. A failed import shows `import failed` and can be retried; the number is already paid for at that point.
+
+Environment variables (names only): `TELNYX_API_KEY`, `VAPI_API_KEY`, `VAPI_TELNYX_CREDENTIAL_ID` (the Telnyx credential you add once in Vapi), and optionally `TELNYX_REQUIREMENT_GROUP_<COUNTRY>` (for example `TELNYX_REQUIREMENT_GROUP_AE`) for countries that need a requirement group on the order.
+
+Safety: super admin only; one number per order and one order per number (database unique keys, so a double click cannot buy twice); keys never leave the server; every purchase and retry is written to the audit log. Telnyx only lets you order numbers returned by a recent search, so buy soon after searching. Verify the first purchase in a country with a cheap local number before promising prices to restaurants.
