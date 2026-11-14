@@ -64,7 +64,7 @@ form.addEventListener('submit',async e=>{e.preventDefault();status.textContent='
  const response=await fetch('/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:document.querySelector('#email').value,password:document.querySelector('#password').value})});
  const data=await response.json();if(!response.ok)throw Error(data.error||'Login failed');token=data.token;
  const result=await api('/api/my/restaurants');target.replaceChildren();
- for(const restaurant of result.restaurants){const button=document.createElement('button');button.textContent=restaurant.name+' · '+restaurant.role;button.addEventListener('click',async()=>{restaurantId=restaurant.id;restaurantCurrency=restaurant.currency;document.querySelector('#management').hidden=false;try{await refresh();status.textContent='Loaded '+restaurant.name}catch(e){status.textContent=e.message}});target.append(button)}
+ for(const restaurant of result.restaurants){const button=document.createElement('button');button.textContent=restaurant.name+' · '+restaurant.role;button.addEventListener('click',async()=>{restaurantId=restaurant.id;restaurantCurrency=restaurant.currency;document.querySelector('#management').hidden=false;loadWebsite(restaurant);try{await refresh();status.textContent='Loaded '+restaurant.name}catch(e){status.textContent=e.message}});target.append(button)}
  if(!result.restaurants.length)target.textContent='No restaurants assigned.';status.textContent='Account loaded.';
 }catch(err){status.textContent=err.message}});
 document.querySelector('#add-item').addEventListener('submit',async e=>{e.preventDefault();if(!restaurantId)return;try{
@@ -107,4 +107,75 @@ planForm.addEventListener('submit',async e=>{
   planStatus.textContent='Order #'+result.order_id+' created: '+usd(result.monthly_minor)+' per month, first payment '+usd(result.first_payment_minor)+'. It becomes active after the platform owner confirms your payment.';
   await loadPlanOrders();
  }catch(error){planStatus.textContent=error.message}finally{button.disabled=false}
+});
+
+const websiteForm = document.querySelector('#website-form');
+const websitePanel = document.querySelector('#website-builder');
+const websiteFields = websiteForm.querySelector('fieldset');
+const websiteSuggest = document.querySelector('#website-suggest');
+const websiteStatus = document.querySelector('#website-status');
+const websiteLink = document.querySelector('#website-link');
+let websiteSelection = 0;
+
+function fillWebsiteSettings(settings) {
+  for (const key of ['headline', 'description', 'theme']) websiteForm.elements[key].value = settings[key];
+}
+
+function showPublishedWebsite(data) {
+  websiteLink.hidden = !data.published;
+  websiteLink.href = data.url;
+}
+
+async function loadWebsite(restaurant) {
+  const selection = ++websiteSelection;
+  websitePanel.hidden = restaurant.role !== 'admin';
+  websiteFields.disabled = true;
+  websiteForm.reset();
+  websiteLink.hidden = true;
+  websiteStatus.textContent = '';
+  if (websitePanel.hidden) return;
+  try {
+    const data = await api('/api/restaurants/' + restaurant.id + '/website');
+    if (selection !== websiteSelection) return;
+    fillWebsiteSettings(data.settings);
+    showPublishedWebsite(data);
+    websiteSuggest.disabled = !data.ai_available;
+    websiteStatus.textContent = data.ai_available ? '' : 'AI suggestions are unavailable. You can edit and publish directly.';
+    websiteFields.disabled = false;
+  } catch (error) {
+    if (selection === websiteSelection) websiteStatus.textContent = error.message;
+  }
+}
+
+async function updateWebsite(suffix, method, body, onSuccess) {
+  const selection = websiteSelection;
+  websiteFields.disabled = true;
+  websiteStatus.textContent = suffix ? 'Generating settings…' : 'Publishing…';
+  try {
+    const data = await api('/api/restaurants/' + restaurantId + '/website' + suffix, {
+      method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    });
+    if (selection === websiteSelection) onSuccess(data);
+  } catch (error) {
+    if (selection === websiteSelection) websiteStatus.textContent = error.message;
+  } finally {
+    if (selection === websiteSelection) websiteFields.disabled = false;
+  }
+}
+
+websiteSuggest.addEventListener('click', () => {
+  updateWebsite('/suggest', 'POST', { brief: websiteForm.elements.brief.value }, data => {
+    fillWebsiteSettings(data.settings);
+    websiteStatus.textContent = 'Review and edit the suggested settings before publishing.';
+  });
+});
+
+websiteForm.addEventListener('submit', event => {
+  event.preventDefault();
+  const settings = Object.fromEntries(['headline', 'description', 'theme'].map(key => [key, websiteForm.elements[key].value]));
+  updateWebsite('', 'PUT', settings, data => {
+    fillWebsiteSettings(data.settings);
+    showPublishedWebsite(data);
+    websiteStatus.textContent = 'Website published.';
+  });
 });

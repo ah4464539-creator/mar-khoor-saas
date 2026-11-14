@@ -205,3 +205,11 @@ CREATE TABLE IF NOT EXISTS order_tracking (
  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
  FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS restaurant_websites (
+ restaurant_id BIGINT UNSIGNED PRIMARY KEY,
+ headline VARCHAR(120) NOT NULL,
+ description VARCHAR(500) NOT NULL,
+ theme ENUM('classic','midnight') NOT NULL,
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+);

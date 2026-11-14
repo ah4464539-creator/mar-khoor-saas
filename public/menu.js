@@ -24,5 +24,5 @@ menuSearch.addEventListener('input', () => {
   status.textContent = matches ? restaurant.name + ' · ' + matches + ' matching items' : 'No items match your search.';
 });
 
-const preset = new URLSearchParams(location.search).get('restaurant');
+const preset = form.dataset.restaurant || new URLSearchParams(location.search).get('restaurant');
 if (preset && /^[a-z0-9-]{1,160}$/.test(preset)) { document.querySelector('#slug').value = preset; form.requestSubmit(); }

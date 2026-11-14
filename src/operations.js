@@ -1,5 +1,6 @@
 import express from 'express';
 import { requireAuth } from './auth.js';
+import { addWebsiteSettingsRoutes } from './restaurant-website.js';
 export function operationsRouter(pool) {
  const router=express.Router();
  const access=async(req,res,next)=>{
@@ -13,6 +14,7 @@ export function operationsRouter(pool) {
   }catch{res.status(503).json({error:'Database unavailable'});}
  };
  router.use('/restaurants/:restaurantId',requireAuth,access);
+ addWebsiteSettingsRoutes(router, pool);
  router.get('/restaurants/:restaurantId/menu',async(req,res)=>{
   try{const [items]=await pool.execute('SELECT id,name,description,price_minor,active FROM menu_items WHERE restaurant_id=? ORDER BY id DESC',[req.restaurantId]);res.json({items});}
   catch{res.status(503).json({error:'Database unavailable'});}

@@ -8,6 +8,9 @@
 - **Audit log** (`audit_logs`): restaurant registration, plan order create/cancel/status change, number route changes, voice assistant and WhatsApp number mapping. Writing the log never blocks the action.
 - **Errors:** invalid JSON returns 400, oversized bodies 413, everything else 500 without details. Server errors and throttling are logged as one JSON line each, never with bodies or headers.
 
+## Restaurant websites
+Apply the additive schema with `npm run migrate` after a database backup. The restaurant admin can edit a headline, description and theme, then publish at `/r/<slug>`. AI suggestions require the server-side `OPENAI_API_KEY` and fill these same settings for owner review. The storefront uses the existing menu, checkout and tracking endpoints. Publishing is recorded in the audit log.
+
 ## Not built (do these yourself)
 - **Backups.** In hPanel open Websites > Backups and confirm daily backups are on for the files and the database. Also take a manual export of `u927386692_markhoorsaas1` from phpMyAdmin before every schema change or big release, and keep a copy off Hostinger. Test a restore into a spare database at least once.
 - **Uptime monitoring.** Create a free monitor (for example UptimeRobot) on `https://mar-khoor.com/health` and one on `https://mar-khoor.com/health/database`, alert by email. A failing `/health/database` means the database credentials or the database itself is down.

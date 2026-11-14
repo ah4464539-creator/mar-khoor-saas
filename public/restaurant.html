@@ -72,6 +72,21 @@
 <p id="plan-status" role="status" class="muted"></p>
 <div id="plan-orders" class="muted"></div>
 </section>
+<section class="panel" id="website-builder" hidden>
+<h2>AI Website Builder</h2>
+<form id="website-form">
+<fieldset disabled>
+<label>Headline <input name="headline" maxlength="120" required></label>
+<label>Description <textarea name="description" maxlength="500"></textarea></label>
+<label>Theme <select name="theme"><option value="classic">Classic</option><option value="midnight">Midnight</option></select></label>
+<label>Restaurant details for AI <textarea name="brief" maxlength="1500"></textarea></label>
+<button type="button" id="website-suggest">Suggest settings</button>
+<button type="submit">Publish website</button>
+</fieldset>
+</form>
+<p id="website-status" role="status"></p>
+<a id="website-link" hidden>Open published site</a>
+</section>
 <section class="panel">
 <h2>WhatsApp inbox</h2>
 <label><input id="whatsapp-ai-enabled" type="checkbox"> AI auto-replies (opt-in)</label>

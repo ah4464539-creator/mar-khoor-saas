@@ -7,6 +7,7 @@ import { createDbSessionStore } from './sessions.js';
 import { apiRouter } from './api.js';
 import { operationsRouter } from './operations.js';
 import { checkoutRouter } from './checkout.js';
+import { addPublicWebsiteRoute } from './restaurant-website.js';
 import { integrationRouter } from './integrations.js';
 import { registrationRouter } from './registration.js';
 import { plansRouter } from './plans.js';
@@ -65,6 +66,7 @@ app.get('/health/database', async (_req, res) => {
     res.status(503).json({ status: 'unavailable', database: 'disconnected' });
   }
 });
+addPublicWebsiteRoute(app, pool);
 app.use(jsonErrorHandler);
 const port = Number(process.env.PORT || 3001);
 app.listen(port, () => console.log(`Mar-Khoor API listening on ${port}`));
