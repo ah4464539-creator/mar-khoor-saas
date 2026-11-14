@@ -205,3 +205,13 @@ CREATE TABLE IF NOT EXISTS order_tracking (
  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
  FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
 );
+
+-- Restaurant website: config is a small sanitized JSON document (plain text + fixed choices), never HTML.
+CREATE TABLE IF NOT EXISTS restaurant_sites (
+ restaurant_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+ config MEDIUMTEXT NOT NULL,
+ description VARCHAR(500) NOT NULL DEFAULT '',
+ published BOOLEAN NOT NULL DEFAULT FALSE,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+);

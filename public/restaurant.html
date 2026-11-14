@@ -72,6 +72,24 @@
 <p id="plan-status" role="status" class="muted"></p>
 <div id="plan-orders" class="muted"></div>
 </section>
+<section class="panel" id="website">
+<h2>My website</h2>
+<p class="muted">Describe your restaurant and the AI writes the text for your page. You can edit everything, then publish. The page is built from a fixed safe template.</p>
+<form id="site-form">
+<p><textarea id="site-description" rows="3" maxlength="500" aria-label="About your restaurant" placeholder="e.g. Family-run burger place in Lahore, known for crispy zinger burgers"></textarea></p>
+<p><button type="button" id="site-generate">Write with AI</button></p>
+<p><input id="site-headline" maxlength="80" aria-label="Headline" placeholder="Headline"></p>
+<p><input id="site-tagline" maxlength="160" aria-label="Tagline" placeholder="Tagline"></p>
+<p><textarea id="site-about" rows="4" maxlength="800" aria-label="About us" placeholder="About us"></textarea></p>
+<p><input id="site-hours" maxlength="200" aria-label="Opening hours" placeholder="Opening hours (e.g. Mon-Sun 11am-11pm)"></p>
+<p><input id="site-phone" maxlength="30" aria-label="Phone" placeholder="Phone (e.g. +92 300 1234567)"></p>
+<p><input id="site-address" maxlength="200" aria-label="Address" placeholder="Address"></p>
+<p><select id="site-theme" aria-label="Colour theme"><option value="green">Green</option><option value="gold">Gold</option><option value="red">Red</option><option value="blue">Blue</option><option value="dark">Dark</option></select></p>
+<p><button>Save website</button> <button type="button" id="site-publish">Publish</button></p>
+</form>
+<p id="site-status" role="status" class="muted"></p>
+<p id="site-link" class="muted"></p>
+</section>
 <section class="panel">
 <h2>WhatsApp inbox</h2>
 <label><input id="whatsapp-ai-enabled" type="checkbox"> AI auto-replies (opt-in)</label>

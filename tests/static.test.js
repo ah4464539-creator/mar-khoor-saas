@@ -30,3 +30,8 @@ test('server enables proxy trust, security headers, rate limits and a JSON error
  assert.ok(server.indexOf('jsonErrorHandler);')>server.indexOf("app.use('/api', plansRouter"));
  assert.ok(read('src/plans.js').includes("audit(pool"));
 });
+test('dashboard has a website panel that renders text safely',()=>{
+ assert.match(read('public/restaurant.html'),/id="site-form"/);
+ const js=read('public/restaurant.js');
+ assert.ok(js.includes('/site/publish'));assert.ok(!js.includes('innerHTML'));
+});

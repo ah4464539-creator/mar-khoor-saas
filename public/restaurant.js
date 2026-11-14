@@ -4,6 +4,7 @@ let refreshing=false;
 setInterval(async()=>{if(!restaurantId||!token||document.hidden||refreshing)return;refreshing=true;try{await refresh()}catch(e){status.textContent='Auto-refresh: '+e.message}finally{refreshing=false}},15000);
 const api=async(path,options={})=>{const r=await fetch(path,{...options,headers:{...options.headers,Authorization:'Bearer '+token}});const data=await r.json();if(!r.ok)throw Error(data.error||'Request failed');return data};
 async function refresh(){
+ loadSite().catch(error=>{siteStatus.textContent=error.message});
  loadPlanOrders().catch(error=>{planOrders.textContent=error.message});
  const [menu,orders,analytics,inbox,outbound,aiSettings]=await Promise.all([api('/api/restaurants/'+restaurantId+'/menu'),api('/api/restaurants/'+restaurantId+'/orders'),api('/api/restaurants/'+restaurantId+'/analytics'),api('/api/restaurants/'+restaurantId+'/whatsapp/messages'),api('/api/restaurants/'+restaurantId+'/whatsapp/outbound'),api('/api/restaurants/'+restaurantId+'/whatsapp/ai-settings')]);
  document.querySelector('#whatsapp-ai-enabled').checked=aiSettings.enabled;
@@ -107,4 +108,40 @@ planForm.addEventListener('submit',async e=>{
   planStatus.textContent='Order #'+result.order_id+' created: '+usd(result.monthly_minor)+' per month, first payment '+usd(result.first_payment_minor)+'. It becomes active after the platform owner confirms your payment.';
   await loadPlanOrders();
  }catch(error){planStatus.textContent=error.message}finally{button.disabled=false}
+});
+
+// My website: AI-written copy, owner edits, publish toggle.
+const siteForm=document.querySelector('#site-form'),siteStatus=document.querySelector('#site-status'),siteLink=document.querySelector('#site-link'),sitePublish=document.querySelector('#site-publish');
+const siteField=name=>document.querySelector('#site-'+name);
+let sitePublished=false,siteSlug='',siteSections=['about','menu','hours','contact'];
+function showSite(data){
+ siteField('headline').value=data.config.headline;siteField('tagline').value=data.config.tagline;siteField('about').value=data.config.about;
+ siteField('hours').value=data.config.hours;siteField('phone').value=data.config.phone;siteField('address').value=data.config.address;siteField('theme').value=data.config.theme;
+ siteField('description').value=data.description||siteField('description').value;siteSections=data.config.sections;
+ if(data.slug)siteSlug=data.slug;
+ if(typeof data.published==='boolean')sitePublished=data.published;
+ sitePublish.textContent=sitePublished?'Unpublish':'Publish';
+ siteLink.replaceChildren();
+ if(sitePublished&&siteSlug){const a=document.createElement('a');a.href='/r/'+siteSlug;a.textContent='mar-khoor.com/r/'+siteSlug;a.target='_blank';a.rel='noopener';siteLink.append('Live at ',a)}
+}
+async function loadSite(){if(!restaurantId)return;showSite(await api('/api/restaurants/'+restaurantId+'/site'))}
+const siteConfig=()=>({headline:siteField('headline').value,tagline:siteField('tagline').value,about:siteField('about').value,hours:siteField('hours').value,phone:siteField('phone').value,address:siteField('address').value,theme:siteField('theme').value,sections:siteSections});
+const siteJson={'Content-Type':'application/json'};
+document.querySelector('#site-generate').addEventListener('click',async e=>{
+ if(!restaurantId){siteStatus.textContent='Select your restaurant first.';return}
+ e.currentTarget.disabled=true;siteStatus.textContent='Writing…';
+ try{const data=await api('/api/restaurants/'+restaurantId+'/site/generate',{method:'POST',headers:siteJson,body:JSON.stringify({description:siteField('description').value})});showSite(data);siteStatus.textContent=data.source==='ai'?'Draft written by AI and saved. Edit anything you like.':'AI is not available, so a basic draft was saved. Edit it below.'}
+ catch(error){siteStatus.textContent=error.message}finally{e.currentTarget.disabled=false}
+});
+siteForm.addEventListener('submit',async e=>{
+ e.preventDefault();if(!restaurantId){siteStatus.textContent='Select your restaurant first.';return}
+ try{showSite(await api('/api/restaurants/'+restaurantId+'/site',{method:'PUT',headers:siteJson,body:JSON.stringify({config:siteConfig(),description:siteField('description').value})}));siteStatus.textContent='Saved.'}
+ catch(error){siteStatus.textContent=error.message}
+});
+sitePublish.addEventListener('click',async()=>{
+ if(!restaurantId){siteStatus.textContent='Select your restaurant first.';return}
+ try{await api('/api/restaurants/'+restaurantId+'/site',{method:'PUT',headers:siteJson,body:JSON.stringify({config:siteConfig(),description:siteField('description').value})});
+  const next=!sitePublished;await api('/api/restaurants/'+restaurantId+'/site/publish',{method:'POST',headers:siteJson,body:JSON.stringify({published:next})});
+  await loadSite();siteStatus.textContent=next?'Your website is live.':'Your website is unpublished.'}
+ catch(error){siteStatus.textContent=error.message}
 });
