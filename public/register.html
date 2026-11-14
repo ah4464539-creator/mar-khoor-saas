@@ -11,6 +11,11 @@
     .registration-panel,.registration-aside{border:1px solid #d5e1d7;border-radius:22px;padding:28px;background:#fff;box-shadow:0 16px 40px #123a2610}
     .registration-panel{border-top:7px solid #c9a456}
     .registration-panel h1{color:#153e2a;margin:0 0 10px}.registration-panel p{color:#506458}
+    /* Isolate form from legacy global .landing / .tiles form rules. */
+    .registration-panel #register{display:flex;flex-direction:column;align-items:stretch;gap:0;width:100%;margin:0}
+    .registration-panel #register label{display:block;float:none;position:static;width:100%;max-width:none;box-sizing:border-box;font-weight:650;margin:17px 0 6px;line-height:1.4;text-align:left}
+    .registration-panel #register input,.registration-panel #register select{display:block;float:none;position:static;flex:none;width:100%;min-width:0;max-width:100%;box-sizing:border-box;margin:0;clear:both}
+    .registration-panel #register button{display:block;align-self:flex-start;float:none;position:static;width:auto;max-width:100%;clear:both}
     .registration-panel label{display:block;font-weight:650;margin:17px 0 6px}
     .registration-panel input,.registration-panel select{width:100%;box-sizing:border-box;padding:13px;border:1px solid #c5d3c8;border-radius:10px;background:white;color:#173b2b}
     .registration-panel input:focus,.registration-panel select:focus{outline:3px solid #b7d7b9}
