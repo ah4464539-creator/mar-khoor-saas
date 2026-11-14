@@ -19,3 +19,8 @@ test('homepage has a clear registration button and the new panels render text sa
  assert.match(read('public/super-admin.html'),/id="route-form"/);
 });
 test('register form stacks its fields in one column',()=>{const html=read('public/register.html');assert.match(html,/#register \{[^}]*flex-direction: column/);assert.match(html,/#register input, #register select \{[^}]*width: 100%/)});
+test('server uses database-backed sessions and schema has the sessions table',()=>{
+ assert.match(read('src/server.js'),/useSessionStore\(createDbSessionStore\(pool\)\)/);
+ assert.match(read('db/schema.sql'),/CREATE TABLE IF NOT EXISTS sessions/);
+ assert.ok(!/new Map\(\)\s*;?\s*\/\/ Development only/.test(read('src/auth.js')));
+});

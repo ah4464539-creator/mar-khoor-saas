@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { promisify } from 'node:util';
 import express from 'express';
+import { createMemorySessionStore, hashToken } from './sessions.js';
 const scrypt = promisify(crypto.scrypt);
 const attempts = new Map();
 const WINDOW_MS=15*60*1000, MAX_ATTEMPTS=10;
@@ -8,7 +9,11 @@ function rateKey(req,email){return (req.ip||'unknown')+'|'+email;}
 function throttle(key){const now=Date.now(),value=attempts.get(key);if(!value||value.until<=now){attempts.set(key,{count:1,until:now+WINDOW_MS});return false;}value.count++;return value.count>MAX_ATTEMPTS;}
 function clearAttempt(key){attempts.delete(key);}
 
-const sessions = new Map(); // Development only: restart invalidates sessions; replace with durable store before production.
+// In-memory by default (tests, local tools). server.js switches to the database store.
+let store = createMemorySessionStore();
+export function useSessionStore(next) { store = next; }
+const SESSION_SECONDS = 86400;
+const bearer = req => (/^Bearer ([a-f0-9]{64})$/.exec(req.get('authorization') || '') || [])[1];
 function isAllowedPlatformOwner(email) {
  const owner = process.env.SUPER_ADMIN_OWNER_EMAIL;
  const fingerprint = value => crypto.createHash('sha256').update(value.trim().toLowerCase()).digest('hex');
@@ -27,13 +32,16 @@ async function checkPassword(password, stored) {
  const actual = await scrypt(password, Buffer.from(salt,'hex'), 64);
  return crypto.timingSafeEqual(actual, Buffer.from(expected,'hex'));
 }
-export function requireAuth(req,res,next) {
- const match=/^Bearer ([a-f0-9]{64})$/.exec(req.get('authorization')||'');
- const session=match && sessions.get(crypto.createHash('sha256').update(match[1]).digest('hex'));
- if(!session || session.expires<Date.now())return res.status(401).json({error:'Unauthorized'});
- if(session.platformRole==='super_admin' && !isAllowedPlatformOwner(session.email))
+export async function requireAuth(req, res, next) {
+ const token = bearer(req);
+ if (!token) return res.status(401).json({error:'Unauthorized'});
+ let session;
+ try { session = await store.get(hashToken(token)); }
+ catch { return res.status(503).json({error:'Authentication unavailable'}); }
+ if (!session) return res.status(401).json({error:'Unauthorized'});
+ if (session.platformRole==='super_admin' && !isAllowedPlatformOwner(session.email))
   return res.status(403).json({error:'Forbidden'});
- req.user=session;next();
+ req.user = session; next();
 }
 export function authRouter(pool) {
  const router = express.Router();
@@ -53,20 +61,15 @@ export function authRouter(pool) {
    }
    clearAttempt(key);
    const token = crypto.randomBytes(32).toString('hex');
-   sessions.set(crypto.createHash('sha256').update(token).digest('hex'), {id:rows[0].id,email:rows[0].email,platformRole:rows[0].platform_role,expires:Date.now()+86400000});
-   res.json({token,expiresIn:86400});
+   await store.create(hashToken(token), {id:rows[0].id,email:rows[0].email,platformRole:rows[0].platform_role}, SESSION_SECONDS);
+   res.json({token,expiresIn:SESSION_SECONDS});
   } catch {res.status(503).json({error:'Authentication unavailable'});}
  });
- router.post('/logout',requireAuth,(req,res)=>{const token=req.get('authorization').slice(7);sessions.delete(crypto.createHash('sha256').update(token).digest('hex'));res.json({loggedOut:true});});
- router.get('/me', async (req,res) => {
-  const match = /^Bearer ([a-f0-9]{64})$/.exec(req.get('authorization') || '');
-  const session = match && sessions.get(crypto.createHash('sha256').update(match[1]).digest('hex'));
-  if (!session || session.expires < Date.now()) return res.status(401).json({error:'Unauthorized'});
-  if(session.platformRole==='super_admin' && !isAllowedPlatformOwner(session.email))
-   return res.status(403).json({error:'Forbidden'});
+ router.post('/logout',requireAuth,async(req,res)=>{try{await store.delete(hashToken(bearer(req)));res.json({loggedOut:true});}catch{res.status(503).json({error:'Authentication unavailable'});}});
+ router.get('/me', requireAuth, async (req,res) => {
   try {
-   const [rows] = await pool.execute('SELECT restaurant_id,role FROM restaurant_members WHERE user_id=?',[session.id]);
-   res.json({user:{id:session.id,email:session.email,platformRole:session.platformRole},memberships:rows});
+   const [rows] = await pool.execute('SELECT restaurant_id,role FROM restaurant_members WHERE user_id=?',[req.user.id]);
+   res.json({user:{id:req.user.id,email:req.user.email,platformRole:req.user.platformRole},memberships:rows});
   } catch {res.status(503).json({error:'Database unavailable'});}
  });
  return router;

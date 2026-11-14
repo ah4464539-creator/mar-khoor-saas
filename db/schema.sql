@@ -186,3 +186,14 @@ CREATE TABLE IF NOT EXISTS plan_orders (
  INDEX (restaurant_id,status),
  INDEX (status,id)
 );
+
+-- Login sessions. Only a SHA-256 hash of the bearer token is stored.
+CREATE TABLE IF NOT EXISTS sessions (
+ token_hash CHAR(64) NOT NULL PRIMARY KEY,
+ user_id BIGINT UNSIGNED NOT NULL,
+ expires_at TIMESTAMP NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+ INDEX (expires_at),
+ INDEX (user_id)
+);
