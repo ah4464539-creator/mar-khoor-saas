@@ -60,7 +60,7 @@
 .mk-home .top { background:#0d1328; }
 .mk-home .top nav a[aria-current] { color:#6bf36d; }
 .mk-home .top nav .nav-cta,.mk-home .hero .actions .button:first-child { background:#65f36e; color:#091527; border-color:#65f36e; font-weight:800; }
-.mk-home .hero { position:relative; min-height:440px; display:flex; align-items:center; padding-block:70px; background-image:linear-gradient(90deg,#10142de8 0%,#21153ab0 45%,#11172a15 85%),url('/assets/approved-mountain.webp'); background-size:cover; background-position:center,right center; }
+.mk-home .hero { position:relative; min-height:440px; display:flex; align-items:center; padding-block:70px; background-image:linear-gradient(90deg,#10142df0 0%,#14162bb8 37%,#11172a18 67%,transparent 100%),url('/assets/approved-mountain.webp'); background-size:cover; background-position:center,right center; }
 .mk-home .hero > div:first-child { position:relative; z-index:1; max-width:600px; }
 .mk-home .hero h1 { font-size:clamp(38px,4.2vw,64px); line-height:1.08; max-width:16ch; }
 .mk-home .hero em,.mk-home .landing-section h2 em { color:#65f36e; font-style:normal; }
@@ -92,7 +92,7 @@
 .mk-home .steps-grid article p { color:#d2cbe2; }
 @media(max-width:1100px){.mk-home .hero-floats { right:3%; width:165px; }}
 @media(max-width:850px){.mk-home .hero-floats { display:none; }.mk-home .hero { background-position:center,right center; }.mk-home .steps-grid { grid-template-columns:1fr; }}
-@media(max-width:600px){.mk-home .hero { min-height:0; padding:54px 20px; background-image:linear-gradient(90deg,#10162af2,#10162ad4),url('/assets/approved-mountain.webp'); }.mk-home .hero h1 { font-size:clamp(32px,9vw,44px); }.mk-home .hero .actions .button { width:100%; }.mk-home #plans .tiles article { min-height:0; }.mk-home .feature-strip a { min-height:56px; }.mk-home .landing-section { padding-block:34px; }}
+@media(max-width:600px){.mk-home .hero { min-height:0; padding:54px 20px; background-image:linear-gradient(90deg,#10162aee,#10162a99),url('/assets/approved-mountain.webp'); }.mk-home .hero h1 { font-size:clamp(32px,9vw,44px); }.mk-home .hero .actions .button { width:100%; }.mk-home #plans .tiles article { min-height:0; }.mk-home .feature-strip a { min-height:56px; }.mk-home .landing-section { padding-block:34px; }}
 
 /* Polished feature cards: consistent icon badges, hierarchy and hover states. */
 .mk-home #features .tiles { align-items:stretch; }
@@ -104,12 +104,20 @@
 .mk-home #features .tiles p { margin:0; color:#d5d6eb; line-height:1.65; }
 @media(max-width:600px){.mk-home #features .tiles article { min-height:0; padding:24px; }.mk-home #features .feature-icon-wrap { width:50px; height:50px; margin-bottom:16px; }}
 @media(prefers-reduced-motion:reduce){.mk-home #features .tiles article { transition:none; }.mk-home #features .tiles article:hover { transform:none; }}
+
+/* Keep the Markhor photograph visible without floating cards or duplicate feature strips. */
+.mk-home .hero { isolation:isolate; background-color:#11172a; background-repeat:no-repeat; }
+.mk-home .hero::after { content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(0deg,#10142a33,transparent 35%); z-index:0; }
+.mk-home .hero > div:first-child { z-index:1; }
+.mk-home .top nav .nav-signin { display:inline-flex; align-items:center; justify-content:center; color:#0c1429!important; background:#f3f6ff; border:1px solid #e1e7ff; border-radius:999px; padding:9px 17px; font-weight:800; text-decoration:none; opacity:1; }
+.mk-home .top nav .nav-signin:hover { color:#081021!important; background:#d9fce0; border-color:#65f36e; }
+@media(max-width:600px){.mk-home .top nav .nav-signin { min-height:44px; }}
 </style>
 </head>
 <body class="landing mk-home">
   <header class="top">
     <a class="brand" href="/"><img src="/assets/approved-markhor.svg" width="34" height="34" alt=""><span class="wordmark">Mar-Khoor</span></a>
-    <nav aria-label="Main navigation"><a href="/" aria-current="page">Home</a><a href="#solutions">Solutions</a><a href="#features">Features</a><a href="#how-it-works">How it works</a><a href="#plans">Pricing</a><a href="#about">About</a><a href="#contact">Contact</a><a class="nav-signin" href="/restaurant.html">Sign in</a><a class="nav-cta" href="/register.html">Get started</a></nav>
+    <nav aria-label="Main navigation"><a href="/" aria-current="page">Home</a><a href="#features">Solutions</a><a href="#features">Features</a><a href="#how-it-works">How it works</a><a href="#plans">Pricing</a><a href="#about">About</a><a href="#contact">Contact</a><a class="nav-signin" href="/restaurant.html">Sign in</a><a class="nav-cta" href="/register.html">Get started</a></nav>
   </header>
   <main>
     <section class="hero">
@@ -119,15 +127,7 @@
         <p class="muted lead">Website, orders, WhatsApp, AI phone calls and smart menus — one connected platform to help your restaurant grow.</p>
         <div class="actions"><a class="button" href="/register.html">Register your restaurant <span aria-hidden="true">→</span></a><a class="button button-outline" href="#how-it-works">See how it works</a></div><p class="hero-proof">✦ Simple setup &nbsp; · &nbsp; Online ordering &nbsp; · &nbsp; One workspace</p>
       </div>
-      <div class="hero-floats" aria-label="Platform highlights"><span>☎ &nbsp; AI phone calls <small>Voice tools in staging</small></span><span>◉ &nbsp; WhatsApp orders <small>Connected conversations</small></span><span>▣ &nbsp; Online ordering <small>Your own digital menu</small></span><span>▥ &nbsp; Reports &amp; insights <small>Manage restaurant activity</small></span></div>
     </section>
-    <nav class="feature-strip" id="solutions" aria-label="Product features">
-      <a href="#online-ordering">Online ordering</a>
-      <a href="#whatsapp">WhatsApp orders</a>
-      <a href="#voice">AI phone calls</a>
-      <a href="/restaurant.html">Menu &amp; POS</a>
-      <a href="/restaurant.html#management">Reports &amp; insights</a>
-    </nav>
     <section id="features" class="landing-section">
       <h2>Everything <em>Your Restaurant</em> Needs</h2>
       <div class="tiles">
