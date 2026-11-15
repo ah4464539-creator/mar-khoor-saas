@@ -45,6 +45,117 @@
   <script src="/register.js" defer></script>
   <script defer>document.addEventListener("DOMContentLoaded",()=>{document.getElementById("show-passwords")?.addEventListener("change",e=>{for(const id of ["password","confirm-password"]){const input=document.getElementById(id);if(input)input.type=e.target.checked?"text":"password";}});});</script>
 <link rel="stylesheet" href="/mar-khoor-design.css">
+
+<style>
+/* Registration-only overrides; no shared stylesheet or application logic changes. */
+.mk-register { color-scheme: light; }
+.mk-register main { padding: clamp(20px,4vw,64px) 20px; }
+.mk-register .registration-shell {
+  display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
+  width: min(100%,1180px); max-width:1180px; margin: 0 auto;
+  gap: 20px; align-items: stretch; overflow: visible; background: transparent;
+}
+.mk-register .registration-aside {
+  display:flex; flex-direction:column; justify-content:center; min-width:0;
+  padding:clamp(24px,4vw,48px); border-radius:22px;
+  background:#fff; color:#18243a; overflow:visible;
+}
+.mk-register .registration-aside .eyebrow {
+  align-self:flex-start; color:#38205f!important; background:#e9ddff;
+  border:1px solid #b99ce8; font-weight:800;
+}
+.mk-register .registration-aside h2 {
+  max-width:none; overflow:visible; overflow-wrap:normal;
+  color:#152039; font-size:clamp(30px,3vw,46px); line-height:1.16;
+}
+.mk-register .registration-aside h2 em { color:#6941bc; }
+.mk-register .registration-aside p:not(.eyebrow) { color:#39445c!important; }
+.mk-register .registration-aside ul { margin:16px 0 0; padding:0; columns:1; }
+.mk-register .registration-aside li {
+  padding:9px 0 9px 30px; color:#26344d; line-height:1.5;
+}
+.mk-register .registration-aside li::before {
+  content:"✓"; display:block; position:absolute; left:0; top:9px; color:#6841b8;
+}
+.mk-register .registration-panel {
+  min-width:0; margin:0; background:#171c35; color:#f7f5ff;
+  border:1px solid #7860bf88; border-radius:22px;
+}
+.mk-register .registration-panel h1 { color:#f7f5ff; }
+.mk-register .registration-panel p:not(.step-label) { color:#d6d0e9!important; }
+.mk-register .registration-panel .step-label { color:#d5bfff!important; }
+.mk-register .register-steps {
+  display:grid; grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px; margin:22px 0 8px; padding:0; list-style:none; counter-reset:regstep;
+}
+.mk-register .register-steps li {
+  counter-increment:regstep; display:flex; align-items:center; gap:8px;
+  min-width:0; padding:10px; border:1px solid #51496d; border-radius:10px;
+  background:#222841; color:#d2cbe6; font-size:12px; line-height:1.3;
+}
+.mk-register .register-steps li::before {
+  content:counter(regstep); display:grid; place-items:center;
+  flex:0 0 24px; height:24px; border-radius:50%;
+  background:#3b3654; color:#fff; font-weight:800;
+}
+.mk-register .register-steps li[aria-current="step"] {
+  color:#fff; border-color:#b89bff; background:#3b2b62; font-weight:800;
+}
+.mk-register .register-steps li[aria-current="step"]::before { background:#b99aff; color:#1a1530; }
+.mk-register .registration-panel #register {
+  display:block!important; width:100%; margin-top:20px;
+}
+.mk-register .registration-panel #register fieldset:not([hidden]) {
+  display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:16px; min-width:0; padding:0; margin:0; border:0;
+}
+.mk-register .registration-panel #register fieldset[hidden] { display:none!important; }
+.mk-register .registration-panel #register legend { color:#f4efff; margin-bottom:14px; }
+.mk-register .registration-panel #register .field { min-width:0; margin:0; }
+.mk-register .registration-panel #register .field.full { grid-column:1/-1; }
+.mk-register .registration-panel #register label { color:#f1ecff!important; }
+.mk-register .registration-panel #register :is(input:not([type=checkbox]),select) {
+  box-sizing:border-box; width:100%; height:48px!important; min-height:48px!important;
+  max-height:48px!important; padding:10px 12px!important;
+  border:1px solid #8c80ab; border-radius:10px;
+  background:#101629; color:#fff; font-size:16px; line-height:normal;
+}
+.mk-register .registration-panel #register input::placeholder { color:#c3bcd3; opacity:1; }
+.mk-register .registration-panel #register select option { color:#fff; background:#101629; }
+.mk-register .registration-panel #register :is(input,select):focus-visible {
+  outline:3px solid #b99aff; outline-offset:2px;
+}
+.mk-register .registration-panel #register .register-actions {
+  display:flex; justify-content:flex-end; flex-wrap:wrap;
+  gap:12px; width:100%; margin-top:22px; clear:both;
+}
+.mk-register .registration-panel #register .register-actions button {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:auto; min-width:150px; min-height:48px; margin:0;
+  padding:12px 20px; background:#7047df; color:#fff;
+}
+.mk-register .registration-panel #register .register-actions button[hidden] { display:none!important; }
+.mk-register .registration-panel #register .register-actions #previous-step { background:#34304e; }
+.mk-register .registration-panel a { color:#e3d3ff; text-decoration:underline; }
+.mk-register #status:not(:empty) {
+  color:#ffe1e8; background:#44263b; border:1px solid #ae7089;
+}
+.mk-register #done { color:#fff; background:#252c47; }
+.mk-register #done h2 { color:#fff; }
+@media(max-width:900px) {
+  .mk-register .registration-shell { grid-template-columns:minmax(0,1fr); }
+  .mk-register .registration-aside { min-height:0; }
+}
+@media(max-width:540px) {
+  .mk-register main { padding:16px; }
+  .mk-register .registration-shell { gap:14px; }
+  .mk-register .registration-aside,.mk-register .registration-panel { padding:22px 18px; }
+  .mk-register .registration-aside h2 { font-size:32px; }
+  .mk-register .register-steps { grid-template-columns:minmax(0,1fr); }
+  .mk-register .registration-panel #register fieldset:not([hidden]) { grid-template-columns:minmax(0,1fr); }
+  .mk-register .registration-panel #register .register-actions button { flex:1 1 100%; }
+}
+</style>
 </head>
 <body class="landing mk-register">
   <header class="top"><a class="brand" href="/"><img src="/assets/approved-markhor.svg" width="34" height="34" alt=""><span class="wordmark">Mar-Khoor</span></a></header>
