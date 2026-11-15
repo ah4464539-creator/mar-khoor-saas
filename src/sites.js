@@ -1,7 +1,7 @@
 import express from 'express';
 import { requireAuth } from './auth.js';
 import { generateSiteConfig, renderSitePage, SITE_CSP } from './site-builder.js';
-import { loadRestaurant, loadSite, saveSite, canPublish, setPublished, loadPublicSite } from './site-store.js';
+import { loadRestaurant, loadSite, saveSite, canPublish, setPublished, loadPublicSite, loadSiteMenu } from './site-store.js';
 import { audit } from './security.js';
 
 const notFound = '<!doctype html><meta charset="utf-8"><title>Not found</title><p>This restaurant website is not available.</p>';
@@ -22,7 +22,7 @@ export function sitesRouter(pool) {
   } catch { res.status(503).json({ error: 'Database unavailable' }); }
  };
 
- // Public website. Fixed template, strict CSP, no scripts.
+ // Public website. Allowlisted templates, strict CSP, no scripts.
  router.get('/r/:slug', async (req, res) => {
   res.set('Content-Security-Policy', SITE_CSP);
   try {
@@ -42,10 +42,19 @@ export function sitesRouter(pool) {
    const current = await loadSite(pool, req.restaurant);
    const description = typeof req.body?.description === 'string' ? req.body.description : current.description;
    const [menuItems] = await pool.execute('SELECT name FROM menu_items WHERE restaurant_id=? AND active=1 ORDER BY id LIMIT 30', [req.restaurant.id]);
-   const generated = await generateSiteConfig({ restaurant: req.restaurant, menuItems, description, current: current.config });
+   const generated = await generateSiteConfig({ restaurant: req.restaurant, menuItems, description, current: req.body?.config ?? current.config });
    const saved = await saveSite(pool, req.restaurant, { config: generated.config, description });
    res.json({ ...saved, source: generated.source, published: current.published });
   } catch { res.status(503).json({ error: 'Website unavailable' }); }
+ });
+ router.post('/api/restaurants/:restaurantId/site/preview', requireAuth, restaurantAdmin, async (req, res) => {
+  const config = req.body?.config;
+  if (!config || typeof config !== 'object' || Array.isArray(config)) return res.status(400).json({ error: 'Invalid website settings' });
+  try {
+   const items = await loadSiteMenu(pool, req.restaurant.id);
+   res.set('Cache-Control', 'no-store');
+   res.json({ html: renderSitePage({ restaurant: req.restaurant, config, items }) });
+  } catch { res.status(503).json({ error: 'Website preview unavailable' }); }
  });
  router.put('/api/restaurants/:restaurantId/site', requireAuth, restaurantAdmin, async (req, res) => {
   if (!req.body || typeof req.body.config !== 'object' || req.body.config === null) return res.status(400).json({ error: 'Invalid website settings' });

@@ -8,6 +8,18 @@
   <link rel="stylesheet" href="/styles.css">
 
 <link rel="stylesheet" href="/mar-khoor-design.css">
+<style>
+.site-template-picker{grid-column:1/-1;min-width:0;border:1px solid #65568b;border-radius:12px;padding:12px}
+.site-template-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:10px}
+.site-template-grid label{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:4px 8px;padding:10px;border:1px solid #65568b;border-radius:9px;cursor:pointer}
+.site-template-grid label:has(input:checked){background:#392b5d;border-color:#bf9eff}
+.site-template-grid label small{grid-column:2;color:#ddd5f0}
+#site-preview-dialog{box-sizing:border-box;width:min(1100px,96vw);max-width:none;padding:16px;border:1px solid #65568b;border-radius:12px;background:#171c35;color:#f7f5ff}
+#site-preview-dialog::backdrop{background:#0a0815bb}
+.site-preview-controls{display:flex;gap:8px;flex-wrap:wrap;margin-block:12px}
+#site-preview-frame{display:block;width:100%;height:65vh;margin-inline:auto;border:0;background:white}
+#site-preview-frame.is-mobile{max-width:375px}
+</style>
 </head>
 <body class="dashboard restaurant-dashboard mk-owner signing-in">
 <div class="layout">
@@ -98,8 +110,18 @@
 </section>
 <section class="panel owner-message-view" id="website" hidden>
 <h2 tabindex="-1">My Website</h2>
-<p class="muted">Describe your restaurant and the AI writes the text for your page. You can edit everything, then publish. The page is built from a fixed safe template.</p>
+<p class="muted">Choose a template, write or generate your copy, then preview and publish your website.</p>
 <form id="site-form">
+<fieldset class="site-template-picker">
+  <legend>Website templates</legend>
+  <div class="site-template-grid">
+    <label><input type="radio" name="site-template" value="" checked><strong>Classic</strong><small>Single-column layout</small></label>
+    <label><input type="radio" name="site-template" value="cafe"><strong>Café &amp; Bakery</strong><small>Featured menu and hours</small></label>
+    <label><input type="radio" name="site-template" value="takeaway"><strong>Fast Food &amp; Takeaway</strong><small>Menu cards and quick ordering</small></label>
+    <label><input type="radio" name="site-template" value="dine-in"><strong>Dine-In Restaurant</strong><small>Restaurant story and menu</small></label>
+    <label><input type="radio" name="site-template" value="local"><strong>Local Restaurant</strong><small>Menu, hours and location</small></label>
+  </div>
+</fieldset>
 <div class="site-field site-description"><label for="site-description">Restaurant description</label><textarea id="site-description" rows="3" maxlength="500" aria-label="About your restaurant" placeholder="e.g. Family-run burger place in Lahore, known for crispy zinger burgers"></textarea></div>
 <div class="site-actions"><button type="button" id="site-generate">Write with AI</button></div>
 <div class="site-field site-headline"><label for="site-headline">Headline</label><input id="site-headline" maxlength="80" aria-label="Headline" placeholder="Headline"></div>
@@ -109,10 +131,19 @@
 <div class="site-field site-phone"><label for="site-phone">Phone</label><input id="site-phone" maxlength="30" aria-label="Phone" placeholder="Phone (e.g. +92 300 1234567)"></div>
 <div class="site-field site-address"><label for="site-address">Address</label><input id="site-address" maxlength="200" aria-label="Address" placeholder="Address"></div>
 <div class="site-field site-theme"><label for="site-theme">Colour theme</label><select id="site-theme" aria-label="Colour theme"><option value="green">Green</option><option value="gold">Gold</option><option value="red">Red</option><option value="blue">Blue</option><option value="dark">Dark</option></select></div>
-<div class="site-actions"><button>Save website</button><button type="button" id="site-publish">Publish</button></div>
+<div class="site-actions"><button type="button" id="site-preview">Preview website</button><button>Save website</button><button type="button" id="site-publish">Publish</button></div>
 </form>
 <p id="site-status" role="status" class="muted"></p>
 <p id="site-link" class="muted"></p>
+<dialog id="site-preview-dialog" aria-labelledby="site-preview-title">
+  <h3 id="site-preview-title">Website preview</h3>
+  <div class="site-preview-controls">
+    <button type="button" id="site-preview-desktop" aria-pressed="true">Desktop</button>
+    <button type="button" id="site-preview-mobile" aria-pressed="false">Mobile</button>
+    <form method="dialog"><button>Close</button></form>
+  </div>
+  <iframe id="site-preview-frame" title="Restaurant website preview" sandbox></iframe>
+</dialog>
 </section>
 <section class="panel owner-message-view" id="whatsapp-inbox-view" hidden>
 <h2 tabindex="-1">WhatsApp Inbox</h2>

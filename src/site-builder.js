@@ -11,6 +11,25 @@ export const THEMES = {
   blue: { bg: '#f2f7fd', ink: '#0f2236', accent: '#1565c0', accentInk: '#ffffff', card: '#ffffff', muted: '#46607a' },
   dark: { bg: '#14171a', ink: '#f1f1f1', accent: '#e0b84c', accentInk: '#14171a', card: '#1f2328', muted: '#b4bac0' },
 };
+const SITE_LAYOUTS = {
+  "cafe": {
+    "cta": "Explore the menu",
+    "css": "header{padding-block:80px;text-align:start}header>*{max-width:820px;margin-inline:auto}header p{margin-inline:auto}header .btn{display:table;margin-inline:auto}main{max-width:900px}.menu{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:12px}.menu li{padding:14px;border:1px solid currentColor;border-radius:12px}"
+  },
+  "takeaway": {
+    "cta": "Order now",
+    "css": "header{padding-block:36px}main{max-width:1050px}.menu{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px}.menu li{padding:16px;border:1px solid #80808055;border-radius:8px}.btn,section{border-radius:8px}"
+  },
+  "dine-in": {
+    "cta": "View the menu",
+    "css": "header{padding-block:96px}header h1,h2{font-family:Georgia,serif}main{max-width:920px}section{border-radius:0;border-block-start:2px solid #80808066;box-shadow:none;padding-block:26px}"
+  },
+  "local": {
+    "cta": "See menu & order",
+    "css": "header{text-align:start;padding:42px max(20px,calc((100% - 940px)/2))}header p{margin-inline:0}main{max-width:980px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding-block-start:20px}section{margin:0}section:first-child{grid-column:1/-1}@media(max-width:620px){main{grid-template-columns:1fr}}"
+  }
+};
+
 export const SECTIONS = ['about', 'menu', 'hours', 'contact'];
 export const SITE_CSP = "default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 
@@ -32,6 +51,7 @@ export function sanitizeSiteConfig(input, restaurant) {
   const phone = clean(source.phone, 30);
   const sections = Array.isArray(source.sections) ? [...new Set(source.sections.filter(s => SECTIONS.includes(s)))] : base.sections;
   return {
+    ...(Object.hasOwn(SITE_LAYOUTS, source.template) ? { template: source.template } : {}),
     theme: Object.hasOwn(THEMES, source.theme) ? source.theme : base.theme,
     headline: clean(source.headline, 80) || base.headline,
     tagline: clean(source.tagline, 160) || base.tagline,
@@ -71,7 +91,7 @@ export async function generateSiteConfig({ restaurant, menuItems = [], descripti
     if (!response.ok) throw Error('AI unavailable');
     const data = await response.json();
     const parsed = JSON.parse(data?.choices?.[0]?.message?.content ?? '');
-    const ai = sanitizeSiteConfig({ ...base, headline: parsed.headline, tagline: parsed.tagline, about: parsed.about, theme: parsed.theme, sections: parsed.sections }, restaurant);
+    const ai = sanitizeSiteConfig({ ...base, headline: parsed.headline, tagline: parsed.tagline, about: parsed.about, theme: base.template ? base.theme : parsed.theme, sections: base.template ? base.sections : parsed.sections }, restaurant);
     return { config: ai, source: 'ai' };
   } catch {
     return { config: base, source: 'fallback' };
@@ -89,6 +109,7 @@ function formatPrice(minor, currency) {
 export function renderSitePage({ restaurant, config, items }) {
   const c = sanitizeSiteConfig(config, restaurant);
   const t = THEMES[c.theme];
+  const layout = SITE_LAYOUTS[c.template];
   const slug = /^[a-z0-9-]{1,160}$/.test(restaurant.slug) ? restaurant.slug : '';
   const orderHref = '/menu.html?restaurant=' + slug;
   const paragraphs = c.about ? c.about.split(/\n{2,}|\n/).filter(Boolean).map(p => '<p>' + escapeHtml(p) + '</p>').join('') : '';
@@ -107,7 +128,7 @@ export function renderSitePage({ restaurant, config, items }) {
     + 'main{max-width:760px;margin:0 auto;padding:12px 20px 48px}section{background:' + t.card + ';border-radius:16px;padding:20px 22px;margin:18px 0;box-shadow:0 2px 12px rgba(0,0,0,.06)}h2{margin:0 0 10px}'
     + '.menu{list-style:none;margin:0;padding:0}.menu li{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid rgba(128,128,128,.25)}.menu small{display:block;color:' + t.muted + '}'
     + '.btn{display:inline-block;background:' + t.accent + ';color:' + t.accentInk + ';padding:12px 22px;border-radius:999px;text-decoration:none;font-weight:700}a{color:' + t.accent + '}header .btn{background:' + t.accentInk + ';color:' + t.accent + '}'
-    + 'footer{text-align:center;padding:20px;color:' + t.muted + ';font-size:13px}</style></head><body>'
-    + '<header><h1>' + escapeHtml(c.headline) + '</h1><p>' + escapeHtml(c.tagline) + '</p><a class="btn" href="' + orderHref + '">Order online</a></header>'
+    + 'footer{text-align:center;padding:20px;color:' + t.muted + ';font-size:13px}' + (layout?.css ?? '') + '</style></head><body>'
+    + '<header><h1>' + escapeHtml(c.headline) + '</h1><p>' + escapeHtml(c.tagline) + '</p><a class="btn" href="' + orderHref + '">' + escapeHtml(layout?.cta ?? 'Order online') + '</a></header>'
     + '<main>' + body + '</main><footer>Powered by MAR-KHOOR AI</footer></body></html>';
 }
