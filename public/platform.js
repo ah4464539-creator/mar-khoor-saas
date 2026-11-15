@@ -1,6 +1,37 @@
 let platformToken='';const status=document.querySelector('#status');
 async function loadAssistants(){const r=await fetch('/api/platform/voice-assistants',{headers:{Authorization:'Bearer '+platformToken}});const data=await r.json();if(!r.ok)throw Error(data.error||'Assistant list unavailable');const root=document.querySelector('#assistant-list');root.replaceChildren();for(const a of data.assistants){const p=document.createElement('p');p.textContent=a.assistant_id+' · '+a.restaurant_name+' · '+(a.active?'Active':'Disabled');root.append(p)}if(!data.assistants.length)root.textContent='No assistants mapped yet.'}
-document.querySelector('#assistant-form').addEventListener('submit',async e=>{e.preventDefault();if(!platformToken)return status.textContent='Sign in first.';try{const id=document.querySelector('#assistant-id').value.trim();const restaurant_id=Number(document.querySelector('#assistant-restaurant-id').value);const r=await fetch('/api/platform/voice-assistants/'+encodeURIComponent(id),{method:'PUT',headers:{Authorization:'Bearer '+platformToken,'Content-Type':'application/json'},body:JSON.stringify({restaurant_id,active:true})});const data=await r.json();if(!r.ok)throw Error(data.error||'Mapping failed');await loadAssistants();status.textContent='Assistant mapped.'}catch(err){status.textContent=err.message}});
+document.querySelector('#assistant-form').addEventListener('submit', async event => {
+  event.preventDefault();
+  if (!platformToken) return;
+  const form = event.currentTarget;
+  const button = form.querySelector('button');
+  const output = document.querySelector('#assistant-status');
+  if (button.disabled) return;
+  const id = document.querySelector('#assistant-id').value.trim();
+  const restaurant_id = Number(document.querySelector('#assistant-restaurant-id').value);
+  if (!id) {
+    output.textContent = 'Enter the Vapi assistant ID.';
+    return;
+  }
+  button.disabled = true;
+  output.textContent = 'Saving mapping…';
+  try {
+    await platformApi('/api/platform/voice-assistants/' + encodeURIComponent(id), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ restaurant_id, active: true }),
+    });
+    form.reset();
+    output.textContent = 'Mapping saved.';
+    await loadAssistants().catch(() => {
+      output.textContent = 'Mapping saved. Reload the page to refresh the list.';
+    });
+  } catch (error) {
+    output.textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+});
 const form = document.querySelector('#login');
 const loginScreen = document.querySelector('#platform-login-screen');
 const workspace = document.querySelector('#platform-workspace');
