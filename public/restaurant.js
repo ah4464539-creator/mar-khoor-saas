@@ -194,7 +194,17 @@ planForm.addEventListener('submit',async e=>{
 const siteForm=document.querySelector('#site-form'),siteStatus=document.querySelector('#site-status'),siteLink=document.querySelector('#site-link'),sitePublish=document.querySelector('#site-publish');
 const siteField=name=>document.querySelector('#site-'+name);
 let sitePublished=false,siteSlug='',siteSections=['about','menu','hours','contact'];
+const templatePresets = {"":["green",["about","menu","hours","contact"]],"cafe":["gold",["menu","hours","about","contact"]],"takeaway":["red",["menu","contact","hours","about"]],"dine-in":["dark",["about","menu","hours","contact"]],"local":["green",["menu","hours","contact","about"]]};
+const templateField = siteForm.elements.namedItem('site-template');
+for (const option of templateField) {
+ option.addEventListener('change', () => {
+  const [theme, sections] = templatePresets[option.value];
+  siteField('theme').value = theme;
+  siteSections = sections;
+ });
+}
 function showSite(data){
+ templateField.value = data.config.template ?? '';
  siteField('headline').value=data.config.headline;siteField('tagline').value=data.config.tagline;siteField('about').value=data.config.about;
  siteField('hours').value=data.config.hours;siteField('phone').value=data.config.phone;siteField('address').value=data.config.address;siteField('theme').value=data.config.theme;
  siteField('description').value=data.description||siteField('description').value;siteSections=data.config.sections;
@@ -205,13 +215,13 @@ function showSite(data){
  if(sitePublished&&siteSlug){const a=document.createElement('a');a.href='/r/'+siteSlug;a.textContent='mar-khoor.com/r/'+siteSlug;a.target='_blank';a.rel='noopener';siteLink.append('Live at ',a)}
 }
 async function loadSite(){if(!restaurantId)return;showSite(await api('/api/restaurants/'+restaurantId+'/site'))}
-const siteConfig=()=>({headline:siteField('headline').value,tagline:siteField('tagline').value,about:siteField('about').value,hours:siteField('hours').value,phone:siteField('phone').value,address:siteField('address').value,theme:siteField('theme').value,sections:siteSections});
+const siteConfig=()=>({template:templateField.value,headline:siteField('headline').value,tagline:siteField('tagline').value,about:siteField('about').value,hours:siteField('hours').value,phone:siteField('phone').value,address:siteField('address').value,theme:siteField('theme').value,sections:siteSections});
 const siteJson={'Content-Type':'application/json'};
 document.querySelector('#site-generate').addEventListener('click',async e=>{
  if(!restaurantId){siteStatus.textContent='Select your restaurant first.';return}
  const button = e.currentTarget;
  button.disabled=true;siteStatus.textContent='Writing…';
- try{const data=await api('/api/restaurants/'+restaurantId+'/site/generate',{method:'POST',headers:siteJson,body:JSON.stringify({description:siteField('description').value})});showSite(data);siteStatus.textContent=data.source==='ai'?'Draft written by AI and saved. Edit anything you like.':'AI is not available, so a basic draft was saved. Edit it below.'}
+ try{const data=await api('/api/restaurants/'+restaurantId+'/site/generate',{method:'POST',headers:siteJson,body:JSON.stringify({description:siteField('description').value,config:siteConfig()})});showSite(data);siteStatus.textContent=data.source==='ai'?'Draft written by AI and saved. Edit anything you like.':'AI is not available, so a basic draft was saved. Edit it below.'}
  catch(error){siteStatus.textContent=error.message}finally{button.disabled=false}
 });
 siteForm.addEventListener('submit',async e=>{
@@ -226,6 +236,37 @@ sitePublish.addEventListener('click',async()=>{
   await loadSite();siteStatus.textContent=next?'Your website is live.':'Your website is unpublished.'}
  catch(error){siteStatus.textContent=error.message}
 });
+
+const previewDialog = siteField('preview-dialog');
+const previewFrame = siteField('preview-frame');
+const previewDesktop = siteField('preview-desktop');
+const previewMobile = siteField('preview-mobile');
+function setPreviewSize(mobile) {
+ previewFrame.classList.toggle('is-mobile', mobile);
+ previewDesktop.setAttribute('aria-pressed', String(!mobile));
+ previewMobile.setAttribute('aria-pressed', String(mobile));
+}
+previewDesktop.addEventListener('click', () => setPreviewSize(false));
+previewMobile.addEventListener('click', () => setPreviewSize(true));
+siteField('preview').addEventListener('click', async event => {
+ if (!restaurantId) { siteStatus.textContent = 'Select your restaurant first.'; return; }
+ const id = restaurantId;
+ const button = event.currentTarget;
+ button.disabled = true;
+ siteStatus.textContent = 'Loading preview…';
+ try {
+  const { html } = await api('/api/restaurants/'+id+'/site/preview', {
+   method: 'POST', headers: siteJson, body: JSON.stringify({ config: siteConfig() })
+  });
+  if (restaurantId !== id || document.querySelector('#website').hidden) return;
+  previewFrame.srcdoc = html;
+  setPreviewSize(false);
+  previewDialog.showModal();
+  siteStatus.textContent = '';
+ } catch (error) { siteStatus.textContent = error.message; }
+ finally { button.disabled = false; }
+});
+previewDialog.addEventListener('close', () => { previewFrame.removeAttribute('srcdoc'); });
 
 const setupPanel = document.querySelector('#restaurant-setup');
 const setupDialog = document.querySelector('#setup-dialog');
