@@ -56,11 +56,15 @@
 <p id="worker-status" role="status">Loading…</p><dl id="worker-metrics" class="worker-metrics"></dl>
 </section>
 <section class="panel voice-panel" id="voice-assistants" tabindex="-1">
-<h2>Connect Vapi assistant</h2>
-<p>Enter the assistant ID from Vapi and the restaurant ID above.</p>
+<h2>Vapi assistant mappings</h2>
+<div id="assistant-list">Loading mappings…</div>
+<details>
+<summary>Add mapping</summary>
+<p>Enter the Vapi assistant ID and the restaurant ID shown in the directory.</p>
 <form id="assistant-form"><label for="assistant-id">Vapi assistant ID<input id="assistant-id" aria-label="Vapi assistant ID" placeholder="Vapi assistant ID" required></label><label for="assistant-restaurant-id">Restaurant ID<input id="assistant-restaurant-id" aria-label="Restaurant ID" type="number" min="1" step="1" placeholder="Restaurant ID" required></label><button>Save mapping</button>
 </form>
-<div id="assistant-list">Loading…</div>
+<p id="assistant-status" role="status" class="muted"></p>
+</details>
 </section>
 <section class="panel" id="number-routes" tabindex="-1">
 <h2>Phone numbers by country</h2>
@@ -85,7 +89,7 @@
 </div>
 </main>
 </div>
-<script type="module" src="/platform.js?v=login-first">
+<script type="module" src="/platform.js?v=vapi-mappings">
 </script>
 </body>
 </html>
