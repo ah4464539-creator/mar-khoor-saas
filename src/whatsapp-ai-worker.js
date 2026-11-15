@@ -73,7 +73,14 @@ export function startWhatsAppAIWorker(pool) {
  void run();
 }
 
-if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href){
+async function runFromCommandLine(){
  const pool=mysql.createPool({host:process.env.DB_HOST||'127.0.0.1',port:Number(process.env.DB_PORT||3306),user:process.env.DB_USER,password:process.env.DB_PASSWORD,database:process.env.DB_NAME});
  try{console.log(await processWhatsAppAIJobs(pool))}finally{await pool.end()}
+}
+
+if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href){
+ runFromCommandLine().catch(error=>{
+  console.error('WhatsApp AI worker failed:',error.code||error.message);
+  process.exitCode=1;
+ });
 }

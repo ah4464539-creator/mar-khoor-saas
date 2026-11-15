@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {execFileSync} from 'node:child_process';
 import assert from 'node:assert/strict';
 import {processWhatsAppAIJobs} from '../src/whatsapp-ai-worker.js';
 
@@ -74,4 +75,10 @@ test('continuous worker requires an explicit restaurant ID and scopes its select
  process.env.WHATSAPP_AI_WORKER_RESTAURANT_ID='37';
  startWhatsAppAIWorker(pool);
  assert.equal(calls,1);
+});
+
+test('Hostinger can load the WhatsApp worker synchronously', () => {
+ execFileSync(process.execPath, ['-e', 'require("./src/whatsapp-ai-worker.js")'], {
+  cwd: new URL('../', import.meta.url),
+ });
 });
