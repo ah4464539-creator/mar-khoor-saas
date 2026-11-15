@@ -34,3 +34,20 @@
   .platform-dashboard :is(#login,#assistant-form,#route-form) { grid-template-columns: minmax(0,1fr); }
   .platform-dashboard form label :is(input,select) { font-size: 16px; }
 }
+
+.platform-dashboard [hidden] { display: none !important; }
+.platform-login-screen {
+  display: grid;
+  align-content: center;
+  gap: 20px;
+  width: min(100%, 480px);
+  min-height: 100dvh;
+  margin-inline: auto;
+  padding: 24px;
+  box-sizing: border-box;
+}
+.platform-login-screen > .brand { display: flex; align-items: center; gap: 12px; }
+.platform-login-screen h1 { margin-top: 0; font-size: clamp(24px, 5vw, 34px); }
+.platform-dashboard .platform-login-screen #login { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.platform-login-screen #login-status:empty { display: none; }
+.platform-dashboard #platform-sign-out { width: auto; }
