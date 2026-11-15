@@ -8,10 +8,12 @@ export async function processWhatsAppAIJobs(pool,{fetcher=fetch}={}){
  if(!key||!metaToken)throw Error('Missing AI or WhatsApp credentials');
  const started=Date.now();
  const [jobs]=await pool.execute("SELECT j.inbound_message_id,j.restaurant_id,m.phone_number_id,m.sender,m.text_body,r.name,r.locale,r.currency FROM whatsapp_ai_jobs j JOIN whatsapp_inbound_messages m ON m.message_id=j.inbound_message_id AND m.restaurant_id=j.restaurant_id JOIN whatsapp_ai_settings s ON s.restaurant_id=j.restaurant_id AND s.enabled=1 JOIN restaurants r ON r.id=j.restaurant_id JOIN whatsapp_numbers w ON w.phone_number_id=m.phone_number_id AND w.restaurant_id=j.restaurant_id AND w.active=1 WHERE j.status='pending' AND m.message_type='text' AND m.text_body IS NOT NULL AND m.received_at>=NOW()-INTERVAL 23 HOUR ORDER BY j.created_at LIMIT 10");
- let sent=0,failed=0;
+ let claimedCount=0,sent=0,failed=0;
  for(const job of jobs){
   const [claimed]=await pool.execute("UPDATE whatsapp_ai_jobs j JOIN whatsapp_ai_settings s ON s.restaurant_id=j.restaurant_id AND s.enabled=1 SET j.status='processing' WHERE j.inbound_message_id=? AND j.restaurant_id=? AND j.status='pending'",[job.inbound_message_id,job.restaurant_id]);
   if(!claimed.affectedRows)continue;
+  claimedCount++;
+  let outboundId;
   try{
    const [items]=await pool.execute('SELECT name,description,price_minor FROM menu_items WHERE restaurant_id=? AND active=1 ORDER BY id LIMIT 100',[job.restaurant_id]);
    const menu=items.map(i=>({name:i.name,description:i.description,price_minor:i.price_minor}));
@@ -27,19 +29,20 @@ export async function processWhatsAppAIJobs(pool,{fetcher=fetch}={}){
    const meta=await fetcher('https://graph.facebook.com/'+version+'/'+job.phone_number_id+'/messages',{method:'POST',headers:{Authorization:'Bearer '+metaToken,'Content-Type':'application/json'},body:JSON.stringify({messaging_product:'whatsapp',to:job.sender,type:'text',text:{body:reply}}),signal:AbortSignal.timeout(10000)});
    if(!meta.ok)throw Error('WhatsApp provider unavailable');
    const data=await meta.json(),id=data?.messages?.[0]?.id;
-   if(typeof id!=='string'||!id.startsWith('wamid.'))throw Error('Missing outbound ID');
+   if(typeof id!=='string'||!id.startsWith('wamid.')||id.length>255)throw Error('Missing outbound ID');
+   outboundId=id;
    await pool.execute('INSERT INTO whatsapp_outbound_messages(message_id,restaurant_id,phone_number_id,recipient,text_body) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE message_id=message_id',[id,job.restaurant_id,job.phone_number_id,job.sender,reply]);
-   await pool.execute("UPDATE whatsapp_ai_jobs SET status='sent',outbound_message_id=? WHERE inbound_message_id=?",[id,job.inbound_message_id]);
+   await pool.execute("UPDATE whatsapp_ai_jobs SET status='sent',outbound_message_id=? WHERE inbound_message_id=? AND restaurant_id=?",[id,job.inbound_message_id,job.restaurant_id]);
    sent++;
   }catch(error){
    // Do not automatically retry: provider may have accepted a message before DB failed.
-   await pool.execute("UPDATE whatsapp_ai_jobs SET status='failed',last_error=? WHERE inbound_message_id=?",[String(error.message||'Failed').slice(0,255),job.inbound_message_id]);
+   await pool.execute("UPDATE whatsapp_ai_jobs SET status='failed',last_error=?,outbound_message_id=? WHERE inbound_message_id=? AND restaurant_id=?",[outboundId ? 'Meta accepted; reconcile outbound history before retrying' : String(error.code || error.message || 'Failed').slice(0,255),outboundId ?? null,job.inbound_message_id,job.restaurant_id]);
    failed++;
   }
  }
- const result={claimed:jobs.length,sent,failed,duration_ms:Date.now()-started};
+ const result={claimed:claimedCount,sent,failed,duration_ms:Date.now()-started};
  console.info(JSON.stringify({event:'whatsapp_ai_worker_complete',...result}));
- return {claimed:jobs.length,sent,failed};
+ return {claimed:claimedCount,sent,failed};
 }
 
 // Run from the long-lived Node service when enabled. Wait for each batch to
