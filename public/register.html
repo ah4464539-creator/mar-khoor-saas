@@ -156,6 +156,18 @@
   .mk-register .registration-panel #register .register-actions button { flex:1 1 100%; }
 }
 </style>
+<style>
+/* Registration-only mobile progress and tap-target refinements. */
+@media(max-width:540px) {
+  .mk-register .register-steps { grid-template-columns:repeat(3,minmax(0,1fr)); gap:5px; }
+  .mk-register .register-steps li { display:flex; flex-direction:column; align-items:center; text-align:center; justify-content:center; padding:8px 3px; font-size:11px; overflow-wrap:anywhere; }
+  .mk-register .register-steps li::before { flex:0 0 24px; width:24px; }
+  .mk-register .registration-panel #register .register-actions button { min-height:48px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .mk-register *, .mk-register *::before, .mk-register *::after { scroll-behavior:auto!important; transition:none!important; }
+}
+</style>
 </head>
 <body class="landing mk-register">
   <header class="top"><a class="brand" href="/"><img src="/assets/approved-markhor.svg" width="34" height="34" alt=""><span class="wordmark">Mar-Khoor</span></a></header>

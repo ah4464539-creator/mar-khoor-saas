@@ -8,6 +8,23 @@
   <title>MAR-KHOOR AI | Restaurant Operations</title>
   <link rel="stylesheet" href="/styles.css">
 <link rel="stylesheet" href="/mar-khoor-design.css">
+<style>
+/* Homepage-only responsive navigation and accessible keyboard focus. */
+.mk-home .top nav { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
+.mk-home .top nav a { white-space:nowrap; }
+.mk-home .top nav .nav-signin { color:#fff; }
+.mk-home a:focus-visible { outline:3px solid #f2c76a; outline-offset:3px; }
+.mk-home .feature-strip { display:flex; flex-wrap:wrap; gap:10px; }
+.mk-home .feature-strip a { flex:1 1 160px; text-align:center; }
+@media(max-width:600px) {
+  .mk-home .top { flex-wrap:wrap; gap:12px; }
+  .mk-home .top nav { width:100%; justify-content:flex-start; gap:10px 14px; }
+  .mk-home .top nav a { min-height:40px; display:inline-flex; align-items:center; }
+  .mk-home .hero h1 { overflow-wrap:break-word; }
+  .mk-home .actions .button { max-width:100%; box-sizing:border-box; text-align:center; }
+  .mk-home .feature-strip a { flex:1 1 130px; }
+}
+</style>
 </head>
 <body class="landing mk-home">
   <header class="top">
