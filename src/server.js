@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { quotePlan } from './plan-quote.js';
+import { publicAssistantRouter } from './public-assistant.js';
 import express from 'express';
 import mysql from 'mysql2/promise';
 import { authRouter, useSessionStore } from './auth.js';
@@ -57,6 +58,7 @@ app.post('/api/public/plan-quote', async (req, res) => {
     res.status(503).json({ error: 'Quote unavailable' });
   }
 });
+app.use('/api', publicAssistantRouter());
 app.use('/auth', authRouter(pool));
 app.use('/auth', registrationRouter(pool));
 app.use('/api', apiRouter(pool));
