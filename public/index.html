@@ -54,21 +54,61 @@
   .mk-home .landing-section .tiles { gap: 14px; }
   .mk-home .landing-section .tiles article { padding: 20px; }
 }
+
+/* Sample 2: branded dark-purple and green landing-page treatment. */
+.mk-home { background:radial-gradient(ellipse at 50% 45%,#1b1740 0%,#10152b 55%,#0d1327 100%); color:#f8f7ff; }
+.mk-home .top { background:#0d1328; }
+.mk-home .top nav a[aria-current] { color:#6bf36d; }
+.mk-home .top nav .nav-cta,.mk-home .hero .actions .button:first-child { background:#65f36e; color:#091527; border-color:#65f36e; font-weight:800; }
+.mk-home .hero { position:relative; min-height:440px; display:flex; align-items:center; padding-block:70px; background-image:linear-gradient(90deg,#10142de8 0%,#21153ab0 45%,#11172a15 85%),url('/assets/approved-mountain.webp'); background-size:cover; background-position:center,right center; }
+.mk-home .hero > div:first-child { position:relative; z-index:1; max-width:600px; }
+.mk-home .hero h1 { font-size:clamp(38px,4.2vw,64px); line-height:1.08; max-width:16ch; }
+.mk-home .hero em,.mk-home .landing-section h2 em { color:#65f36e; font-style:normal; }
+.mk-home .hero .lead { color:#f0eaf8; max-width:54ch; }
+.mk-home .hero .actions { display:flex; gap:12px; flex-wrap:wrap; }
+.mk-home .hero .actions .button-outline { background:#151b35bb; color:#fff; border:1px solid #b8a9d9; }
+.mk-home .hero-proof { margin-top:22px; color:#d3cbea; font-size:.9rem; }
+.mk-home .hero-floats { position:absolute; z-index:1; right:27%; top:12%; display:grid; gap:10px; width:190px; }
+.mk-home .hero-floats span { background:#171d3cdd; border:1px solid #7565a1; border-radius:14px; padding:12px; font-weight:750; box-shadow:0 12px 32px #080b1c88; }
+.mk-home .hero-floats small { display:block; font-size:.72rem; color:#ccc5df; font-weight:400; margin:4px 0 0 25px; }
+.mk-home .feature-strip { background:#121831; padding:18px max(4vw,20px); }
+.mk-home .feature-strip a { background:#202744; border-color:#44476d; min-height:70px; font-size:.94rem; }
+.mk-home .landing-section { padding-block:44px; }
+.mk-home .landing-section h2 { text-align:center!important; font-size:clamp(25px,2.5vw,35px); }
+.mk-home #plans > .eyebrow,.mk-home #plans > .muted { text-align:center; }
+.mk-home .landing-section .tiles { margin-top:28px; }
+.mk-home .landing-section .tiles article,.mk-home .steps-grid article { background:linear-gradient(145deg,#232747,#191d38); border:1px solid #4b4772; border-radius:18px; padding:26px; }
+.mk-home .tile-icon { color:#65f36e; font-size:1.6em; margin-right:9px; }
+.mk-home #plans .tiles article { position:relative; display:flex; flex-direction:column; min-height:320px; }
+.mk-home #plans .tiles article.featured-plan { border-color:#65f36e; box-shadow:0 0 0 1px #65f36e55; }
+.mk-home .popular { position:absolute; right:16px; top:-15px; background:#65f36e; color:#0c1528; border-radius:20px; padding:6px 12px; font-size:.75rem; font-weight:800; }
+.mk-home #plans ul { list-style:none; padding:0; margin:18px 0; display:grid; gap:12px; }
+.mk-home #plans li::before { content:'✓'; color:#65f36e; font-weight:900; margin-right:10px; }
+.mk-home .plan-link { margin-top:auto; padding:12px; border:1px solid #747399; border-radius:12px; text-align:center; color:#fff; text-decoration:none; font-weight:750; }
+.mk-home .featured-plan .plan-link { background:#65f36e; color:#101629; border-color:#65f36e; }
+.mk-home .steps-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; margin-top:28px; }
+.mk-home .steps-grid article b { display:inline-grid; place-items:center; width:34px; height:34px; border-radius:50%; background:#bd8cf9; color:#11132b; }
+.mk-home .steps-grid article h3 { margin:14px 0 8px; }
+.mk-home .steps-grid article p { color:#d2cbe2; }
+@media(max-width:1100px){.mk-home .hero-floats { right:3%; width:165px; }}
+@media(max-width:850px){.mk-home .hero-floats { display:none; }.mk-home .hero { background-position:center,right center; }.mk-home .steps-grid { grid-template-columns:1fr; }}
+@media(max-width:600px){.mk-home .hero { min-height:0; padding:54px 20px; background-image:linear-gradient(90deg,#10162af2,#10162ad4),url('/assets/approved-mountain.webp'); }.mk-home .hero h1 { font-size:clamp(32px,9vw,44px); }.mk-home .hero .actions .button { width:100%; }.mk-home #plans .tiles article { min-height:0; }.mk-home .feature-strip a { min-height:56px; }.mk-home .landing-section { padding-block:34px; }}
 </style>
 </head>
 <body class="landing mk-home">
   <header class="top">
     <a class="brand" href="/"><img src="/assets/approved-markhor.svg" width="34" height="34" alt=""><span class="wordmark">Mar-Khoor</span></a>
-    <nav aria-label="Main navigation"><a href="/" aria-current="page">Home</a><a href="#solutions">Solutions</a><a href="#features">Features</a><a href="#plans">Pricing</a><a href="#about">About</a><a href="#contact">Contact</a><a class="nav-signin" href="/restaurant.html">Sign in</a><a class="nav-cta" href="/register.html">Get started</a></nav>
+    <nav aria-label="Main navigation"><a href="/" aria-current="page">Home</a><a href="#solutions">Solutions</a><a href="#features">Features</a><a href="#how-it-works">How it works</a><a href="#plans">Pricing</a><a href="#about">About</a><a href="#contact">Contact</a><a class="nav-signin" href="/restaurant.html">Sign in</a><a class="nav-cta" href="/register.html">Get started</a></nav>
   </header>
   <main>
     <section class="hero">
       <div>
         <p class="eyebrow">AI Restaurant Platform</p>
-        <h1>Build, Automate &amp; Grow<br> with <em>Mar-Khoor</em></h1>
-        <p class="muted lead">Publish your menu, take website orders, and manage your restaurant from one workspace. Connect WhatsApp and AI voice ordering to your restaurant.</p>
-        <div class="actions"><a class="button" href="/register.html">Register your restaurant <span aria-hidden="true">→</span></a></div>
+        <h1>Grow Your Restaurant<br> with <em>Mar-Khoor AI</em></h1>
+        <p class="muted lead">Website, orders, WhatsApp, AI phone calls and smart menus — one connected platform to help your restaurant grow.</p>
+        <div class="actions"><a class="button" href="/register.html">Register your restaurant <span aria-hidden="true">→</span></a><a class="button button-outline" href="#how-it-works">See how it works</a></div><p class="hero-proof">✦ Simple setup &nbsp; · &nbsp; Online ordering &nbsp; · &nbsp; One workspace</p>
       </div>
+      <div class="hero-floats" aria-label="Platform highlights"><span>☎ &nbsp; AI phone calls <small>Voice tools in staging</small></span><span>◉ &nbsp; WhatsApp orders <small>Connected conversations</small></span><span>▣ &nbsp; Online ordering <small>Your own digital menu</small></span><span>▥ &nbsp; Reports &amp; insights <small>Manage restaurant activity</small></span></div>
     </section>
     <nav class="feature-strip" id="solutions" aria-label="Product features">
       <a href="#online-ordering">Online ordering</a>
@@ -78,23 +118,24 @@
       <a href="/restaurant.html#management">Reports &amp; insights</a>
     </nav>
     <section id="features" class="landing-section">
-      <h2>Everything Your Restaurant Needs</h2>
+      <h2>Everything <em>Your Restaurant</em> Needs</h2>
       <div class="tiles">
-        <article id="online-ordering"><h3>Website ordering</h3><p>Give customers a menu with current prices and availability, and receive orders in your restaurant workspace.</p></article>
-        <article id="whatsapp"><h3>WhatsApp</h3><p>Manage messages for a connected number and configure menu-aware replies in the customer’s language.</p></article>
-        <article id="voice"><h3>AI phone ordering</h3><p>Connect a restaurant-specific voice assistant with tools for looking up menus and taking orders. Live calling is in staging.</p></article>
+        <article id="online-ordering"><h3><span class="tile-icon">▣</span> Website ordering</h3><p>Give customers a menu with current prices and availability, and receive orders in your restaurant workspace.</p></article>
+        <article id="whatsapp"><h3><span class="tile-icon">◉</span> WhatsApp</h3><p>Manage messages for a connected number and configure menu-aware replies in the customer’s language.</p></article>
+        <article id="voice"><h3><span class="tile-icon">☎</span> AI phone ordering</h3><p>Connect a restaurant-specific voice assistant with tools for looking up menus and taking orders. Live calling is in staging.</p></article>
       </div>
     </section>
     <section id="plans" class="landing-section">
       <p class="eyebrow">Plans</p><h2>Options for each stage of growth</h2>
       <p class="muted">Choose the services you need and see a USD estimate.</p>
       <div class="tiles">
-        <article><h3>Starter</h3><p>Menu publishing, website ordering, and a restaurant workspace.</p></article>
-        <article><h3>Professional</h3><p>Restaurant operations with connected communication and automation tools.</p></article>
-        <article><h3>Enterprise</h3><p>For businesses with multiple locations and custom onboarding needs.</p></article>
+        <article><h3>✧ Starter</h3><p>Menu publishing, website ordering, and a restaurant workspace.</p><ul><li>Digital menu and online orders</li><li>Restaurant dashboard</li><li>Manage your menu</li></ul><a class="plan-link" href="/build-plan.html">Choose Starter</a></article>
+        <article class="featured-plan"><span class="popular">Explore options</span><h3>♛ Professional</h3><p>Restaurant operations with connected communication and automation tools.</p><ul><li>Everything in Starter</li><li>Connected communication tools</li><li>Automation options</li></ul><a class="plan-link" href="/build-plan.html">Explore Professional</a></article>
+        <article><h3>▤ Enterprise</h3><p>For businesses with multiple locations and custom onboarding needs.</p><ul><li>Multi-location requirements</li><li>Custom onboarding</li><li>Discuss integrations</li></ul><a class="plan-link" href="/build-plan.html">Explore Enterprise</a></article>
       </div>
       <div class="plan-actions"><a class="button" href="/build-plan.html">Build Your Plan</a><a class="button" href="/register.html">Register your restaurant</a></div>
     </section>
+    <section id="how-it-works" class="landing-section steps-section"><h2>How <em>It Works</em></h2><div class="steps-grid"><article><b>1</b><h3>Register</h3><p>Create your restaurant account and add your details.</p></article><article><b>2</b><h3>Set up services</h3><p>Configure your menu and available integrations.</p></article><article><b>3</b><h3>Start taking orders</h3><p>Publish your menu and manage orders in your workspace.</p></article></div></section>
     <section id="about" class="landing-section"><h2>About Mar-Khoor</h2><p>Mar-Khoor brings restaurant menus, orders and connected communication channels into one workspace.</p></section>
   </main>
   <footer class="top" id="contact"><div><h2>Contact</h2><p>Restaurant owners can sign in to access their workspace.</p></div><a class="brand" href="/"><img src="/assets/approved-markhor.svg" width="34" height="34" alt=""><span class="wordmark">Mar-Khoor</span></a><nav aria-label="Contact and workspace navigation"><a href="/privacy.html">Privacy Policy</a> <a href="/restaurant.html">Restaurant sign-in</a></nav></footer>
