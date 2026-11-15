@@ -24,6 +24,14 @@
   .mk-home .actions .button { max-width:100%; box-sizing:border-box; text-align:center; }
   .mk-home .feature-strip a { flex:1 1 130px; }
 }
+
+/* Keep feature, plan and about sections in a consistent reading rhythm. */
+.mk-home .landing-section { padding-block:clamp(36px,5vw,68px); }
+.mk-home .landing-section .tiles { margin-top:22px; }
+.mk-home .landing-section .tiles article { height:100%; box-sizing:border-box; }
+.mk-home .plan-actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:24px; }
+.mk-home .plan-actions .button { display:inline-flex; align-items:center; justify-content:center; }
+@media(max-width:600px) { .mk-home .plan-actions .button { flex:1 1 100%; } }
 </style>
 </head>
 <body class="landing mk-home">
@@ -41,9 +49,9 @@
       </div>
     </section>
     <nav class="feature-strip" id="solutions" aria-label="Product features">
-      <a href="#voice">AI phone calls</a>
-      <a href="#whatsapp">WhatsApp orders</a>
       <a href="#online-ordering">Online ordering</a>
+      <a href="#whatsapp">WhatsApp orders</a>
+      <a href="#voice">AI phone calls</a>
       <a href="/restaurant.html">Menu &amp; POS</a>
       <a href="/restaurant.html#management">Reports &amp; insights</a>
     </nav>
@@ -58,12 +66,12 @@
     <section id="plans" class="landing-section">
       <p class="eyebrow">Plans</p><h2>Options for each stage of growth</h2>
       <p class="muted">Choose the services you need and see a USD estimate.</p>
-      <p><a class="button" href="/build-plan.html">Build Your Plan</a> <a class="button" href="/register.html">Register your restaurant</a></p>
       <div class="tiles">
         <article><h3>Starter</h3><p>Menu publishing, website ordering, and a restaurant workspace.</p></article>
         <article><h3>Professional</h3><p>Restaurant operations with connected communication and automation tools.</p></article>
         <article><h3>Enterprise</h3><p>For businesses with multiple locations and custom onboarding needs.</p></article>
       </div>
+      <div class="plan-actions"><a class="button" href="/build-plan.html">Build Your Plan</a><a class="button" href="/register.html">Register your restaurant</a></div>
     </section>
     <section id="about" class="landing-section"><h2>About Mar-Khoor</h2><p>Mar-Khoor brings restaurant menus, orders and connected communication channels into one workspace.</p></section>
   </main>
