@@ -62,7 +62,7 @@ export function integrationRouter(pool){
     if(Array.isArray(change.value?.statuses)){
      for(const event of change.value.statuses){
       if(typeof phoneId==='string'&&/^[0-9]{1,64}$/.test(phoneId)&&typeof event?.id==='string'&&event.id.length<=255&&/^wamid[.]/.test(event.id)&&['sent','delivered','read','failed'].includes(event.status)){
-       statuses.push({phoneId,id:event.id,status:event.status});
+       statuses.push({phoneId,id:event.id,status:event.status,timestamp:Number(event.timestamp)});
       }
      }
     }
@@ -89,13 +89,31 @@ export function integrationRouter(pool){
     }
    }
    let updated_statuses=0;
+   let retryRecentStatus=false;
    for(const event of statuses){
-    const [result]=await pool.execute(
+    const applyStatus=()=>pool.execute(
      "UPDATE whatsapp_outbound_messages o JOIN whatsapp_numbers w ON w.phone_number_id=o.phone_number_id AND w.restaurant_id=o.restaurant_id AND w.active=1 SET o.status=?,o.status_at=NOW() WHERE o.message_id=? AND o.phone_number_id=? AND (o.status='accepted' OR (o.status='sent' AND ? IN ('delivered','read','failed')) OR (o.status='delivered' AND ?='read'))",
      [event.status,event.id,event.phoneId,event.status,event.status]
     );
+    const [result]=await applyStatus();
     updated_statuses+=result.affectedRows;
+    // A delivery callback can beat the sender's outbound INSERT. For a recent
+    // callback on a mapped number, request a replay if the message is still
+    // unknown. Known duplicates and older/external message IDs are acknowledged.
+    const ageSeconds=Math.floor(Date.now()/1000)-event.timestamp;
+    if(!result.affectedRows && Number.isSafeInteger(ageSeconds) && ageSeconds>=-30 && ageSeconds<=120){
+     const [missing]=await pool.execute(
+      'SELECT 1 FROM whatsapp_numbers w LEFT JOIN whatsapp_outbound_messages o ON o.phone_number_id=w.phone_number_id AND o.restaurant_id=w.restaurant_id AND o.message_id=? WHERE w.phone_number_id=? AND w.active=1 AND o.message_id IS NULL LIMIT 1',
+      [event.id,event.phoneId]
+     );
+     if(missing.length)retryRecentStatus=true;
+     else {
+      const [reapplied]=await applyStatus();
+      updated_statuses+=reapplied.affectedRows;
+     }
+    }
    }
+   if(retryRecentStatus)return res.status(503).json({error:'Outbound message not recorded yet'});
    return res.status(202).json({received:true,processed,updated_statuses});
   }catch{return res.status(503).json({error:'Message storage unavailable'});}
 

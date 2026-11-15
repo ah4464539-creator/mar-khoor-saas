@@ -10,6 +10,7 @@ import { checkoutRouter } from './checkout.js';
 import { integrationRouter } from './integrations.js';
 import { registrationRouter } from './registration.js';
 import { plansRouter } from './plans.js';
+import { startWhatsAppAIWorker } from './whatsapp-ai-worker.js';
 import { sitesRouter } from './sites.js';
 import { numbersRouter } from './numbers.js';
 import { loadCatalog } from './plan-orders.js';
@@ -77,4 +78,7 @@ app.get('/health/database', async (_req, res) => {
 });
 app.use(jsonErrorHandler);
 const port = Number(process.env.PORT || 3001);
-app.listen(port, () => console.log(`Mar-Khoor API listening on ${port}`));
+app.listen(port, () => {
+  console.log(`Mar-Khoor API listening on ${port}`);
+  startWhatsAppAIWorker(pool);
+});

@@ -16,7 +16,7 @@ test('homepage has a clear registration button and the new panels render text sa
  assert.match(home,/class="nav-cta" href="\/register\.html"/);
  for(const file of ['public/register.js','public/restaurant.js','public/platform.js'])assert.ok(!/innerHTML/.test(read(file)),file+' must not use innerHTML');
  assert.match(read('public/restaurant.html'),/id="plan-form"/);
- assert.match(read('public/super-admin.html'),/id="route-form"/);
+ assert.match(read('src/views/super-admin.html'),/id="route-form"/);
 });
 test('register page has every field the script reads',()=>{const html=read('public/register.html'),js=read('public/register.js');for(const id of ['register','restaurant-name','country','email','password','status','done'])assert.ok(html.includes('id="'+id+'"'),id);for(const id of ['#register','#restaurant-name','#country','#email','#password'])assert.ok(js.includes(id),id)});
 test('server uses database-backed sessions and schema has the sessions table',()=>{
@@ -38,5 +38,5 @@ test('dashboard has a website panel that renders text safely',()=>{
 test('number provisioning UI is explicit and renders text safely',()=>{
  const js=read('public/platform.js');
  assert.ok(js.includes('confirm('));assert.ok(js.includes('/number-candidates'));assert.ok(!js.includes('innerHTML'));
- assert.match(read('public/super-admin.html'),/id="number-candidates"/);
+ assert.match(read('src/views/super-admin.html'),/id="number-candidates"/);
 });
