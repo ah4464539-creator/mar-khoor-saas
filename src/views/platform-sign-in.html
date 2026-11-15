@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <link rel="icon" type="image/svg+xml" href="/assets/approved-markhor.svg"><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Platform | MAR-KHOOR AI</title><link rel="stylesheet" href="/styles.css">
+<link rel="stylesheet" href="/mar-khoor-design.css">
+<link rel="stylesheet" href="/super-admin.css">
+</head>
+<body class="dashboard platform-dashboard">
+<main id="platform-sign-in" class="platform-sign-in">
+  <section class="panel access-panel">
+    <img src="/assets/approved-markhor.svg" width="48" height="48" alt="Mar-Khoor AI">
+    <h1>Platform owner sign-in</h1>
+    <form id="login" method="post" action="/auth/platform-login">
+      <label for="email">Email address<input id="email" type="email" required autocomplete="username"></label>
+      <label for="password">Password<input id="password" type="password" required autocomplete="current-password"></label>
+      <button type="submit">Sign in</button>
+    </form>
+    <p id="login-status" class="muted" role="status"></p>
+  </section>
+</main>
+<script type="module" src="/platform.js"></script>
+</body>
+</html>
