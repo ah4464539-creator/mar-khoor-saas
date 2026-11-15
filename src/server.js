@@ -40,6 +40,7 @@ useSessionStore(createDbSessionStore(pool));
 app.use('/integrations', integrationRouter(pool));
 app.use(['/auth/login', '/auth/platform-login'], rateLimit({ windowMs: 15 * 60 * 1000, max: 30, methods: ['POST'], name: 'login' }));
 app.use('/api/public', rateLimit({ windowMs: 60 * 1000, max: 120, name: 'public' }));
+app.use('/api/public/assistant/chat', rateLimit({ windowMs: 10 * 60 * 1000, max: 12, methods: ['POST'], name: 'public-assistant' }));
 app.use('/api/public/restaurants/:slug/orders', rateLimit({ windowMs: 10 * 60 * 1000, max: 20, methods: ['POST'], name: 'orders' }));
 app.use('/api/restaurants/:restaurantId/site/generate', rateLimit({ windowMs: 60 * 60 * 1000, max: 10, methods: ['POST'], name: 'site-generate' }));
 app.use('/api', rateLimit({ windowMs: 10 * 60 * 1000, max: 1500, name: 'api' }));
