@@ -60,7 +60,7 @@
 .mk-home .top { background:#0d1328; }
 .mk-home .top nav a[aria-current] { color:#6bf36d; }
 .mk-home .top nav .nav-cta,.mk-home .hero .actions .button:first-child { background:#65f36e; color:#091527; border-color:#65f36e; font-weight:800; }
-.mk-home .hero { position:relative; min-height:440px; display:flex; align-items:center; padding-block:70px; background-image:linear-gradient(90deg,#10142de8 0%,#21153ab0 45%,#11172a15 85%),url('/assets/approved-mountain.webp'); background-size:cover; background-position:center,right center; }
+.mk-home .hero { position:relative; min-height:440px; display:flex; align-items:center; padding-block:70px; background-image:linear-gradient(90deg,#10142df0 0%,#14162bb8 37%,#11172a18 67%,transparent 100%),url('/assets/approved-mountain.webp'); background-size:cover; background-position:center,right center; }
 .mk-home .hero > div:first-child { position:relative; z-index:1; max-width:600px; }
 .mk-home .hero h1 { font-size:clamp(38px,4.2vw,64px); line-height:1.08; max-width:16ch; }
 .mk-home .hero em,.mk-home .landing-section h2 em { color:#65f36e; font-style:normal; }
@@ -92,13 +92,32 @@
 .mk-home .steps-grid article p { color:#d2cbe2; }
 @media(max-width:1100px){.mk-home .hero-floats { right:3%; width:165px; }}
 @media(max-width:850px){.mk-home .hero-floats { display:none; }.mk-home .hero { background-position:center,right center; }.mk-home .steps-grid { grid-template-columns:1fr; }}
-@media(max-width:600px){.mk-home .hero { min-height:0; padding:54px 20px; background-image:linear-gradient(90deg,#10162af2,#10162ad4),url('/assets/approved-mountain.webp'); }.mk-home .hero h1 { font-size:clamp(32px,9vw,44px); }.mk-home .hero .actions .button { width:100%; }.mk-home #plans .tiles article { min-height:0; }.mk-home .feature-strip a { min-height:56px; }.mk-home .landing-section { padding-block:34px; }}
+@media(max-width:600px){.mk-home .hero { min-height:0; padding:54px 20px; background-image:linear-gradient(90deg,#10162aee,#10162a99),url('/assets/approved-mountain.webp'); }.mk-home .hero h1 { font-size:clamp(32px,9vw,44px); }.mk-home .hero .actions .button { width:100%; }.mk-home #plans .tiles article { min-height:0; }.mk-home .feature-strip a { min-height:56px; }.mk-home .landing-section { padding-block:34px; }}
+
+/* Polished feature cards: consistent icon badges, hierarchy and hover states. */
+.mk-home #features .tiles { align-items:stretch; }
+.mk-home #features .tiles article { position:relative; display:flex; flex-direction:column; gap:0; min-height:240px; padding:30px; border:1px solid #4b5079; border-radius:20px; background:linear-gradient(155deg,#292c50 0%,#1b203d 100%); box-shadow:0 16px 36px #070b1b30; transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease; }
+.mk-home #features .tiles article:hover { transform:translateY(-4px); border-color:#7d7db2; box-shadow:0 22px 44px #070b1b55; }
+.mk-home #features .feature-icon-wrap { display:grid; place-items:center; width:56px; height:56px; border-radius:16px; color:#72f77d; background:#65f36e15; border:1px solid #65f36e55; margin-bottom:21px; }
+.mk-home #features .feature-icon { display:block; width:29px; height:29px; }
+.mk-home #features .tiles h3 { margin:0 0 12px; font-size:1.2rem; line-height:1.35; }
+.mk-home #features .tiles p { margin:0; color:#d5d6eb; line-height:1.65; }
+@media(max-width:600px){.mk-home #features .tiles article { min-height:0; padding:24px; }.mk-home #features .feature-icon-wrap { width:50px; height:50px; margin-bottom:16px; }}
+@media(prefers-reduced-motion:reduce){.mk-home #features .tiles article { transition:none; }.mk-home #features .tiles article:hover { transform:none; }}
+
+/* Keep the Markhor photograph visible without floating cards or duplicate feature strips. */
+.mk-home .hero { isolation:isolate; background-color:#11172a; background-repeat:no-repeat; }
+.mk-home .hero::after { content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(0deg,#10142a33,transparent 35%); z-index:0; }
+.mk-home .hero > div:first-child { z-index:1; }
+.mk-home .top nav .nav-signin { display:inline-flex; align-items:center; justify-content:center; color:#0c1429!important; background:#f3f6ff; border:1px solid #e1e7ff; border-radius:999px; padding:9px 17px; font-weight:800; text-decoration:none; opacity:1; }
+.mk-home .top nav .nav-signin:hover { color:#081021!important; background:#d9fce0; border-color:#65f36e; }
+@media(max-width:600px){.mk-home .top nav .nav-signin { min-height:44px; }}
 </style>
 </head>
 <body class="landing mk-home">
   <header class="top">
     <a class="brand" href="/"><img src="/assets/approved-markhor.svg" width="34" height="34" alt=""><span class="wordmark">Mar-Khoor</span></a>
-    <nav aria-label="Main navigation"><a href="/" aria-current="page">Home</a><a href="#solutions">Solutions</a><a href="#features">Features</a><a href="#how-it-works">How it works</a><a href="#plans">Pricing</a><a href="#about">About</a><a href="#contact">Contact</a><a class="nav-signin" href="/restaurant.html">Sign in</a><a class="nav-cta" href="/register.html">Get started</a></nav>
+    <nav aria-label="Main navigation"><a href="/" aria-current="page">Home</a><a href="#features">Solutions</a><a href="#features">Features</a><a href="#how-it-works">How it works</a><a href="#plans">Pricing</a><a href="#about">About</a><a href="#contact">Contact</a><a class="nav-signin" href="/restaurant.html">Sign in</a><a class="nav-cta" href="/register.html">Get started</a></nav>
   </header>
   <main>
     <section class="hero">
@@ -108,25 +127,17 @@
         <p class="muted lead">Website, orders, WhatsApp, AI phone calls and smart menus — one connected platform to help your restaurant grow.</p>
         <div class="actions"><a class="button" href="/register.html">Register your restaurant <span aria-hidden="true">→</span></a><a class="button button-outline" href="#how-it-works">See how it works</a></div><p class="hero-proof">✦ Simple setup &nbsp; · &nbsp; Online ordering &nbsp; · &nbsp; One workspace</p>
       </div>
-      <div class="hero-floats" aria-label="Platform highlights"><span>☎ &nbsp; AI phone calls <small>Voice tools in staging</small></span><span>◉ &nbsp; WhatsApp orders <small>Connected conversations</small></span><span>▣ &nbsp; Online ordering <small>Your own digital menu</small></span><span>▥ &nbsp; Reports &amp; insights <small>Manage restaurant activity</small></span></div>
     </section>
-    <nav class="feature-strip" id="solutions" aria-label="Product features">
-      <a href="#online-ordering">Online ordering</a>
-      <a href="#whatsapp">WhatsApp orders</a>
-      <a href="#voice">AI phone calls</a>
-      <a href="/restaurant.html">Menu &amp; POS</a>
-      <a href="/restaurant.html#management">Reports &amp; insights</a>
-    </nav>
     <section id="features" class="landing-section">
       <h2>Everything <em>Your Restaurant</em> Needs</h2>
       <div class="tiles">
-        <article id="online-ordering"><h3><span class="tile-icon">▣</span> Website ordering</h3><p>Give customers a menu with current prices and availability, and receive orders in your restaurant workspace.</p></article>
-        <article id="whatsapp"><h3><span class="tile-icon">◉</span> WhatsApp</h3><p>Manage messages for a connected number and configure menu-aware replies in the customer’s language.</p></article>
-        <article id="voice"><h3><span class="tile-icon">☎</span> AI phone ordering</h3><p>Connect a restaurant-specific voice assistant with tools for looking up menus and taking orders. Live calling is in staging.</p></article>
+        <article id="online-ordering"><div class="feature-icon-wrap"><svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 14h4M8 17h8"/></svg></div><h3>Website ordering</h3><p>Give customers a menu with current prices and availability, and receive orders in your restaurant workspace.</p></article>
+        <article id="whatsapp"><div class="feature-icon-wrap"><svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11.5a8.5 8.5 0 0 1-12.5 7.5L3 20l1.2-4.4A8.5 8.5 0 1 1 20 11.5Z"/><path d="M9 9.5c.7 2.5 2.2 4 4.8 4.8l1.3-1.1 2 1.2c-.8 1.8-2.1 2.1-3.4 1.8-3.3-.9-5.7-3.2-6.6-6.6-.3-1.4.2-2.7 1.8-3.5l1.2 2-1.1 1.4Z"/></svg></div><h3>WhatsApp</h3><p>Manage messages for a connected number and configure menu-aware replies in the customer’s language.</p></article>
+        <article id="voice"><div class="feature-icon-wrap"><svg class="feature-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 10V9a7 7 0 0 1 14 0v1"/><rect x="3" y="10" width="4" height="8" rx="2"/><rect x="17" y="10" width="4" height="8" rx="2"/><path d="M19 18c0 2-2 3-5 3h-2"/><rect x="10" y="19.5" width="4" height="2" rx="1"/></svg></div><h3>AI phone ordering</h3><p>Connect a restaurant-specific voice assistant with tools for looking up menus and taking orders. Live calling is in staging.</p></article>
       </div>
     </section>
     <section id="plans" class="landing-section">
-      <p class="eyebrow">Plans</p><h2>Options for each stage of growth</h2>
+      <h2>Options for each stage of growth</h2>
       <p class="muted">Choose the services you need and see a USD estimate.</p>
       <div class="tiles">
         <article><h3>✧ Starter</h3><p>Menu publishing, website ordering, and a restaurant workspace.</p><ul><li>Digital menu and online orders</li><li>Restaurant dashboard</li><li>Manage your menu</li></ul><a class="plan-link" href="/build-plan.html">Choose Starter</a></article>
