@@ -34,3 +34,12 @@
   .platform-dashboard :is(#login,#assistant-form,#route-form) { grid-template-columns: minmax(0,1fr); }
   .platform-dashboard form label :is(input,select) { font-size: 16px; }
 }
+
+.platform-dashboard .platform-sign-in {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+}
+.platform-sign-in .access-panel { width: min(100%, 420px); }
+.platform-sign-in #login { grid-template-columns: minmax(0, 1fr); }
