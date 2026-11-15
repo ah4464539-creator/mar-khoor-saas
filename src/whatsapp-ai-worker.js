@@ -3,11 +3,12 @@ import mysql from 'mysql2/promise';
 import {pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
 
-export async function processWhatsAppAIJobs(pool,{fetcher=fetch}={}){
+export async function processWhatsAppAIJobs(pool,{fetcher=fetch,restaurantId=null}={}){
  const key=process.env.OPENAI_API_KEY,metaToken=process.env.WHATSAPP_ACCESS_TOKEN;
  if(!key||!metaToken)throw Error('Missing AI or WhatsApp credentials');
  const started=Date.now();
- const [jobs]=await pool.execute("SELECT j.inbound_message_id,j.restaurant_id,m.phone_number_id,m.sender,m.text_body,r.name,r.locale,r.currency FROM whatsapp_ai_jobs j JOIN whatsapp_inbound_messages m ON m.message_id=j.inbound_message_id AND m.restaurant_id=j.restaurant_id JOIN whatsapp_ai_settings s ON s.restaurant_id=j.restaurant_id AND s.enabled=1 JOIN restaurants r ON r.id=j.restaurant_id JOIN whatsapp_numbers w ON w.phone_number_id=m.phone_number_id AND w.restaurant_id=j.restaurant_id AND w.active=1 WHERE j.status='pending' AND m.message_type='text' AND m.text_body IS NOT NULL AND m.received_at>=NOW()-INTERVAL 23 HOUR ORDER BY j.created_at LIMIT 10");
+ const restaurantFilter=restaurantId===null?'':' AND j.restaurant_id=?';
+ const [jobs]=await pool.execute("SELECT j.inbound_message_id,j.restaurant_id,m.phone_number_id,m.sender,m.text_body,r.name,r.locale,r.currency FROM whatsapp_ai_jobs j JOIN whatsapp_inbound_messages m ON m.message_id=j.inbound_message_id AND m.restaurant_id=j.restaurant_id JOIN whatsapp_ai_settings s ON s.restaurant_id=j.restaurant_id AND s.enabled=1 JOIN restaurants r ON r.id=j.restaurant_id JOIN whatsapp_numbers w ON w.phone_number_id=m.phone_number_id AND w.restaurant_id=j.restaurant_id AND w.active=1 WHERE j.status='pending' AND m.message_type='text' AND m.text_body IS NOT NULL AND m.received_at>=NOW()-INTERVAL 23 HOUR"+restaurantFilter+" ORDER BY j.created_at LIMIT 10",restaurantId===null?[]:[restaurantId]);
  let claimedCount=0,sent=0,failed=0;
  for(const job of jobs){
   const [claimed]=await pool.execute("UPDATE whatsapp_ai_jobs j JOIN whatsapp_ai_settings s ON s.restaurant_id=j.restaurant_id AND s.enabled=1 SET j.status='processing' WHERE j.inbound_message_id=? AND j.restaurant_id=? AND j.status='pending'",[job.inbound_message_id,job.restaurant_id]);
@@ -49,6 +50,11 @@ export async function processWhatsAppAIJobs(pool,{fetcher=fetch}={}){
 // finish before scheduling the next one; database claims guard across processes.
 export function startWhatsAppAIWorker(pool) {
  if (process.env.WHATSAPP_AI_WORKER_ENABLED !== '1') return;
+ const restaurantId=Number(process.env.WHATSAPP_AI_WORKER_RESTAURANT_ID);
+ if (!Number.isSafeInteger(restaurantId) || restaurantId<1) {
+  console.warn('WhatsApp AI worker disabled: a restaurant ID is required');
+  return;
+ }
  if (!process.env.OPENAI_API_KEY || !process.env.WHATSAPP_ACCESS_TOKEN) {
   console.warn('WhatsApp AI worker disabled: missing OpenAI or WhatsApp configuration');
   return;
@@ -56,7 +62,7 @@ export function startWhatsAppAIWorker(pool) {
 
  const run = async () => {
   try {
-   await processWhatsAppAIJobs(pool);
+   await processWhatsAppAIJobs(pool,{restaurantId});
   } catch (error) {
    const code = /^[A-Z][A-Z0-9_]{1,63}$/.test(error?.code ?? '') ? error.code : 'UNKNOWN';
    console.warn('WhatsApp AI worker batch failed:', code);
