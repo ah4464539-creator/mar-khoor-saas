@@ -281,3 +281,42 @@
 .mk-owner #login input::placeholder { color: #bbb3cf; opacity: 1; }
 .mk-owner .access-panel #login button { color: #fff; background: #6338cf; }
 .mk-owner .access-panel .login-register a { color: #dfceff; text-decoration: underline; text-underline-offset: .18em; }
+
+/* Homepage navigation, feature strip and small-screen fixes. */
+.mk-home .top nav .nav-signin {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; color: #151a2d; background: #fff;
+  border: 1px solid #fff; font-weight: 750;
+}
+.mk-home .top nav .nav-signin:is(:hover,:focus-visible) {
+  color: #fff; background: #302451; border-color: #b79bff;
+}
+.mk-home .feature-strip {
+  grid-template-columns: repeat(5, minmax(0,1fr));
+  align-items: stretch; gap: 10px; padding-block: 10px 16px;
+}
+.mk-home .feature-strip a {
+  display: flex; align-items: center; justify-content: center;
+  min-width: 0; min-height: 44px; padding: 10px 12px;
+  color: #f7f5ff; background: #252b46;
+  border: 1px solid #5c547e; border-radius: 12px;
+  font-weight: 750; line-height: 1.35; text-align: center;
+}
+.mk-home .feature-strip a:is(:hover,:focus-visible) {
+  color: #fff; background: #382a61; border-color: #b79bff;
+}
+@media (max-width: 800px) {
+  .mk-home .top { padding-inline: 20px; }
+  .mk-home .top nav { width: 100%; gap: 6px; }
+  .mk-home .top nav a { padding: 10px; }
+  .mk-home .hero { min-height: 0; padding: 48px 20px; background-size: auto, auto 100%; }
+  .mk-home .hero > div { min-width: 0; }
+  .mk-home .feature-strip { grid-template-columns: repeat(3,minmax(0,1fr)); padding-inline: 20px; }
+}
+@media (max-width: 520px) {
+  .mk-home .hero { padding: 40px 20px; background-image: linear-gradient(90deg,#10162af5,#10162ac9),url('/assets/approved-mountain.webp'); }
+  .mk-home .hero h1 { font-size: clamp(30px, 9vw, 42px); overflow-wrap: normal; }
+  .mk-home .hero .actions .button { max-width: 100%; white-space: normal; text-align: center; }
+  .mk-home .feature-strip { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .mk-home .feature-strip a { overflow-wrap: anywhere; }
+}
