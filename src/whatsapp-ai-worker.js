@@ -42,6 +42,28 @@ export async function processWhatsAppAIJobs(pool,{fetcher=fetch}={}){
  return {claimed:jobs.length,sent,failed};
 }
 
+// Run from the long-lived Node service when enabled. Wait for each batch to
+// finish before scheduling the next one; database claims guard across processes.
+export function startWhatsAppAIWorker(pool) {
+ if (process.env.WHATSAPP_AI_WORKER_ENABLED !== '1') return;
+ if (!process.env.OPENAI_API_KEY || !process.env.WHATSAPP_ACCESS_TOKEN) {
+  console.warn('WhatsApp AI worker disabled: missing OpenAI or WhatsApp configuration');
+  return;
+ }
+
+ const run = async () => {
+  try {
+   await processWhatsAppAIJobs(pool);
+  } catch (error) {
+   const code = /^[A-Z][A-Z0-9_]{1,63}$/.test(error?.code ?? '') ? error.code : 'UNKNOWN';
+   console.warn('WhatsApp AI worker batch failed:', code);
+  } finally {
+   setTimeout(run, 5000).unref();
+  }
+ };
+ void run();
+}
+
 if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href){
  const pool=mysql.createPool({host:process.env.DB_HOST||'127.0.0.1',port:Number(process.env.DB_PORT||3306),user:process.env.DB_USER,password:process.env.DB_PASSWORD,database:process.env.DB_NAME});
  try{console.log(await processWhatsAppAIJobs(pool))}finally{await pool.end()}
