@@ -3,10 +3,21 @@
 <head>
   <link rel="icon" type="image/svg+xml" href="/assets/approved-markhor.svg"><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Platform | MAR-KHOOR AI</title><link rel="stylesheet" href="/styles.css">
 <link rel="stylesheet" href="/mar-khoor-design.css">
-<link rel="stylesheet" href="/super-admin.css">
+<link rel="stylesheet" href="/super-admin.css?v=login-first">
 </head>
 <body class="dashboard platform-dashboard">
-<div class="layout">
+<main id="platform-login-screen" class="platform-login-screen">
+<a class="brand" href="/"><img src="/assets/approved-markhor.svg" width="38" height="38" alt=""><span class="wordmark">Mar-Khoor AI</span></a>
+<section class="panel access-panel">
+<h1>Super Admin sign in</h1>
+<p>Sign in with your platform owner account.</p>
+<form id="login" method="post"><label for="email">Email address<input id="email" aria-label="Email address" type="email" placeholder="Email" required autocomplete="username"></label><label for="password">Password<input id="password" aria-label="Password" type="password" placeholder="Password" required autocomplete="current-password"></label><button>Sign in</button>
+</form>
+<p id="login-status" class="muted" role="status">
+</p>
+</section>
+</main>
+<div id="platform-workspace" class="layout" hidden>
 <aside><a class="brand" href="/"><img src="/assets/approved-markhor.svg" width="38" height="38" alt=""><span class="wordmark">Mar-Khoor AI</span></a>
 <div class="navlabel">PLATFORM OWNER</div><a class="selected" aria-current="page" href="/super-admin"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10l9-7 9 7v11H3z"/></svg>Overview</a><a href="#directory"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l2-5h14l2 5v3H3zm2 3v8h14v-8"/></svg>Restaurants</a><a href="#whatsapp-worker"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11a9 9 0 0 1-9 9H4l1.5-4A9 9 0 1 1 21 11z"/></svg>WhatsApp</a><a href="#voice-assistants"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 14v-3a9 9 0 0 1 18 0v3M3 14h4v6H3zm14 0h4v6h-4z"/></svg>Voice integrations</a><a href="#number-routes"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h10v18H7zm4 14h2"/></svg>Phone numbers</a><a href="#plan-orders"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14v18H5zm3 5h8m-8 4h8m-8 4h5"/></svg>Plan orders</a><a href="/restaurant.html"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h18v13H3zm5 17h8m-4-4v4"/></svg>Restaurant view</a>
 
@@ -15,10 +26,11 @@
 <main class="workspace">
 <div class="page-heading">
 <div>
-<h1>Platform Overview</h1>
-</div><span class="live-pill">Platform owner</span>
+<h1 id="platform-heading" tabindex="-1">Platform Overview</h1>
+</div><button id="platform-sign-out" type="button">Sign out</button>
 </div>
-<p class="muted">Tenant operations and platform health. Sign in below to load the restaurant directory, WhatsApp activity, and voice integrations.</p>
+<p class="muted">Tenant operations and platform health.</p>
+<p id="status" class="muted" role="status"></p>
 <section class="cards kpi-cards">
 <article><span class="metric-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l2-5h14l2 5M3 9v2a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0V9H3zm2 5v6h14v-6m-9 6v-5h4v5"/></svg></span>
 <div><span>Restaurants</span><strong id="restaurants">—</strong><small>Registered tenants</small>
@@ -33,29 +45,22 @@
 </div>
 </article>
 </section>
-<section class="panel access-panel">
-<h2>Secure platform access</h2>
-<p>Only the platform super admin can retrieve these metrics. Use your configured credentials.</p>
-<form id="login"><label for="email">Email address<input id="email" aria-label="Email address" type="email" placeholder="Email" required autocomplete="username"></label><label for="password">Password<input id="password" aria-label="Password" type="password" placeholder="Password" required autocomplete="current-password"></label><button>Sign in & load metrics</button>
-</form>
-<p id="status" class="muted" role="status">
-</p>
-</section>
+
 <div class="dashboard-panels operational-grid">
 <section class="panel" id="directory" tabindex="-1">
 <h2>Restaurants directory</h2>
-<div id="tenant-list" class="muted">Sign in to load tenants.</div>
+<div id="tenant-list" class="muted">Loading…</div>
 </section>
 <section class="panel" id="whatsapp-worker" tabindex="-1">
 <h2>WhatsApp worker</h2>
-<p id="worker-status" role="status">Sign in to view job and delivery counts.</p><dl id="worker-metrics" class="worker-metrics"></dl>
+<p id="worker-status" role="status">Loading…</p><dl id="worker-metrics" class="worker-metrics"></dl>
 </section>
 <section class="panel voice-panel" id="voice-assistants" tabindex="-1">
 <h2>Connect Vapi assistant</h2>
 <p>Enter the assistant ID from Vapi and the restaurant ID above.</p>
 <form id="assistant-form"><label for="assistant-id">Vapi assistant ID<input id="assistant-id" aria-label="Vapi assistant ID" placeholder="Vapi assistant ID" required></label><label for="assistant-restaurant-id">Restaurant ID<input id="assistant-restaurant-id" aria-label="Restaurant ID" type="number" min="1" step="1" placeholder="Restaurant ID" required></label><button>Save mapping</button>
 </form>
-<div id="assistant-list">Sign in to view assistant mappings.</div>
+<div id="assistant-list">Loading…</div>
 </section>
 <section class="panel" id="number-routes" tabindex="-1">
 <h2>Phone numbers by country</h2>
@@ -63,24 +68,24 @@
 <form id="route-form"><label for="route-country">Country code<input id="route-country" aria-label="Country code" placeholder="Country code (AE)" maxlength="2" pattern="[A-Za-z]{2}" required></label><label for="route-provider">Provider<select id="route-provider" aria-label="Provider"><option value="telnyx">Telnyx</option><option value="twilio">Twilio</option><option value="didww">DIDWW</option><option value="manual">Other / manual</option></select></label><label for="route-mode">Availability<select id="route-mode" aria-label="Availability"><option value="manual">Available (manual setup)</option><option value="unavailable">Not available</option></select></label><label for="route-monthly">Monthly price in USD<input id="route-monthly" aria-label="Monthly price in USD" type="number" min="0" step="0.01" placeholder="Monthly USD"></label><label for="route-setup">Setup price in USD<input id="route-setup" aria-label="Setup price in USD" type="number" min="0" step="0.01" placeholder="Setup USD"></label><label for="route-requirements">Documents required<input id="route-requirements" aria-label="Documents required" maxlength="500" placeholder="Documents required"></label><button>Save route</button>
 </form>
 <p id="route-status" role="status" class="muted"></p>
-<div id="route-list" class="muted">Sign in to view routes.</div>
+<div id="route-list" class="muted">Loading…</div>
 </section>
 <section class="panel" id="plan-orders" tabindex="-1">
 <h2>Plan orders</h2>
 <p>Confirm payment yourself, then move the order forward.</p>
-<div id="order-list" class="muted">Sign in to view orders.</div>
+<div id="order-list" class="muted">Loading…</div>
 </section>
 <section class="panel" id="phone-numbers" tabindex="-1">
 <h2>Dedicated phone numbers</h2>
 <p>For a paid order that asked for a number: press <b>Find numbers</b>, check the provider cost, then buy exactly one. Buying spends real money. The restaurant must already have one active Vapi assistant mapped.</p>
 <div id="number-candidates" class="muted"></div>
 <p id="number-status" role="status" class="muted"></p>
-<div id="number-list" class="muted">Sign in to view numbers.</div>
+<div id="number-list" class="muted">Loading…</div>
 </section>
 </div>
 </main>
 </div>
-<script type="module" src="/platform.js">
+<script type="module" src="/platform.js?v=login-first">
 </script>
 </body>
 </html>

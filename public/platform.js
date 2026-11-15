@@ -1,6 +1,85 @@
 let platformToken='';const status=document.querySelector('#status');
 async function loadAssistants(){const r=await fetch('/api/platform/voice-assistants',{headers:{Authorization:'Bearer '+platformToken}});const data=await r.json();if(!r.ok)throw Error(data.error||'Assistant list unavailable');const root=document.querySelector('#assistant-list');root.replaceChildren();for(const a of data.assistants){const p=document.createElement('p');p.textContent=a.assistant_id+' · '+a.restaurant_name+' · '+(a.active?'Active':'Disabled');root.append(p)}if(!data.assistants.length)root.textContent='No assistants mapped yet.'}
-document.querySelector('#assistant-form').addEventListener('submit',async e=>{e.preventDefault();if(!platformToken)return status.textContent='Sign in first.';try{const id=document.querySelector('#assistant-id').value.trim();const restaurant_id=Number(document.querySelector('#assistant-restaurant-id').value);const r=await fetch('/api/platform/voice-assistants/'+encodeURIComponent(id),{method:'PUT',headers:{Authorization:'Bearer '+platformToken,'Content-Type':'application/json'},body:JSON.stringify({restaurant_id,active:true})});const data=await r.json();if(!r.ok)throw Error(data.error||'Mapping failed');await loadAssistants();status.textContent='Assistant mapped.'}catch(err){status.textContent=err.message}});const form=document.querySelector('#login');form.addEventListener('submit',async e=>{e.preventDefault();status.textContent='Signing in…';try{const login=await fetch('/auth/platform-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:document.querySelector('#email').value,password:document.querySelector('#password').value})});const data=await login.json();if(!login.ok)throw Error(data.error||'Login failed');const res=await fetch('/api/platform/summary',{headers:{Authorization:'Bearer '+data.token}});const summary=await res.json();if(!res.ok)throw Error(summary.error||'Access denied');platformToken=data.token;void loadWorkerMetrics(data.token);for(const key of ['restaurants','users','orders'])document.getElementById(key).textContent=summary[key];const tenantsResponse=await fetch('/api/platform/restaurants',{headers:{Authorization:'Bearer '+data.token}});const tenants=await tenantsResponse.json();if(!tenantsResponse.ok)throw Error(tenants.error||'Could not load tenants');const root=document.querySelector('#tenant-list');root.replaceChildren();for(const tenant of tenants.restaurants){const row=document.createElement('p');row.textContent='#'+tenant.id+' · '+tenant.name+' · '+tenant.slug+' · '+tenant.country_code+' · '+tenant.members+' members';root.append(row)}if(!tenants.restaurants.length)root.textContent='No restaurants yet.';await loadAssistants();await loadPlatformPlans().catch(error=>{document.querySelector('#route-list').textContent=error.message});status.textContent='Live platform metrics loaded.'}catch(err){status.textContent=err.message}});
+document.querySelector('#assistant-form').addEventListener('submit',async e=>{e.preventDefault();if(!platformToken)return status.textContent='Sign in first.';try{const id=document.querySelector('#assistant-id').value.trim();const restaurant_id=Number(document.querySelector('#assistant-restaurant-id').value);const r=await fetch('/api/platform/voice-assistants/'+encodeURIComponent(id),{method:'PUT',headers:{Authorization:'Bearer '+platformToken,'Content-Type':'application/json'},body:JSON.stringify({restaurant_id,active:true})});const data=await r.json();if(!r.ok)throw Error(data.error||'Mapping failed');await loadAssistants();status.textContent='Assistant mapped.'}catch(err){status.textContent=err.message}});
+const form = document.querySelector('#login');
+const loginScreen = document.querySelector('#platform-login-screen');
+const workspace = document.querySelector('#platform-workspace');
+const loginStatus = document.querySelector('#login-status');
+const signIn = form.querySelector('button');
+const signOut = document.querySelector('#platform-sign-out');
+
+async function loadSummary() {
+  const summary = await platformApi('/api/platform/summary');
+  for (const key of ['restaurants', 'users', 'orders']) {
+    document.getElementById(key).textContent = summary[key];
+  }
+}
+
+async function loadTenants() {
+  const { restaurants } = await platformApi('/api/platform/restaurants');
+  const root = document.querySelector('#tenant-list');
+  root.replaceChildren();
+  for (const tenant of restaurants) {
+    const row = document.createElement('p');
+    row.textContent = '#' + tenant.id + ' · ' + tenant.name + ' · ' + tenant.slug + ' · ' + tenant.country_code + ' · ' + tenant.members + ' members';
+    root.append(row);
+  }
+  if (!restaurants.length) root.textContent = 'No restaurants yet.';
+}
+
+form.addEventListener('submit', async event => {
+  event.preventDefault();
+  if (signIn.disabled) return;
+  signIn.disabled = true;
+  loginStatus.textContent = 'Signing in…';
+  try {
+    const response = await fetch('/auth/platform-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: form.querySelector('#email').value, password: form.querySelector('#password').value }),
+    });
+    const { token, expiresIn, error } = await response.json();
+    if (!response.ok || !token) throw Error(error || 'Sign-in failed');
+
+    platformToken = token;
+    form.reset();
+    loginStatus.textContent = '';
+    loginScreen.hidden = true;
+    workspace.hidden = false;
+    document.querySelector('#platform-heading').focus();
+    window.setTimeout(() => window.location.reload(), expiresIn * 1000);
+
+    const panels = [
+      [loadSummary, '#status'],
+      [loadTenants, '#tenant-list'],
+      [loadAssistants, '#assistant-list'],
+      [() => loadWorkerMetrics(token), '#worker-status'],
+      [loadRoutes, '#route-list'],
+      [loadOrders, '#order-list'],
+      [loadNumbers, '#number-list'],
+    ];
+    await Promise.all(panels.map(async ([load, output]) => {
+      try { await load(); }
+      catch (error) { document.querySelector(output).textContent = error.message; }
+    }));
+  } catch (error) {
+    loginStatus.textContent = error.message;
+  } finally {
+    signIn.disabled = false;
+  }
+});
+
+signOut.addEventListener('click', async () => {
+  signOut.disabled = true;
+  try {
+    await platformApi('/auth/logout', { method: 'POST' });
+    window.location.reload();
+  } catch (error) {
+    status.textContent = error.message;
+    signOut.disabled = false;
+  }
+});
+
 async function loadWorkerMetrics(token) {
   const output = document.querySelector('#worker-status');
   const metrics = document.querySelector('#worker-metrics');
@@ -131,7 +210,6 @@ async function loadNumbers() {
   }
   if (!numbers.length) root.textContent = 'No numbers bought yet.';
 }
-const loadPlatformPlans = () => Promise.all([loadRoutes(), loadOrders(), loadNumbers()]);
 document.querySelector('#route-form').addEventListener('submit', async event => {
   event.preventDefault();
   const output = document.querySelector('#route-status');
