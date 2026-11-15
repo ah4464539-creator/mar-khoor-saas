@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { quotePlan } from './plan-quote.js';
 import express from 'express';
 import mysql from 'mysql2/promise';
-import { authRouter, useSessionStore } from './auth.js';
+import { authRouter, requireAuth, useSessionStore } from './auth.js';
 import { createDbSessionStore } from './sessions.js';
 import { apiRouter } from './api.js';
 import { operationsRouter } from './operations.js';
@@ -43,8 +43,16 @@ app.use('/api/restaurants/:restaurantId/site/generate', rateLimit({ windowMs: 60
 app.use('/api', rateLimit({ windowMs: 10 * 60 * 1000, max: 1500, name: 'api' }));
 app.use(express.json({ limit: '1mb' }));
 const publicDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
-app.get('/super-admin', (_req, res) => {
-  res.set('X-Robots-Tag', 'noindex, nofollow');
+app.get('/super-admin', (_req, res) => res.redirect('/super-admin/super-admin'));
+app.get('/super-admin/super-admin', (_req, res) => {
+  res.set({ 'X-Robots-Tag': 'noindex, nofollow', 'Cache-Control': 'no-store' });
+  res.sendFile(path.resolve(publicDirectory, '../src/views/platform-sign-in.html'), { cacheControl: false });
+});
+app.get('/api/platform/dashboard', (_req, res, next) => {
+  res.set({ 'X-Robots-Tag': 'noindex, nofollow', 'Cache-Control': 'no-store' });
+  next();
+}, requireAuth, (req, res) => {
+  if (req.user.platformRole !== 'super_admin') return res.status(403).json({ error: 'Forbidden' });
   res.sendFile(path.resolve(publicDirectory, '../src/views/super-admin.html'), { cacheControl: false });
 });
 app.use(express.static(publicDirectory));
