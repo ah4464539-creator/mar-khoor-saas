@@ -42,7 +42,7 @@
 @media(max-width:900px){.registration-shell{grid-template-columns:1fr}.registration-aside{min-height:210px}.registration-aside ul{columns:2}}
 @media(max-width:540px){.registration-shell{margin:12px auto;border-radius:16px}.registration-aside,.registration-panel{padding:24px}.registration-aside ul{columns:1}.registration-panel #register{grid-template-columns:1fr}.registration-panel #register .field{grid-column:1/-1}}
 </style>
-  <script src="/register.js" defer></script>
+  <script src="/register.js?v=voice-number" defer></script>
   <script defer>document.addEventListener("DOMContentLoaded",()=>{document.getElementById("show-passwords")?.addEventListener("change",e=>{for(const id of ["password","confirm-password"]){const input=document.getElementById(id);if(input)input.type=e.target.checked?"text":"password";}});});</script>
 <link rel="stylesheet" href="/mar-khoor-design.css">
 
@@ -181,7 +181,7 @@
           <div class="register-actions"><button id="previous-step" type="button" hidden>Back</button><button id="next-step" type="button">Continue</button><button id="create-restaurant" type="submit" hidden>Create restaurant</button></div>
         </form>
         <p id="status" role="status" aria-live="polite"></p>
-        <div id="done" hidden><h2>Restaurant created</h2><p id="done-text"></p><a class="button" href="/restaurant.html">Sign in to your workspace</a></div>
+        <div id="done" hidden><h2>Restaurant created</h2><p id="done-text"></p><p id="registration-voice"></p><a class="button" href="/restaurant.html">Sign in to your workspace</a></div>
         <p style="margin-top:22px">Already registered? <a href="/restaurant.html">Sign in</a></p>
       </section>
     </div>
