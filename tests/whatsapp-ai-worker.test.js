@@ -54,3 +54,24 @@ test('AI worker refuses to send after restaurant disables auto-reply',async()=>{
   if(oldMeta===undefined)delete process.env.WHATSAPP_ACCESS_TOKEN;else process.env.WHATSAPP_ACCESS_TOKEN=oldMeta;
  }
 });
+
+test('continuous worker requires an explicit restaurant ID and scopes its selection', async t => {
+ const {startWhatsAppAIWorker} = await import('../src/whatsapp-ai-worker.js');
+ const keys = ['WHATSAPP_AI_WORKER_ENABLED','WHATSAPP_AI_WORKER_RESTAURANT_ID','OPENAI_API_KEY','WHATSAPP_ACCESS_TOKEN'];
+ const previous = keys.map(key => process.env[key]);
+ t.after(() => keys.forEach((key, i) => {
+  if (previous[i] === undefined) delete process.env[key];
+  else process.env[key] = previous[i];
+ }));
+ process.env.WHATSAPP_AI_WORKER_ENABLED='1';
+ process.env.OPENAI_API_KEY='test';
+ process.env.WHATSAPP_ACCESS_TOKEN='test';
+ delete process.env.WHATSAPP_AI_WORKER_RESTAURANT_ID;
+ let calls=0;
+ const pool={async execute(sql,args){calls++;assert.ok(sql.includes('AND j.restaurant_id=?'));assert.deepEqual(args,[37]);return [[]];}};
+ startWhatsAppAIWorker(pool);
+ assert.equal(calls,0);
+ process.env.WHATSAPP_AI_WORKER_RESTAURANT_ID='37';
+ startWhatsAppAIWorker(pool);
+ assert.equal(calls,1);
+});
