@@ -168,6 +168,30 @@
   .mk-register *, .mk-register *::before, .mk-register *::after { scroll-behavior:auto!important; transition:none!important; }
 }
 </style>
+<style>
+/* Registration polish: consistent homepage branding, calmer composition, readable steps. */
+.mk-register { background:#0d1327; }
+.mk-register main { position:relative; isolation:isolate; min-height:calc(100vh - 76px); background:linear-gradient(90deg,#10162be8 0%,#10162bcb 42%,#10162b55 75%),url('/assets/approved-mountain.webp') 74% 40%/cover no-repeat; }
+.mk-register .registration-shell { grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr); gap:18px; align-items:center; box-shadow:none; }
+.mk-register .registration-aside { padding:clamp(26px,3vw,40px); align-self:center; border:1px solid #e7e9f2; box-shadow:0 18px 48px #080d2440; }
+.mk-register .registration-aside h2 { font-size:clamp(30px,2.7vw,41px); margin:12px 0 14px; }
+.mk-register .registration-aside h2 em { color:#4932a3; }
+.mk-register .registration-aside ul { margin-top:12px; }
+.mk-register .registration-aside li { padding-block:7px; }
+.mk-register .registration-aside .eyebrow { color:#173c27!important; background:#e5fbe7; border-color:#93d69a; }
+.mk-register .registration-aside li::before { color:#258d42; }
+.mk-register .registration-panel { box-shadow:0 22px 54px #070c2560; border-color:#5b6b85; }
+.mk-register .registration-panel .step-label { color:#a5f3ae!important; }
+.mk-register .register-steps li { border-color:#646b8d; color:#e8e5f5; font-size:12px; }
+.mk-register .register-steps li[aria-current="step"] { background:#264634; border-color:#6cf17a; }
+.mk-register .register-steps li[aria-current="step"]::before { background:#65f36e; color:#0d1b17; }
+.mk-register .registration-panel #register label { font-size:.96rem; line-height:1.45; }
+.mk-register .registration-panel #register .register-actions button { min-width:190px; min-height:52px; background:#65f36e; color:#0a1926; font-size:1rem; font-weight:800; border-radius:12px; }
+.mk-register .registration-panel #register .register-actions #previous-step { background:#353a55; color:#fff; }
+.mk-register .registration-panel #register :is(input,select):focus-visible { outline-color:#65f36e; }
+@media(max-width:900px){.mk-register main { background-position:70% center; }.mk-register .registration-shell { grid-template-columns:minmax(0,1fr); max-width:650px; }.mk-register .registration-aside { width:100%; box-sizing:border-box; }}
+@media(max-width:540px){.mk-register main { padding:16px; }.mk-register .registration-aside { padding:22px 20px; }.mk-register .registration-aside h2 { font-size:30px; }.mk-register .registration-panel #register .register-actions button { min-width:0; width:100%; }}
+</style>
 </head>
 <body class="landing mk-register">
   <header class="top"><a class="brand" href="/"><img src="/assets/approved-markhor.svg" width="34" height="34" alt=""><span class="wordmark">Mar-Khoor</span></a></header>
