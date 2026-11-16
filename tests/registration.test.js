@@ -10,7 +10,7 @@ function makePool({dupAt=null,failAt=null}={}){
  const connection={
   async beginTransaction(){log.push('begin')},async commit(){log.push('commit')},async rollback(){log.push('rollback')},release(){log.push('release')},
   async execute(sql,args){
-   const table=/INTO (\w+)/.exec(sql)[1];log.push({table,args});
+   const table=/INTO (\w+)/.exec(sql)[1];log.push({table,args,sql});
    if(dupAt===table)throw Object.assign(Error('dup'),{code:'ER_DUP_ENTRY'});
    if(failAt===table)throw Error('boom');
    return [{insertId:table==='users'?11:22}];}};
@@ -41,6 +41,7 @@ test('registerRestaurant creates user, restaurant and admin membership in one tr
  const result=await registerRestaurant(pool,good,fakeHash);
  assert.deepEqual(result,{status:201,body:{restaurant_id:22,slug:'cheema-s-cafe',country:'AE',currency:'AED'}});
  assert.deepEqual(pool.log.filter(x=>typeof x==='string'),['begin','commit','release']);
+ assert.match(pool.log.find(entry=>entry.table==='restaurants').sql,/website_assistant_provisioned\) VALUES \(\?,\?,\?,\?,\?,1\)/);
  const member=pool.log.find(x=>x.table==='restaurant_members');
  assert.deepEqual(member.args,[22,11]);
  assert.equal(pool.log.find(x=>x.table==='users').args[1],'hashed:20');
