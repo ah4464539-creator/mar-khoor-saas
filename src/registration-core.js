@@ -43,7 +43,7 @@ export async function registerRestaurant(pool, body, hashPassword) {
     await connection.beginTransaction();
     const [user] = await connection.execute('INSERT INTO users(email,password_hash) VALUES (?,?)', [email, passwordHash]);
     step = 'restaurant';
-    const [restaurant] = await connection.execute('INSERT INTO restaurants(name,slug,country_code,currency,locale) VALUES (?,?,?,?,?)', [name, slug, country, currency, locale]);
+    const [restaurant] = await connection.execute('INSERT INTO restaurants(name,slug,country_code,currency,locale,website_assistant_provisioned) VALUES (?,?,?,?,?,1)', [name, slug, country, currency, locale]);
     step = 'member';
     await connection.execute("INSERT INTO restaurant_members(restaurant_id,user_id,role) VALUES (?,?,'admin')", [restaurant.insertId, user.insertId]);
     await connection.commit();
