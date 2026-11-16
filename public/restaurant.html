@@ -9,6 +9,26 @@
 
 <link rel="stylesheet" href="/mar-khoor-design.css">
 <link rel="stylesheet" href="/restaurant-owner.css">
+<style>
+:is(.mk-register,.mk-owner.signing-in) {color-scheme:dark;--accent:#ffab52;--ink:#fff7ec;--muted:#d0beb0}
+.mk-register .top,.mk-owner.signing-in .layout>aside {background:#100e10;border-color:#48342c}
+.mk-register .brand .wordmark,.mk-owner.signing-in .brand .wordmark {color:#ffb777}
+.mk-register #register button:not(:disabled),.mk-owner.signing-in #login button:not(:disabled),.mk-owner.signing-in .login-show {cursor:pointer}
+.mk-register #register .register-actions button:hover:not(:disabled),.mk-owner.signing-in #login button:hover:not(:disabled) {filter:brightness(1.1)}
+.mk-register #register input[type=checkbox],.mk-owner.signing-in #login input[type=checkbox] {accent-color:#ffab52}
+:is(.mk-register,.mk-owner.signing-in) :is(a,button,input,select):focus-visible {outline:2px solid #ffbc79;outline-offset:3px}
+</style>
+<style>
+.mk-owner.signing-in .workspace {background:linear-gradient(90deg,#110e10f5,#191214bc),url('/assets/approved-mountain.webp') center/cover no-repeat;color:#fff7ec}
+.mk-owner.signing-in .mk-login-intro :is(h1,p) {color:#fff7ec}
+.mk-owner.signing-in .mk-login-intro .eyebrow {color:#ffb777;background:#38271f;border-color:#694a3b}
+.mk-owner.signing-in .access-panel {background:linear-gradient(145deg,#271e1c,#161416);border:1px solid #604438;border-radius:24px;box-shadow:0 18px 48px #0006}
+.mk-owner.signing-in .access-panel :is(h2,label,.muted,.login-register) {color:#fff0e3}
+.mk-owner.signing-in .access-panel #login input:not([type=checkbox]) {min-height:48px;color:#fff7ec;background:#151214;border:1px solid #725145;border-radius:10px;font-size:16px}
+.mk-owner.signing-in .access-panel #login input::placeholder {color:#c5b2a4}
+.mk-owner.signing-in .access-panel #login button {min-height:48px;color:#211207;background:linear-gradient(125deg,#ffc16d,#ff8b3b);border:0;border-radius:12px;font-weight:800}
+.mk-owner.signing-in .access-panel .login-register a {color:#ffbc80}
+</style>
 </head>
 <body class="dashboard restaurant-dashboard mk-owner signing-in">
 <div class="layout">
