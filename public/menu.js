@@ -45,6 +45,22 @@ async function loadMenu(slug) {
         cart.set(item.id, { ...item, quantity: quantity + 1 });
         renderCart();
       });
+      if (item.image_url) {
+        try {
+          const url = new URL(item.image_url);
+          if (url.protocol === 'https:' && !url.username && !url.password) {
+            const photo = document.createElement('img');
+            photo.src = url.href;
+            photo.alt = '';
+            photo.loading = 'lazy';
+            photo.referrerPolicy = 'no-referrer';
+            photo.width = 320;
+            photo.height = 240;
+            photo.style.cssText = 'width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:12px';
+            card.append(photo);
+          }
+        } catch {}
+      }
       card.append(title, description, price, add);
       target.append(card);
     }

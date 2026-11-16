@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {THEMES,SECTIONS,SITE_CSP,defaultSiteConfig,sanitizeSiteConfig,generateSiteConfig,renderSitePage,escapeHtml} from '../src/site-builder.js';
+import {SECTIONS,SITE_CSP,defaultSiteConfig,sanitizeSiteConfig,generateSiteConfig,renderSitePage,escapeHtml} from '../src/site-builder.js';
 
 const restaurant={name:'Cheema Cafe',slug:'cheema-cafe',country_code:'PK',currency:'PKR'};
 const items=[{name:'Zinger Burger',description:'Crispy chicken',price_minor:59000},{name:'Fries',description:null,price_minor:19000}];
@@ -29,7 +29,7 @@ test('renderSitePage escapes every value and contains no script',()=>{
  assert.ok(html.includes('&lt;script&gt;'));
  assert.match(html,/href="tel:\+15550001111"/);
  assert.match(html,/href="\/menu\.html\?restaurant=cheema-cafe"/);
- assert.ok(html.includes(THEMES.dark.accent));
+ assert.match(html,/background:#0b0b0d/);
 });
 
 test('renderSitePage shows menu with formatted prices and skips empty sections',()=>{
@@ -44,10 +44,11 @@ test('renderSitePage shows menu with formatted prices and skips empty sections',
  assert.ok(!badSlug.includes('x"y'));
 });
 
-test('CSP forbids scripts, frames and external loads',()=>{
+test('CSP blocks scripts and frames and allows HTTPS dish photos',()=>{
  assert.match(SITE_CSP,/default-src 'none'/);
  assert.ok(!SITE_CSP.includes('script-src'));
  assert.match(SITE_CSP,/frame-ancestors 'none'/);
+ assert.match(SITE_CSP,/img-src data: https:/);
  assert.equal(escapeHtml(`<&>"'`),'&lt;&amp;&gt;&quot;&#39;');
 });
 

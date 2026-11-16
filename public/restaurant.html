@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="/styles.css">
 
 <link rel="stylesheet" href="/mar-khoor-design.css">
+<link rel="stylesheet" href="/restaurant-owner.css">
 </head>
 <body class="dashboard restaurant-dashboard mk-owner signing-in">
 <div class="layout">
@@ -41,6 +42,10 @@
 <div id="management" hidden>
 <div id="owner-overview">
 <section id="analytics" class="cards kpi-cards" aria-label="Restaurant analytics" aria-live="polite">Loading analytics…</section>
+<div class="owner-insights">
+<section class="panel"><h2>Sales overview</h2><p class="muted">Completed order revenue over the last 30 days</p><div id="owner-sales"></div></section>
+<section class="panel"><h2>Order status summary</h2><div id="owner-status-summary"></div></section>
+</div>
 <section class="panel setup-summary" id="restaurant-setup" hidden>
 <h2>Restaurant setup</h2>
 <p id="setup-summary">Loading setup…</p>
@@ -65,14 +70,18 @@
 </form>
 </dialog>
 <div class="dashboard-panels operational-grid">
+<section class="panel owner-top-items"><h2>Top-selling menu items</h2><div id="owner-top-items"></div></section>
 <section class="panel order-desk" id="order-desk">
 <h2><span class="order-indicator" aria-hidden="true"></span>Live Orders</h2>
-<div id="orders">
+<div class="owner-order-controls">
+<label>Search orders <input id="owner-order-search" type="search" placeholder="Order ID or customer"></label>
+<label>Status <select id="owner-order-status"><option value="">All statuses</option><option>pending</option><option>accepted</option><option>preparing</option><option>ready</option><option>completed</option><option>cancelled</option></select></label>
 </div>
+<div id="orders" class="owner-order-table"></div>
 </section>
 <section class="panel" id="menu-management">
 <h2>Menu &amp; Items</h2>
-<form id="add-item"><label for="item-name">Item name<input id="item-name" aria-label="Menu item name" placeholder="Item name" required maxlength="180"></label><label for="item-price">Price<input id="item-price" aria-label="Menu item price" type="number" min="0" step="0.01" placeholder="Price" required></label><button>Add item</button>
+<form id="add-item"><label for="item-name">Item name<input id="item-name" aria-label="Menu item name" placeholder="Item name" required maxlength="180"></label><label for="item-price">Price<input id="item-price" aria-label="Menu item price" type="number" min="0" step="0.01" placeholder="Price" required></label><label>Category<input id="item-category" maxlength="80" placeholder="e.g. Desserts"></label><label>Photo URL<input id="item-photo" type="url" maxlength="2048" placeholder="https://"></label><button id="save-menu-item">Add item</button><button type="button" id="cancel-menu-edit" hidden>Cancel edit</button>
 </form>
 <div id="items">
 </div>

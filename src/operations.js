@@ -34,19 +34,21 @@ export function operationsRouter(pool) {
   } catch(error) { next(error); }
  });
  router.get('/restaurants/:restaurantId/menu',async(req,res)=>{
-  try{const [items]=await pool.execute('SELECT id,name,description,price_minor,active FROM menu_items WHERE restaurant_id=? ORDER BY id DESC',[req.restaurantId]);res.json({items});}
+  try{const [items]=await pool.execute('SELECT id,name,description,price_minor,active,category,image_url FROM menu_items WHERE restaurant_id=? ORDER BY id DESC',[req.restaurantId]);res.json({items});}
   catch{res.status(503).json({error:'Database unavailable'});}
  });
  router.post('/restaurants/:restaurantId/menu',async(req,res)=>{
-  const {name,description='',price_minor}=req.body||{};
+  const {name,description='',price_minor,category='',image_url=''}=req.body||{};
+  if (!validStorefrontDetails(category, image_url)) return res.status(400).json({error:'Use a category of up to 80 characters and an HTTPS photo URL.'});
   if(typeof name!=='string'||!name.trim()||name.length>180||typeof description!=='string'||description.length>10000||!Number.isSafeInteger(price_minor)||price_minor<0)return res.status(400).json({error:'Invalid menu item'});
-  try{const [result]=await pool.execute('INSERT INTO menu_items (restaurant_id,name,description,price_minor) VALUES (?,?,?,?)',[req.restaurantId,name.trim(),description,price_minor]);res.status(201).json({id:result.insertId});}
+  try{const [result]=await pool.execute('INSERT INTO menu_items (restaurant_id,name,description,price_minor,category,image_url) VALUES (?,?,?,?,?,?)',[req.restaurantId,name.trim(),description,price_minor,category.trim(),image_url.trim()]);res.status(201).json({id:result.insertId});}
   catch{res.status(503).json({error:'Database unavailable'});}
  });
  router.patch('/restaurants/:restaurantId/menu/:itemId',async(req,res)=>{
-  const id=Number(req.params.itemId),{name,description,price_minor,active}=req.body||{};
+  const id=Number(req.params.itemId),{name,description,price_minor,active,category,image_url}=req.body||{};
+  if (!validStorefrontDetails(category ?? '', image_url ?? '')) return res.status(400).json({error:'Use a category of up to 80 characters and an HTTPS photo URL.'});
   if(!Number.isSafeInteger(id)||id<1||typeof name!=='string'||!name.trim()||name.length>180||typeof description!=='string'||description.length>10000||!Number.isSafeInteger(price_minor)||price_minor<0||typeof active!=='boolean')return res.status(400).json({error:'Invalid item'});
-  try{const [result]=await pool.execute('UPDATE menu_items SET name=?,description=?,price_minor=?,active=? WHERE id=? AND restaurant_id=?',[name.trim(),description,price_minor,active,id,req.restaurantId]);if(!result.affectedRows)return res.status(404).json({error:'Item not found'});res.json({updated:true});}
+  try{const [result]=await pool.execute('UPDATE menu_items SET name=?,description=?,price_minor=?,active=?,category=COALESCE(?,category),image_url=COALESCE(?,image_url) WHERE id=? AND restaurant_id=?',[name.trim(),description,price_minor,active,category?.trim() ?? null,image_url?.trim() ?? null,id,req.restaurantId]);if(!result.affectedRows)return res.status(404).json({error:'Item not found'});res.json({updated:true});}
   catch{res.status(503).json({error:'Database unavailable'});}
  });
  router.get('/restaurants/:restaurantId/whatsapp/messages',async(req,res)=>{
@@ -123,7 +125,9 @@ export function operationsRouter(pool) {
   try{
    const [counts]=await pool.execute("SELECT COUNT(*) AS total_orders,COALESCE(SUM(CASE WHEN status='completed' THEN total_minor ELSE 0 END),0) AS completed_revenue_minor,COUNT(CASE WHEN status='pending' THEN 1 END) AS pending_orders,COUNT(CASE WHEN status='completed' THEN 1 END) AS completed_orders FROM orders WHERE restaurant_id=?",[req.restaurantId]);
    const [recent]=await pool.execute("SELECT DATE(created_at) AS day,COUNT(*) AS orders,COALESCE(SUM(CASE WHEN status='completed' THEN total_minor ELSE 0 END),0) AS completed_revenue_minor FROM orders WHERE restaurant_id=? AND created_at>=CURRENT_DATE - INTERVAL 29 DAY GROUP BY DATE(created_at) ORDER BY day DESC",[req.restaurantId]);
-   res.json({summary:counts[0],last_30_days:recent});
+   const [byStatus]=await pool.execute('SELECT status,COUNT(*) AS count FROM orders WHERE restaurant_id=? GROUP BY status',[req.restaurantId]);
+   const [topItems]=await pool.execute("SELECT oi.name_snapshot AS name,SUM(oi.quantity) AS quantity FROM order_items oi JOIN orders o ON o.id=oi.order_id WHERE o.restaurant_id=? AND o.status='completed' GROUP BY oi.menu_item_id,oi.name_snapshot ORDER BY quantity DESC,oi.name_snapshot LIMIT 5",[req.restaurantId]);
+   res.json({summary:counts[0],last_30_days:recent,by_status:byStatus,top_items:topItems});
   }catch{res.status(503).json({error:'Analytics unavailable'});}
  });
  router.get('/restaurants/:restaurantId/orders',async(req,res)=>{
@@ -138,4 +142,15 @@ export function operationsRouter(pool) {
   catch{res.status(503).json({error:'Database unavailable'});}
  });
  return router;
+}
+
+function validStorefrontDetails(category, imageUrl) {
+ if (typeof category !== 'string' || category.length > 80 || typeof imageUrl !== 'string' || imageUrl.length > 2048) return false;
+ if (!imageUrl.trim()) return true;
+ try {
+  const url = new URL(imageUrl);
+  return url.protocol === 'https:' && !url.username && !url.password;
+ } catch {
+  return false;
+ }
 }
