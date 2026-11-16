@@ -259,3 +259,6 @@ CREATE TABLE IF NOT EXISTS registration_voice_inventory (
 -- Optional storefront details for menus created before or after this release.
 ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS category VARCHAR(80) NOT NULL DEFAULT '',
  ADD COLUMN IF NOT EXISTS image_url VARCHAR(2048) NOT NULL DEFAULT '';
+
+-- Legacy restaurants retain their existing assistant access policy.
+ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS website_assistant_provisioned TINYINT(1) NOT NULL DEFAULT 0;
