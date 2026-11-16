@@ -212,7 +212,21 @@ aside :focus-visible { outline-color: #ffe642; }
 .worker-metrics { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 9px 18px; }
 .worker-metrics dd { margin: 0; font-weight: 750; }
 
-.storefront .top { background: var(--forest); color: white; }
+.storefront .top { background: var(--forest); color: white; gap: 8px 12px; }
+.storefront .top > #customer-store { color: #fff; font-weight: 650; }
+.storefront .customer { max-width: 1120px; }
+.customer .storefront-banner { min-height: 116px; padding: 20px; background: var(--forest); }
+.customer .storefront-banner h1 { color: #fff; margin: 0; font-size: clamp(24px, 6vw, 38px); }
+.customer-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 2px; }
+.customer-actions a { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 13px; border: 1px solid #9db5aa; border-radius: 999px; background: #fff; color: #174337; font-weight: 700; text-decoration: none; }
+.customer-actions a:first-child { background: #075c3b; color: #fff; border-color: #075c3b; }
+.customer #menu-search::placeholder { color: #526960; opacity: 1; }
+.customer #status, .customer .menu-grid article p { color: #3b554a; }
+@media (max-width: 520px) {
+  .customer .menu-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .customer .menu-grid article { min-width: 0; padding: 12px; overflow-wrap: anywhere; }
+  .customer .menu-grid article button { width: 100%; padding-inline: 6px; }
+}
 .storefront .top nav a:hover { background: #ffffff26; }
 .storefront .top .brand .wordmark { color: #143c2e; }
 .customer { max-width: 1440px; margin: auto; }

@@ -1,5 +1,5 @@
-import { rememberOrder, trackingLink } from './order-history.js';
-const form=document.querySelector('#lookup'),status=document.querySelector('#status'),target=document.querySelector('#menu'),cart=new Map();
+import { rememberOrder, savedOrders, trackingLink } from './order-history.js';
+const status=document.querySelector('#status'),target=document.querySelector('#menu'),cart=new Map();
 let restaurant=null;
 const storeName = document.querySelector('#store-name');
 const cartSubtotal = document.querySelector('#cart-subtotal');
@@ -9,8 +9,57 @@ function renderCart(){const root=document.querySelector('#cart');root.replaceChi
     cartSubtotal.textContent = new Intl.NumberFormat(undefined, { style: 'currency', currency: restaurant.currency }).format(subtotal / 100);
   }
 }
-form.addEventListener('submit',async e=>{e.preventDefault();document.querySelector('#customer-store').hidden=true;document.querySelector('#customer-brand').href='/menu.html';document.querySelector('#customer-orders').href='/orders.html';target.replaceChildren();storeName.textContent='Discover the menu';menuSearch.value='';menuSearchLabel.hidden=true;document.querySelector('#order-status').textContent='';cart.clear();renderCart();status.textContent='Loading menu…';try{const slug=document.querySelector('#slug').value.trim();const r=await fetch('/api/public/restaurants/'+encodeURIComponent(slug)+'/menu');const data=await r.json();if(!r.ok)throw Error(data.error||'Menu unavailable');restaurant=data.restaurant;const slugPath=encodeURIComponent(restaurant.slug);const storeLink=document.querySelector('#customer-store');storeLink.href='/r/'+slugPath;storeLink.hidden=false;document.querySelector('#customer-brand').href=storeLink.href;document.querySelector('#customer-orders').href='/orders.html?restaurant='+slugPath;storeName.textContent=restaurant.name;for(const item of data.items){const card=document.createElement('article'),title=document.createElement('h3'),desc=document.createElement('p'),price=document.createElement('strong'),add=document.createElement('button');title.textContent=item.name;desc.textContent=item.description||'';price.textContent=new Intl.NumberFormat(undefined,{style:'currency',currency:data.restaurant.currency}).format(item.price_minor/100);add.textContent='Add to order';add.addEventListener('click',()=>{const existing=cart.get(item.id);if(existing&&existing.quantity>=99)return;cart.set(item.id,{...item,quantity:(existing?.quantity||0)+1});renderCart()});card.append(title,desc,price,add);target.append(card)}menuSearchLabel.hidden=!data.items.length;status.textContent=data.restaurant.name+' · '+data.items.length+' available items';if(!data.items.length)target.textContent='No menu items yet.'}catch(err){restaurant=null;status.textContent=err.message}});
-document.querySelector('#order-form').addEventListener('submit',async e=>{e.preventDefault();const output=document.querySelector('#order-status');if(!restaurant||!cart.size)return;const orderedFrom=restaurant;const submit=e.currentTarget.querySelector('button');submit.disabled=true;output.textContent='Placing order…';try{const r=await fetch('/api/public/restaurants/'+encodeURIComponent(orderedFrom.slug)+'/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({customer_name:document.querySelector('#customer-name').value,items:[...cart.values()].map(i=>({menu_item_id:i.id,quantity:i.quantity}))})});const data=await r.json();if(!r.ok)throw Error(data.error||'Order failed');output.textContent='Order #'+data.order_id+' received. Status: '+data.status+'. ';if(data.tracking_token){const link=document.createElement('a');const saved={id:data.order_id,token:data.tracking_token,restaurant:orderedFrom.name,slug:orderedFrom.slug,currency:orderedFrom.currency,totalMinor:data.total_minor,placedAt:new Date().toISOString()};rememberOrder(saved);link.href=trackingLink(saved);link.textContent='Track your order';output.append(link)}cart.clear();renderCart();}catch(err){output.textContent=err.message}finally{submit.disabled=false}});
+function updateOrderLinks(slug) {
+  const base = '/orders.html?restaurant=' + encodeURIComponent(slug);
+  const latest = savedOrders().find(order => order.slug === slug);
+  document.querySelector('#customer-track').href = latest ? trackingLink(latest) : base + '#orders';
+  document.querySelector('#customer-orders').href = base + '#orders';
+  document.querySelector('#customer-refunds').href = base + '#refunds';
+}
+
+async function loadMenu(slug) {
+  const slugPath = encodeURIComponent(slug);
+  const storeLink = document.querySelector('#customer-store');
+  storeLink.href = '/r/' + slugPath;
+  storeLink.hidden = false;
+  document.querySelector('#customer-brand').href = storeLink.href;
+  updateOrderLinks(slug);
+  status.textContent = 'Loading menu…';
+  try {
+    const response = await fetch('/api/public/restaurants/' + slugPath + '/menu');
+    const data = await response.json();
+    if (!response.ok) throw Error(data.error || 'Menu unavailable');
+    restaurant = data.restaurant;
+    storeName.textContent = restaurant.name;
+    const currency = new Intl.NumberFormat(undefined, { style: 'currency', currency: restaurant.currency });
+    for (const item of data.items) {
+      const card = document.createElement('article');
+      const title = document.createElement('h3');
+      const description = document.createElement('p');
+      const price = document.createElement('strong');
+      const add = document.createElement('button');
+      title.textContent = item.name;
+      description.textContent = item.description || '';
+      price.textContent = currency.format(item.price_minor / 100);
+      add.textContent = 'Add to order';
+      add.addEventListener('click', () => {
+        const quantity = cart.get(item.id)?.quantity || 0;
+        if (quantity >= 99) return;
+        cart.set(item.id, { ...item, quantity: quantity + 1 });
+        renderCart();
+      });
+      card.append(title, description, price, add);
+      target.append(card);
+    }
+    menuSearchLabel.hidden = !data.items.length;
+    status.textContent = data.items.length
+      ? data.items.length + (data.items.length === 1 ? ' available item' : ' available items')
+      : 'No menu items yet.';
+  } catch (error) {
+    status.textContent = error.message;
+  }
+}
+document.querySelector('#order-form').addEventListener('submit',async e=>{e.preventDefault();const output=document.querySelector('#order-status');if(!restaurant||!cart.size)return;const orderedFrom=restaurant;const submit=e.currentTarget.querySelector('button');submit.disabled=true;output.textContent='Placing order…';try{const r=await fetch('/api/public/restaurants/'+encodeURIComponent(orderedFrom.slug)+'/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({customer_name:document.querySelector('#customer-name').value,items:[...cart.values()].map(i=>({menu_item_id:i.id,quantity:i.quantity}))})});const data=await r.json();if(!r.ok)throw Error(data.error||'Order failed');output.textContent='Order #'+data.order_id+' received. Status: '+data.status+'. ';if(data.tracking_token){const link=document.createElement('a');const saved={id:data.order_id,token:data.tracking_token,restaurant:orderedFrom.name,slug:orderedFrom.slug,currency:orderedFrom.currency,totalMinor:data.total_minor,placedAt:new Date().toISOString()};rememberOrder(saved);updateOrderLinks(orderedFrom.slug);link.href=trackingLink(saved);link.textContent='Track your order';output.append(link)}cart.clear();renderCart();}catch(err){output.textContent=err.message}finally{submit.disabled=false}});
 
 const menuSearch = document.querySelector('#menu-search');
 const menuSearchLabel = document.querySelector('#search-label');
@@ -26,4 +75,5 @@ menuSearch.addEventListener('input', () => {
 });
 
 const preset = new URLSearchParams(location.search).get('restaurant');
-if (preset && /^[a-z0-9-]{1,160}$/.test(preset)) { document.querySelector('#slug').value = preset; form.requestSubmit(); }
+if (preset && /^[a-z0-9-]{1,160}$/.test(preset)) loadMenu(preset);
+else status.textContent = 'Open the menu from your restaurant’s website.';
