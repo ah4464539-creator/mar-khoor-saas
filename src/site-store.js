@@ -47,6 +47,6 @@ export async function loadPublicSite(pool, slug) {
     'SELECT r.id,r.name,r.slug,r.country_code,r.currency,r.locale,s.config FROM restaurants r JOIN restaurant_sites s ON s.restaurant_id=r.id AND s.published=1 WHERE r.slug=? LIMIT 1', [slug]);
   if (!rows.length) return null;
   const restaurant = { id: rows[0].id, name: rows[0].name, slug: rows[0].slug, country_code: rows[0].country_code, currency: rows[0].currency, locale: rows[0].locale };
-  const [items] = await pool.execute('SELECT name,description,price_minor FROM menu_items WHERE restaurant_id=? AND active=1 ORDER BY id LIMIT 100', [restaurant.id]);
+  const [items] = await pool.execute('SELECT name,description,price_minor,category,image_url FROM menu_items WHERE restaurant_id=? AND active=1 ORDER BY id LIMIT 100', [restaurant.id]);
   return { restaurant, config: parse(rows[0].config, restaurant), items };
 }

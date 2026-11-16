@@ -12,7 +12,7 @@ export const THEMES = {
   dark: { bg: '#14171a', ink: '#f1f1f1', accent: '#e0b84c', accentInk: '#14171a', card: '#1f2328', muted: '#b4bac0' },
 };
 export const SECTIONS = ['about', 'menu', 'hours', 'contact'];
-export const SITE_CSP = "default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+export const SITE_CSP = "default-src 'none'; style-src 'unsafe-inline'; img-src data: https:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 
 const clean = (value, max, { newlines = false } = {}) => {
   if (typeof value !== 'string') return '';
@@ -95,18 +95,41 @@ export function renderSitePage({ restaurant, config, items }, { assistant = '' }
   const menuHref = '/menu.html?restaurant=' + slug;
   const ordersHref = '/orders.html?restaurant=' + slug;
   const menuVisible = c.sections.includes('menu');
-  const featured = menuVisible ? items[0] : null;
+  const featured = menuVisible ? items.find(item => item.image_url) ?? items[0] : null;
   const price = item => escapeHtml(formatPrice(item.price_minor, restaurant.currency));
   const paragraphs = c.about.split(/\n+/).filter(Boolean).map(p => '<p>' + escapeHtml(p) + '</p>').join('');
-  const menuCards = menuVisible ? items.slice(0, 100).map(item => (
-    '<li class="dish"><h3>' + escapeHtml(clean(item.name, 180)) + '</h3>'
-    + (item.description ? '<p>' + escapeHtml(clean(item.description, 300)) + '</p>' : '')
-    + '<div class="dish-footer"><strong>' + price(item) + '</strong></div></li>'
-  )).join('') : '';
+  const picture = (item, className) => {
+    try {
+      const url = new URL(item.image_url);
+      if (url.protocol !== 'https:' || url.username || url.password) return '';
+      return '<img class="' + className + '" src="' + escapeHtml(url.href) + '" alt="" decoding="async" referrerpolicy="no-referrer"'
+        + (className === 'dish-photo' ? ' loading="lazy"' : '') + '>';
+    } catch { return ''; }
+  };
+  const groups = new Map();
+  if (menuVisible) for (const item of items.slice(0, 100)) {
+    const category = clean(item.category, 80) || 'Other items';
+    if (!groups.has(category)) groups.set(category, []);
+    groups.get(category).push(item);
+  }
+  const menuGroupMarkup = [...groups].map(([category, dishes], index) => ({
+    category: escapeHtml(category),
+    id: 'menu-category-' + index,
+    cards: dishes.map(item => (
+      '<li class="dish">' + picture(item, 'dish-photo') + '<h3>' + escapeHtml(clean(item.name, 180)) + '</h3>'
+      + (item.description ? '<p>' + escapeHtml(clean(item.description, 300)) + '</p>' : '')
+      + '<div class="dish-footer"><strong>' + price(item) + '</strong></div></li>'
+    )).join(''),
+  }));
+  const categoryNav = groups.size > 1 ? '<nav class="category-nav" aria-label="Menu categories">'
+    + menuGroupMarkup.map(group => '<a href="#' + group.id + '">' + group.category + '</a>').join('') + '</nav>' : '';
+  const menuCards = menuGroupMarkup.map(group => '<div class="menu-group" id="' + group.id + '">'
+    + (group.category === 'Other items' && groups.size === 1 ? '' : '<h3>' + group.category + '</h3>')
+    + '<ul class="menu-grid">' + group.cards + '</ul></div>').join('');
   const blocks = {
     menu: '<section id="menu"><div class="section-heading"><h2>Explore the <em>Menu</em></h2>'
       + (items.length ? '<a class="btn" href="' + menuHref + '">Open cart &amp; menu</a>' : '')
-      + '</div>' + (menuCards ? '<ul class="menu-grid">' + menuCards + '</ul>' : '<p>No menu items available yet.</p>') + '</section>',
+      + '</div>' + (menuCards ? categoryNav + menuCards : '<p>No menu items available yet.</p>') + '</section>',
     about: paragraphs ? '<section class="info-card"><h2>About us</h2>' + paragraphs + '</section>' : '',
     hours: c.hours ? '<section class="info-card"><h2>Opening hours</h2><p>' + escapeHtml(c.hours) + '</p></section>' : '',
     contact: (c.phone || c.address) ? '<section class="info-card"><h2>Find us</h2>'
@@ -146,7 +169,7 @@ main section+section{margin-top:22px}
 .menu-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
 .dish,.info-card{border:1px solid #ffffff24;background:linear-gradient(155deg,#201b1b,#141416);padding:22px;border-radius:24px}
 .dish{display:flex;flex-direction:column}.dish h3,.info-card h2{margin:0}.dish p,.info-card p{margin:.4em 0 0}
-.dish-footer{margin-top:auto;padding-top:14px}.dish-footer strong{color:#ffb263}
+.category-nav{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px}.category-nav a{padding:7px 13px;border:1px solid #ff952f55;border-radius:999px;text-decoration:none}.category-nav a:hover{background:#3b2419}.menu-group+.menu-group{margin-top:24px}.menu-group>h3{margin:0 0 12px}.dish-photo,.feature-photo{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;margin-bottom:14px;border-radius:16px}.feature-photo{aspect-ratio:16/10;border-radius:24px}.dish-footer{margin-top:auto;padding-top:14px}.dish-footer strong{color:#ffb263}
 .site-footer{border-top:1px solid #ffffff1a}.site-footer .wrap{padding-block:24px 85px}
 @media(max-width:720px){.hero .wrap{grid-template-columns:minmax(0,1fr)}.feature{min-height:0}.menu-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:430px){.wrap{width:calc(100% - 32px)}.menu-grid{gap:10px}.dish{padding:14px;border-radius:18px}.site-nav{gap:8px 14px}.site-nav a{min-height:44px;display:inline-flex;align-items:center}}
@@ -175,7 +198,7 @@ main section+section{margin-top:22px}
     + '<nav class="site-nav" aria-label="Customer navigation">' + (menuVisible ? '<a href="#menu">Menu</a>' : '') + orderLinks + '</nav></div></header>'
     + '<div class="hero" id="top"><div class="wrap"><div><h1>' + restaurantName + '</h1><p>' + escapeHtml(c.tagline) + '</p>'
     + (menuVisible ? '<a class="btn" href="#menu">Explore menu</a>' : '') + '</div>'
-    + (featured ? '<aside class="feature" aria-label="Featured dish"><span>Featured dish</span><h2>'
+    + (featured ? '<aside class="feature" aria-label="Featured dish">' + picture(featured, 'feature-photo') + '<span>Featured dish</span><h2>'
       + escapeHtml(clean(featured.name, 180)) + '</h2>'
       + (featured.description ? '<p>' + escapeHtml(clean(featured.description, 300)) + '</p>' : '')
       + '<strong>' + price(featured) + '</strong></aside>' : '') + '</div></div>'

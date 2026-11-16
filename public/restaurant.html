@@ -72,7 +72,7 @@
 </section>
 <section class="panel" id="menu-management">
 <h2>Menu &amp; Items</h2>
-<form id="add-item"><label for="item-name">Item name<input id="item-name" aria-label="Menu item name" placeholder="Item name" required maxlength="180"></label><label for="item-price">Price<input id="item-price" aria-label="Menu item price" type="number" min="0" step="0.01" placeholder="Price" required></label><button>Add item</button>
+<form id="add-item"><label for="item-name">Item name<input id="item-name" aria-label="Menu item name" placeholder="Item name" required maxlength="180"></label><label for="item-price">Price<input id="item-price" aria-label="Menu item price" type="number" min="0" step="0.01" placeholder="Price" required></label><label>Category<input id="item-category" maxlength="80" placeholder="e.g. Desserts"></label><label>Photo URL<input id="item-photo" type="url" maxlength="2048" placeholder="https://"></label><button id="save-menu-item">Add item</button><button type="button" id="cancel-menu-edit" hidden>Cancel edit</button>
 </form>
 <div id="items">
 </div>

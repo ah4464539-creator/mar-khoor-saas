@@ -255,3 +255,7 @@ CREATE TABLE IF NOT EXISTS registration_voice_inventory (
   INDEX (country_code, restaurant_id, id),
   FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE RESTRICT
 );
+
+-- Optional storefront details for menus created before or after this release.
+ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS category VARCHAR(80) NOT NULL DEFAULT '',
+ ADD COLUMN IF NOT EXISTS image_url VARCHAR(2048) NOT NULL DEFAULT '';
