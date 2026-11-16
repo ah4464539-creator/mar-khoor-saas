@@ -39,6 +39,7 @@ export function sanitizeSiteConfig(input, restaurant) {
     hours: clean(source.hours, 200),
     phone: /^[+0-9 ()-]*$/.test(phone) ? phone : '',
     address: clean(source.address, 200),
+    ...(source.assistantRecording === true ? { assistantRecording: true } : {}),
     sections: sections.length ? sections : base.sections,
   };
 }
