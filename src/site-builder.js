@@ -87,7 +87,7 @@ function formatPrice(minor, currency) {
 }
 
 // Fixed template. Every dynamic value goes through escapeHtml; theme colours come from the THEMES table.
-export function renderSitePage({ restaurant, config, items }) {
+export function renderSitePage({ restaurant, config, items }, { assistant = '' } = {}) {
   const c = sanitizeSiteConfig(config, restaurant);
   const t = THEMES[c.theme];
   const slug = /^[a-z0-9-]{1,160}$/.test(restaurant.slug) ? restaurant.slug : '';
@@ -108,7 +108,16 @@ export function renderSitePage({ restaurant, config, items }) {
     + 'main{max-width:760px;margin:0 auto;padding:12px 20px 48px}section{background:' + t.card + ';border-radius:16px;padding:20px 22px;margin:18px 0;box-shadow:0 2px 12px rgba(0,0,0,.06)}h2{margin:0 0 10px}'
     + '.menu{list-style:none;margin:0;padding:0}.menu li{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid rgba(128,128,128,.25)}.menu small{display:block;color:' + t.muted + '}'
     + '.btn{display:inline-block;background:' + t.accent + ';color:' + t.accentInk + ';padding:12px 22px;border-radius:999px;text-decoration:none;font-weight:700}a{color:' + t.accent + '}header .btn{background:' + t.accentInk + ';color:' + t.accent + '}'
-    + 'footer{text-align:center;padding:20px;color:' + t.muted + ';font-size:13px}</style></head><body>'
+    + 'footer{text-align:center;padding:20px;color:' + t.muted + ';font-size:13px}'
+    + (assistant ? `.restaurant-assistant{position:fixed;inset-inline-end:16px;bottom:max(16px,env(safe-area-inset-bottom));z-index:2;font-size:14px}
+.restaurant-assistant summary{display:block;cursor:pointer;padding:9px 15px;border-radius:999px;background:${t.accent};color:${t.accentInk};font-weight:700;box-shadow:0 3px 16px #0003}
+.assistant-panel{position:absolute;inset-inline-end:0;bottom:calc(100% + 8px);width:min(340px,calc(100vw - 32px));max-height:min(430px,calc(100dvh - 88px),68dvh);overflow:auto;background:${t.card};color:${t.ink};border:1px solid ${t.muted};border-radius:15px;box-shadow:0 8px 32px #0003}
+.assistant-heading{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:${t.accent};color:${t.accentInk}}
+.assistant-body{padding:12px}.assistant-body textarea{display:block;width:100%;margin:4px 0 8px;padding:6px;font:inherit;color:${t.ink};background:${t.bg};border:1px solid ${t.muted};border-radius:6px}
+.restaurant-assistant button{font:inherit;cursor:pointer;border:1px solid currentColor;border-radius:7px;padding:4px 8px;background:${t.card};color:${t.ink}}
+.restaurant-assistant button:disabled{opacity:.55;cursor:default}.assistant-actions{display:flex;flex-wrap:wrap;gap:6px}.assistant-voice{margin-top:10px}.assistant-voice p{margin:4px 0}.assistant-voice audio{width:100%;height:32px}.assistant-consent{display:block;margin:6px 0}
+[data-assistant-messages]{max-height:115px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}[data-assistant-messages] p{margin:0 0 8px}` : '')
+    + '</style></head><body>'
     + '<header><h1>' + escapeHtml(c.headline) + '</h1><p>' + escapeHtml(c.tagline) + '</p><a class="btn" href="' + orderHref + '">Order online</a></header>'
-    + '<main>' + body + '</main><footer>Powered by MAR-KHOOR AI</footer></body></html>';
+    + '<main>' + body + '</main><footer>Powered by MAR-KHOOR AI</footer>' + assistant + '</body></html>';
 }

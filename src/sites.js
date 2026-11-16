@@ -28,15 +28,23 @@ export function sitesRouter(pool) {
   (slug === 'urban-cafe' && process.env.URBAN_CAFE_DEMO_ASSISTANT_ENABLED === 'true');
  const voiceEnabled = () => process.env.RESTAURANT_WEBSITE_VOICE_ENABLED === 'true';
 
- function assistantPage(res, status, slug, reply = '', recordingAllowed = false) {
-  res.set('Content-Security-Policy', SITE_CSP.replace("form-action 'none'", "form-action 'self'") + "; script-src 'self'; connect-src 'self'; media-src 'self' blob:");
-  if (voiceEnabled()) res.set('Permissions-Policy', 'camera=(), microphone=(self), geolocation=(), payment=()');
+ const assistantCsp = SITE_CSP.replace("form-action 'none'", "form-action 'self'") +
+  "; script-src 'self'; connect-src 'self'; media-src 'self' blob:";
+ const voiceScript = '<script src="/restaurant-assistant-voice.js" defer></script>';
+
+ function assistantControls(slug, recordingAllowed) {
+  const endpoint = '/r/' + encodeURIComponent(slug) + '/assistant';
+  const recording = recordingAllowed ? '<label class="assistant-consent"><input type="checkbox" id="record-consent"> I consent to recording both voices on this device.</label><div class="assistant-actions"><button type="button" id="start-recording" disabled>Start recording</button><button type="button" id="stop-recording" disabled>Stop recording</button></div><a id="recording-download" hidden>Download recording</a>' : '';
+  const voice = voiceEnabled() ? '<div class="assistant-voice" data-voice-url="' + endpoint + '/voice"><div class="assistant-actions"><button type="button" id="start-voice">Start voice</button><button type="button" id="stop-voice" disabled>End call</button></div><p id="voice-status" role="status"></p><audio id="assistant-audio" controls></audio>' + recording + '</div>' : '';
+  return '<form method="post" action="' + endpoint + '"><label for="message">Ask about the menu</label><textarea id="message" name="message" rows="2" required maxlength="1200"></textarea><button type="submit">Send</button></form>' + voice;
+ }
+
+ function assistantPage(res, status, slug, reply = '') {
+  res.set('Content-Security-Policy', assistantCsp);
   const urlSlug = encodeURIComponent(slug);
-  const recording = recordingAllowed ? '<p><label><input type="checkbox" id="record-consent"> I consent to recording both voices on this device.</label></p><button type="button" id="start-recording" disabled>Start recording</button> <button type="button" id="stop-recording" disabled>Stop recording</button> <a id="recording-download" hidden>Download recording</a>' : '';
-  const voice = voiceEnabled() ? '<section><h2>Live voice</h2><button type="button" id="start-voice">Start voice</button> <button type="button" id="stop-voice" disabled>End call</button><p id="voice-status" role="status"></p><audio id="assistant-audio" controls></audio>' + recording + '</section><script src="/restaurant-assistant-voice.js" defer></script>' : '';
   res.set('Cache-Control', 'no-store');
   const safeReply = reply.replace(/[&<>]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[character]);
-  return res.status(status).type('html').send(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Restaurant AI Assistant</title><style>body{font:1rem/1.6 system-ui;max-width:40rem;margin:3rem auto;padding:0 1rem;color:#281b14;background:#fffaf3}textarea{display:block;width:100%;box-sizing:border-box;margin:8px 0 16px;padding:12px;font:inherit}button{padding:.65rem 1rem;font:inherit}section{white-space:pre-wrap;margin:1rem 0}</style><main><a href="/r/${urlSlug}">Back to restaurant</a><h1>Restaurant AI Assistant</h1><p>Ask about the restaurant menu. To place an order, use the <a href="/menu.html?restaurant=${urlSlug}">ordering page</a>.</p>${safeReply ? '<section aria-label="Assistant response">' + safeReply + '</section>' : ''}<form method="post" action="/r/${urlSlug}/assistant"><label for="message">Your question</label><textarea id="message" name="message" rows="4" required maxlength="1200"></textarea><button>Ask assistant</button></form>${voice}</main></html>`);
+  return res.status(status).type('html').send(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Restaurant AI Assistant</title><main><a href="/r/${urlSlug}#assistant">Back to restaurant assistant</a>${safeReply ? '<p aria-label="Assistant response">' + safeReply + '</p>' : ''}</main></html>`);
  }
 
  router.get('/r/:slug/assistant', async (req, res) => {
@@ -44,7 +52,8 @@ export function sitesRouter(pool) {
    if (!assistantEnabled(req.params.slug)) return res.status(404).type('html').send(notFound);
    const site = await loadPublicSite(pool, req.params.slug);
    if (!site) return res.status(404).type('html').send(notFound);
-   return assistantPage(res, 200, req.params.slug, '', site.config.assistantRecording === true);
+   res.set('Cache-Control', 'no-store');
+   return res.redirect(302, '/r/' + encodeURIComponent(req.params.slug) + '#assistant');
   } catch {
    return assistantPage(res, 503, req.params.slug, 'The menu is temporarily unavailable.');
   }
@@ -81,7 +90,7 @@ export function sitesRouter(pool) {
     const reply = (data.output ?? []).flatMap(item => item.content ?? [])
      .filter(item => item.type === 'output_text' && typeof item.text === 'string')
      .map(item => item.text).join('\n').trim();
-    return assistantPage(res, reply ? 200 : 502, req.params.slug, reply || 'The assistant did not return a reply.', site.config.assistantRecording === true);
+    return assistantPage(res, reply ? 200 : 502, req.params.slug, reply || 'The assistant did not return a reply.');
    } catch {
     return assistantPage(res, 503, req.params.slug, 'The assistant is temporarily unavailable.');
    }
@@ -121,18 +130,24 @@ export function sitesRouter(pool) {
    }
   });
 
- // Public website. Fixed template, strict CSP, no scripts.
+ // Public website. Assistant assets load only when enabled for this restaurant.
  router.get('/r/:slug', async (req, res) => {
   res.set('Content-Security-Policy', SITE_CSP);
   try {
    const site = await loadPublicSite(pool, req.params.slug);
    if (!site) return res.status(404).type('html').send(notFound);
    res.set('Cache-Control', 'public, max-age=60');
-   const html = renderSitePage(site);
-   const page = assistantEnabled(req.params.slug)
-    ? html.replace('</main>', `<p><a class="btn" href="/r/${encodeURIComponent(req.params.slug)}/assistant">AI Assistant</a></p></main>`)
-    : html;
-   res.type('html').send(page);
+   const showAssistant = assistantEnabled(req.params.slug);
+   if (showAssistant) {
+    res.set('Content-Security-Policy', assistantCsp);
+    if (voiceEnabled()) res.set('Permissions-Policy', 'camera=(), microphone=(self), geolocation=(), payment=()');
+   }
+   const assistant = showAssistant
+    ? '<details id="assistant" class="restaurant-assistant"><summary>AI Assistant</summary><div class="assistant-panel"><div class="assistant-heading"><strong>AI Assistant</strong><button type="button" data-close-assistant aria-label="Close assistant">×</button></div><div class="assistant-body"><div data-assistant-messages role="log" aria-live="polite"></div>' +
+      assistantControls(req.params.slug, site.config.assistantRecording === true) +
+      '</div></div></details><script src="/restaurant-assistant-panel.js" defer></script>' + (voiceEnabled() ? voiceScript : '')
+    : '';
+   res.type('html').send(renderSitePage(site, { assistant }));
   } catch { res.status(503).type('html').send(notFound); }
  });
 

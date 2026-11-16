@@ -51,7 +51,7 @@ start.addEventListener('click', async () => {
       if (['failed', 'disconnected'].includes(current.peer.connectionState)) finish('Voice disconnected. You can start again or use text.');
     };
     await current.peer.setLocalDescription(await current.peer.createOffer());
-    const response = await fetch(location.pathname + '/voice', {
+    const response = await fetch(start.closest('[data-voice-url]').dataset.voiceUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/sdp' },
       signal: current.controller.signal,
