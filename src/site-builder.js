@@ -86,30 +86,71 @@ function formatPrice(minor, currency) {
   catch { return (Number(minor) / 100).toFixed(2) + ' ' + escapeHtml(currency); }
 }
 
-// Fixed template. Every dynamic value goes through escapeHtml; theme colours come from the THEMES table.
+// Public storefront markup. All restaurant copy and item data are escaped before rendering.
 export function renderSitePage({ restaurant, config, items }, { assistant = '' } = {}) {
   const c = sanitizeSiteConfig(config, restaurant);
-  const t = THEMES[c.theme];
+  const t = { bg: '#0b0b0d', ink: '#fff8ef', accent: '#ff952f', accentInk: '#190d05', card: '#181719', muted: '#bfb6ae' };
   const slug = /^[a-z0-9-]{1,160}$/.test(restaurant.slug) ? restaurant.slug : '';
   const restaurantName = escapeHtml(clean(restaurant.name, 160).toUpperCase());
-  const orderHref = '/menu.html?restaurant=' + slug;
-  const paragraphs = c.about ? c.about.split(/\n{2,}|\n/).filter(Boolean).map(p => '<p>' + escapeHtml(p) + '</p>').join('') : '';
+  const menuHref = '/menu.html?restaurant=' + slug;
+  const ordersHref = '/orders.html?restaurant=' + slug;
+  const menuVisible = c.sections.includes('menu');
+  const featured = menuVisible ? items[0] : null;
+  const price = item => escapeHtml(formatPrice(item.price_minor, restaurant.currency));
+  const paragraphs = c.about.split(/\n+/).filter(Boolean).map(p => '<p>' + escapeHtml(p) + '</p>').join('');
+  const menuCards = menuVisible ? items.slice(0, 100).map(item => (
+    '<li class="dish"><h3>' + escapeHtml(clean(item.name, 180)) + '</h3>'
+    + (item.description ? '<p>' + escapeHtml(clean(item.description, 300)) + '</p>' : '')
+    + '<div class="dish-footer"><strong>' + price(item) + '</strong></div></li>'
+  )).join('') : '';
   const blocks = {
-    about: paragraphs ? '<section><h2>About us</h2>' + paragraphs + '</section>' : '',
-    menu: items.length ? '<section><h2>Menu</h2><ul class="menu">' + items.slice(0, 100).map(i => '<li><span><strong>' + escapeHtml(clean(i.name, 180)) + '</strong>' + (i.description ? '<small>' + escapeHtml(clean(i.description, 300)) + '</small>' : '') + '</span><b>' + escapeHtml(formatPrice(i.price_minor, restaurant.currency)) + '</b></li>').join('') + '</ul><p><a class="btn" href="' + orderHref + '">Order online</a></p></section>' : '',
-    hours: c.hours ? '<section><h2>Opening hours</h2><p>' + escapeHtml(c.hours) + '</p></section>' : '',
-    contact: (c.phone || c.address) ? '<section><h2>Find us</h2>' + (c.address ? '<p>' + escapeHtml(c.address) + '</p>' : '') + (c.phone ? '<p><a href="tel:' + escapeHtml(c.phone.replace(/[^+0-9]/g, '')) + '">' + escapeHtml(c.phone) + '</a></p>' : '') + '</section>' : '',
+    menu: '<section id="menu"><div class="section-heading"><h2>Explore the <em>Menu</em></h2>'
+      + (items.length ? '<a class="btn" href="' + menuHref + '">Open cart &amp; menu</a>' : '')
+      + '</div>' + (menuCards ? '<ul class="menu-grid">' + menuCards + '</ul>' : '<p>No menu items available yet.</p>') + '</section>',
+    about: paragraphs ? '<section class="info-card"><h2>About us</h2>' + paragraphs + '</section>' : '',
+    hours: c.hours ? '<section class="info-card"><h2>Opening hours</h2><p>' + escapeHtml(c.hours) + '</p></section>' : '',
+    contact: (c.phone || c.address) ? '<section class="info-card"><h2>Find us</h2>'
+      + (c.address ? '<p>' + escapeHtml(c.address) + '</p>' : '')
+      + (c.phone ? '<p><a href="tel:' + escapeHtml(c.phone.replace(/[^+0-9]/g, '')) + '">' + escapeHtml(c.phone) + '</a></p>' : '') + '</section>' : '',
   };
   const body = c.sections.map(name => blocks[name]).join('');
   const lang = /^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8}){0,2}$/.test(restaurant.locale ?? '') ? restaurant.locale : 'en';
+  const orderLinks = '<a href="' + ordersHref + '#orders">Track order</a><a href="' + ordersHref + '#orders">Order history</a><a href="' + ordersHref + '#refunds">Refunds</a>';
   return '<!doctype html><html lang="' + escapeHtml(lang) + '" dir="auto"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
     + '<title>' + restaurantName + '</title><meta name="description" content="' + escapeHtml(c.tagline) + '">'
-    + '<style>*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:' + t.bg + ';color:' + t.ink + ';line-height:1.55}'
-    + 'header{background:' + t.accent + ';color:' + t.accentInk + ';padding:56px 20px;text-align:center}header h1{margin:0 0 8px;font-size:clamp(30px,6vw,52px)}header p{margin:0 auto 20px;max-width:560px;font-size:18px}'
-    + 'main{max-width:760px;margin:0 auto;padding:12px 20px 48px}section{background:' + t.card + ';border-radius:16px;padding:20px 22px;margin:18px 0;box-shadow:0 2px 12px rgba(0,0,0,.06)}h2{margin:0 0 10px}'
-    + '.menu{list-style:none;margin:0;padding:0}.menu li{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid rgba(128,128,128,.25)}.menu small{display:block;color:' + t.muted + '}'
-    + '.btn{display:inline-block;background:' + t.accent + ';color:' + t.accentInk + ';padding:12px 22px;border-radius:999px;text-decoration:none;font-weight:700}a{color:' + t.accent + '}header .btn{background:' + t.accentInk + ';color:' + t.accent + '}'
-    + 'footer{text-align:center;padding:20px;color:' + t.muted + ';font-size:13px}'
+    + `<style>
+*{box-sizing:border-box}
+html{scroll-padding-top:16px}
+body{margin:0;background:#0b0b0d;color:#fff8ef;font:16px/1.55 system-ui,-apple-system,Segoe UI,sans-serif;overflow-wrap:anywhere}
+a{color:#ffac58;text-underline-offset:4px}
+a:focus-visible,summary:focus-visible,button:focus-visible{outline:2px solid #ffbd76;outline-offset:4px}
+.wrap{width:min(1120px,calc(100% - 64px));margin:auto}
+.site-header{border-bottom:1px solid #ffffff1a;background:#100e0f}
+.site-header .wrap,.site-footer .wrap,.section-heading{display:flex;justify-content:space-between;align-items:center;gap:14px 26px;flex-wrap:wrap}
+.site-header .wrap{padding-block:17px}
+.wordmark{color:#ffad52;font-size:1.05rem;font-weight:850;letter-spacing:.09em;text-decoration:none}
+.site-nav{display:flex;gap:10px 22px;align-items:center;flex-wrap:wrap}
+.site-nav a{font-size:.875rem;color:#f7e9dc;text-decoration:none}.site-nav a:hover{text-decoration:underline}
+.hero{background:radial-gradient(ellipse at 80% 45%,#392017 0,transparent 56%),#0d0c0e;border-bottom:1px solid #ffffff12}
+.hero .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.83fr);align-items:center;gap:clamp(24px,6vw,84px);padding-block:clamp(48px,9vw,114px)}
+.hero h1{font-size:clamp(2.55rem,7vw,5.5rem);font-weight:850;line-height:1;letter-spacing:-.065em;margin:0 0 18px}
+.hero p,.info-card p,.dish p{color:#cfc3b9}.hero p{max-width:44ch;margin:0 0 22px}
+.btn{display:inline-flex;align-items:center;min-height:44px;padding:9px 17px;border-radius:8px 16px 8px 16px;background:linear-gradient(120deg,#ffbd61,#ff842e);color:#1b0e06;font-weight:750;text-decoration:none}
+.btn:hover{background:#ffc276}
+.feature{position:relative;margin:0;padding:clamp(24px,5vw,56px);min-height:240px;display:grid;align-content:end;border:1px solid #f7b88250;border-radius:40px 40px 40px 12px;background:radial-gradient(ellipse at 85% 10%,#a94b284f,transparent 67%),linear-gradient(145deg,#22191a,#141214);box-shadow:0 24px 72px #0006}
+.feature span{color:#ffb867;font-weight:700}.feature h2{margin:.4rem 0;font-size:clamp(1.55rem,3vw,2.65rem);line-height:1.1}
+.feature p{margin:0}.feature strong{display:block;margin-top:12px}
+main.wrap{padding-block:clamp(28px,6vw,68px)}
+main section+section{margin-top:22px}
+.section-heading{margin-bottom:22px}.section-heading h2{margin:0;font-size:clamp(1.8rem,4vw,2.8rem);line-height:1.12;letter-spacing:-.035em}.section-heading em{color:#ff9a42;font-style:normal}
+.menu-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.dish,.info-card{border:1px solid #ffffff24;background:linear-gradient(155deg,#201b1b,#141416);padding:22px;border-radius:24px}
+.dish{display:flex;flex-direction:column}.dish h3,.info-card h2{margin:0}.dish p,.info-card p{margin:.4em 0 0}
+.dish-footer{margin-top:auto;padding-top:14px}.dish-footer strong{color:#ffb263}
+.site-footer{border-top:1px solid #ffffff1a}.site-footer .wrap{padding-block:24px 85px}
+@media(max-width:720px){.hero .wrap{grid-template-columns:minmax(0,1fr)}.feature{min-height:0}.menu-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:430px){.wrap{width:calc(100% - 32px)}.menu-grid{gap:10px}.dish{padding:14px;border-radius:18px}.site-nav{gap:8px 14px}.site-nav a{min-height:44px;display:inline-flex;align-items:center}}
+</style><style>`
     + (assistant ? `.restaurant-assistant{position:fixed;inset-inline-end:16px;bottom:max(16px,env(safe-area-inset-bottom));z-index:2;font-size:14px}
 .restaurant-assistant>summary{display:block;cursor:pointer;padding:9px 15px;border-radius:999px;background:${t.accent};color:${t.accentInk};font-weight:700;box-shadow:0 3px 16px #0003}
 .assistant-panel{position:absolute;inset-inline-end:0;bottom:calc(100% + 8px);width:min(340px,calc(100vw - 32px));height:min(420px,calc(100dvh - 88px),68dvh);display:flex;flex-direction:column;overflow:hidden;background:${t.card};color:${t.ink};border:1px solid ${t.muted};border-radius:15px;box-shadow:0 8px 32px #0003}
@@ -130,6 +171,14 @@ export function renderSitePage({ restaurant, config, items }, { assistant = '' }
 .assistant-recording-options{position:absolute;inset-inline:0;bottom:calc(100% + 6px);padding:10px;background:${t.card};border:1px solid ${t.muted};border-radius:12px;box-shadow:0 3px 16px #0002}
 #voice-status{margin:0;font-size:12px}#voice-status:empty{display:none}#assistant-audio{width:100%;height:32px}` : '')
     + '</style></head><body>'
-    + '<header><h1>' + restaurantName + '</h1><p>' + escapeHtml(c.tagline) + '</p><a class="btn" href="' + orderHref + '">Order online</a></header>'
-    + '<main>' + body + '</main><footer><p><a href="/orders.html?restaurant=' + slug + '">Order activity</a></p></footer>' + assistant + '</body></html>';
+    + '<header class="site-header"><div class="wrap"><a class="wordmark" href="#top">' + restaurantName + '</a>'
+    + '<nav class="site-nav" aria-label="Customer navigation">' + (menuVisible ? '<a href="#menu">Menu</a>' : '') + orderLinks + '</nav></div></header>'
+    + '<div class="hero" id="top"><div class="wrap"><div><h1>' + restaurantName + '</h1><p>' + escapeHtml(c.tagline) + '</p>'
+    + (menuVisible ? '<a class="btn" href="#menu">Explore menu</a>' : '') + '</div>'
+    + (featured ? '<aside class="feature" aria-label="Featured dish"><span>Featured dish</span><h2>'
+      + escapeHtml(clean(featured.name, 180)) + '</h2>'
+      + (featured.description ? '<p>' + escapeHtml(clean(featured.description, 300)) + '</p>' : '')
+      + '<strong>' + price(featured) + '</strong></aside>' : '') + '</div></div>'
+    + '<main class="wrap">' + body + '</main><footer class="site-footer"><div class="wrap"><span class="wordmark">'
+    + restaurantName + '</span></div></footer>' + assistant + '</body></html>';
 }
