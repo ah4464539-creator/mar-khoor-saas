@@ -58,10 +58,136 @@ async function refresh(){
  }));
  const items=document.querySelector('#items');items.replaceChildren();
  for(const item of menu.items){const p=document.createElement('p'),button=document.createElement('button');p.textContent=item.name+' — '+(item.price_minor/100).toFixed(2)+' · '+(item.active?'Active':'Hidden')+' ';button.textContent=item.active?'Hide':'Show';button.addEventListener('click',async()=>{try{await api('/api/restaurants/'+restaurantId+'/menu/'+item.id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({...item,active:!item.active})});await refresh()}catch(e){status.textContent=e.message}});p.append(button);items.append(p)}
- const list=document.querySelector('#orders');list.replaceChildren();
- if (!orders.orders.length) list.textContent = 'No orders yet.';
- for(const order of orders.orders){const p=document.createElement('p');p.textContent='#'+order.id+' · '+(order.customer_name||'Customer')+' · '+order.status+' · '+(order.total_minor/100).toFixed(2)+' ';const transitions={pending:['accepted','cancelled'],accepted:['preparing','cancelled'],preparing:['ready'],ready:['completed']};for(const next of transitions[order.status]||[]){const btn=document.createElement('button');btn.textContent=next;btn.addEventListener('click',async()=>{try{await api('/api/restaurants/'+restaurantId+'/orders/'+order.id+'/status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:next})});await refresh();status.textContent='Order #'+order.id+' updated'}catch(e){status.textContent=e.message}});p.append(btn)}list.append(p)}
+ renderOwnerInsights(analytics);
+ ownerOrders = orders.orders;
+ renderOwnerOrders();
 }
+
+const orderSearch = document.querySelector('#owner-order-search');
+const orderFilter = document.querySelector('#owner-order-status');
+const orderTransitions = {pending:['accepted','cancelled'],accepted:['preparing','cancelled'],preparing:['ready'],ready:['completed']};
+let ownerOrders = [];
+orderSearch.addEventListener('input', renderOwnerOrders);
+orderFilter.addEventListener('change', renderOwnerOrders);
+
+function ownerMoney(minor) {
+ return new Intl.NumberFormat(undefined, {style:'currency',currency:restaurantCurrency}).format(Number(minor)/100);
+}
+
+function ownerText(tag, value, className = '') {
+ const node = document.createElement(tag);
+ node.textContent = value;
+ if (className) node.className = className;
+ return node;
+}
+
+function renderOwnerInsights(analytics) {
+ const sales = document.querySelector('#owner-sales');
+ const days = [...analytics.last_30_days].reverse();
+ const max = Math.max(1, ...days.map(day => Number(day.completed_revenue_minor)));
+ const salesChart = ownerText('div', '', 'owner-sales-chart');
+ for (const day of days) {
+  const date = String(day.day).slice(0, 10);
+  const plot = ownerText('div', '', 'owner-sales-day');
+  const label = date + ' · ' + ownerMoney(day.completed_revenue_minor);
+  const bar = document.createElement('meter');
+  bar.max = max;
+  bar.value = Number(day.completed_revenue_minor);
+  bar.setAttribute('aria-label', label);
+  bar.title = label;
+  plot.append(bar);
+  salesChart.append(plot);
+ }
+ const first = String(days[0]?.day ?? '').slice(0,10);
+ const last = String(days.at(-1)?.day ?? '').slice(0,10);
+ const caption = first === last ? first : first + ' – ' + last;
+ sales.replaceChildren(...(days.length ? [salesChart, ownerText('small', caption)] : [ownerText('p','No sales activity in this period.')]));
+
+ const statuses = analytics.by_status ?? [];
+ const total = statuses.reduce((sum, row) => sum + Number(row.count), 0);
+ const legend = ownerText('ul', '', 'owner-status-legend');
+ const colors = {pending:'#db741e',accepted:'#634ceb',preparing:'#336ac6',ready:'#168d8b',completed:'#258050',cancelled:'#ab4454'};
+ let position = 0;
+ const segments = statuses.map(row => {
+  const color = colors[row.status] ?? '#7d7490';
+  const end = position + Number(row.count) / total * 100;
+  const segment = color + ' ' + position + '% ' + end + '%';
+  position = end;
+  const item = ownerText('li', '');
+  const swatch = ownerText('span', '', 'owner-status-dot');
+  swatch.style.backgroundColor = color;
+  item.append(swatch, ownerText('span', row.status), ownerText('strong', row.count));
+  legend.append(item);
+  return segment;
+ });
+ const ring = ownerText('div', '', 'owner-status-ring');
+ ring.setAttribute('aria-hidden','true');
+ if (segments.length) ring.style.backgroundImage = 'conic-gradient(' + segments.join(',') + ')';
+ ring.append(ownerText('strong', total));
+ document.querySelector('#owner-status-summary').replaceChildren(ring, ...(total ? [legend] : [ownerText('p','No orders yet.')]));
+ const top = analytics.top_items ?? [];
+ const items = ownerText('ul', '', 'owner-top-list');
+ for (const item of top) {
+  const row = ownerText('li', '');
+  row.append(ownerText('span', item.name), ownerText('strong', item.quantity + ' sold'));
+  items.append(row);
+ }
+ document.querySelector('#owner-top-items').replaceChildren(top.length ? items : ownerText('p','Completed orders will appear here.'));
+}
+
+function renderOwnerOrders() {
+ const root = document.querySelector('#orders');
+ const query = orderSearch.value.trim().toLowerCase().replace(/^#/, '');
+ const visible = ownerOrders.filter(order =>
+  (!orderFilter.value || order.status === orderFilter.value) &&
+  (String(order.id).includes(query) || (order.customer_name ?? '').toLowerCase().includes(query))
+ );
+ if (!visible.length) {
+  root.replaceChildren(ownerText('p', ownerOrders.length ? 'No orders match these filters.' : 'No orders yet.'));
+  return;
+ }
+ const table = document.createElement('table');
+ table.setAttribute('aria-label','Recent restaurant orders');
+ const header = table.createTHead().insertRow();
+ for (const heading of ['Order ID','Customer','Date','Amount','Status','Actions']) {
+  const cell = ownerText('th', heading);
+  cell.scope = 'col';
+  header.append(cell);
+ }
+ const body = table.createTBody();
+ for (const order of visible) {
+  const row = body.insertRow();
+  const date = new Date(order.created_at);
+  const formatted = Number.isNaN(date.valueOf()) ? '—' : date.toLocaleDateString();
+  for (const value of ['#' + order.id, order.customer_name || 'Customer', formatted, ownerMoney(order.total_minor)]) {
+   row.append(ownerText('td', value));
+  }
+  row.insertCell().append(ownerText('span', order.status, 'owner-order-badge'));
+  const actions = row.insertCell();
+  for (const next of orderTransitions[order.status] ?? []) {
+   const button = ownerText('button', {accepted:'Accept',preparing:'Prepare',ready:'Mark ready',completed:'Complete',cancelled:'Cancel'}[next]);
+   button.type = 'button';
+   button.addEventListener('click', async () => {
+    const buttons = [...actions.querySelectorAll('button')];
+    buttons.forEach(control => control.disabled = true);
+    try {
+     await api('/api/restaurants/' + restaurantId + '/orders/' + order.id + '/status', {
+      method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:next})
+     });
+     await refresh();
+     status.textContent = 'Order #' + order.id + ' updated';
+    } catch (error) {
+     status.textContent = error.message;
+    } finally {
+     buttons.forEach(control => control.disabled = false);
+    }
+   });
+   actions.append(button);
+  }
+ }
+ root.replaceChildren(table);
+}
+
 const sessionKey = 'mar-khoor.owner-session';
 const logoutButton = document.querySelector('#owner-logout');
 
