@@ -19,10 +19,6 @@ function updateOrderLinks(slug) {
 
 async function loadMenu(slug) {
   const slugPath = encodeURIComponent(slug);
-  const storeLink = document.querySelector('#customer-store');
-  storeLink.href = '/r/' + slugPath;
-  storeLink.hidden = false;
-  document.querySelector('#customer-brand').href = storeLink.href;
   updateOrderLinks(slug);
   status.textContent = 'Loading menu…';
   try {
@@ -30,7 +26,8 @@ async function loadMenu(slug) {
     const data = await response.json();
     if (!response.ok) throw Error(data.error || 'Menu unavailable');
     restaurant = data.restaurant;
-    storeName.textContent = restaurant.name;
+    storeName.textContent = restaurant.name.toUpperCase();
+    document.title = storeName.textContent;
     const currency = new Intl.NumberFormat(undefined, { style: 'currency', currency: restaurant.currency });
     for (const item of data.items) {
       const card = document.createElement('article');
@@ -71,7 +68,7 @@ menuSearch.addEventListener('input', () => {
     card.hidden = !text.toLocaleLowerCase().includes(query);
     if (!card.hidden) matches++;
   }
-  status.textContent = matches ? restaurant.name + ' · ' + matches + ' matching items' : 'No items match your search.';
+  status.textContent = matches ? matches + ' matching items' : 'No items match your search.';
 });
 
 const preset = new URLSearchParams(location.search).get('restaurant');

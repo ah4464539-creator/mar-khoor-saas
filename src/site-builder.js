@@ -91,6 +91,7 @@ export function renderSitePage({ restaurant, config, items }, { assistant = '' }
   const c = sanitizeSiteConfig(config, restaurant);
   const t = THEMES[c.theme];
   const slug = /^[a-z0-9-]{1,160}$/.test(restaurant.slug) ? restaurant.slug : '';
+  const restaurantName = escapeHtml(clean(restaurant.name, 160).toUpperCase());
   const orderHref = '/menu.html?restaurant=' + slug;
   const paragraphs = c.about ? c.about.split(/\n{2,}|\n/).filter(Boolean).map(p => '<p>' + escapeHtml(p) + '</p>').join('') : '';
   const blocks = {
@@ -102,7 +103,7 @@ export function renderSitePage({ restaurant, config, items }, { assistant = '' }
   const body = c.sections.map(name => blocks[name]).join('');
   const lang = /^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8}){0,2}$/.test(restaurant.locale ?? '') ? restaurant.locale : 'en';
   return '<!doctype html><html lang="' + escapeHtml(lang) + '" dir="auto"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
-    + '<title>' + escapeHtml(c.headline) + '</title><meta name="description" content="' + escapeHtml(c.tagline) + '">'
+    + '<title>' + restaurantName + '</title><meta name="description" content="' + escapeHtml(c.tagline) + '">'
     + '<style>*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:' + t.bg + ';color:' + t.ink + ';line-height:1.55}'
     + 'header{background:' + t.accent + ';color:' + t.accentInk + ';padding:56px 20px;text-align:center}header h1{margin:0 0 8px;font-size:clamp(30px,6vw,52px)}header p{margin:0 auto 20px;max-width:560px;font-size:18px}'
     + 'main{max-width:760px;margin:0 auto;padding:12px 20px 48px}section{background:' + t.card + ';border-radius:16px;padding:20px 22px;margin:18px 0;box-shadow:0 2px 12px rgba(0,0,0,.06)}h2{margin:0 0 10px}'
@@ -129,6 +130,6 @@ export function renderSitePage({ restaurant, config, items }, { assistant = '' }
 .assistant-recording-options{position:absolute;inset-inline:0;bottom:calc(100% + 6px);padding:10px;background:${t.card};border:1px solid ${t.muted};border-radius:12px;box-shadow:0 3px 16px #0002}
 #voice-status{margin:0;font-size:12px}#voice-status:empty{display:none}#assistant-audio{width:100%;height:32px}` : '')
     + '</style></head><body>'
-    + '<header><h1>' + escapeHtml(c.headline) + '</h1><p>' + escapeHtml(c.tagline) + '</p><a class="btn" href="' + orderHref + '">Order online</a></header>'
-    + '<main>' + body + '</main><footer><p><a href="/orders.html?restaurant=' + slug + '">Order activity</a></p>Powered by MAR-KHOOR AI</footer>' + assistant + '</body></html>';
+    + '<header><h1>' + restaurantName + '</h1><p>' + escapeHtml(c.tagline) + '</p><a class="btn" href="' + orderHref + '">Order online</a></header>'
+    + '<main>' + body + '</main><footer><p><a href="/orders.html?restaurant=' + slug + '">Order activity</a></p></footer>' + assistant + '</body></html>';
 }
