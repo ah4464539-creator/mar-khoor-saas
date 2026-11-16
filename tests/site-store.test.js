@@ -47,11 +47,25 @@ test('public site loads only published sites and active items, and rejects bad s
  const site=await loadPublicSite(db,'cheema-cafe');
  assert.equal(site.config.headline,'Hello');
  assert.equal(site.items.length,1);
+ assert.equal(site.restaurant.websiteAssistantProvisioned,false);
+ assert.deepEqual(db.queries[1].args,[restaurant.id]);
  assert.match(db.queries[0].sql,/s\.published=1/);
  assert.match(db.queries[1].sql,/active=1/);
  const none=rec(()=>{throw Error('no query')});
  assert.equal(await loadPublicSite(none,'Bad Slug!'),null);
  assert.equal(await loadPublicSite(rec(()=>[[]]),'unknown'),null);
+});
+
+test('public site keeps assistant provisioning and menu lookups restaurant-specific',async()=>{
+ const db=rec((sql,args)=>sql.includes('FROM restaurants r')?
+  [[args[0]==='new-cafe'?{...restaurant,id:8,slug:'new-cafe',website_assistant_provisioned:1}:restaurant]]:
+  [[{name:args[0]===8?'Soup':'Fries',price_minor:100}]]);
+ const provisioned=await loadPublicSite(db,'new-cafe');
+ const legacy=await loadPublicSite(db,restaurant.slug);
+ assert.equal(provisioned.restaurant.websiteAssistantProvisioned,true);
+ assert.equal(legacy.restaurant.websiteAssistantProvisioned,false);
+ assert.deepEqual([provisioned.items[0].name,legacy.items[0].name],['Soup','Fries']);
+ assert.deepEqual(db.queries.map(query=>query.args),[['new-cafe'],[8],[restaurant.slug],[restaurant.id]]);
 });
 
 test('sites router checks the restaurant admin role and sends a strict CSP',()=>{
