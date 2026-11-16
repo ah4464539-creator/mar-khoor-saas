@@ -1,24 +1,95 @@
-// Reads the order id and tracking token from the URL fragment (never sent to the server in a URL).
+import { trackingLink } from './order-history.js';
+
 const params = new URLSearchParams(location.hash.slice(1));
-const id = Number(params.get('id')), token = params.get('t') || '';
-const el = name => document.querySelector('#track-' + name);
+const id = Number(params.get('id'));
+const token = params.get('t') || '';
+const content = document.querySelector('#track-content');
+const tabs = document.querySelector('#track-tabs');
+const views = { tracking: 'Tracking', details: 'Order details', receipt: 'Receipt', refunds: 'Refunds' };
+const steps = ['Received', 'Accepted', 'Being prepared', 'Ready', 'Completed'];
+const statuses = ['pending', 'accepted', 'preparing', 'ready', 'completed'];
+const node = (tag, text) => Object.assign(document.createElement(tag), { textContent: text });
+let order;
 let timer;
-async function load() {
-  try {
-    if (!Number.isSafeInteger(id) || id < 1 || !/^[a-f0-9]{48}$/.test(token)) throw Error('This tracking link is not valid.');
-    const response = await fetch('/api/public/orders/' + id + '/status', { headers: { 'X-Tracking-Token': token } });
-    const data = await response.json();
-    if (!response.ok) throw Error(response.status === 404 ? 'Order not found. Check your tracking link.' : 'Tracking is unavailable. Please try again.');
-    el('restaurant').textContent = data.restaurant_name + ' · Order #' + data.order_id;
-    el('status').textContent = data.status_label;
-    el('items').replaceChildren(...data.items.map(item => Object.assign(document.createElement('li'), { textContent: item.quantity + ' × ' + item.name })));
-    el('total').textContent = 'Total: ' + new Intl.NumberFormat(undefined, { style: 'currency', currency: data.currency }).format(data.total_minor / 100);
-    el('note').textContent = 'This page updates automatically.';
-    if (data.status === 'completed' || data.status === 'cancelled') clearInterval(timer);
-  } catch (error) {
-    el('status').textContent = error.message;
-    clearInterval(timer);
+
+function render() {
+  if (!order) return;
+  const requested = new URLSearchParams(location.hash.slice(1)).get('view');
+  const view = Object.hasOwn(views, requested) ? requested : 'tracking';
+  const money = new Intl.NumberFormat(undefined, { style: 'currency', currency: order.currency });
+  tabs.replaceChildren(...Object.entries(views).map(([key, label]) => {
+    const link = node('a', label);
+    link.href = trackingLink({ id, token }, key);
+    if (view === key) link.setAttribute('aria-current', 'page');
+    return link;
+  }));
+  tabs.hidden = false;
+  if (order.restaurant_slug) {
+    document.querySelector('#order-history-link').href = '/orders.html?restaurant=' + encodeURIComponent(order.restaurant_slug);
+  }
+  content.replaceChildren(node('h2', views[view]), node('p', order.restaurant_name + ' · Order #' + order.order_id));
+  if (view === 'tracking') {
+    content.append(node('p', order.status_label));
+    if (order.status !== 'cancelled') {
+      const progress = node('ol', '');
+      progress.className = 'order-progress';
+      steps.forEach((label, index) => {
+        const row = node('li', label);
+        if (order.status === statuses[index]) row.setAttribute('aria-current', 'step');
+        progress.append(row);
+      });
+      content.append(progress);
+    }
+    return;
+  }
+  if (view === 'refunds') {
+    content.append(node('p', 'Online refund status is unavailable. Contact the restaurant with your order number for refund help.'));
+    if (order.restaurant_slug) {
+      const link = node('a', 'Visit restaurant');
+      link.href = '/r/' + encodeURIComponent(order.restaurant_slug);
+      content.append(link);
+    }
+    return;
+  }
+  const placed = new Date(order.placed_at);
+  if (!Number.isNaN(placed.getTime())) content.append(node('p', placed.toLocaleString()));
+  content.append(node('p', order.status_label));
+  for (const item of order.items) {
+    const row = node('div', '');
+    row.className = 'receipt-row';
+    row.append(node('span', item.quantity + ' × ' + item.name));
+    if (item.unit_price_minor != null) row.append(node('strong', money.format(item.quantity * item.unit_price_minor / 100)));
+    content.append(row);
+  }
+  content.append(node('p', 'Order total: ' + money.format(order.total_minor / 100)));
+  if (view === 'receipt') {
+    content.append(node('p', 'Order receipt. Payment status is unavailable.'));
+    const print = node('button', 'Print or save PDF');
+    print.type = 'button';
+    print.addEventListener('click', () => window.print());
+    content.append(print);
   }
 }
+
+async function load() {
+  try {
+    if (!Number.isSafeInteger(id) || id < 1 || !/^[a-f0-9]{48}$/.test(token)) throw Error('Open the tracking link from your order confirmation.');
+    const response = await fetch('/api/public/orders/' + id + '/status', { headers: { 'X-Tracking-Token': token }, cache: 'no-store' });
+    if (!response.ok) throw Error(response.status === 404 ? 'Order not found. Check your tracking link.' : 'Tracking is unavailable. Please try again.');
+    order = await response.json();
+    if (!order.restaurant_slug && !order.restaurant_name) throw Error('Tracking is unavailable. Please try again.');
+    render();
+    if (!['completed', 'cancelled'].includes(order.status)) timer = setTimeout(load, 15000);
+  } catch (error) {
+    if (!order) content.textContent = error.message;
+    else timer = setTimeout(load, 15000);
+  }
+}
+window.addEventListener('hashchange', () => {
+  const next = new URLSearchParams(location.hash.slice(1));
+  if (Number(next.get('id')) !== id || (next.get('t') || '') !== token) location.reload();
+  else render();
+});
+window.addEventListener('pagehide', () => clearTimeout(timer));
+window.addEventListener('pageshow', event => { if (event.persisted) load(); });
 load();
-timer = setInterval(load, 15000);

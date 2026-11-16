@@ -214,7 +214,7 @@ aside :focus-visible { outline-color: #ffe642; }
 
 .storefront .top { background: var(--forest); color: white; }
 .storefront .top nav a:hover { background: #ffffff26; }
-.storefront .brand span { color: white; }
+.storefront .top .brand .wordmark { color: #143c2e; }
 .customer { max-width: 1440px; margin: auto; }
 .storefront-banner {
   display: grid;

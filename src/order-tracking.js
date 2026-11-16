@@ -22,11 +22,11 @@ export async function getOrderTracking(pool, orderId, token) {
   }
   try {
     const [rows] = await pool.execute(
-      'SELECT o.id,o.status,o.total_minor,o.created_at,r.name AS restaurant_name,r.currency FROM orders o JOIN order_tracking t ON t.order_id=o.id JOIN restaurants r ON r.id=o.restaurant_id WHERE o.id=? AND t.token_hash=? LIMIT 1',
+      'SELECT o.id,o.status,o.total_minor,o.created_at,r.name AS restaurant_name,r.slug AS restaurant_slug,r.currency FROM orders o JOIN order_tracking t ON t.order_id=o.id JOIN restaurants r ON r.id=o.restaurant_id WHERE o.id=? AND t.token_hash=? LIMIT 1',
       [orderId, hashTrackingToken(token)]
     );
     if (!rows.length) return { status: 404, body: { error: 'Order not found' } };
-    const [items] = await pool.execute('SELECT name_snapshot AS name,quantity FROM order_items WHERE order_id=? ORDER BY id LIMIT 50', [orderId]);
+    const [items] = await pool.execute('SELECT name_snapshot AS name,quantity,unit_price_minor FROM order_items WHERE order_id=? ORDER BY id LIMIT 50', [orderId]);
     const order = rows[0];
     return {
       status: 200,
@@ -37,6 +37,7 @@ export async function getOrderTracking(pool, orderId, token) {
         total_minor: Number(order.total_minor),
         currency: order.currency,
         restaurant_name: order.restaurant_name,
+        restaurant_slug: order.restaurant_slug,
         placed_at: order.created_at,
         items,
       },

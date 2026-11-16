@@ -2,28 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="referrer" content="no-referrer">
-  <title>Track your order | MAR-KHOOR AI</title>
-  <link rel="stylesheet" href="/styles.css">
-  <style>
-    main { max-width: 560px; margin: 32px auto; padding: 0 16px; }
-    .track-card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 6px 24px rgba(0,0,0,.08); }
-    #track-status { font-size: 28px; font-weight: 800; margin: 8px 0 16px; }
-    #track-items { padding-left: 20px; }
-  </style>
-  <script src="/track.js" defer></script>
+  <title>Your order | Mar-Khoor</title>
+  <link rel="stylesheet" href="/order-activity.css">
+  <script type="module" src="/track.js"></script>
 </head>
 <body>
-  <main>
-    <h1>Track your order</h1>
-    <section class="track-card" aria-live="polite">
-      <p class="muted" id="track-restaurant"></p>
-      <p id="track-status">Loading…</p>
-      <ul id="track-items"></ul>
-      <p id="track-total"></p>
-      <p class="muted" id="track-note"></p>
-    </section>
+  <main class="order-shell">
+    <header class="order-header"><a id="order-history-link" href="/orders.html" aria-label="Back to order history">←</a><h1>Your order</h1></header>
+    <nav class="order-tabs" aria-label="Order information" id="track-tabs" hidden></nav>
+    <section class="order-card" id="track-content" aria-live="polite">Loading order…</section>
   </main>
 </body>
 </html>

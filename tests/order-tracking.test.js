@@ -16,19 +16,20 @@ function pool(order){
  return {queries,async execute(sql,args){
   queries.push({sql,args});
   if(sql.includes('FROM orders o JOIN order_tracking'))return [order&&args[1]===hashTrackingToken(order.token)?[order.row]:[]];
-  if(sql.includes('FROM order_items'))return [[{name:'Zinger Burger',quantity:2}]];
+  if(sql.includes('FROM order_items'))return [[{name:'Zinger Burger',quantity:2,unit_price_minor:590}]];
   throw Error('unexpected '+sql);
  }};
 }
 
 test('valid token returns status without personal data',async()=>{
  const token=newTrackingToken();
- const p=pool({token,row:{id:7,status:'preparing',total_minor:'1180',created_at:'2026-11-14T10:00:00Z',restaurant_name:'Cheema Cafe',currency:'PKR',customer_name:'Ali'}});
+ const p=pool({token,row:{id:7,status:'preparing',total_minor:'1180',created_at:'2026-11-14T10:00:00Z',restaurant_name:'Cheema Cafe',restaurant_slug:'cheema-cafe',currency:'PKR',customer_name:'Ali'}});
  const result=await getOrderTracking(p,7,token);
  assert.equal(result.status,200);
  assert.equal(result.body.status_label,'Being prepared');
  assert.equal(result.body.total_minor,1180);
- assert.deepEqual(result.body.items,[{name:'Zinger Burger',quantity:2}]);
+ assert.equal(result.body.restaurant_slug,'cheema-cafe');
+ assert.deepEqual(result.body.items,[{name:'Zinger Burger',quantity:2,unit_price_minor:590}]);
  assert.ok(!JSON.stringify(result.body).includes('Ali'));
  assert.deepEqual(p.queries[0].args,[7,hashTrackingToken(token)]);
 });

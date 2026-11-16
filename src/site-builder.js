@@ -130,5 +130,5 @@ export function renderSitePage({ restaurant, config, items }, { assistant = '' }
 #voice-status{margin:0;font-size:12px}#voice-status:empty{display:none}#assistant-audio{width:100%;height:32px}` : '')
     + '</style></head><body>'
     + '<header><h1>' + escapeHtml(c.headline) + '</h1><p>' + escapeHtml(c.tagline) + '</p><a class="btn" href="' + orderHref + '">Order online</a></header>'
-    + '<main>' + body + '</main><footer>Powered by MAR-KHOOR AI</footer>' + assistant + '</body></html>';
+    + '<main>' + body + '</main><footer><p><a href="/orders.html?restaurant=' + slug + '">Order activity</a></p>Powered by MAR-KHOOR AI</footer>' + assistant + '</body></html>';
 }
