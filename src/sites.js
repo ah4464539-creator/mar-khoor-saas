@@ -45,9 +45,10 @@ export function sitesRouter(pool) {
  };
 
 
- const assistantEnabled = (slug) =>
+ const assistantEnabled = ({ restaurant }) =>
   process.env.RESTAURANT_WEBSITE_ASSISTANT_ENABLED === 'true' ||
-  (slug === 'urban-cafe' && process.env.URBAN_CAFE_DEMO_ASSISTANT_ENABLED === 'true');
+  (process.env.REGISTRATION_WEBSITE_ASSISTANT_ENABLED === 'true' && restaurant.websiteAssistantProvisioned) ||
+  (restaurant.slug === 'urban-cafe' && process.env.URBAN_CAFE_DEMO_ASSISTANT_ENABLED === 'true');
  const voiceEnabled = () => process.env.RESTAURANT_WEBSITE_VOICE_ENABLED === 'true';
 
  const assistantCsp = SITE_CSP.replace("form-action 'none'", "form-action 'self'") +
@@ -84,9 +85,8 @@ export function sitesRouter(pool) {
 
  router.get('/r/:slug/assistant', async (req, res) => {
   try {
-   if (!assistantEnabled(req.params.slug)) return res.status(404).type('html').send(notFound);
    const site = await loadPublicSite(pool, req.params.slug);
-   if (!site) return res.status(404).type('html').send(notFound);
+   if (!site || !assistantEnabled(site)) return res.status(404).type('html').send(notFound);
    res.set('Cache-Control', 'no-store');
    return res.redirect(302, '/r/' + encodeURIComponent(req.params.slug) + '#assistant');
   } catch {
@@ -113,13 +113,12 @@ export function sitesRouter(pool) {
   rateLimit({ windowMs: 60000, max: 10, name: 'restaurant-demo-assistant' }),
   express.urlencoded({ extended: false, limit: '8kb', parameterLimit: 4 }),
   async (req, res) => {
-   if (!assistantEnabled(req.params.slug)) return res.status(404).type('html').send(notFound);
-   const message = req.body?.message;
-   if (typeof message !== 'string' || !message.trim() || message.length > 1200)
-    return assistantPage(res, 400, req.params.slug, 'Enter a question of up to 1,200 characters.');
    try {
     const site = await loadPublicSite(pool, req.params.slug);
-    if (!site) return res.status(404).type('html').send(notFound);
+    if (!site || !assistantEnabled(site)) return res.status(404).type('html').send(notFound);
+    const message = req.body?.message;
+    if (typeof message !== 'string' || !message.trim() || message.length > 1200)
+     return assistantPage(res, 400, req.params.slug, 'Enter a question of up to 1,200 characters.');
     const key = process.env.OPENAI_API_KEY;
     const fallback = () => menuFallback(res, req.params.slug, site, message);
     if (!key) return fallback();
@@ -157,13 +156,13 @@ export function sitesRouter(pool) {
   express.text({ type: 'application/sdp', limit: '32kb' }),
   async (req, res) => {
    res.set('Cache-Control', 'no-store');
-   if (!voiceEnabled() || !assistantEnabled(req.params.slug)) return res.sendStatus(404);
-   if (typeof req.body !== 'string' || !req.body.startsWith('v=0')) return res.sendStatus(400);
-   const key = process.env.OPENAI_API_KEY;
-   if (!key) return res.sendStatus(503);
+   if (!voiceEnabled()) return res.sendStatus(404);
    try {
     const site = await loadPublicSite(pool, req.params.slug);
-    if (!site) return res.sendStatus(404);
+    if (!site || !assistantEnabled(site)) return res.sendStatus(404);
+    if (typeof req.body !== 'string' || !req.body.startsWith('v=0')) return res.sendStatus(400);
+    const key = process.env.OPENAI_API_KEY;
+    if (!key) return res.sendStatus(503);
     const menu = site.items.map(({ name, price_minor }) => ({ name, price_minor }));
     const data = new FormData();
     data.set('sdp', req.body);
@@ -192,7 +191,7 @@ export function sitesRouter(pool) {
    const site = await loadPublicSite(pool, req.params.slug);
    if (!site) return res.status(404).type('html').send(notFound);
    res.set('Cache-Control', 'public, max-age=60');
-   const showAssistant = assistantEnabled(req.params.slug);
+   const showAssistant = assistantEnabled(site);
    if (showAssistant) {
     res.set('Content-Security-Policy', assistantCsp);
     if (voiceEnabled()) res.set('Permissions-Policy', 'camera=(), microphone=(self), geolocation=(), payment=()');
