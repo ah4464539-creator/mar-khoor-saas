@@ -16,3 +16,8 @@ form.addEventListener('submit',async e=>{
  catch{pending.textContent='Connection unavailable. Please try again.'}
  finally{send.disabled=false;input.focus()}
 });
+
+fetch('/api/public/assistant/status', { cache: 'no-store' })
+  .then(response => response.ok ? response.json() : null)
+  .then(status => { launch.hidden = status?.enabled !== true; })
+  .catch(() => {});

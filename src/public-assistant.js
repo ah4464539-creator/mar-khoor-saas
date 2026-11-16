@@ -3,6 +3,11 @@ import { Router } from 'express';
 // Staging-only public FAQ assistant. Never expose credentials or tenant data.
 export function publicAssistantRouter() {
   const router = Router();
+  router.get('/public/assistant/status', (_req, res) => {
+    const enabled = process.env.WEBSITE_AI_ASSISTANT_ENABLED === 'true' &&
+      Boolean(process.env.OPENAI_API_KEY);
+    res.set('Cache-Control', 'no-store').json({ enabled });
+  });
   router.post('/public/assistant/chat', async (req, res) => {
     if (process.env.WEBSITE_AI_ASSISTANT_ENABLED !== 'true') return res.status(503).json({ error: 'Assistant is not enabled' });
     const key = process.env.OPENAI_API_KEY;
