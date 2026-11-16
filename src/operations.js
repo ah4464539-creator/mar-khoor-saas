@@ -123,7 +123,9 @@ export function operationsRouter(pool) {
   try{
    const [counts]=await pool.execute("SELECT COUNT(*) AS total_orders,COALESCE(SUM(CASE WHEN status='completed' THEN total_minor ELSE 0 END),0) AS completed_revenue_minor,COUNT(CASE WHEN status='pending' THEN 1 END) AS pending_orders,COUNT(CASE WHEN status='completed' THEN 1 END) AS completed_orders FROM orders WHERE restaurant_id=?",[req.restaurantId]);
    const [recent]=await pool.execute("SELECT DATE(created_at) AS day,COUNT(*) AS orders,COALESCE(SUM(CASE WHEN status='completed' THEN total_minor ELSE 0 END),0) AS completed_revenue_minor FROM orders WHERE restaurant_id=? AND created_at>=CURRENT_DATE - INTERVAL 29 DAY GROUP BY DATE(created_at) ORDER BY day DESC",[req.restaurantId]);
-   res.json({summary:counts[0],last_30_days:recent});
+   const [byStatus]=await pool.execute('SELECT status,COUNT(*) AS count FROM orders WHERE restaurant_id=? GROUP BY status',[req.restaurantId]);
+   const [topItems]=await pool.execute("SELECT oi.name_snapshot AS name,SUM(oi.quantity) AS quantity FROM order_items oi JOIN orders o ON o.id=oi.order_id WHERE o.restaurant_id=? AND o.status='completed' GROUP BY oi.menu_item_id,oi.name_snapshot ORDER BY quantity DESC,oi.name_snapshot LIMIT 5",[req.restaurantId]);
+   res.json({summary:counts[0],last_30_days:recent,by_status:byStatus,top_items:topItems});
   }catch{res.status(503).json({error:'Analytics unavailable'});}
  });
  router.get('/restaurants/:restaurantId/orders',async(req,res)=>{
