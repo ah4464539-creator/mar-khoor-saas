@@ -77,7 +77,7 @@ export function apiRouter(pool) {
    const [restaurants]=await pool.execute('SELECT id,name,slug,currency,locale FROM restaurants WHERE slug=? LIMIT 1',[req.params.slug]);
    if(!restaurants.length)return res.status(404).json({error:'Restaurant not found'});
    const restaurant=restaurants[0];
-   const [items]=await pool.execute('SELECT id,name,description,price_minor FROM menu_items WHERE restaurant_id=? AND active=1 ORDER BY id',[restaurant.id]);
+   const [items]=await pool.execute('SELECT id,name,description,price_minor,category,image_url FROM menu_items WHERE restaurant_id=? AND active=1 ORDER BY id',[restaurant.id]);
    res.json({restaurant,items});
   } catch {res.status(503).json({error:'Database unavailable'});}
  });
