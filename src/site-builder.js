@@ -110,13 +110,24 @@ export function renderSitePage({ restaurant, config, items }, { assistant = '' }
     + '.btn{display:inline-block;background:' + t.accent + ';color:' + t.accentInk + ';padding:12px 22px;border-radius:999px;text-decoration:none;font-weight:700}a{color:' + t.accent + '}header .btn{background:' + t.accentInk + ';color:' + t.accent + '}'
     + 'footer{text-align:center;padding:20px;color:' + t.muted + ';font-size:13px}'
     + (assistant ? `.restaurant-assistant{position:fixed;inset-inline-end:16px;bottom:max(16px,env(safe-area-inset-bottom));z-index:2;font-size:14px}
-.restaurant-assistant summary{display:block;cursor:pointer;padding:9px 15px;border-radius:999px;background:${t.accent};color:${t.accentInk};font-weight:700;box-shadow:0 3px 16px #0003}
-.assistant-panel{position:absolute;inset-inline-end:0;bottom:calc(100% + 8px);width:min(340px,calc(100vw - 32px));max-height:min(430px,calc(100dvh - 88px),68dvh);overflow:auto;background:${t.card};color:${t.ink};border:1px solid ${t.muted};border-radius:15px;box-shadow:0 8px 32px #0003}
+.restaurant-assistant>summary{display:block;cursor:pointer;padding:9px 15px;border-radius:999px;background:${t.accent};color:${t.accentInk};font-weight:700;box-shadow:0 3px 16px #0003}
+.assistant-panel{position:absolute;inset-inline-end:0;bottom:calc(100% + 8px);width:min(340px,calc(100vw - 32px));height:min(420px,calc(100dvh - 88px),68dvh);display:flex;flex-direction:column;overflow:hidden;background:${t.card};color:${t.ink};border:1px solid ${t.muted};border-radius:15px;box-shadow:0 8px 32px #0003}
 .assistant-heading{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:${t.accent};color:${t.accentInk}}
-.assistant-body{padding:12px}.assistant-body textarea{display:block;width:100%;margin:4px 0 8px;padding:6px;font:inherit;color:${t.ink};background:${t.bg};border:1px solid ${t.muted};border-radius:6px}
-.restaurant-assistant button{font:inherit;cursor:pointer;border:1px solid currentColor;border-radius:7px;padding:4px 8px;background:${t.card};color:${t.ink}}
-.restaurant-assistant button:disabled{opacity:.55;cursor:default}.assistant-actions{display:flex;flex-wrap:wrap;gap:6px}.assistant-voice{margin-top:10px}.assistant-voice p{margin:4px 0}.assistant-voice audio{width:100%;height:32px}.assistant-consent{display:block;margin:6px 0}
-[data-assistant-messages]{max-height:115px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}[data-assistant-messages] p{margin:0 0 8px}` : '')
+.assistant-body{display:flex;flex:1;flex-direction:column;min-height:0;padding:10px;gap:7px}
+.restaurant-assistant button,.assistant-recording>summary{font:inherit;cursor:pointer;border:0;border-radius:8px;padding:5px 8px;background:${t.bg};color:${t.ink}}
+.restaurant-assistant button:disabled{opacity:.55;cursor:default}.assistant-actions{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+[data-assistant-messages]{flex:1;min-height:0;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;padding:2px}
+[data-assistant-messages] p{width:fit-content;max-width:90%;padding:7px 10px;border-radius:12px;margin:0 0 8px;background:${t.bg}}
+[data-assistant-messages] .assistant-question{margin-inline-start:auto;background:${t.accent};color:${t.accentInk}}
+.assistant-composer{position:relative;display:flex;align-items:center;gap:3px;padding:4px;border:1px solid ${t.muted};border-radius:16px;background:${t.bg}}
+.assistant-composer textarea{display:block;flex:1;min-width:0;min-height:40px;max-height:85px;padding:9px 4px 4px 7px;resize:vertical;border:0;border-radius:12px;font:inherit;font-size:16px;color:${t.ink};caret-color:${t.accent};background:transparent}
+.assistant-composer textarea:focus-visible{outline:2px solid ${t.accent};outline-offset:-2px}
+.assistant-composer>button,.assistant-voice button,.assistant-recording>summary{display:grid;place-items:center;width:38px;height:40px;padding:0}
+.assistant-composer .assistant-send{background:${t.accent};color:${t.accentInk};border-radius:12px}
+.assistant-voice button:disabled{display:none}.assistant-recording>summary::-webkit-details-marker{display:none}
+.assistant-recording[open]>summary{background:${t.accent};color:${t.accentInk}}
+.assistant-recording-options{position:absolute;inset-inline:0;bottom:calc(100% + 6px);padding:10px;background:${t.card};border:1px solid ${t.muted};border-radius:12px;box-shadow:0 3px 16px #0002}
+#voice-status{margin:0;font-size:12px}#voice-status:empty{display:none}#assistant-audio{width:100%;height:32px}` : '')
     + '</style></head><body>'
     + '<header><h1>' + escapeHtml(c.headline) + '</h1><p>' + escapeHtml(c.tagline) + '</p><a class="btn" href="' + orderHref + '">Order online</a></header>'
     + '<main>' + body + '</main><footer>Powered by MAR-KHOOR AI</footer>' + assistant + '</body></html>';

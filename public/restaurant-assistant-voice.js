@@ -18,6 +18,7 @@ function finish(message) {
   current?.mic?.getTracks().forEach(track => track.stop());
   current?.context?.close().catch(() => {});
   audio.srcObject = null;
+  audio.hidden = true;
   start.disabled = false;
   stop.disabled = true;
   status.textContent = message;
@@ -42,7 +43,10 @@ start.addEventListener('click', async () => {
       if (call !== current) return;
       current.remote = event.streams[0] || new MediaStream([event.track]);
       audio.srcObject = current.remote;
-      audio.play().catch(() => { status.textContent = 'Use the audio player to enable sound.'; });
+      audio.play().catch(() => {
+        audio.hidden = false;
+        status.textContent = 'Use the audio player to enable sound.';
+      });
       if (record) record.disabled = !consent.checked;
     };
     current.peer.onconnectionstatechange = () => {

@@ -9,7 +9,17 @@ assistant.querySelector('[data-close-assistant]').addEventListener('click', clos
 assistant.addEventListener('keydown', event => {
   if (event.key === 'Escape' && assistant.open) closePanel();
 });
-if (location.hash === '#assistant') assistant.open = true;
+launcher.addEventListener('click', event => {
+  event.preventDefault();
+  if (assistant.open) closePanel();
+  else openPanel();
+});
+if (location.hash === '#assistant') openPanel();
+
+function openPanel() {
+  assistant.open = true;
+  input.focus({ preventScroll: true });
+}
 
 function closePanel() {
   assistant.open = false;
@@ -23,8 +33,10 @@ form.addEventListener('submit', async event => {
   submit.disabled = true;
   input.value = '';
   const question = document.createElement('p');
+  question.className = 'assistant-question';
   question.textContent = message;
   const reply = document.createElement('p');
+  reply.className = 'assistant-reply';
   reply.textContent = 'Thinking…';
   messages.append(question, reply);
   messages.scrollTop = messages.scrollHeight;
@@ -40,6 +52,7 @@ form.addEventListener('submit', async event => {
     reply.textContent = 'Could not connect. Please try again.';
   } finally {
     submit.disabled = false;
+    if (assistant.open && document.activeElement === submit) input.focus({ preventScroll: true });
     messages.scrollTop = messages.scrollHeight;
   }
 });

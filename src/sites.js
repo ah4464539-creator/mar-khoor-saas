@@ -32,11 +32,24 @@ export function sitesRouter(pool) {
   "; script-src 'self'; connect-src 'self'; media-src 'self' blob:";
  const voiceScript = '<script src="/restaurant-assistant-voice.js" defer></script>';
 
+ const icon = path => '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + path + '</svg>';
+
  function assistantControls(slug, recordingAllowed) {
   const endpoint = '/r/' + encodeURIComponent(slug) + '/assistant';
-  const recording = recordingAllowed ? '<label class="assistant-consent"><input type="checkbox" id="record-consent"> I consent to recording both voices on this device.</label><div class="assistant-actions"><button type="button" id="start-recording" disabled>Start recording</button><button type="button" id="stop-recording" disabled>Stop recording</button></div><a id="recording-download" hidden>Download recording</a>' : '';
-  const voice = voiceEnabled() ? '<div class="assistant-voice" data-voice-url="' + endpoint + '/voice"><div class="assistant-actions"><button type="button" id="start-voice">Start voice</button><button type="button" id="stop-voice" disabled>End call</button></div><p id="voice-status" role="status"></p><audio id="assistant-audio" controls></audio>' + recording + '</div>' : '';
-  return '<form method="post" action="' + endpoint + '"><label for="message">Ask about the menu</label><textarea id="message" name="message" rows="2" required maxlength="1200"></textarea><button type="submit">Send</button></form>' + voice;
+  const voiceOn = voiceEnabled();
+  const voiceIcon = icon('<path d="M3 10v4m4-7v10m5-14v18m5-14v10m4-7v4"/>');
+  const recordingIcon = icon('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/>');
+  const sendIcon = icon('<path d="M12 19V5m-6 6 6-6 6 6"/>');
+  const stopIcon = icon('<rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor"/>');
+  const recording = voiceOn && recordingAllowed
+    ? '<details class="assistant-recording"><summary aria-label="Recording options" title="Recording options">' + recordingIcon + '</summary><div class="assistant-recording-options"><label><input type="checkbox" id="record-consent"> I consent to recording both voices on this device.</label><div class="assistant-actions"><button type="button" id="start-recording" disabled>Start recording</button><button type="button" id="stop-recording" disabled>Stop recording</button></div><a id="recording-download" hidden>Download recording</a></div></details>'
+    : '';
+  const voice = voiceOn
+    ? '<div class="assistant-voice" data-voice-url="' + endpoint + '/voice"><button type="button" id="start-voice" aria-label="Start live conversation" title="Start live conversation">' + voiceIcon + '</button><button type="button" id="stop-voice" aria-label="End live conversation" title="End live conversation" disabled>' + stopIcon + '</button></div>'
+    : '';
+  const voiceStatus = voiceOn ? '<p id="voice-status" role="status"></p><audio id="assistant-audio" controls hidden></audio>' : '';
+  return voiceStatus + '<form class="assistant-composer" method="post" action="' + endpoint + '"><textarea id="message" name="message" aria-label="Message AI Assistant" placeholder="Ask about the menu…" rows="1" required maxlength="1200"></textarea>' +
+    recording + voice + '<button type="submit" class="assistant-send" aria-label="Send message" title="Send message">' + sendIcon + '</button></form>';
  }
 
  function assistantPage(res, status, slug, reply = '') {
@@ -143,7 +156,7 @@ export function sitesRouter(pool) {
     if (voiceEnabled()) res.set('Permissions-Policy', 'camera=(), microphone=(self), geolocation=(), payment=()');
    }
    const assistant = showAssistant
-    ? '<details id="assistant" class="restaurant-assistant"><summary>AI Assistant</summary><div class="assistant-panel"><div class="assistant-heading"><strong>AI Assistant</strong><button type="button" data-close-assistant aria-label="Close assistant">×</button></div><div class="assistant-body"><div data-assistant-messages role="log" aria-live="polite"></div>' +
+    ? '<details id="assistant" class="restaurant-assistant"><summary>AI Assistant</summary><div class="assistant-panel"><div class="assistant-heading"><strong>AI Assistant</strong><button type="button" data-close-assistant aria-label="Close assistant">×</button></div><div class="assistant-body"><div data-assistant-messages role="log" aria-live="polite"><p class="assistant-reply">Hi! What would you like to know about the menu?</p></div>' +
       assistantControls(req.params.slug, site.config.assistantRecording === true) +
       '</div></div></details><script src="/restaurant-assistant-panel.js" defer></script>' + (voiceEnabled() ? voiceScript : '')
     : '';
