@@ -72,7 +72,7 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
   const sendIcon = icon('<path d="M12 19V5m-6 6 6-6 6 6"/>');
   const stopIcon = icon('<rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor"/>');
   // Audio messages use browser microphone permission; do not expose call-recording controls.
-  const recording = '';
+  const recording = '<button type="button" id="assistant-audio-message" aria-label="Record voice message" title="Record voice message" aria-pressed="false">' + recordingIcon + '</button>';
   const voice = voiceOn
     ? '<div class="assistant-voice" data-voice-url="' + endpoint + '/voice" data-menu-url="/api/public/restaurants/' + encodeURIComponent(slug) + '/menu" data-order-url="/api/public/restaurants/' + encodeURIComponent(slug) + '/orders"><button type="button" id="start-voice" aria-label="Start live conversation" title="Start live conversation">' + voiceIcon + '</button><button type="button" id="stop-voice" aria-label="End live conversation" title="End live conversation" disabled>' + stopIcon + '</button></div>'
     : '';
@@ -181,6 +181,32 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
   });
 
 
+ router.post('/r/:slug/assistant/transcribe',
+  rateLimit({ windowMs: 60000, max: 6, name: 'restaurant-audio-message' }),
+  express.raw({type:['audio/webm','audio/mp4','audio/ogg'],limit:'2mb'}),
+  async(req,res)=>{
+   res.set('Cache-Control','no-store');
+   try {
+    const site=await loadPublicSite(pool,req.params.slug);
+    if(!site||!assistantEnabled(site))return res.status(404).json({error:'Assistant unavailable'});
+    if(!process.env.OPENAI_API_KEY)return res.status(503).json({error:'Transcription unavailable'});
+    if(!Buffer.isBuffer(req.body)||req.body.length<100)return res.status(400).json({error:'Empty recording'});
+    const mime=req.get('content-type')?.split(';')[0];
+    if(!['audio/webm','audio/mp4','audio/ogg'].includes(mime))return res.status(415).json({error:'Unsupported audio'});
+    const form=new FormData();
+    form.set('model','gpt-4o-mini-transcribe');
+    form.set('file',new Blob([req.body],{type:mime}),mime==='audio/mp4'?'message.mp4':mime==='audio/ogg'?'message.ogg':'message.webm');
+    const response=await assistantFetch('https://api.openai.com/v1/audio/transcriptions',{
+     method:'POST',headers:{Authorization:'Bearer '+process.env.OPENAI_API_KEY},
+     body:form,signal:AbortSignal.timeout(20000)
+    });
+    if(!response.ok)return res.status(503).json({error:'Transcription failed'});
+    const data=await response.json();
+    const text=typeof data.text==='string'?data.text.trim().slice(0,1200):'';
+    return text?res.json({text}):res.status(422).json({error:'No speech recognized'});
+   }catch{return res.status(503).json({error:'Transcription unavailable'});}
+  });
+ 
  router.post('/r/:slug/assistant/voice',
   rateLimit({ windowMs: 60000, max: 4, name: 'restaurant-voice-assistant' }),
   express.text({ type: 'application/sdp', limit: '32kb' }),
