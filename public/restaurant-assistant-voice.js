@@ -7,6 +7,9 @@ const consent = document.querySelector('#record-consent');
 const record = document.querySelector('#start-recording');
 const stopRecord = document.querySelector('#stop-recording');
 const download = document.querySelector('#recording-download');
+const voiceHolder = start?.closest('[data-voice-url]');
+let call;
+let recordingUrl;
 function setOrbState() { /* Legacy orb removed: connection state is shown in voice-status. */ }
 function updateRecordingControls() {
   if (!record) return;
