@@ -21,11 +21,10 @@ test('does not accept explicit negation',()=>{
 test('same draft does not clear already obtained confirmation',()=>{
   assert.match(voice,/signature !== current\.draftSignature\) current\.confirmedSinceDraft = false/);
 });
-test('audio message recording has controlled start/stop and server transcription',()=>{
-  assert.match(sites,/assistant-audio-message/);
-  assert.match(sites,/assistant\/transcribe/);
-  assert.match(panel,/new MediaRecorder/);
-  assert.match(panel,/finishAudioMessage/);
-  assert.match(panel,/form\.requestSubmit\(\)/);
-  assert.match(sites,/rateLimit\(\{ windowMs: 60000, max: 6, name: 'restaurant-audio-message' \}/);
+test('only one live voice control is rendered',()=>{
+  assert.match(sites,/id="start-voice"/);
+  assert.doesNotMatch(sites,/id="stop-voice"/);
+  assert.doesNotMatch(sites,/id="assistant-audio-message"/);
+  assert.doesNotMatch(sites,/id="assistant-dictate"/);
+  assert.match(voice,/finish\('Voice ended\.'\)/);
 });
