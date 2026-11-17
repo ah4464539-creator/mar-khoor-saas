@@ -6,6 +6,7 @@ import { loadRestaurant, loadSite, saveSite, canPublish, setPublished, loadPubli
 import { audit, rateLimit } from './security.js';
 import { restaurantAssistantInstructions } from './restaurant-assistant-policy.js';
 import { buildRestaurantChatInput, normalizeAssistantHistory } from './restaurant-chat-context.js';
+import { classifyAssistantProviderFailure } from './ai-provider-diagnostics.js';
 
 const notFound = '<!doctype html><meta charset="utf-8"><title>Not found</title><p>This restaurant website is not available.</p>';
 
@@ -18,7 +19,7 @@ async function restaurantAiRequest(send) {
  let response = await send();
  if (response?.status !== 429) return response;
 
- const { error } = await response.json().catch(() => ({})) ?? {};
+ const { error } = await (response.clone?.() ?? response).json().catch(() => ({})) ?? {};
  const code = providerLimitCodes.has(error?.code) ? error.code : 'unknown';
  console.warn('Restaurant assistant upstream 429:', code);
  if (code !== 'rate_limit_exceeded' && code !== 'slow_down') return response;
@@ -96,9 +97,11 @@ export function sitesRouter(pool, { assistantFetch = fetch } = {}) {
   }
  });
 
- function restaurantAssistantReply(res, status, slug, reply, source, asJson) {
+ function restaurantAssistantReply(res, status, slug, reply, source, asJson, reason = null) {
   res.set('Cache-Control', 'no-store');
-  if (asJson) return res.status(status).json({ reply, source });
+  if (asJson) return res.status(status).json({
+   reply, source, ...(source === 'menu_fallback' ? { provider_status: reason || 'provider_unavailable' } : {}),
+  });
   return assistantPage(res, status, slug, reply);
  }
 
@@ -113,7 +116,7 @@ export function sitesRouter(pool, { assistantFetch = fetch } = {}) {
   }
  });
 
- function menuFallback(res, slug, site, question, asJson = false) {
+ function menuFallback(res, slug, site, question, asJson = false, reason = 'provider_unavailable') {
   const romanUrdu = /\b(kya|kia|hai|hain|mein|main|kitn[aeiy]|batao)\b/i.test(question);
   const heading = romanUrdu
    ? 'AI reply abhi available nahi hai. Yeh is restaurant ka current menu hai:'
@@ -125,7 +128,7 @@ export function sitesRouter(pool, { assistantFetch = fetch } = {}) {
   const reply = items.length
    ? [heading, ...items, ...(site.items.length > items.length ? [romanUrdu ? 'Pooray menu ke liye restaurant ka Menu section dekhein.' : 'See the restaurant’s Menu section for all items.'] : [])].join('\n')
    : (romanUrdu ? 'Is restaurant ke menu mein abhi koi item listed nahi hai.' : 'This restaurant has no menu items listed yet.');
-  return restaurantAssistantReply(res, 200, slug, reply, 'menu_fallback', asJson);
+  return restaurantAssistantReply(res, 200, slug, reply, 'menu_fallback', asJson, reason);
  }
 
  router.post('/r/:slug/assistant',
@@ -141,8 +144,8 @@ export function sitesRouter(pool, { assistantFetch = fetch } = {}) {
     if (typeof message !== 'string' || !message.trim() || message.length > 1200 || history === null)
      return restaurantAssistantReply(res, 400, req.params.slug, 'Send a valid message (up to 1,200 characters) and at most eight short history entries.', 'error', asJson);
     const key = process.env.OPENAI_API_KEY;
-    const fallback = () => menuFallback(res, req.params.slug, site, message, asJson);
-    if (!key) return fallback();
+    const fallback = (reason = 'provider_unavailable') => menuFallback(res, req.params.slug, site, message, asJson, reason);
+    if (!key) return fallback('missing_key');
     const signal = AbortSignal.timeout(18000);
     const response = await restaurantAiRequest(() => assistantFetch('https://api.openai.com/v1/responses', {
      method: 'POST',
@@ -158,14 +161,16 @@ export function sitesRouter(pool, { assistantFetch = fetch } = {}) {
      }),
     }).catch(() => null));
     if (!response?.ok) {
-     console.warn('Restaurant assistant provider request failed', response?.status ?? 'connection');
-     return fallback();
+     const providerError = response ? await response.json().catch(() => null) : null;
+     const reason = classifyAssistantProviderFailure(response?.status, providerError?.error?.code);
+     console.warn('Restaurant assistant provider unavailable:', reason);
+     return fallback(reason);
     }
     const data = await response.json().catch(() => null);
     const reply = (data?.output ?? []).flatMap(item => item.content ?? [])
      .filter(item => item.type === 'output_text' && typeof item.text === 'string')
      .map(item => item.text).join('\n').trim();
-    return reply ? restaurantAssistantReply(res, 200, req.params.slug, reply, 'ai', asJson) : fallback();
+    return reply ? restaurantAssistantReply(res, 200, req.params.slug, reply, 'ai', asJson) : fallback('empty_response');
    } catch {
     return restaurantAssistantReply(res, 503, req.params.slug, 'The assistant is temporarily unavailable.', 'error', asJson);
    }
