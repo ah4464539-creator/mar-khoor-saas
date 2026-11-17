@@ -192,7 +192,21 @@ main section+section{margin-top:22px}
 .assistant-voice button:disabled{display:none}.assistant-recording>summary::-webkit-details-marker{display:none}
 .assistant-recording[open]>summary{background:${t.accent};color:${t.accentInk}}
 .assistant-recording-options{position:absolute;inset-inline:0;bottom:calc(100% + 6px);padding:10px;background:${t.card};border:1px solid ${t.muted};border-radius:12px;box-shadow:0 3px 16px #0002}
-#voice-status{margin:0;font-size:12px}#voice-status:empty{display:none}#assistant-audio{width:100%;height:32px}` : '')
+#voice-status{margin:0;font-size:12px}#voice-status:empty{display:none}#assistant-audio{width:100%;height:32px}
+.assistant-panel{width:min(390px,calc(100vw - 28px));height:min(560px,calc(100dvh - 90px),78dvh)}
+.assistant-voice{position:static}
+.assistant-voice-orb{position:absolute;inset-inline-end:50%;transform:translateX(50%);bottom:calc(100% + 18px);width:176px;height:176px;border-radius:50%;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:9px;text-align:center;z-index:4;background:radial-gradient(circle at 35% 25%,#69caff,#5840c9 54%,#191452);color:white;box-shadow:0 0 40px #6254c888, inset 0 0 34px #ffffff44;overflow:hidden}
+.assistant-voice-orb .orb-glow{position:absolute;width:90px;height:90px;border:3px solid #a5eaff99;border-radius:50%;animation:assistant-pulse 1.6s ease-in-out infinite;pointer-events:none}
+.assistant-voice-orb span{position:relative;z-index:2;font-weight:700;text-shadow:0 2px 4px #0009;margin-top:70px;font-size:13px}
+.assistant-voice-orb[data-state=connecting] .orb-glow{animation-duration:2.5s;opacity:.6}
+.restaurant-assistant .assistant-voice-orb #orb-close{position:absolute;right:9px;top:8px;width:32px;height:32px;border-radius:50%;display:grid!important;place-items:center;background:#ffffff44;color:white;font-size:23px;z-index:3}
+@keyframes assistant-pulse{0%,100%{transform:scale(.85);opacity:.45;box-shadow:0 0 0 0 #95dfff22}50%{transform:scale(1.27);opacity:1;box-shadow:0 0 0 20px #95dfff11}}
+@media(prefers-reduced-motion:reduce){.assistant-voice-orb .orb-glow{animation:none}}
+.assistant-order-card{padding:10px;border:1px solid ${t.accent};border-radius:12px;background:${t.bg};font-size:12px;max-height:176px;overflow:auto;flex-shrink:0}
+.assistant-order-card p{margin:4px 0}.assistant-order-card a{text-decoration:underline;color:${t.accent}}
+[data-assistant-messages] .assistant-reply{display:flex;align-items:flex-start;gap:5px}
+.restaurant-assistant .assistant-speak{min-height:28px;padding:4px;background:transparent;border:1px solid ${t.muted};font-size:15px}
+` : '')
     + '</style></head><body>'
     + '<header class="site-header"><div class="wrap"><a class="wordmark" href="#top">' + restaurantName + '</a>'
     + '<nav class="site-nav" aria-label="Customer navigation">' + (menuVisible ? '<a href="#menu">Menu</a>' : '') + orderLinks + '</nav></div></header>'
