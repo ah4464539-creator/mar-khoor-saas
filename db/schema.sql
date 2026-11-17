@@ -39,6 +39,9 @@ CREATE TABLE IF NOT EXISTS orders (
  customer_name VARCHAR(160),
  status ENUM('pending','accepted','preparing','ready','completed','cancelled') NOT NULL DEFAULT 'pending',
  total_minor BIGINT UNSIGNED NOT NULL DEFAULT 0,
+ estimated_ready_epoch BIGINT UNSIGNED NULL DEFAULT NULL,
+ client_request_id CHAR(36) NULL DEFAULT NULL,
+ UNIQUE KEY uq_restaurant_order_request (restaurant_id,client_request_id),
  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id),
  INDEX (restaurant_id,created_at)
