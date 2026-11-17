@@ -7,18 +7,7 @@ const consent = document.querySelector('#record-consent');
 const record = document.querySelector('#start-recording');
 const stopRecord = document.querySelector('#stop-recording');
 const download = document.querySelector('#recording-download');
-const orb = document.querySelector('#assistant-voice-orb');
-const orbCaption = document.querySelector('#orb-caption');
-const voiceHolder = start?.closest('[data-voice-url]');
-let call;
-let recordingUrl;
-
-function setOrbState(state, caption) {
-  if (!orb) return;
-  orb.hidden = state === 'off';
-  orb.dataset.state = state;
-  if (orbCaption) orbCaption.textContent = caption || '';
-}
+function setOrbState() { /* Legacy orb removed: connection state is shown in voice-status. */ }
 function updateRecordingControls() {
   if (!record) return;
   const connected = call?.peer?.connectionState === 'connected';
@@ -291,7 +280,7 @@ start?.addEventListener('click',async()=>{
   }
 });
 stop?.addEventListener('click',()=>finish('Voice ended.'));
-document.querySelector('#orb-close')?.addEventListener('click',()=>finish('Voice ended.'));
+
 window.addEventListener('mar-khoor-assistant-close',()=>{if(call)finish('Voice ended.');});
 window.MarKhoorVoice = {isActive:()=>Boolean(call)};
 addEventListener('pagehide',()=>{
