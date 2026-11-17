@@ -4,7 +4,8 @@ export function checkoutRouter(pool){
  const router=express.Router();
  // In production apply per-IP/restaurant rate limiting and abuse controls at the reverse proxy.
  router.post('/public/restaurants/:slug/orders',async(req,res)=>{
-  const {customer_name,items}=req.body||{};
+  const {customer_name,items,client_request_id=null}=req.body||{};
+  if(client_request_id!==null&&(typeof client_request_id!=='string'||!/^[0-9a-f-]{36}$/.test(client_request_id)))return res.status(400).json({error:'Invalid order request ID'});
   if(!/^[a-z0-9-]{1,160}$/.test(req.params.slug)||typeof customer_name!=='string'||!customer_name.trim()||customer_name.length>160||!Array.isArray(items)||items.length<1||items.length>30)return res.status(400).json({error:'Invalid order'});
   const quantities=new Map();
   for(const item of items){
@@ -26,13 +27,13 @@ export function checkoutRouter(pool){
    if(menu.length!==ids.length){await connection.rollback();return res.status(409).json({error:'Some menu items are unavailable'});}
    let total=0;
    for(const item of menu){total+=Number(item.price_minor)*quantities.get(item.id);if(!Number.isSafeInteger(total)||total>1000000000){await connection.rollback();return res.status(400).json({error:'Order total exceeds limit'});}}
-   const [created]=await connection.execute('INSERT INTO orders (restaurant_id,customer_name,total_minor) VALUES (?,?,?)',[restaurantId,customer_name.trim(),total]);
+   const [created]=await connection.execute('INSERT INTO orders (restaurant_id,customer_name,total_minor,client_request_id) VALUES (?,?,?,?)',[restaurantId,customer_name.trim(),total,client_request_id]);
    for(const item of menu)await connection.execute('INSERT INTO order_items (order_id,menu_item_id,name_snapshot,quantity,unit_price_minor) VALUES (?,?,?,?,?)',[created.insertId,item.id,item.name,quantities.get(item.id),item.price_minor]);
    const trackingToken=newTrackingToken();
    await connection.execute('INSERT INTO order_tracking (order_id,token_hash) VALUES (?,?)',[created.insertId,hashTrackingToken(trackingToken)]);
    await connection.commit();
    res.status(201).json({order_id:created.insertId,status:'pending',total_minor:total,tracking_token:trackingToken});
-  }catch(e){if(connection)await connection.rollback().catch(()=>{});res.status(503).json({error:'Order service unavailable'});}
+  }catch(e){if(connection)await connection.rollback().catch(()=>{});if(e?.code==='ER_DUP_ENTRY'&&client_request_id)return res.status(409).json({error:'Order submission already attempted. Check your order history before retrying.'});res.status(503).json({error:'Order service unavailable'});}
   finally{connection?.release();}
  });
  // The token is sent in a header so it stays out of URLs and logs.
