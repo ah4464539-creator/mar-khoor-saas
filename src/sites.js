@@ -68,19 +68,18 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
   const endpoint = '/r/' + encodeURIComponent(slug) + '/assistant';
   const voiceOn = voiceEnabled();
   const voiceIcon = icon('<path d="M3 10v4m4-7v10m5-14v18m5-14v10m4-7v4"/>');
-  const recordingIcon = icon('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/>');
+  const recordingIcon = icon('<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5m-4 0h8"/>');
   const sendIcon = icon('<path d="M12 19V5m-6 6 6-6 6 6"/>');
-  const stopIcon = icon('<rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor"/>');
-  const recording = voiceOn && recordingAllowed
-    ? '<details class="assistant-recording"><summary aria-label="Recording options" title="Recording options">' + recordingIcon + '</summary><div class="assistant-recording-options"><label><input type="checkbox" id="record-consent"> I consent to recording both voices on this device.</label><div class="assistant-actions"><button type="button" id="start-recording" disabled>Start recording</button><button type="button" id="stop-recording" disabled>Stop recording</button></div><a id="recording-download" hidden>Download recording</a></div></details>'
+  // Voice notes record the customer's microphone only, not the live AI call.
+  const recording = recordingAllowed
+    ? '<div class="assistant-voice-note" data-transcribe-url="' + endpoint + '/transcribe"><button type="button" id="start-voice-note" aria-label="Record voice message" title="Record voice message">' + recordingIcon + '</button><button type="button" id="stop-voice-note" aria-label="Stop voice recording" title="Stop voice recording" hidden>■</button><button type="button" id="send-voice-note" aria-label="Send voice message" title="Send voice message" hidden>Send</button><button type="button" id="cancel-voice-note" aria-label="Discard voice message" title="Discard voice message" hidden>×</button></div>'
     : '';
   const voice = voiceOn
-    ? '<div class="assistant-voice" data-voice-url="' + endpoint + '/voice" data-menu-url="/api/public/restaurants/' + encodeURIComponent(slug) + '/menu" data-order-url="/api/public/restaurants/' + encodeURIComponent(slug) + '/orders"><button type="button" id="start-voice" aria-label="Start live conversation" title="Start live conversation">' + voiceIcon + '</button><button type="button" id="stop-voice" aria-label="End live conversation" title="End live conversation" disabled>' + stopIcon + '</button><div id="assistant-voice-orb" class="assistant-voice-orb" data-state="connecting" role="status" aria-label="Live conversation" hidden><div class="orb-glow" aria-hidden="true"></div><span id="orb-caption">Connecting…</span><button type="button" id="orb-close" aria-label="End live conversation" title="End live conversation">×</button></div></div>'
+    ? '<div class="assistant-voice" data-voice-url="' + endpoint + '/voice" data-menu-url="/api/public/restaurants/' + encodeURIComponent(slug) + '/menu" data-order-url="/api/public/restaurants/' + encodeURIComponent(slug) + '/orders"><button type="button" id="start-voice" aria-label="Start live conversation" title="Start live conversation">' + voiceIcon + '</button></div>'
     : '';
-  const voiceStatus = voiceOn ? '<p id="voice-status" role="status"></p><audio id="assistant-audio" controls hidden></audio>' : '';
-  const dictation = '<button type="button" id="assistant-dictate" aria-label="Speak a text message" title="Speak a text message">' + voiceIcon + '</button>';
+  const voiceStatus = (recordingAllowed ? '<p id="voice-note-status" role="status"></p>' : '') + (voiceOn ? '<p id="voice-status" role="status"></p><audio id="assistant-audio" controls hidden></audio>' : '');
   return voiceStatus + '<form class="assistant-composer" method="post" action="' + endpoint + '"><textarea id="message" name="message" aria-label="Message AI Assistant" placeholder="Ask about the menu…" rows="1" required maxlength="1200"></textarea>' +
-    dictation + recording + voice + '<button type="submit" class="assistant-send" aria-label="Send message" title="Send message">' + sendIcon + '</button></form>';
+    recording + voice + '<button type="submit" class="assistant-send" aria-label="Send message" title="Send message">' + sendIcon + '</button></form>';
  }
 
  function assistantPage(res, status, slug, reply = '') {
@@ -224,6 +223,42 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
    } catch {
     console.warn('Restaurant voice provider connection failed');
     return res.set('X-Voice-Error', 'connection_failed').sendStatus(503);
+   }
+  });
+
+ // Voice notes are explicitly sent by a customer and transcribed before entering normal text chat.
+ // Uploaded bytes are not stored. The selected published tenant is verified on every request.
+ router.post('/r/:slug/assistant/transcribe',
+  rateLimit({ windowMs: 60000, max: 6, name: 'restaurant-voice-note' }),
+  express.raw({ type: ['audio/webm', 'audio/mp4', 'audio/ogg', 'audio/mpeg', 'audio/wav'], limit: '4mb' }),
+  async (req, res) => {
+   res.set('Cache-Control', 'no-store');
+   const mime = req.headers['content-type']?.split(';')[0]?.toLowerCase();
+   const extension = { 'audio/webm':'webm', 'audio/mp4':'m4a', 'audio/ogg':'ogg', 'audio/mpeg':'mp3', 'audio/wav':'wav' }[mime];
+   if (!extension) return res.status(415).json({ error: 'Unsupported voice message format' });
+   if (!Buffer.isBuffer(req.body) || req.body.length < 100 || req.body.length > 4 * 1024 * 1024)
+    return res.status(400).json({ error: 'Voice message must be between 100 bytes and 4 MB' });
+   try {
+    const site = await loadPublicSite(pool, req.params.slug);
+    if (!site || !assistantEnabled(site) || site.config.assistantRecording !== true)
+     return res.status(404).json({ error: 'Voice messages unavailable' });
+    const key = process.env.OPENAI_API_KEY;
+    if (!key) return res.status(503).json({ error: 'Transcription unavailable' });
+    const upload = new FormData();
+    upload.set('model', 'gpt-4o-mini-transcribe');
+    upload.set('file', new Blob([req.body], { type: mime }), 'voice-note.' + extension);
+    const response = await voiceFetch('https://api.openai.com/v1/audio/transcriptions', {
+     method: 'POST', headers: { Authorization: 'Bearer ' + key },
+     body: upload, signal: AbortSignal.timeout(20000),
+    });
+    if (!response.ok) return res.status(502).json({ error: 'Transcription service unavailable' });
+    const data = await response.json().catch(() => null);
+    const transcript = typeof data?.text === 'string' ? data.text.trim() : '';
+    if (!transcript || transcript.length > 1200)
+     return res.status(422).json({ error: 'Voice message could not be transcribed into a short text message' });
+    return res.json({ text: transcript });
+   } catch {
+    return res.status(503).json({ error: 'Transcription temporarily unavailable' });
    }
   });
 

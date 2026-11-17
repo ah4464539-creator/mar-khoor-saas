@@ -1,49 +1,26 @@
 // Realtime browser conversation. Audio stays in WebRTC; text and order UI share the assistant panel.
 const start = document.querySelector('#start-voice');
-const stop = document.querySelector('#stop-voice');
 const status = document.querySelector('#voice-status');
 const audio = document.querySelector('#assistant-audio');
-const consent = document.querySelector('#record-consent');
-const record = document.querySelector('#start-recording');
-const stopRecord = document.querySelector('#stop-recording');
-const download = document.querySelector('#recording-download');
-const orb = document.querySelector('#assistant-voice-orb');
-const orbCaption = document.querySelector('#orb-caption');
+const idleVoiceIcon = start?.innerHTML || '';
 const voiceHolder = start?.closest('[data-voice-url]');
 let call;
-let recordingUrl;
 
-function setOrbState(state, caption) {
-  if (!orb) return;
-  orb.hidden = state === 'off';
-  orb.dataset.state = state;
-  if (orbCaption) orbCaption.textContent = caption || '';
-}
-function updateRecordingControls() {
-  if (!record) return;
-  const connected = call?.peer?.connectionState === 'connected';
-  const recording = call?.recorder?.state === 'recording';
-  record.disabled = !connected || !call?.remote || !consent.checked || recording;
-  stopRecord.disabled = !recording;
-}
-function stopRecording(current) {
-  if (current?.recorder?.state === 'recording') current.recorder.stop();
-}
 function finish(message = 'Voice ended.') {
   const current = call;
   call = undefined;
   if (current?.connectionTimeout) clearTimeout(current.connectionTimeout);
   if (current?.finishTimer) clearTimeout(current.finishTimer);
   current?.controller.abort();
-  stopRecording(current);
   current?.peer.close();
   current?.mic?.getTracks().forEach(track => track.stop());
-  if (!current?.recorder) current?.context?.close().catch(() => {});
   audio.pause(); audio.srcObject = null; audio.hidden = true;
-  start.disabled = false; stop.disabled = true;
+  start.disabled = false;
+  start.innerHTML = idleVoiceIcon;
+  start.dataset.active = 'false';
+  start.setAttribute('aria-label','Start live conversation');
+  start.title = 'Start live conversation';
   status.textContent = message;
-  setOrbState('off');
-  updateRecordingControls();
 }
 function sendRealtime(current, event) {
   if (call !== current || current.events?.readyState !== 'open') return false;
@@ -218,10 +195,13 @@ function handleRealtime(current, payload) {
   }
 }
 start?.addEventListener('click',async()=>{
-  if (call) return;
-  start.disabled = true; stop.disabled = false;
+  if (call) { finish('Voice ended.'); return; }
+  if (window.MarKhoorVoiceNote?.isActive()) { status.textContent = 'Send or discard your voice message first.'; return; }
+  start.textContent = '×';
+  start.dataset.active = 'true';
+  start.setAttribute('aria-label','End live conversation');
+  start.title = 'End live conversation';
   status.textContent = 'Connecting…';
-  setOrbState('connecting','Connecting…');
   const current = {peer:new RTCPeerConnection(),controller:new AbortController(),
     requestId:crypto.randomUUID(),draft:null,confirmedSinceDraft:false,submitting:false};
   call = current;
@@ -247,7 +227,6 @@ start?.addEventListener('click',async()=>{
         if (call!==current) return;
         audio.hidden = false; status.textContent = 'Connected. Tap play to hear the assistant.';
       });
-      updateRecordingControls();
     };
     current.peer.onconnectionstatechange = ()=>{
       if (call!==current) return;
@@ -255,9 +234,7 @@ start?.addEventListener('click',async()=>{
       if (state==='connected') {
         clearTimeout(current.connectionTimeout);
         status.textContent = 'Voice connected. Speak naturally.';
-        setOrbState('connected','Listening…');
-        updateRecordingControls();
-      } else if (state==='failed'||state==='closed') finish('Voice connection failed.');
+        } else if (state==='failed'||state==='closed') finish('Voice connection failed.');
     };
     current.peer.oniceconnectionstatechange = ()=>{
       if (call===current && current.peer.iceConnectionState==='failed')
@@ -290,61 +267,6 @@ start?.addEventListener('click',async()=>{
     finish(message);
   }
 });
-stop?.addEventListener('click',()=>finish('Voice ended.'));
-document.querySelector('#orb-close')?.addEventListener('click',()=>finish('Voice ended.'));
 window.addEventListener('mar-khoor-assistant-close',()=>{if(call)finish('Voice ended.');});
 window.MarKhoorVoice = {isActive:()=>Boolean(call)};
-addEventListener('pagehide',()=>{
-  if(call)finish('Voice ended.');
-  if(recordingUrl)URL.revokeObjectURL(recordingUrl);
-});
-if(record){
-  consent.addEventListener('change',()=>{
-    if(!consent.checked)stopRecording(call);
-    updateRecordingControls();
-  });
-  stopRecord.addEventListener('click',()=>stopRecording(call));
-  record.addEventListener('click',async()=>{
-    const current=call;
-    if(!consent.checked||current?.peer?.connectionState!=='connected'||!current?.mic||
-       !current?.remote||current.recorder?.state==='recording')return;
-    record.disabled=true;
-    let context;
-    try{
-      if(typeof MediaRecorder==='undefined')throw Error('Recorder unavailable');
-      context=new AudioContext();await context.resume();
-      if(call!==current||!consent.checked||current.peer.connectionState!=='connected'){
-        await context.close();return;
-      }
-      const mix=context.createMediaStreamDestination();
-      context.createMediaStreamSource(current.mic).connect(mix);
-      context.createMediaStreamSource(current.remote).connect(mix);
-      const preferred='audio/webm;codecs=opus';
-      const options=MediaRecorder.isTypeSupported?.(preferred)?{mimeType:preferred}:{};
-      const recorder=new MediaRecorder(mix.stream,options);
-      const chunks=[];
-      current.context=context;current.recorder=recorder;
-      recorder.ondataavailable=event=>{if(event.data?.size)chunks.push(event.data);};
-      recorder.onstop=()=>{
-        context.close().catch(()=>{});
-        if(recordingUrl)URL.revokeObjectURL(recordingUrl);
-        const blob=new Blob(chunks,{type:recorder.mimeType||'audio/webm'});
-        recordingUrl=blob.size > 0 ? URL.createObjectURL(blob):null;
-        if(recordingUrl){
-          download.href=recordingUrl;
-          download.download=recorder.mimeType?.includes('mp4')?'conversation.m4a':'conversation.webm';
-          download.textContent='Download recorded conversation';download.hidden=false;
-          if(call===current)status.textContent='Recording saved on this device.';
-        }else if(call===current)status.textContent='Recording contained no audio.';
-        updateRecordingControls();
-      };
-      recorder.start(1000);
-      status.textContent='Recording both sides locally.';
-      updateRecordingControls();
-    }catch{
-      context?.close().catch(()=>{});
-      if(call===current){current.context=null;current.recorder=null;status.textContent='Recording unavailable.';}
-      updateRecordingControls();
-    }
-  });
-}
+addEventListener('pagehide',()=>{ if(call)finish('Voice ended.'); });

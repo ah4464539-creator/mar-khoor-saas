@@ -6,7 +6,7 @@ import crypto from 'node:crypto';
 
 function mockControl(extra={}) {
  const handlers = new Map();
- return {disabled:false,hidden:false,dataset:{},addEventListener:(name,cb)=>handlers.set(name,cb),
+ return {disabled:false,hidden:false,dataset:{},setAttribute:()=>{},addEventListener:(name,cb)=>handlers.set(name,cb),
   trigger(name,data){return handlers.get(name)?.(data)}, ...extra};
 }
 function createHarness() {
@@ -93,7 +93,7 @@ test('realtime voice order needs draft, explicit customer confirmation, backend 
  h.voice.handleRealtime(h.current,{type:'response.done',response:{output:[]}});
  assert.equal(typeof h.finishTimer(),'function');
  h.finishTimer()();
- assert.equal(h.elements.get('#assistant-voice-orb').hidden,true);
+ assert.equal(h.elements.get('#start-voice').dataset.active,'false');
  assert.equal(h.elements.get('#start-voice').disabled,false);
 });
 test('voice ordering blocks nonexistent items, unsafe quantities and ambiguous confirmation',async()=>{
