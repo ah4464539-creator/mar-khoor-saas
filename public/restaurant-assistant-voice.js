@@ -32,7 +32,7 @@ function finish(message = 'Voice ended.') {
   current?.mic?.getTracks().forEach(track => track.stop());
   if (!current?.recorder) current?.context?.close().catch(() => {});
   audio.pause(); audio.srcObject = null; audio.hidden = true;
-  start.disabled = false; start.setAttribute('aria-label','Start live conversation'); start.title='Start live conversation'; start.setAttribute('aria-pressed','false');
+  start.disabled = false; start.setAttribute?.('aria-label','Start live conversation'); start.title='Start live conversation'; start.setAttribute?.('aria-pressed','false');
   status.textContent = message;
   setOrbState('off');
   updateRecordingControls();
@@ -252,7 +252,7 @@ start?.addEventListener('click',async()=>{
       if (state==='connected') {
         clearTimeout(current.connectionTimeout);
         status.textContent = 'Voice connected. Speak naturally.';
-        start.disabled = false; start.setAttribute('aria-label','End live conversation'); start.title='End live conversation'; start.setAttribute('aria-pressed','true');
+        start.disabled = false; start.setAttribute?.('aria-label','End live conversation'); start.title='End live conversation'; start.setAttribute?.('aria-pressed','true');
         setOrbState('connected','Listening…');
         updateRecordingControls();
       } else if (state==='failed'||state==='closed') finish('Voice connection failed.');
