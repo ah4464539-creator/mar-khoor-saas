@@ -92,3 +92,31 @@ test('restaurant assistant labels menu fallback when provider key absent, never 
     assert.doesNotMatch(data.reply,/Beta Burger/);
   });
 });
+
+test('provider rejection categories are sanitized in public fallback responses', async () => {
+  process.env.REGISTRATION_WEBSITE_ASSISTANT_ENABLED = 'true';
+  process.env.OPENAI_API_KEY = 'fake-test-key';
+  const cases = [
+    [401, 'invalid_api_key', 'invalid_credentials'],
+    [429, 'insufficient_quota', 'quota_unavailable'],
+    [429, 'rate_limit_exceeded', 'rate_limited'],
+    [400, 'model_not_found', 'model_unavailable'],
+  ];
+  for (const [status, code, reason] of cases) {
+    process.env.REGISTRATION_WEBSITE_ASSISTANT_ENABLED = 'true';
+    process.env.OPENAI_API_KEY = 'fake-test-key';
+    await withApp(async () => ({
+      status, ok: false,
+      headers: { get: () => '30' },
+      json: async () => ({ error: { code, message: 'SENSITIVE details must never be returned' } }),
+    }), async base => {
+      const response = await chat(base, 'alpha-cafe', {message: 'Is soup available?'});
+      assert.equal(response.status, 200);
+      const body = await response.json();
+      assert.equal(body.source, 'menu_fallback');
+      assert.equal(body.provider_status, reason);
+      assert.match(body.reply, /Alpha Soup/);
+      assert.doesNotMatch(JSON.stringify(body), /SENSITIVE|fake-test-key/);
+    });
+  }
+});
