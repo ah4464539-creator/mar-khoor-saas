@@ -202,6 +202,7 @@ function handleRealtime(current, payload) {
       const functions = (payload.response?.output || []).filter(x=>x.type==='function_call');
       for (const item of functions) processTool(current,item);
       if (!functions.length && current.closeAfterFinalReply && !current.finishTimer) {
+        current.finalReplyDone = true;
         current.finishTimer = setTimeout(()=>{
           if (call===current) finish('Order submitted. Live conversation ended.');
         },5000);
@@ -209,7 +210,7 @@ function handleRealtime(current, payload) {
       break;
     }
     case 'output_audio_buffer.stopped':
-      if (current.closeAfterFinalReply) finish('Order submitted. Live conversation ended.');
+      if (current.closeAfterFinalReply && current.finalReplyDone) finish('Order submitted. Live conversation ended.');
       break;
     case 'error':
       status.textContent = 'Realtime assistant reported an error. Please retry.';
