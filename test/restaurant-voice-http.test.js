@@ -98,7 +98,8 @@ test('browser waits for ICE, negotiates data channel, and requires consent for l
   assert.match(js,/current\.peer\.connectionState !== 'connected'/);
   assert.match(js,/recorder\.onstop/);
   assert.match(js,/blob\.size > 0/);
-  assert.match(sites,/voiceOn && recordingAllowed/);
+  assert.doesNotMatch(sites,/id=\\"assistant-voice-orb\\"/);
+  assert.doesNotMatch(sites,/id=\\"start-recording\\"/);
 });
 
 test('voice frontend has transcript mirroring, backend-receipt gated close, and recording consent',()=>{
@@ -118,6 +119,6 @@ test('voice frontend has transcript mirroring, backend-receipt gated close, and 
  assert.match(page,/SpeechSynthesisUtterance/);
  assert.match(page,/SpeechRecognition/);
  const style=readFileSync(new URL('../src/site-builder.js',import.meta.url),'utf8');
- assert.match(style,/assistant-voice-orb/);
+ assert.match(style,/restaurant-assistant/);
  assert.match(style,/prefers-reduced-motion/);
 });
