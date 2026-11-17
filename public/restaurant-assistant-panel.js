@@ -169,6 +169,59 @@ if (dictate) {
   });
 }
 
+const audioMessage = document.querySelector('#assistant-audio-message');
+let messageRecorder, messageStream, messageChunks = [], messageBusy = false;
+async function finishAudioMessage() {
+  if (!messageRecorder || messageRecorder.state !== 'recording') return;
+  messageRecorder.stop();
+}
+if (audioMessage) {
+  audioMessage.addEventListener('click', async () => {
+    if (messageBusy) return;
+    if (messageRecorder?.state === 'recording') { await finishAudioMessage(); return; }
+    if (window.MarKhoorVoice?.isActive()) { showNotice('End live conversation before recording a voice message.'); return; }
+    try {
+      if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) throw Error('Audio recording unsupported');
+      messageStream = await navigator.mediaDevices.getUserMedia({audio:true});
+      const mime = ['audio/webm','audio/mp4','audio/ogg'].find(x=>MediaRecorder.isTypeSupported(x));
+      if (!mime) throw Error('Audio recording unsupported');
+      messageRecorder = new MediaRecorder(messageStream,{mimeType:mime});
+      messageChunks = [];
+      messageRecorder.ondataavailable = e => { if(e.data?.size) messageChunks.push(e.data); };
+      messageRecorder.onstop = async () => {
+        messageStream?.getTracks().forEach(t=>t.stop()); messageStream = null;
+        audioMessage.setAttribute('aria-pressed','false');
+        audioMessage.setAttribute('aria-label','Record voice message');
+        audioMessage.title = 'Record voice message';
+        messageBusy = true; audioMessage.disabled = true;
+        try {
+          const blob = new Blob(messageChunks,{type:mime});
+          if(blob.size > 2*1024*1024) throw Error('Recording too long (2 MB maximum)');
+          const url = form.action.replace(/\/$/,'') + '/transcribe';
+          const response = await fetch(url,{method:'POST',headers:{'Content-Type':mime},body:blob,signal:AbortSignal.timeout(25000)});
+          const result = await response.json();
+          if(!response.ok || !result.text) throw Error(result.error || 'Could not transcribe recording');
+          input.value = result.text.slice(0,1200);
+          form.requestSubmit();
+        } catch(err) { showNotice(err.message || 'Could not send recording'); }
+        finally { messageBusy=false; audioMessage.disabled=false; messageRecorder=null; messageChunks=[]; }
+      };
+      messageRecorder.start();
+      audioMessage.setAttribute('aria-pressed','true');
+      audioMessage.setAttribute('aria-label','Send recorded voice message');
+      audioMessage.title='Send recording (or press Enter)';
+    } catch(err) {
+      messageStream?.getTracks().forEach(t=>t.stop()); messageStream=null;
+      showNotice(err.message || 'Microphone unavailable');
+    }
+  });
+  assistant.addEventListener('keydown',event=>{
+    if(event.key==='Enter' && messageRecorder?.state==='recording' && !event.shiftKey){
+      event.preventDefault(); finishAudioMessage();
+    }
+  });
+  window.addEventListener('pagehide',()=>messageStream?.getTracks().forEach(t=>t.stop()));
+}
 form.addEventListener('submit', async event => {
   event.preventDefault();
   const message = input.value.trim();
