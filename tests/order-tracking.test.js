@@ -23,14 +23,16 @@ function pool(order){
 
 test('valid token returns status without personal data',async()=>{
  const token=newTrackingToken();
- const p=pool({token,row:{id:7,status:'preparing',total_minor:'1180',created_at:'2026-11-14T10:00:00Z',restaurant_name:'Cheema Cafe',restaurant_slug:'cheema-cafe',currency:'PKR',customer_name:'Ali'}});
+ const p=pool({token,row:{id:7,status:'preparing',total_minor:'1180',created_at:'2026-11-14T10:00:00Z',restaurant_name:'Cheema Cafe',restaurant_slug:'cheema-cafe',currency:'PKR',estimated_ready_epoch:1794662400,customer_name:'Ali'}});
  const result=await getOrderTracking(p,7,token);
  assert.equal(result.status,200);
  assert.equal(result.body.status_label,'Being prepared');
  assert.equal(result.body.total_minor,1180);
+ assert.equal(result.body.estimated_ready_epoch,1794662400);
  assert.equal(result.body.restaurant_slug,'cheema-cafe');
  assert.deepEqual(result.body.items,[{name:'Zinger Burger',quantity:2,unit_price_minor:590}]);
  assert.ok(!JSON.stringify(result.body).includes('Ali'));
+ assert.match(p.queries[0].sql,/o\.estimated_ready_epoch/);
  assert.deepEqual(p.queries[0].args,[7,hashTrackingToken(token)]);
 });
 
