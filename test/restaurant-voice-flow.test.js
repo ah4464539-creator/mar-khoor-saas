@@ -88,6 +88,8 @@ test('realtime voice order needs draft, explicit customer confirmation, backend 
  assert.equal(h.orderCards[0].tracking_token,'a'.repeat(48));
  assert.ok(h.notices.some(s=>/pending acceptance/.test(s)));
  assert.equal(h.current.closeAfterFinalReply,true);
+ // An earlier audio buffer may stop after backend submission: do not end before goodbye.
+ h.voice.handleRealtime(h.current,{type:'output_audio_buffer.stopped'});
  h.voice.handleRealtime(h.current,{type:'response.done',response:{output:[]}});
  assert.equal(typeof h.finishTimer(),'function');
  h.finishTimer()();
