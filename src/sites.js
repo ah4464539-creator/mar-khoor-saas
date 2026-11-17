@@ -72,14 +72,14 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
   const sendIcon = icon('<path d="M12 19V5m-6 6 6-6 6 6"/>');
   const stopIcon = icon('<rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor"/>');
   // Audio messages use browser microphone permission; do not expose call-recording controls.
-  const recording = '<button type="button" id="assistant-audio-message" aria-label="Record voice message" title="Record voice message" aria-pressed="false">' + recordingIcon + '</button>';
+  const recording = '';
   const voice = voiceOn
-    ? '<div class="assistant-voice" data-voice-url="' + endpoint + '/voice" data-menu-url="/api/public/restaurants/' + encodeURIComponent(slug) + '/menu" data-order-url="/api/public/restaurants/' + encodeURIComponent(slug) + '/orders"><button type="button" id="start-voice" aria-label="Start live conversation" title="Start live conversation">' + voiceIcon + '</button><button type="button" id="stop-voice" aria-label="End live conversation" title="End live conversation" disabled>' + stopIcon + '</button></div>'
+    ? '<div class="assistant-voice" data-voice-url="' + endpoint + '/voice" data-menu-url="/api/public/restaurants/' + encodeURIComponent(slug) + '/menu" data-order-url="/api/public/restaurants/' + encodeURIComponent(slug) + '/orders"><button type="button" id="start-voice" aria-label="Start live conversation" title="Start live conversation">' + voiceIcon + '</button></div>'
     : '';
   const voiceStatus = voiceOn ? '<p id="voice-status" role="status"></p><audio id="assistant-audio" controls hidden></audio>' : '';
-  const dictation = '<button type="button" id="assistant-dictate" aria-label="Speak a text message" title="Speak a text message">' + voiceIcon + '</button>';
+  const dictation = '';
   return voiceStatus + '<form class="assistant-composer" method="post" action="' + endpoint + '"><textarea id="message" name="message" aria-label="Message AI Assistant" placeholder="Ask about the menu…" rows="1" required maxlength="1200"></textarea>' +
-    dictation + recording + voice + '<button type="submit" class="assistant-send" aria-label="Send message" title="Send message">' + sendIcon + '</button></form>';
+    voice + '<button type="submit" class="assistant-send" aria-label="Send message" title="Send message">' + sendIcon + '</button></form>';
  }
 
  function assistantPage(res, status, slug, reply = '') {

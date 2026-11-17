@@ -1,6 +1,6 @@
 // Realtime browser conversation. Audio stays in WebRTC; text and order UI share the assistant panel.
 const start = document.querySelector('#start-voice');
-const stop = document.querySelector('#stop-voice');
+const stop = null; // Single start/stop toggle uses #start-voice.
 const status = document.querySelector('#voice-status');
 const audio = document.querySelector('#assistant-audio');
 const consent = document.querySelector('#record-consent');
@@ -32,7 +32,7 @@ function finish(message = 'Voice ended.') {
   current?.mic?.getTracks().forEach(track => track.stop());
   if (!current?.recorder) current?.context?.close().catch(() => {});
   audio.pause(); audio.srcObject = null; audio.hidden = true;
-  start.disabled = false; stop.disabled = true;
+  start.disabled = false; start.setAttribute?.('aria-label','Start live conversation'); start.title='Start live conversation'; start.setAttribute?.('aria-pressed','false');
   status.textContent = message;
   setOrbState('off');
   updateRecordingControls();
@@ -215,8 +215,8 @@ function handleRealtime(current, payload) {
   }
 }
 start?.addEventListener('click',async()=>{
-  if (call) return;
-  start.disabled = true; stop.disabled = false;
+  if (call) { finish('Voice ended.'); return; }
+  start.disabled = true;
   status.textContent = 'Connecting…';
   setOrbState('connecting','Connecting…');
   const current = {peer:new RTCPeerConnection(),controller:new AbortController(),
@@ -252,6 +252,7 @@ start?.addEventListener('click',async()=>{
       if (state==='connected') {
         clearTimeout(current.connectionTimeout);
         status.textContent = 'Voice connected. Speak naturally.';
+        start.disabled = false; start.setAttribute?.('aria-label','End live conversation'); start.title='End live conversation'; start.setAttribute?.('aria-pressed','true');
         setOrbState('connected','Listening…');
         updateRecordingControls();
       } else if (state==='failed'||state==='closed') finish('Voice connection failed.');
@@ -287,7 +288,7 @@ start?.addEventListener('click',async()=>{
     finish(message);
   }
 });
-stop?.addEventListener('click',()=>finish('Voice ended.'));
+
 
 window.addEventListener('mar-khoor-assistant-close',()=>{if(call)finish('Voice ended.');});
 window.MarKhoorVoice = {isActive:()=>Boolean(call)};
