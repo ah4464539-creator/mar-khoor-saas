@@ -87,21 +87,21 @@ test('voice route validates microphone offer, API key and owner-side feature fla
   });
 });
 
-test('browser waits for ICE, negotiates data channel, and requires consent for local recordings', () => {
+test('browser waits for ICE and exposes one closeable live voice control', () => {
   const js=readFileSync(new URL('../public/restaurant-assistant-voice.js',import.meta.url),'utf8');
   const sites=readFileSync(new URL('../src/sites.js',import.meta.url),'utf8');
   assert.match(js, /createDataChannel\('oai-events'\)/);
   assert.match(js,/waitForIceGathering\(/);
   assert.match(js,/connectionTimeout/);
   assert.match(js,/voiceFailure\(response.status/);
-  assert.match(js,/!consent.checked/);
-  assert.match(js,/current\.peer\.connectionState !== 'connected'/);
-  assert.match(js,/recorder\.onstop/);
-  assert.match(js,/blob\.size > 0/);
-  assert.match(sites,/voiceOn && recordingAllowed/);
+  assert.match(js,/start\.textContent = '×'/);
+  assert.match(js,/finish\('Voice ended\.'\)/);
+  assert.doesNotMatch(sites,/assistant-voice-orb/);
+  assert.match(sites,/start-voice-note/);
+  assert.match(sites,/send-voice-note/);
 });
 
-test('voice frontend has transcript mirroring, backend-receipt gated close, and recording consent',()=>{
+test('voice frontend has transcript mirroring and backend-receipt gated close',()=>{
  const js=readFileSync(new URL('../public/restaurant-assistant-voice.js',import.meta.url),'utf8');
  const page=readFileSync(new URL('../public/restaurant-assistant-panel.js',import.meta.url),'utf8');
  assert.match(js,/conversation\.item\.input_audio_transcription\.completed/);
@@ -116,8 +116,8 @@ test('voice frontend has transcript mirroring, backend-receipt gated close, and 
  assert.match(page,/estimated_ready_epoch/);
  assert.match(page,/sessionStorage\.setItem/);
  assert.match(page,/SpeechSynthesisUtterance/);
- assert.match(page,/SpeechRecognition/);
  const style=readFileSync(new URL('../src/site-builder.js',import.meta.url),'utf8');
- assert.match(style,/assistant-voice-orb/);
- assert.match(style,/prefers-reduced-motion/);
+ assert.doesNotMatch(style,/assistant-voice-orb/);
+ assert.match(style,/assistant-voice-note/);
+ assert.match(js,/start\.dataset\.active = 'true'/);
 });
