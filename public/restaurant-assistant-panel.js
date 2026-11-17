@@ -4,6 +4,13 @@ const form = assistant.querySelector('form');
 const input = form.elements.message;
 const submit = form.querySelector('button[type="submit"]');
 const messages = assistant.querySelector('[data-assistant-messages]');
+const history = []; // Local to this browser tab; no cross-restaurant storage.
+input.addEventListener('keydown', event => {
+  if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+    event.preventDefault();
+    form.requestSubmit();
+  }
+});
 
 assistant.querySelector('[data-close-assistant]').addEventListener('click', closePanel);
 assistant.addEventListener('keydown', event => {
@@ -43,11 +50,19 @@ form.addEventListener('submit', async event => {
   try {
     const response = await fetch(form.action, {
       method: 'POST',
-      body: new URLSearchParams({ message }),
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ message, history }),
+      signal: AbortSignal.timeout(26000),
     });
-    const page = new DOMParser().parseFromString(await response.text(), 'text/html');
-    reply.textContent = page.querySelector('[aria-label="Assistant response"]')?.textContent ||
-      'The assistant is temporarily unavailable.';
+    const data = await response.json();
+    if (!response.ok) throw new Error('Assistant unavailable');
+    reply.textContent = typeof data.reply === 'string' ? data.reply : 'The assistant is temporarily unavailable.';
+    if (data.source === 'ai') {
+      history.push({ role: 'user', content: message.slice(0, 1200) },
+        { role: 'assistant', content: reply.textContent.slice(0, 1200) });
+      while (history.length > 6 || history.reduce((size, entry) => size + entry.content.length, 0) > 4000)
+        history.splice(0, 2);
+    }
   } catch {
     reply.textContent = 'Could not connect. Please try again.';
   } finally {
