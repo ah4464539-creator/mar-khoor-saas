@@ -48,9 +48,13 @@ export function sitesRouter(pool, { assistantFetch = fetch } = {}) {
  };
 
 
+ // Every newly registered restaurant is provisioned automatically. Once its site is
+ // published, the tenant-scoped assistant appears without manual platform setup.
+ // An explicit 'false' remains an emergency switch for automatic provisioning;
+ // the broad legacy enablement and demo flags are unchanged.
  const assistantEnabled = ({ restaurant }) =>
   process.env.RESTAURANT_WEBSITE_ASSISTANT_ENABLED === 'true' ||
-  (process.env.REGISTRATION_WEBSITE_ASSISTANT_ENABLED === 'true' && restaurant.websiteAssistantProvisioned) ||
+  (process.env.REGISTRATION_WEBSITE_ASSISTANT_ENABLED !== 'false' && restaurant.websiteAssistantProvisioned) ||
   (restaurant.slug === 'urban-cafe' && process.env.URBAN_CAFE_DEMO_ASSISTANT_ENABLED === 'true');
  const voiceEnabled = () => process.env.RESTAURANT_WEBSITE_VOICE_ENABLED === 'true';
 

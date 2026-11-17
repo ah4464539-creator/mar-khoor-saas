@@ -6,7 +6,7 @@ This change adds a tenant-bound conversational JSON chat API to the existing flo
 
 - `OPENAI_API_KEY`: valid key with available quota; configure only in Hostinger secrets/environment.
 - `OPENAI_ASSISTANT_MODEL`: supported Responses API text model (existing default is `gpt-4.1-mini`).
-- `REGISTRATION_WEBSITE_ASSISTANT_ENABLED=true`: enable assistant on **published** websites for newly registered restaurants that have `website_assistant_provisioned=1`.
+- `REGISTRATION_WEBSITE_ASSISTANT_ENABLED`: new restaurants with `website_assistant_provisioned=1` automatically receive the assistant on their **published** website by default. Set to `false` only to temporarily disable this automatic behavior (emergency switch).
 - `RESTAURANT_WEBSITE_ASSISTANT_ENABLED=true`: optional broad enablement for all published restaurant websites; do not use before tenant and owner readiness.
 - `WEBSITE_AI_ASSISTANT_ENABLED=true`: separately enables the Mar-Khoor SaaS landing page public FAQ assistant.
 - `RESTAURANT_WEBSITE_VOICE_ENABLED`: leave disabled until separately verified Realtime voice tests and consent design are approved.

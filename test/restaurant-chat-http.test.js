@@ -120,3 +120,20 @@ test('provider rejection categories are sanitized in public fallback responses',
     });
   }
 });
+
+
+test('newly registered published restaurant receives assistant by default; opt-out remains available', async () => {
+  delete process.env.REGISTRATION_WEBSITE_ASSISTANT_ENABLED;
+  delete process.env.RESTAURANT_WEBSITE_ASSISTANT_ENABLED;
+  process.env.OPENAI_API_KEY = 'test-only';
+  await withApp(async()=>{throw new Error('Not called by GET status')}, async base => {
+    const fresh = await fetch(base + '/r/alpha-cafe/assistant/status');
+    assert.equal(fresh.status, 200);
+    assert.equal((await fresh.json()).enabled, true);
+    const legacy = await fetch(base + '/r/legacy-cafe/assistant/status');
+    assert.equal(legacy.status, 404);
+    process.env.REGISTRATION_WEBSITE_ASSISTANT_ENABLED = 'false';
+    const optedOut = await fetch(base + '/r/alpha-cafe/assistant/status');
+    assert.equal(optedOut.status, 404);
+  });
+});
