@@ -31,7 +31,7 @@ async function restaurantAiRequest(send) {
  return response;
 }
 
-export function sitesRouter(pool, { assistantFetch = fetch } = {}) {
+export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch } = {}) {
  const router = express.Router();
  const restaurantAdmin = async (req, res, next) => {
   const id = Number(req.params.restaurantId);
@@ -192,7 +192,7 @@ export function sitesRouter(pool, { assistantFetch = fetch } = {}) {
     if (!site || !assistantEnabled(site)) return res.sendStatus(404);
     if (typeof req.body !== 'string' || !req.body.startsWith('v=0')) return res.sendStatus(400);
     const key = process.env.OPENAI_API_KEY;
-    if (!key) return res.sendStatus(503);
+    if (!key) return res.set('X-Voice-Error', 'missing_key').sendStatus(503);
     const menu = site.items.map(({ name, price_minor }) => ({ name, price_minor }));
     const data = new FormData();
     data.set('sdp', req.body);
@@ -203,14 +203,20 @@ export function sitesRouter(pool, { assistantFetch = fetch } = {}) {
       restaurant: site.restaurant.name, currency: site.restaurant.currency, menu,
      }),
     }));
-    const response = await fetch('https://api.openai.com/v1/realtime/calls', {
+    const response = await voiceFetch('https://api.openai.com/v1/realtime/calls', {
      method: 'POST', headers: { Authorization: `Bearer ${key}` },
      body: data, signal: AbortSignal.timeout(20000),
     });
-    if (!response.ok) return res.sendStatus(502);
+    if (!response.ok) {
+     const details = await response.json().catch(() => null);
+     const reason = classifyAssistantProviderFailure(response.status, details?.error?.code);
+     console.warn('Restaurant voice provider unavailable:', reason);
+     return res.set('X-Voice-Error', reason).sendStatus(502);
+    }
     return res.type('application/sdp').send(await response.text());
    } catch {
-    return res.sendStatus(503);
+    console.warn('Restaurant voice provider connection failed');
+    return res.set('X-Voice-Error', 'connection_failed').sendStatus(503);
    }
   });
 
