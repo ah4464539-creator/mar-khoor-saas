@@ -30,6 +30,16 @@ function render() {
   content.replaceChildren(node('h2', views[view]), node('p', order.restaurant_name + ' · Order #' + order.order_id));
   if (view === 'tracking') {
     content.append(node('p', order.status_label));
+    const epoch = Number(order.estimated_ready_epoch);
+    if (order.estimated_ready_epoch != null && Number.isFinite(epoch) && epoch > 0 &&
+        !['completed','cancelled'].includes(order.status)) {
+      const remaining = Math.ceil((epoch * 1000 - Date.now()) / 60000);
+      const estimate = remaining > 0
+        ? 'Restaurant estimated ready in about ' + remaining + ' minute' + (remaining === 1 ? '' : 's')
+        : 'Restaurant estimate passed; awaiting an updated time';
+      content.append(node('p', estimate + ' (' +
+        new Date(epoch * 1000).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}) + ')'));
+    }
     if (order.status !== 'cancelled') {
       const progress = node('ol', '');
       progress.className = 'order-progress';
