@@ -184,6 +184,33 @@ function renderOwnerOrders() {
    });
    actions.append(button);
   }
+  if (['pending','accepted','preparing'].includes(order.status)) {
+   const eta = document.createElement('div');
+   eta.className = 'owner-order-estimate';
+   const input = document.createElement('input');
+   input.type = 'number'; input.min='1'; input.max='240'; input.step='1';
+   input.style.width = '75px'; input.setAttribute('aria-label','Minutes to order ready');
+   input.placeholder='Minutes';
+   const remaining = order.estimated_ready_epoch == null ? null : Math.max(1,Math.ceil((Number(order.estimated_ready_epoch)*1000-Date.now())/60000));
+   if (remaining !== null) input.value = remaining;
+   const save = ownerText('button','Save ETA');
+   save.type = 'button';
+   const clear = ownerText('button','Clear ETA'); clear.type = 'button';
+   const updateEstimate = async minutes => {
+    save.disabled = true; clear.disabled = true;
+    try {
+     await api('/api/restaurants/'+restaurantId+'/orders/'+order.id+'/estimate',{
+      method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({minutes})
+     });
+     await refresh();
+     status.textContent = 'Order #'+order.id+' estimated time updated';
+    }catch(error){status.textContent=error.message;save.disabled=false;clear.disabled=false;}
+   };
+   save.addEventListener('click',()=>{if(!input.reportValidity()||!input.value)return;updateEstimate(Number(input.value));});
+   clear.addEventListener('click',()=>updateEstimate(null));
+   eta.append(input,save,clear);
+   actions.append(eta);
+  }
  }
  root.replaceChildren(table);
 }
