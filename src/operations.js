@@ -131,9 +131,25 @@ export function operationsRouter(pool) {
   }catch{res.status(503).json({error:'Analytics unavailable'});}
  });
  router.get('/restaurants/:restaurantId/orders',async(req,res)=>{
-  try{const [orders]=await pool.execute('SELECT id,customer_name,status,total_minor,created_at FROM orders WHERE restaurant_id=? ORDER BY id DESC LIMIT 100',[req.restaurantId]);res.json({orders});}
+  try{const [orders]=await pool.execute('SELECT id,customer_name,status,total_minor,estimated_ready_epoch,created_at FROM orders WHERE restaurant_id=? ORDER BY id DESC LIMIT 100',[req.restaurantId]);res.json({orders});}
   catch{res.status(503).json({error:'Database unavailable'});}
  });
+ // The owner controls estimated readiness. Do not infer a duration from the AI or the order state.
+ router.patch('/restaurants/:restaurantId/orders/:orderId/estimate',async(req,res)=>{
+  const id=Number(req.params.orderId);
+  const minutes=req.body?.minutes;
+  if(!Number.isSafeInteger(id)||id<1||
+      !(minutes===null||(Number.isSafeInteger(minutes)&&minutes>=1&&minutes<=240)))
+   return res.status(400).json({error:'Use 1-240 minutes or null to clear the estimate'});
+  try {
+   const [result]=await pool.execute(
+    "UPDATE orders SET estimated_ready_epoch=CASE WHEN ? IS NULL THEN NULL ELSE UNIX_TIMESTAMP()+?*60 END WHERE id=? AND restaurant_id=? AND status IN ('pending','accepted','preparing')",
+    [minutes,minutes,id,req.restaurantId]);
+   if(!result.affectedRows)return res.status(409).json({error:'Order unavailable or already finished'});
+   return res.json({updated:true,estimated_ready_epoch:minutes===null?null:Math.floor(Date.now()/1000)+minutes*60});
+  }catch{return res.status(503).json({error:'Could not update the estimate'});}
+ });
+
  router.patch('/restaurants/:restaurantId/orders/:orderId/status',async(req,res)=>{
   const id=Number(req.params.orderId),status=req.body?.status;
   if(!Number.isSafeInteger(id)||id<1||!['accepted','preparing','ready','completed','cancelled'].includes(status))return res.status(400).json({error:'Invalid status'});
