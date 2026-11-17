@@ -75,9 +75,10 @@ function updateMessage(current, role, itemId, text, append = false) {
 }
 function explicitYes(text) {
   if (typeof text !== 'string') return false;
-  const clean = text.trim().toLowerCase().replace(/[.!?،۔]+$/g, '');
-  if (/\b(no|not|don't|dont|cancel|nahi|nahin|mat karo|stop)\b/.test(clean)) return false;
-  return /^(yes|yes please|haan|han|haan ji|han ji|ji|ji haan|confirm|confirmed|confirm order|place order|submit order|okay confirm|ok confirm|theek hai|kar do|kardo|bilkul|go ahead|please place (the )?order|ہاں|جی|ہاں جی|ٹھیک ہے|کر دو|نعم|oui|sí|si)$/i.test(clean);
+  const clean = text.normalize('NFKC').trim().toLowerCase().replace(/[.!?,"'।]+$/gu, '').trim();
+  if (/\b(no|not|don't|dont|cancel|nahi|nahin|mat karo|stop|change|modify)\b/i.test(clean) || /(?:नहीं|नही|मत|रद्द|बदल)/u.test(clean)) return false;
+  return /^(?:yes|yeah|yep|haan|han|ji|confirm|confirmed|ok|okay|theek hai|bilkul|go ahead|kar do|kardo|place order|submit order)(?:\b|$)/i.test(clean) ||
+    /(?:\b(?:confirm|confirmed|place|submit|kardo|kar do|haan|han|yes|bilkul)\b|(?:हाँ|हां|जी|पक्का|कन्फर्म|कर दो|भेज दो|ठीक है)|(?:ہاں|جی|کنفرم|کر دو|ٹھیک ہے))/iu.test(clean);
 }
 async function verifiedMenu(current) {
   if (current.menu) return current.menu;
@@ -110,7 +111,10 @@ async function prepareOrder(current, args) {
   });
   if (!Number.isSafeInteger(total) || total > 1000000000) throw Error('Order amount invalid');
   current.draft = {customer_name:name,items:items.map(({menu_item_id,quantity})=>({menu_item_id,quantity})),total_minor:total};
-  current.confirmedSinceDraft = false;
+  // Repeated identical drafts must not erase a confirmation already given.
+  const signature = JSON.stringify(current.draft);
+  if (signature !== current.draftSignature) current.confirmedSinceDraft = false;
+  current.draftSignature = signature;
   current.draftAt = Date.now();
   const money = new Intl.NumberFormat(undefined,{style:'currency',currency:menu.restaurant.currency});
   const summary = 'Draft order (not yet submitted):\n' +
@@ -160,7 +164,8 @@ async function processTool(current, item) {
     else throw Error('Unsupported tool');
   } catch(error) {
     result = {status:'error',message:error.message || 'Tool unavailable'};
-    window.MarKhoorAssistant?.showNotice('Order assistant: '+result.message);
+    if (!current.lastToolError || current.lastToolError !== result.message) window.MarKhoorAssistant?.showNotice('Order assistant: '+result.message);
+    current.lastToolError = result.message;
   }
   if (!sendRealtime(current,{type:'conversation.item.create',item:{
     type:'function_call_output',call_id:item.call_id,output:JSON.stringify(result)
