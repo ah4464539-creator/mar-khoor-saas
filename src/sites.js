@@ -71,11 +71,10 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
   const recordingIcon = icon('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/>');
   const sendIcon = icon('<path d="M12 19V5m-6 6 6-6 6 6"/>');
   const stopIcon = icon('<rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor"/>');
-  const recording = voiceOn && recordingAllowed
-    ? '<details class="assistant-recording"><summary aria-label="Recording options" title="Recording options">' + recordingIcon + '</summary><div class="assistant-recording-options"><label><input type="checkbox" id="record-consent"> I consent to recording both voices on this device.</label><div class="assistant-actions"><button type="button" id="start-recording" disabled>Start recording</button><button type="button" id="stop-recording" disabled>Stop recording</button></div><a id="recording-download" hidden>Download recording</a></div></details>'
-    : '';
+  // Audio messages use browser microphone permission; do not expose call-recording controls.
+  const recording = '';
   const voice = voiceOn
-    ? '<div class="assistant-voice" data-voice-url="' + endpoint + '/voice" data-menu-url="/api/public/restaurants/' + encodeURIComponent(slug) + '/menu" data-order-url="/api/public/restaurants/' + encodeURIComponent(slug) + '/orders"><button type="button" id="start-voice" aria-label="Start live conversation" title="Start live conversation">' + voiceIcon + '</button><button type="button" id="stop-voice" aria-label="End live conversation" title="End live conversation" disabled>' + stopIcon + '</button><div id="assistant-voice-orb" class="assistant-voice-orb" data-state="connecting" role="status" aria-label="Live conversation" hidden><div class="orb-glow" aria-hidden="true"></div><span id="orb-caption">Connecting…</span><button type="button" id="orb-close" aria-label="End live conversation" title="End live conversation">×</button></div></div>'
+    ? '<div class="assistant-voice" data-voice-url="' + endpoint + '/voice" data-menu-url="/api/public/restaurants/' + encodeURIComponent(slug) + '/menu" data-order-url="/api/public/restaurants/' + encodeURIComponent(slug) + '/orders"><button type="button" id="start-voice" aria-label="Start live conversation" title="Start live conversation">' + voiceIcon + '</button><button type="button" id="stop-voice" aria-label="End live conversation" title="End live conversation" disabled>' + stopIcon + '</button></div>'
     : '';
   const voiceStatus = voiceOn ? '<p id="voice-status" role="status"></p><audio id="assistant-audio" controls hidden></audio>' : '';
   const dictation = '<button type="button" id="assistant-dictate" aria-label="Speak a text message" title="Speak a text message">' + voiceIcon + '</button>';

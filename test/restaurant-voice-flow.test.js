@@ -93,7 +93,7 @@ test('realtime voice order needs draft, explicit customer confirmation, backend 
  h.voice.handleRealtime(h.current,{type:'response.done',response:{output:[]}});
  assert.equal(typeof h.finishTimer(),'function');
  h.finishTimer()();
- assert.equal(h.elements.get('#assistant-voice-orb').hidden,true);
+ assert.equal(h.elements.get('#voice-status').textContent,'Order submitted. Live conversation ended.');
  assert.equal(h.elements.get('#start-voice').disabled,false);
 });
 test('voice ordering blocks nonexistent items, unsafe quantities and ambiguous confirmation',async()=>{
