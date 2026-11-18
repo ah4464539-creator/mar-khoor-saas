@@ -115,6 +115,9 @@ function renderOrder(order) {
     details.append(line);
   }
   details.append(node('strong', 'Total: ' + money.format(Number(order.total_minor)/100)));
+  const methods = {cod:'Cash on Delivery',cash_pickup:'Cash on Pickup',stripe:'Online payment'};
+  const paid = {unpaid:'Unpaid',pending:'Payment pending',paid:'Paid',failed:'Payment failed',refunded:'Refunded'};
+  if (methods[order.payment_method]) details.append(node('p', 'Payment: ' + methods[order.payment_method] + ' · ' + (paid[order.payment_status] || 'Unpaid')));
   const labels = {pending:'Received — awaiting restaurant acceptance',accepted:'Accepted by restaurant',
     preparing:'Being prepared',ready:'Ready',completed:'Completed',cancelled:'Cancelled'};
   const statusText = labels[order.status] || 'Status unavailable';
@@ -290,58 +293,84 @@ form.addEventListener('submit', async event => {
     const confirmation = /^(?:yes|yeah|yep|han|haan|hanji|haanji|ji|confirm|confirmed|ok|okay|bilkul|theek hai|kar do|kardo|place order|submit order|हाँ|हां|जी|हाँ जी|हां जी|ठीक है|کنفرم|ہاں|جی)$/iu;
     if (pendingChatOrder && checkoutStep) {
       const value = message.trim();
-      if (/^(cancel|stop|no|nahi|nahin)$/i.test(value)) {
+      const plain = value.replace(/[.!?।]+$/u,'');
+      if (/^(cancel|cancel order|stop|no|nahi|nahin|nai|rehne do|mat karo|منسوخ|نہیں)$/iu.test(plain)) {
         pendingChatOrder = null; checkoutStep = null; checkoutDetails = {};
         reply.textContent = 'Order cancelled. No order was submitted.'; return;
       }
+      const money = new Intl.NumberFormat(undefined,{style:'currency',currency:pendingChatOrder.currency||'PKR'});
+      const ask = text => { reply.textContent = text; };
       if (checkoutStep === 'phone') {
-        if (!/^\\+?[0-9 ()-]{7,32}$/.test(value)) { reply.textContent='Please enter a valid phone number.'; return; }
-        checkoutDetails.customer_phone=value;
-        checkoutStep='type'; reply.textContent='Delivery or pickup?'; return;
+        const digits = value.replace(/\D/g,'');
+        if (!/^\+?[0-9 ()-]{7,32}$/.test(value) || digits.length < 7 || digits.length > 15)
+          return ask('Please enter a valid phone number (for example 03001234567 or +923001234567).');
+        checkoutDetails.customer_phone = value;
+        checkoutStep = 'type'; return ask('Delivery or Pickup?');
       }
       if (checkoutStep === 'type') {
-        if (/^(delivery|deliver|home delivery)$/i.test(value)) {
-          checkoutDetails.order_type='delivery'; checkoutStep='address';
-          reply.textContent='Please enter your complete delivery address.'; return;
+        if (/^(delivery|deliver|home delivery|ghar|ghar pe|ghar par)$/i.test(plain)) {
+          checkoutDetails.order_type = 'delivery'; checkoutStep = 'address';
+          return ask('Please enter your complete delivery address (house, street, area, city).');
         }
-        if (/^(pickup|pick up|collect|takeaway)$/i.test(value)) {
-          checkoutDetails.order_type='pickup'; checkoutDetails.payment_method='cash_pickup';
-          checkoutStep='confirm';
-        } else { reply.textContent='Please reply Delivery or Pickup.'; return; }
-      } else if (checkoutStep === 'address') {
-        if (!value || value.length>500) { reply.textContent='Please enter a valid delivery address (up to 500 characters).'; return; }
-        checkoutDetails.delivery_address=value;
-        checkoutDetails.payment_method='cod';
-        checkoutStep='confirm';
-      } else if (checkoutStep === 'confirm') {
-        if (!confirmation.test(value.replace(/[.!?।]+$/u,''))) {
-          reply.textContent='Please reply Yes / Han to place the order, or Cancel to stop.'; return;
+        if (/^(pickup|pick up|pick-up|collect|takeaway|take away|khud le lunga|khud lenge)$/i.test(plain)) {
+          checkoutDetails.order_type = 'pickup'; checkoutStep = 'payment';
+          return ask('Payment: this restaurant accepts Cash on Pickup. Reply Cash to continue, or Cancel.');
         }
-        const order = pendingChatOrder;
-        pendingChatOrder = null; checkoutStep = null; // Never submit twice automatically.
-        const checkout = await fetch('/api/public/restaurants/'+encodeURIComponent(slug)+'/orders',{
-          method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({customer_name:order.customer_name,
-            items:order.items.map(({menu_item_id,quantity})=>({menu_item_id,quantity})),
-            ...checkoutDetails,delivery_instructions:'',client_request_id:crypto.randomUUID()}),
-          signal:AbortSignal.timeout(20000)
-        });
-        const receipt = await checkout.json();
-        if (!checkout.ok || !Number.isSafeInteger(receipt.order_id) || !receipt.tracking_token)
-          throw new Error(receipt.error || 'Order not received');
-        showOrder(receipt);
-        reply.textContent='Order #'+receipt.order_id+' received! Payment: unpaid ('+
-          (checkoutDetails.payment_method==='cod'?'cash on delivery':'cash on pickup')+
-          '). Pending restaurant acceptance. Tracking details are shown above.';
-        checkoutDetails={}; return;
+        return ask('Please reply Delivery or Pickup.');
+      }
+      if (checkoutStep === 'address') {
+        if (value.length < 5 || value.length > 500) return ask('Please enter your complete delivery address (5–500 characters).');
+        checkoutDetails.delivery_address = value; checkoutStep = 'instructions';
+        return ask('Any delivery instructions (landmark, gate, floor)? Reply Skip if none.');
+      }
+      if (checkoutStep === 'instructions') {
+        if (value.length > 500) return ask('Please keep delivery instructions under 500 characters, or reply Skip.');
+        checkoutDetails.delivery_instructions = /^(skip|none|no instructions|nahi|kuch nahi|-)$/i.test(plain) ? '' : value;
+        checkoutStep = 'payment';
+        return ask('Payment: this restaurant accepts Cash on Delivery. Reply Cash to continue, or Cancel.');
+      }
+      if (checkoutStep === 'payment') {
+        if (/(card|stripe|online|jazzcash|easypaisa|bank)/i.test(plain))
+          return ask('Online payment is not available yet. Only cash is accepted. Please never share card details in chat. Reply Cash to continue, or Cancel.');
+        if (!/^(cash|cod|cash on delivery|cash on pickup|naqad|naqd|yes|han|haan|ok|okay|theek hai)$/i.test(plain))
+          return ask('Please reply Cash to continue, or Cancel.');
+        checkoutDetails.payment_method = checkoutDetails.order_type === 'delivery' ? 'cod' : 'cash_pickup';
+        checkoutStep = 'confirm';
+        const lines = pendingChatOrder.items.map(item => item.quantity+' × '+item.name+' — '+money.format(item.unit_price_minor*item.quantity/100));
+        return ask('Please review your order:\n'+
+          'Name: '+pendingChatOrder.customer_name+'\nPhone: '+checkoutDetails.customer_phone+'\n'+
+          lines.join('\n')+'\nTotal (menu prices): '+money.format(pendingChatOrder.total_minor/100)+'\n'+
+          (checkoutDetails.order_type==='delivery'
+            ? 'Delivery to: '+checkoutDetails.delivery_address+(checkoutDetails.delivery_instructions?'\nInstructions: '+checkoutDetails.delivery_instructions:'')+'\nPayment: Cash on Delivery'
+            : 'Pickup from the restaurant\nPayment: Cash on Pickup')+
+          '\nPayment status: Unpaid until you pay the restaurant.'+
+          '\nReply Yes / Han to place the order, or Cancel.');
       }
       if (checkoutStep === 'confirm') {
-        const money=new Intl.NumberFormat(undefined,{style:'currency',currency:pendingChatOrder.currency||'PKR'});
-        reply.textContent='Order for '+pendingChatOrder.customer_name+
-          '\\nTotal: '+money.format(pendingChatOrder.total_minor/100)+
-          '\\n'+(checkoutDetails.order_type==='delivery'?'Delivery to: '+checkoutDetails.delivery_address+'; pay Cash on Delivery.':'Pickup; pay Cash on Pickup.')+
-          '\\nPayment status: Unpaid. Reply Yes / Han to place the order, or Cancel.';
-        return;
+        if (!confirmation.test(plain)) return ask('Please reply Yes / Han to place the order, or Cancel to stop.');
+        const order = pendingChatOrder, details = checkoutDetails;
+        pendingChatOrder = null; checkoutStep = null; checkoutDetails = {}; // Never submit twice automatically.
+        let checkout;
+        try {
+          checkout = await fetch('/api/public/restaurants/'+encodeURIComponent(slug)+'/orders',{
+            method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({customer_name:order.customer_name,
+              items:order.items.map(({menu_item_id,quantity})=>({menu_item_id,quantity})),
+              customer_phone:details.customer_phone,order_type:details.order_type,
+              delivery_address:details.delivery_address||'',delivery_instructions:details.delivery_instructions||'',
+              payment_method:details.payment_method,client_request_id:crypto.randomUUID()}),
+            signal:AbortSignal.timeout(20000)
+          });
+        } catch {
+          return ask('The connection timed out, so we could not confirm whether the restaurant received your order. Please check Order History before ordering again.');
+        }
+        const receipt = await checkout.json().catch(() => ({}));
+        if (!checkout.ok || !Number.isSafeInteger(receipt.order_id) || !receipt.tracking_token)
+          return ask('Order not placed: '+(typeof receipt.error === 'string' ? receipt.error : 'the restaurant is unavailable right now')+'. Nothing was charged.');
+        showOrder(receipt);
+        return ask('Order #'+receipt.order_id+' received! Payment: '+
+          (receipt.payment_method==='cod'?'Cash on Delivery':'Cash on Pickup')+' (unpaid). '+
+          'Status: Pending restaurant acceptance. Tracking details are shown above.');
       }
     }
     if (pendingChatOrder) { pendingChatOrder=null; checkoutStep=null; checkoutDetails={}; }
@@ -362,7 +391,7 @@ form.addEventListener('submit', async event => {
       const lines = data.draft.items.map(item => item.quantity+' × '+item.name+' — '+money.format(item.unit_price_minor*item.quantity/100));
       reply.textContent = 'Order for '+data.draft.customer_name+':\n'+lines.join('\n')+
         '\nTotal: '+money.format(data.draft.total_minor/100)+
-        '\nTo continue, please enter your phone number. Then I will ask about delivery/pickup and payment. Reply Cancel to stop.';
+        '\nTo continue, please enter your phone number. Then I will ask about delivery or pickup and cash payment. Reply Cancel to stop.';
     }
     if (data.source === 'ai') {
       history.push({role:'user',content:message.slice(0,1200)},

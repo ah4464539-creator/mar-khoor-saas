@@ -140,7 +140,7 @@ function renderOwnerOrders() {
  const query = orderSearch.value.trim().toLowerCase().replace(/^#/, '');
  const visible = ownerOrders.filter(order =>
   (!orderFilter.value || order.status === orderFilter.value) &&
-  (String(order.id).includes(query) || (order.customer_name ?? '').toLowerCase().includes(query))
+  (String(order.id).includes(query) || (order.customer_name ?? '').toLowerCase().includes(query) || (order.customer_phone ?? '').includes(query))
  );
  if (!visible.length) {
   root.replaceChildren(ownerText('p', ownerOrders.length ? 'No orders match these filters.' : 'No orders yet.'));
@@ -149,7 +149,7 @@ function renderOwnerOrders() {
  const table = document.createElement('table');
  table.setAttribute('aria-label','Recent restaurant orders');
  const header = table.createTHead().insertRow();
- for (const heading of ['Order ID','Customer','Date','Amount','Status','Actions']) {
+ for (const heading of ['Order ID','Customer','Date','Amount','Fulfilment','Payment','Status','Actions']) {
   const cell = ownerText('th', heading);
   cell.scope = 'col';
   header.append(cell);
@@ -162,6 +162,17 @@ function renderOwnerOrders() {
   for (const value of ['#' + order.id, order.customer_name || 'Customer', formatted, ownerMoney(order.total_minor)]) {
    row.append(ownerText('td', value));
   }
+  // Fulfilment and cash payment details (absent for legacy website orders).
+  const fulfilment = row.insertCell();
+  if (order.order_type === 'delivery' || order.order_type === 'pickup') {
+   fulfilment.append(ownerText('strong', order.order_type === 'delivery' ? 'Delivery' : 'Pickup'));
+   for (const detail of [order.customer_phone, order.delivery_address, order.delivery_instructions && 'Note: ' + order.delivery_instructions]) {
+    if (detail) fulfilment.append(document.createElement('br'), ownerText('span', detail));
+   }
+  } else fulfilment.textContent = '—';
+  const payment = row.insertCell();
+  const methods = {cod:'Cash on Delivery',cash_pickup:'Cash on Pickup',stripe:'Online'};
+  payment.textContent = methods[order.payment_method] ? methods[order.payment_method] + ' · ' + ({unpaid:'Unpaid',pending:'Pending',paid:'Paid',failed:'Failed',refunded:'Refunded'}[order.payment_status] || 'Unpaid') : '—';
   row.insertCell().append(ownerText('span', order.status, 'owner-order-badge'));
   const actions = row.insertCell();
   for (const next of orderTransitions[order.status] ?? []) {
