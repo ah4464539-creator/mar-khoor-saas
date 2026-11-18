@@ -10,15 +10,16 @@ async function serve(pool,fn){
  try{await fn('http://127.0.0.1:'+server.address().port)}
  finally{await new Promise(resolve=>server.close(resolve))}
 }
-function fakePool({available=true}={}){
- const state={begun:0,commits:0,rollbacks:0,orders:[],lines:[],released:0,requestIds:new Set()};
+function fakePool({available=true,restaurant=true,fulfillmentError=null}={}){
+ const state={begun:0,commits:0,rollbacks:0,orders:[],lines:[],fulfillment:[],released:0,requestIds:new Set()};
  const connection={
   async beginTransaction(){state.begun++},
   async commit(){state.commits++},
   async rollback(){state.rollbacks++},
   release(){state.released++},
   async execute(sql,args){
-   if(sql.startsWith('SELECT id FROM restaurants'))return [[{id:9}]];
+   if(sql.startsWith('SELECT id FROM restaurants'))return [restaurant?[{id:9}]:[]];
+   if(sql.startsWith('INSERT INTO order_fulfillment')){if(fulfillmentError)throw fulfillmentError;state.fulfillment.push(args);return [{affectedRows:1}]}
    if(sql.startsWith('INSERT INTO orders')){
     const key=args[3];
     if(key && state.requestIds.has(key)) { const err=new Error('duplicate');err.code='ER_DUP_ENTRY';throw err; }
@@ -97,4 +98,83 @@ test('voice web checkout rejects malformed idempotency keys before transaction',
   assert.equal(response.status,400);
  });
  assert.equal(pool.state.begun,0);
+});
+
+const post=(base,body,slug='test-cafe')=>fetch(base+'/api/public/restaurants/'+slug+'/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+const cod={customer_name:'Ali',items:[{menu_item_id:5,quantity:2}],customer_phone:'03001234567',order_type:'delivery',delivery_address:'House 5, Street 2, Lahore',delivery_instructions:'Gate 2',payment_method:'cod'};
+
+test('COD delivery order stores fulfilment as unpaid in the same transaction',async()=>{
+ const pool=fakePool();
+ await serve(pool,async base=>{
+  const response=await post(base,cod);
+  assert.equal(response.status,201);
+  const body=await response.json();
+  assert.equal(body.payment_method,'cod');assert.equal(body.payment_status,'unpaid');assert.equal(body.order_type,'delivery');
+  assert.equal(body.total_minor,2598);
+ });
+ assert.deepEqual(pool.state.fulfillment[0],[77,9,'delivery','03001234567','House 5, Street 2, Lahore','Gate 2','cod','unpaid']);
+ assert.equal(pool.state.commits,1);
+});
+
+test('cash pickup order stores no address and is unpaid',async()=>{
+ const pool=fakePool();
+ await serve(pool,async base=>{
+  const response=await post(base,{customer_name:'Sara',items:[{menu_item_id:5,quantity:1}],customer_phone:'+923001234567',order_type:'pickup',payment_method:'cash_pickup',delivery_address:'x'});
+  assert.equal(response.status,201);
+  assert.equal((await response.json()).payment_method,'cash_pickup');
+ });
+ assert.deepEqual(pool.state.fulfillment[0],[77,9,'pickup','+923001234567',null,null,'cash_pickup','unpaid']);
+});
+
+test('legacy website checkout response and storage are unchanged',async()=>{
+ const pool=fakePool();
+ await serve(pool,async base=>{
+  const body=await (await post(base,{customer_name:'A',items:[{menu_item_id:5,quantity:1}]})).json();
+  assert.equal(body.payment_status,undefined);
+ });
+ assert.equal(pool.state.fulfillment.length,0);
+});
+
+test('missing phone, invalid phone, missing address and Stripe are rejected before any transaction',async()=>{
+ const pool=fakePool();
+ await serve(pool,async base=>{
+  for(const body of [{...cod,customer_phone:undefined,order_type:'delivery'},{...cod,customer_phone:'12ab'},{...cod,delivery_address:''},{...cod,payment_method:'stripe'}]){
+   const response=await post(base,body);
+   assert.equal(response.status,400);
+  }
+ });
+ assert.equal(pool.state.begun,0);assert.equal(pool.state.orders.length,0);
+});
+
+test('client-side modified prices are ignored; totals come from the database menu',async()=>{
+ const pool=fakePool();
+ await serve(pool,async base=>{
+  const body=await (await post(base,{...cod,items:[{menu_item_id:5,quantity:2,unit_price_minor:1}],total_minor:2})).json();
+  assert.equal(body.total_minor,2598);
+ });
+ assert.deepEqual(pool.state.lines[0],[77,5,'Pizza',2,1299]);
+});
+
+test('unknown restaurant returns 404 and invalid menu item returns 409 with no order',async()=>{
+ for(const [options,status] of [[{restaurant:false},404],[{available:false},409]]){
+  const pool=fakePool(options);
+  await serve(pool,async base=>assert.equal((await post(base,cod)).status,status));
+  assert.equal(pool.state.orders.length,0);assert.equal(pool.state.commits,0);
+ }
+});
+
+test('if the fulfilment table is missing the whole order rolls back',async()=>{
+ const pool=fakePool({fulfillmentError:Object.assign(new Error('no table'),{code:'ER_NO_SUCH_TABLE'})});
+ await serve(pool,async base=>assert.equal((await post(base,cod)).status,503));
+ assert.equal(pool.state.commits,0);assert.equal(pool.state.rollbacks,1);
+});
+
+test('duplicate COD submission with the same request ID creates only one order',async()=>{
+ const pool=fakePool();
+ const id='123e4567-e89b-42d3-a456-426614174000';
+ await serve(pool,async base=>{
+  assert.equal((await post(base,{...cod,client_request_id:id})).status,201);
+  assert.equal((await post(base,{...cod,client_request_id:id})).status,409);
+ });
+ assert.equal(pool.state.commits,1);
 });
