@@ -5,6 +5,7 @@ import { generateSiteConfig, renderSitePage, SITE_CSP } from './site-builder.js'
 import { loadRestaurant, loadSite, saveSite, canPublish, setPublished, loadPublicSite } from './site-store.js';
 import { audit, rateLimit } from './security.js';
 import { restaurantAssistantInstructions } from './restaurant-assistant-policy.js';
+import { recordUsage } from './subscriptions.js';
 import { buildRestaurantChatInput, normalizeAssistantHistory } from './restaurant-chat-context.js';
 import { classifyAssistantProviderFailure } from './ai-provider-diagnostics.js';
 
@@ -202,6 +203,8 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
       if (items.length && Number.isSafeInteger(total_minor) && total_minor > 0 && total_minor <= 1000000000)
         draft = {customer_name:parsed.draft.customer_name.trim(),items,total_minor,currency:site.restaurant.currency};
     }
+    // Plan usage metering: counts AI replies; never blocks or slows the customer reply.
+    if (Number.isSafeInteger(Number(site.restaurant?.id))) recordUsage(pool, Number(site.restaurant.id), 'ai_chats').catch(() => {});
     if (asJson) return res.json({reply:answer,source:'ai',draft});
     return restaurantAssistantReply(res,200,req.params.slug,answer,'ai',false);
    } catch {
