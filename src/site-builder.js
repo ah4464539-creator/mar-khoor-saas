@@ -194,6 +194,15 @@ main section+section{margin-top:22px}
 .assistant-recording-options{position:absolute;inset-inline:0;bottom:calc(100% + 6px);padding:10px;background:${t.card};border:1px solid ${t.muted};border-radius:12px;box-shadow:0 3px 16px #0002}
 #voice-status{margin:0;font-size:12px}#voice-status:empty{display:none}#assistant-audio{width:100%;height:32px}
 .assistant-panel{width:min(390px,calc(100vw - 28px));height:min(560px,calc(100dvh - 90px),78dvh)}
+@media(max-width:720px){
+.restaurant-assistant{inset:0!important;bottom:0!important;right:0!important;left:0!important;pointer-events:none;z-index:9999}
+.restaurant-assistant>summary{position:fixed;right:16px;bottom:max(16px,env(safe-area-inset-bottom));pointer-events:auto}
+.restaurant-assistant[open]>.assistant-panel{position:fixed;top:var(--assistant-viewport-top,0px);left:0;right:0;bottom:auto;width:100%;height:var(--assistant-viewport-height,100dvh);max-height:100dvh;border-radius:16px 16px 0 0;pointer-events:auto;box-sizing:border-box}
+.restaurant-assistant[open]>summary{display:none}
+.assistant-body{min-height:0;overflow:hidden}
+[data-assistant-messages]{min-height:0;overscroll-behavior:contain}
+.assistant-composer{flex-shrink:0}
+}
 .assistant-voice{position:static}
 .assistant-voice-orb{position:absolute;inset-inline-end:50%;transform:translateX(50%);bottom:calc(100% + 18px);width:176px;height:176px;border-radius:50%;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:9px;text-align:center;z-index:4;background:radial-gradient(circle at 35% 25%,#69caff,#5840c9 54%,#191452);color:white;box-shadow:0 0 40px #6254c888, inset 0 0 34px #ffffff44;overflow:hidden}
 .assistant-voice-orb .orb-glow{position:absolute;width:90px;height:90px;border:3px solid #a5eaff99;border-radius:50%;animation:assistant-pulse 1.6s ease-in-out infinite;pointer-events:none}
