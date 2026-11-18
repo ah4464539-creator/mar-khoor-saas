@@ -462,10 +462,24 @@ let setupData = {plans:[], subscription:null, integrations:[]};
 const setupUrl = path => '/api/restaurants/' + restaurantId + path;
 const jsonBody = (method, body) => ({method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
 
+function money(amount, currency) {
+ return new Intl.NumberFormat(undefined, {style:'currency', currency, maximumFractionDigits: amount % 100 ? 2 : 0}).format(amount / 100);
+}
+
 function planPrice(plan, cycle) {
  const amount = plan.price_minor?.[cycle];
  if (amount == null) return 'Price to be confirmed';
- return new Intl.NumberFormat(undefined, {style:'currency', currency:plan.currency}).format(amount / 100) + (cycle === 'yearly' ? ' / year' : ' / month');
+ let text = money(amount, plan.currency) + (cycle === 'yearly' ? ' / year' : ' / month');
+ if (plan.currency !== plan.base_currency && plan.base_price_minor?.[cycle] != null) text += ' (≈ ' + money(plan.base_price_minor[cycle], plan.base_currency) + ')';
+ return text;
+}
+
+function numberLine(plan) {
+ const number = plan.dedicated_number;
+ if (!number) return '';
+ if (number.included) return 'Dedicated AI phone number included';
+ if (number.addon_price_minor == null) return 'Dedicated AI phone number: optional add-on';
+ return 'Dedicated AI phone number: +' + money(number.addon_price_minor, plan.currency) + ' / month add-on';
 }
 
 function renderPlans() {
@@ -477,9 +491,21 @@ function renderPlans() {
   const body = document.createElement('span');
   body.append(ownerText('strong', plan.name), ownerText('small', planPrice(plan, cycle)));
   for (const [metric, limit] of Object.entries(plan.limits)) body.append(ownerText('small', limit.toLocaleString() + ' ' + metricLabels[metric] + ' / month'));
+  const number = numberLine(plan);
+  if (number) body.append(ownerText('small', number));
   label.append(input, body);
   return label;
  }));
+ const fxNote = document.querySelector('#plan-fx');
+ const converted = setupData.plans.some(plan => plan.converted);
+ fxNote.replaceChildren();
+ if (converted && setupData.exchange?.attribution) {
+  const link = Object.assign(document.createElement('a'), {href:setupData.exchange.attribution.url, target:'_blank', rel:'noopener noreferrer', textContent:setupData.exchange.attribution.name});
+  fxNote.append('Prices converted from USD with daily rates by ', link, '. The price is locked when you choose a plan.');
+ } else if (converted) {
+  fxNote.append('Prices converted from USD. The price is locked when you choose a plan.');
+ }
+ fxNote.hidden = !fxNote.childNodes.length;
 }
 
 function statusList(root, integrations) {
@@ -561,7 +587,7 @@ async function loadSetup(restaurant) {
  try {
   const [plans, integrations, usage] = await Promise.all([api(setupUrl('/subscription')), api(setupUrl('/integrations')), api(setupUrl('/usage'))]);
   if (selection !== setupSelection) return;
-  setupData = {plans:plans.plans, subscription:plans.subscription, integrations:integrations.integrations};
+  setupData = {plans:plans.plans, subscription:plans.subscription, integrations:integrations.integrations, exchange:plans.exchange};
   if (setupData.subscription) setupForm.elements.billing_cycle.value = setupData.subscription.billing_cycle;
   renderPlans();
   fillConnectStep();

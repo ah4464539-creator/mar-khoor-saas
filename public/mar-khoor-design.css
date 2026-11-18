@@ -352,3 +352,5 @@
 .mk-owner .plan-options label small:first-of-type { color: var(--ink); font-weight: 600; }
 .mk-owner #setup-dialog .plan-options label > span { grid-area: 1 / 1; }
 .mk-owner #setup-dialog .plan-options label > input { grid-area: 1 / 2; }
+.mk-owner .plan-fx { margin: 0; font-size: .85rem; color: var(--muted, #b9b3d6); }
+.mk-owner .plan-fx a { color: #c4b5fd; }
