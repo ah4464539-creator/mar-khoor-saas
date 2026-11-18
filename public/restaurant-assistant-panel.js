@@ -1,4 +1,19 @@
 const assistant = document.querySelector('#assistant');
+const viewport = window.visualViewport;
+function syncAssistantViewport() {
+  if (!viewport) return;
+  if (!window.matchMedia('(max-width: 720px)').matches) {
+    assistant.style.removeProperty('--assistant-viewport-top');
+    assistant.style.removeProperty('--assistant-viewport-height');
+    return;
+  }
+  assistant.style.setProperty('--assistant-viewport-top', Math.max(0, viewport.offsetTop)+'px');
+  assistant.style.setProperty('--assistant-viewport-height', Math.max(220, viewport.height)+'px');
+}
+viewport?.addEventListener('resize',syncAssistantViewport);
+viewport?.addEventListener('scroll',syncAssistantViewport);
+window.addEventListener('resize',syncAssistantViewport);
+syncAssistantViewport();
 const launcher = assistant.querySelector('summary');
 const form = assistant.querySelector('form');
 const input = form.elements.message;
