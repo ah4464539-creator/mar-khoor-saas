@@ -5,8 +5,9 @@ import { audit } from './security.js';
 import { planCatalog, chooseSubscription, getSubscription, getUsage } from './subscriptions.js';
 import { getIntegrations, saveSetup, finishSetup } from './setup-integrations.js';
 import { assignRegistrationNumber } from './registration-voice.js';
+import { getUsdRates, FX_ATTRIBUTION } from './fx-rates.js';
 
-export function onboardingRouter(pool, { assignVoiceNumber = assignRegistrationNumber } = {}) {
+export function onboardingRouter(pool, { assignVoiceNumber = assignRegistrationNumber, loadRates = getUsdRates } = {}) {
  const router = express.Router();
  // Restaurant admins (or the super admin) only; every query below is scoped by req.restaurantId.
  const restaurantAdmin = async (req, res, next) => {
@@ -27,11 +28,13 @@ export function onboardingRouter(pool, { assignVoiceNumber = assignRegistrationN
   try {
    const [restaurants] = await pool.execute('SELECT currency FROM restaurants WHERE id=? LIMIT 1', [req.restaurantId]);
    if (!restaurants.length) return res.status(404).json({ error: 'Restaurant not found' });
-   res.json({ plans: planCatalog(restaurants[0].currency), subscription: await getSubscription(pool, req.restaurantId) });
+   const fx = await loadRates();
+   res.json({ plans: planCatalog(restaurants[0].currency, { fx }), subscription: await getSubscription(pool, req.restaurantId),
+    exchange: fx ? { source: fx.source, as_of: fx.asOf, attribution: fx.source === 'exchangerate-api' ? FX_ATTRIBUTION : null } : null });
   } catch { res.status(503).json({ error: 'Plans unavailable' }); }
  });
  router.put(base + '/subscription', requireAuth, restaurantAdmin, async (req, res) => {
-  const result = await chooseSubscription(pool, req.restaurantId, req.body);
+  const result = await chooseSubscription(pool, req.restaurantId, req.body, { fx: await loadRates() });
   if (result.status === 200) await audit(pool, { actorUserId: req.user.id, restaurantId: req.restaurantId, action: 'subscription.choose:' + req.body.plan + ':' + req.body.billing_cycle });
   res.status(result.status).json(result.body);
  });

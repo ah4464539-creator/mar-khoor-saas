@@ -1,20 +1,28 @@
 // Subscription plans and usage limits. No express import: testable with mock pools.
 //
 // Every plan includes every feature (AI Assistant, Business WhatsApp, AI Caller, Website).
-// Plans differ only by monthly usage limits. Prices are NOT hard-coded: the platform owner sets
-// them in SUBSCRIPTION_PRICES_JSON. Without a price a plan can be chosen but shows
-// "price to be confirmed" and stays pending_payment. Usage never stops service at the limit.
+// Plans differ only by monthly usage limits. Base prices are in USD (owner-approved; override with
+// SUBSCRIPTION_PRICES_JSON {"USD":{...}}) and are converted automatically to each restaurant's
+// currency with daily exchange rates. An explicit per-currency entry in SUBSCRIPTION_PRICES_JSON
+// (e.g. {"PKR":{...}}) wins over conversion. Without a rate the price is shown in USD.
+// Usage never stops service at the limit.
+import { convertUsdMinor } from './fx-rates.js';
 
+export const BASE_CURRENCY = 'USD';
 export const FEATURES = Object.freeze(['ai_assistant', 'whatsapp', 'ai_caller', 'website']);
 export const METRICS = Object.freeze(['ai_chats', 'whatsapp_messages', 'ai_call_minutes']);
 export const CYCLES = Object.freeze(['monthly', 'yearly']);
 export const WARNING_LEVELS = Object.freeze([75, 90, 100]);
 
-// Default monthly limits; override with SUBSCRIPTION_LIMITS_JSON ({"starter":{"ai_chats":300,...},...}).
+// Monthly limits and USD prices (minor units). Limits: override with SUBSCRIPTION_LIMITS_JSON.
+// Starter has no dedicated AI phone number; it is an add-on. Premium and Enterprise include one.
 const DEFAULT_PLANS = Object.freeze([
-  { key: 'starter', name: 'Starter', limits: { ai_chats: 300, whatsapp_messages: 100, ai_call_minutes: 30 } },
-  { key: 'premium', name: 'Premium', limits: { ai_chats: 1200, whatsapp_messages: 500, ai_call_minutes: 120 } },
-  { key: 'enterprise', name: 'Enterprise', limits: { ai_chats: 5000, whatsapp_messages: 2500, ai_call_minutes: 500 } },
+  { key: 'starter', name: 'Starter', limits: { ai_chats: 1500, whatsapp_messages: 1000, ai_call_minutes: 100 },
+    usd: { monthly: 3900, yearly: 39000 }, number: { included: false, addon_usd_monthly: 4900 } },
+  { key: 'premium', name: 'Premium', limits: { ai_chats: 5000, whatsapp_messages: 3000, ai_call_minutes: 400 },
+    usd: { monthly: 19900, yearly: 199000 }, number: { included: true, addon_usd_monthly: null } },
+  { key: 'enterprise', name: 'Enterprise', limits: { ai_chats: 15000, whatsapp_messages: 8000, ai_call_minutes: 1200 },
+    usd: { monthly: 59900, yearly: 599000 }, number: { included: true, addon_usd_monthly: null } },
 ]);
 export const PLAN_KEYS = Object.freeze(DEFAULT_PLANS.map(plan => plan.key));
 
@@ -27,18 +35,40 @@ const validAmount = value => Number.isSafeInteger(value) && value >= 0 && value 
 const validLimit = value => Number.isSafeInteger(value) && value >= 0 && value <= 100000000;
 
 /**
- * Builds the plan catalog for a currency.
- * pricesJson: {"PKR":{"starter":{"monthly":500000,"yearly":5000000},...},"USD":{...}} (minor units).
+ * Builds the plan catalog for a restaurant currency.
+ * fx: { rates: {PKR: 280.1, ...}, asOf, source } from getUsdRates(), or null.
+ * Prices are in the restaurant's currency when an explicit price or a rate exists, otherwise USD.
  */
-export function planCatalog(currency, { pricesJson = process.env.SUBSCRIPTION_PRICES_JSON, limitsJson = process.env.SUBSCRIPTION_LIMITS_JSON } = {}) {
-  const prices = parseJson(pricesJson)?.[currency] ?? {};
+export function planCatalog(currency, { pricesJson = process.env.SUBSCRIPTION_PRICES_JSON, limitsJson = process.env.SUBSCRIPTION_LIMITS_JSON, fx = null } = {}) {
+  const configured = parseJson(pricesJson) ?? {};
   const limitOverrides = parseJson(limitsJson) ?? {};
+  const explicitLocal = currency !== BASE_CURRENCY ? configured[currency] : null;
+  const canConvert = currency === BASE_CURRENCY || Boolean(fx?.rates?.[currency]);
+  const shownCurrency = explicitLocal || canConvert ? currency : BASE_CURRENCY;
   return DEFAULT_PLANS.map(plan => {
     const limits = { ...plan.limits };
     for (const metric of METRICS) if (validLimit(limitOverrides[plan.key]?.[metric])) limits[metric] = limitOverrides[plan.key][metric];
-    const price = {};
-    for (const cycle of CYCLES) price[cycle] = validAmount(prices[plan.key]?.[cycle]) ? prices[plan.key][cycle] : null;
-    return { key: plan.key, name: plan.name, features: [...FEATURES], limits, currency, price_minor: price };
+    const base = {}, price = {};
+    for (const cycle of CYCLES) {
+      const usdOverride = configured[BASE_CURRENCY]?.[plan.key]?.[cycle];
+      base[cycle] = validAmount(usdOverride) ? usdOverride : plan.usd[cycle];
+      const local = explicitLocal?.[plan.key]?.[cycle];
+      price[cycle] = validAmount(local) ? local
+        : shownCurrency === BASE_CURRENCY ? base[cycle]
+        : convertUsdMinor(base[cycle], shownCurrency, fx);
+    }
+    const addonUsd = plan.number.addon_usd_monthly;
+    const addon = addonUsd == null ? null
+      : shownCurrency === BASE_CURRENCY ? addonUsd
+      : validAmount(explicitLocal?.number_addon?.monthly) ? explicitLocal.number_addon.monthly
+      : convertUsdMinor(addonUsd, shownCurrency, fx);
+    return {
+      key: plan.key, name: plan.name, features: [...FEATURES], limits,
+      currency: shownCurrency, price_minor: price,
+      base_currency: BASE_CURRENCY, base_price_minor: base,
+      dedicated_number: { included: plan.number.included, addon_price_minor: addon, addon_base_price_minor: addonUsd },
+      converted: shownCurrency !== BASE_CURRENCY && !explicitLocal,
+    };
   });
 }
 
@@ -101,8 +131,8 @@ export async function chooseSubscription(pool, restaurantId, body, options = {})
   try {
     const [restaurants] = await pool.execute('SELECT currency FROM restaurants WHERE id=? LIMIT 1', [restaurantId]);
     if (!restaurants.length) return { status: 404, body: { error: 'Restaurant not found' } };
-    const currency = restaurants[0].currency;
-    const plan = planCatalog(currency, options).find(entry => entry.key === choice.value.plan);
+    const plan = planCatalog(restaurants[0].currency, options).find(entry => entry.key === choice.value.plan);
+    const currency = plan.currency; // the price is locked in the currency it was shown in
     const price = plan.price_minor[choice.value.cycle];
     await pool.execute(
       "INSERT INTO restaurant_subscriptions(restaurant_id,plan_key,billing_cycle,status,limits,currency,price_minor) VALUES (?,?,?,'pending_payment',?,?,?) "
