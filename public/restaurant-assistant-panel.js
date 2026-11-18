@@ -18,6 +18,17 @@ const launcher = assistant.querySelector('summary');
 const form = assistant.querySelector('form');
 const input = form.elements.message;
 const submit = form.querySelector('button[type="submit"]');
+// iOS Safari dismisses the keyboard on a submit-button tap unless focus is preserved.
+submit.addEventListener('pointerdown', event => {
+  if (event.pointerType === 'touch' && document.activeElement === input) event.preventDefault();
+});
+input.addEventListener('keydown', event => {
+  if (event.key === 'Enter' && !event.shiftKey && !event.isComposing && event.keyCode !== 229) {
+    event.preventDefault();
+    if (form.requestSubmit) form.requestSubmit(submit);
+    else submit.click();
+  }
+});
 const messages = assistant.querySelector('[data-assistant-messages]');
 const history = []; // Current tab and restaurant only.
 const voiceRows = new Map();
