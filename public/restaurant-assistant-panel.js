@@ -1,18 +1,36 @@
 const assistant = document.querySelector('#assistant');
 const viewport = window.visualViewport;
 function syncAssistantViewport() {
-  if (!viewport) return;
   if (!window.matchMedia('(max-width: 720px)').matches) {
     assistant.style.removeProperty('--assistant-viewport-top');
     assistant.style.removeProperty('--assistant-viewport-height');
     return;
   }
-  assistant.style.setProperty('--assistant-viewport-top', Math.max(0, viewport.offsetTop)+'px');
-  assistant.style.setProperty('--assistant-viewport-height', Math.max(220, viewport.height)+'px');
+  const fullHeight = window.innerHeight;
+  const visualHeight = viewport?.height ?? fullHeight;
+  const visualTop = viewport?.offsetTop ?? 0;
+  const editing = assistant.open && assistant.contains(document.activeElement) &&
+    /^(TEXTAREA|INPUT)$/.test(document.activeElement?.tagName || '');
+  // In iOS embedded browsers the visual viewport can report the *full* height
+  // even while the on-screen keyboard covers the composer. Reserve the keyboard
+  // area only in that case; never double-subtract a genuinely resized viewport.
+  const viewportResized = fullHeight - visualHeight > 120;
+  const estimatedKeyboard = Math.min(360, Math.max(260, fullHeight * 0.38));
+  const height = editing && !viewportResized
+    ? Math.max(220, fullHeight - estimatedKeyboard)
+    : Math.max(220, visualHeight);
+  assistant.style.setProperty('--assistant-viewport-top', Math.max(0, visualTop)+'px');
+  assistant.style.setProperty('--assistant-viewport-height', height+'px');
 }
 viewport?.addEventListener('resize',syncAssistantViewport);
 viewport?.addEventListener('scroll',syncAssistantViewport);
 window.addEventListener('resize',syncAssistantViewport);
+assistant.addEventListener('focusin', () => {
+  syncAssistantViewport();
+  window.setTimeout(syncAssistantViewport, 150);
+  window.setTimeout(syncAssistantViewport, 450);
+});
+assistant.addEventListener('focusout', () => window.setTimeout(syncAssistantViewport, 200));
 syncAssistantViewport();
 const launcher = assistant.querySelector('summary');
 const form = assistant.querySelector('form');
