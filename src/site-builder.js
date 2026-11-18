@@ -202,6 +202,14 @@ main section+section{margin-top:22px}
 .assistant-body{min-height:0;overflow:hidden}
 [data-assistant-messages]{min-height:0;overscroll-behavior:contain}
 .assistant-composer{flex-shrink:0}
+@supports (height: 1svh) {
+  /* iOS in-app browsers sometimes leave visualViewport unchanged when the keyboard opens.
+     Keep the composer inside the visible upper half on focus, even in that case. */
+  .restaurant-assistant[open]:focus-within>.assistant-panel{
+    height:min(var(--assistant-viewport-height,100dvh),48svh);
+    max-height:48svh;
+  }
+}
 }
 .assistant-voice{position:static}
 .assistant-voice-orb{position:absolute;inset-inline-end:50%;transform:translateX(50%);bottom:calc(100% + 18px);width:176px;height:176px;border-radius:50%;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:9px;text-align:center;z-index:4;background:radial-gradient(circle at 35% 25%,#69caff,#5840c9 54%,#191452);color:white;box-shadow:0 0 40px #6254c888, inset 0 0 34px #ffffff44;overflow:hidden}
