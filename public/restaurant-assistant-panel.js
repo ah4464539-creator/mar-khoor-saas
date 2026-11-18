@@ -59,6 +59,8 @@ const orderKey = 'mar-khoor.order.' + slug;
 const speakSupported = 'speechSynthesis' in window;
 let activeOrder;
 let pendingChatOrder = null;
+let checkoutStep = null;
+let checkoutDetails = {};
 let pollTimer;
 
 function messageNode(role, content) {
@@ -286,23 +288,63 @@ form.addEventListener('submit', async event => {
   const reply = messageNode('assistant', 'Thinking…');
   try {
     const confirmation = /^(?:yes|yeah|yep|han|haan|hanji|haanji|ji|confirm|confirmed|ok|okay|bilkul|theek hai|kar do|kardo|place order|submit order|हाँ|हां|जी|हाँ जी|हां जी|ठीक है|کنفرم|ہاں|جی)$/iu;
-    if (pendingChatOrder && confirmation.test(message.trim().replace(/[.!?।]+$/u,''))) {
-      const order = pendingChatOrder;
-      pendingChatOrder = null; // Never retry a submitted order automatically.
-      const checkout = await fetch('/api/public/restaurants/'+encodeURIComponent(slug)+'/orders',{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({customer_name:order.customer_name,
-          items:order.items.map(({menu_item_id,quantity})=>({menu_item_id,quantity})),
-          client_request_id:crypto.randomUUID()}),signal:AbortSignal.timeout(20000)
-      });
-      const receipt = await checkout.json();
-      if (!checkout.ok || !Number.isSafeInteger(receipt.order_id) || !receipt.tracking_token)
-        throw new Error(receipt.error || 'Order not received');
-      showOrder(receipt);
-      reply.textContent = 'Order #'+receipt.order_id+' received! Status: Pending restaurant acceptance. Your tracking details are shown above.';
-      return;
+    if (pendingChatOrder && checkoutStep) {
+      const value = message.trim();
+      if (/^(cancel|stop|no|nahi|nahin)$/i.test(value)) {
+        pendingChatOrder = null; checkoutStep = null; checkoutDetails = {};
+        reply.textContent = 'Order cancelled. No order was submitted.'; return;
+      }
+      if (checkoutStep === 'phone') {
+        if (!/^\\+?[0-9 ()-]{7,32}$/.test(value)) { reply.textContent='Please enter a valid phone number.'; return; }
+        checkoutDetails.customer_phone=value;
+        checkoutStep='type'; reply.textContent='Delivery or pickup?'; return;
+      }
+      if (checkoutStep === 'type') {
+        if (/^(delivery|deliver|home delivery)$/i.test(value)) {
+          checkoutDetails.order_type='delivery'; checkoutStep='address';
+          reply.textContent='Please enter your complete delivery address.'; return;
+        }
+        if (/^(pickup|pick up|collect|takeaway)$/i.test(value)) {
+          checkoutDetails.order_type='pickup'; checkoutDetails.payment_method='cash_pickup';
+          checkoutStep='confirm';
+        } else { reply.textContent='Please reply Delivery or Pickup.'; return; }
+      } else if (checkoutStep === 'address') {
+        if (!value || value.length>500) { reply.textContent='Please enter a valid delivery address (up to 500 characters).'; return; }
+        checkoutDetails.delivery_address=value;
+        checkoutDetails.payment_method='cod';
+        checkoutStep='confirm';
+      } else if (checkoutStep === 'confirm') {
+        if (!confirmation.test(value.replace(/[.!?।]+$/u,''))) {
+          reply.textContent='Please reply Yes / Han to place the order, or Cancel to stop.'; return;
+        }
+        const order = pendingChatOrder;
+        pendingChatOrder = null; checkoutStep = null; // Never submit twice automatically.
+        const checkout = await fetch('/api/public/restaurants/'+encodeURIComponent(slug)+'/orders',{
+          method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({customer_name:order.customer_name,
+            items:order.items.map(({menu_item_id,quantity})=>({menu_item_id,quantity})),
+            ...checkoutDetails,delivery_instructions:'',client_request_id:crypto.randomUUID()}),
+          signal:AbortSignal.timeout(20000)
+        });
+        const receipt = await checkout.json();
+        if (!checkout.ok || !Number.isSafeInteger(receipt.order_id) || !receipt.tracking_token)
+          throw new Error(receipt.error || 'Order not received');
+        showOrder(receipt);
+        reply.textContent='Order #'+receipt.order_id+' received! Payment: unpaid ('+
+          (checkoutDetails.payment_method==='cod'?'cash on delivery':'cash on pickup')+
+          '). Pending restaurant acceptance. Tracking details are shown above.';
+        checkoutDetails={}; return;
+      }
+      if (checkoutStep === 'confirm') {
+        const money=new Intl.NumberFormat(undefined,{style:'currency',currency:pendingChatOrder.currency||'PKR'});
+        reply.textContent='Order for '+pendingChatOrder.customer_name+
+          '\\nTotal: '+money.format(pendingChatOrder.total_minor/100)+
+          '\\n'+(checkoutDetails.order_type==='delivery'?'Delivery to: '+checkoutDetails.delivery_address+'; pay Cash on Delivery.':'Pickup; pay Cash on Pickup.')+
+          '\\nPayment status: Unpaid. Reply Yes / Han to place the order, or Cancel.';
+        return;
+      }
     }
-    if (pendingChatOrder) pendingChatOrder = null;
+    if (pendingChatOrder) { pendingChatOrder=null; checkoutStep=null; checkoutDetails={}; }
     const response = await fetch(form.action, {
       method:'POST',
       headers:{'Content-Type':'application/json',Accept:'application/json'},
@@ -314,11 +356,13 @@ form.addEventListener('submit', async event => {
     reply.textContent = typeof data.reply === 'string' ? data.reply : 'The assistant is temporarily unavailable.';
     if (data.draft && Array.isArray(data.draft.items) && data.draft.items.length) {
       pendingChatOrder = data.draft;
+      checkoutStep = 'phone';
+      checkoutDetails = {};
       const money = new Intl.NumberFormat(undefined,{style:'currency',currency:data.draft.currency || 'PKR'});
       const lines = data.draft.items.map(item => item.quantity+' × '+item.name+' — '+money.format(item.unit_price_minor*item.quantity/100));
       reply.textContent = 'Order for '+data.draft.customer_name+':\n'+lines.join('\n')+
         '\nTotal: '+money.format(data.draft.total_minor/100)+
-        '\nConfirm this order? Reply Yes / Han to submit it directly to the restaurant.';
+        '\nTo continue, please enter your phone number. Then I will ask about delivery/pickup and payment. Reply Cancel to stop.';
     }
     if (data.source === 'ai') {
       history.push({role:'user',content:message.slice(0,1200)},
