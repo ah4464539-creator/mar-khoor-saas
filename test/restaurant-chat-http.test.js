@@ -9,8 +9,8 @@ const restaurants = {
   'legacy-cafe': { id: 33, name: 'Legacy Cafe', slug: 'legacy-cafe', country_code: 'PK', currency: 'PKR', locale: 'en', website_assistant_provisioned: 0, config: '{}' },
 };
 const menus = {
-  11: [{ name: 'Alpha Soup', description: 'Vegetarian', price_minor: 425, category: 'Soups', image_url: '' }],
-  22: [{ name: 'Beta Burger', description: 'Beef', price_minor: 77500, category: 'Burgers', image_url: '' }],
+  11: [{ id: 101, name: 'Alpha Soup', description: 'Vegetarian', price_minor: 425, category: 'Soups', image_url: '' }],
+  22: [{ id: 202, name: 'Beta Burger', description: 'Beef', price_minor: 77500, category: 'Burgers', image_url: '' }],
   33: [{ name: 'Legacy Fries', description: '', price_minor: 300, category: '', image_url: '' }],
 };
 const pool = {
@@ -135,5 +135,38 @@ test('newly registered published restaurant receives assistant by default; opt-o
     process.env.REGISTRATION_WEBSITE_ASSISTANT_ENABLED = 'false';
     const optedOut = await fetch(base + '/r/alpha-cafe/assistant/status');
     assert.equal(optedOut.status, 404);
+  });
+});
+
+test('text assistant prepares verified order draft, never places order without confirmation', async () => {
+  process.env.REGISTRATION_WEBSITE_ASSISTANT_ENABLED = 'true';
+  process.env.OPENAI_API_KEY = 'test-only-not-real';
+  const aiFetch = async () => ({ok:true,status:200,json:async()=>({
+    output:[{content:[{type:'output_text',text:JSON.stringify({
+      reply:'Ready to confirm',draft:{customer_name:'A Test Customer',items:[{menu_item_id:101,quantity:2}]}
+    })}]}]
+  })});
+  await withApp(aiFetch,async base=>{
+    const response=await chat(base,'alpha-cafe',{message:'Two soups for A Test Customer',history:[]});
+    assert.equal(response.status,200);
+    const data=await response.json();
+    assert.equal(data.draft.customer_name,'A Test Customer');
+    assert.equal(data.draft.total_minor,850);
+    assert.deepEqual(data.draft.items,[{menu_item_id:101,quantity:2,name:'Alpha Soup',unit_price_minor:425}]);
+  });
+});
+
+test('text assistant rejects AI-invented menu item from draft',async()=>{
+  process.env.REGISTRATION_WEBSITE_ASSISTANT_ENABLED='true';
+  process.env.OPENAI_API_KEY='test-only-not-real';
+  const aiFetch=async()=>({ok:true,status:200,json:async()=>({
+    output:[{content:[{type:'output_text',text:JSON.stringify({
+      reply:'Ready',draft:{customer_name:'A Test Customer',items:[{menu_item_id:99999,quantity:1}]}
+    })}]}]
+  })});
+  await withApp(aiFetch,async base=>{
+    const response=await chat(base,'alpha-cafe',{message:'One secret item',history:[]});
+    assert.equal(response.status,200);
+    assert.equal((await response.json()).draft,null);
   });
 });
