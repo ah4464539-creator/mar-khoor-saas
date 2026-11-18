@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS order_fulfillment (
  stripe_checkout_session_id VARCHAR(255) NULL,
  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
  FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+ UNIQUE KEY uq_fulfillment_stripe_session (stripe_checkout_session_id),
  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
  INDEX (restaurant_id,payment_status)
 );
