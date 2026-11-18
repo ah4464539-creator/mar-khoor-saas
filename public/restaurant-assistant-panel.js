@@ -152,6 +152,16 @@ function showOrder(receipt) {
   if (!Number.isSafeInteger(receipt?.order_id) || !/^[a-f0-9]{48}$/.test(receipt?.tracking_token || '')) return;
   activeOrder = {id:receipt.order_id,token:receipt.tracking_token};
   try { sessionStorage.setItem(orderKey, JSON.stringify(activeOrder)); } catch {}
+  // Order activity reads the shared persistent customer-orders list, not sessionStorage.
+  // Store only server-confirmed receipts so chat orders appear alongside checkout orders.
+  try {
+    const key = 'mar-khoor.customer-orders';
+    const stored = JSON.parse(localStorage.getItem(key) || '[]');
+    const previous = Array.isArray(stored) ? stored.filter(order =>
+      Number.isSafeInteger(order?.id) && order.id > 0 &&
+      /^[a-f0-9]{48}$/.test(order?.token || '') && order.id !== activeOrder.id) : [];
+    localStorage.setItem(key, JSON.stringify([activeOrder, ...previous].slice(0, 40)));
+  } catch { /* Tracking link still works when browser storage is unavailable. */ }
   orderLink.href = '/track.html#' + new URLSearchParams({id:activeOrder.id,t:activeOrder.token,view:'tracking'});
   card.hidden = false;
   orderStatus.textContent = 'Order #' + activeOrder.id + ' received. Checking restaurant status…';
