@@ -38,7 +38,7 @@ form.addEventListener('submit', async event => {
     if (!response.ok) throw Error(data.error || 'Registration failed');
     form.hidden = true;
     status.textContent = '';
-    document.querySelector('#done-text').textContent = 'Sign in with the email and password you just chose. Your restaurant name for customers is "' + data.slug + '": they can enter it on the menu page at mar-khoor.com/menu.html once you add menu items.';
+    document.querySelector('#done-text').textContent = 'Sign in with the email and password you just chose. You will then choose your plan and connect WhatsApp, AI Caller and your website. Your restaurant name for customers is "' + data.slug + '": they can enter it on the menu page at mar-khoor.com/menu.html once you add menu items.';
     document.querySelector('#registration-voice').textContent = data.voice?.status === 'active'
       ? 'Your AI call number: ' + data.voice.number
       : 'AI call number: pending.';

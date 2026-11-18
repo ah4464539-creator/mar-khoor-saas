@@ -88,25 +88,66 @@
 <section class="panel"><h2>Order status summary</h2><div id="owner-status-summary"></div></section>
 </div>
 <section class="panel setup-summary" id="restaurant-setup" hidden>
-<h2>Restaurant setup</h2>
+<h2>Plan &amp; setup</h2>
 <p id="setup-summary">Loading setup…</p>
+<div id="usage-meter" class="usage-meter" aria-label="This month's usage" hidden></div>
+<ul id="setup-progress" class="setup-progress" aria-label="Setup status" hidden></ul>
 <button type="button" id="open-setup" disabled>Continue setup</button>
-<nav id="setup-progress" aria-label="Selected services" hidden></nav>
 </section>
 <dialog id="setup-dialog" aria-labelledby="setup-title">
-<form id="setup-form">
-<p class="eyebrow">First-time setup</p>
-<h2 id="setup-title">Set up your restaurant</h2>
-<p>Choose the services you want to configure.</p>
-<div class="setup-options">
-<label><input type="checkbox" name="service" value="website"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h18v13H3zM8 21h8m-4-4v4"/></svg><span><strong>AI Website Builder</strong><small>Configure and publish your restaurant site.</small></span></label>
-<label><input type="checkbox" name="service" value="voice"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 14v-3a9 9 0 0 1 18 0v3m-18 0v3a2 2 0 0 0 2 2h2v-7H5a2 2 0 0 0-2 2zm18 0v3a2 2 0 0 1-2 2h-2v-7h2a2 2 0 0 1 2 2z"/></svg><span><strong>AI Call Assistant</strong><small>Plan your restaurant phone setup.</small></span></label>
-<label><input type="checkbox" name="service" value="menu"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3v6a3 3 0 0 0 6 0V3M7 3v18m12 0V3c-3 2-4 5-4 9h4"/></svg><span><strong>Smart Menu &amp; Order Management</strong><small>Add menu items and manage customer orders.</small></span></label>
+<form id="setup-form" novalidate>
+<p class="eyebrow" id="setup-step-label">Step 1 of 3</p>
+<h2 id="setup-title">Choose your plan</h2>
+<fieldset class="setup-step" data-step="plan">
+<legend class="visually-hidden">Plan</legend>
+<p>Every plan includes the AI Assistant, Business WhatsApp, AI Caller and your website. Plans differ only in monthly usage. Service never stops at the limit; you get warnings at 75%, 90% and 100%.</p>
+<div class="billing-toggle" role="radiogroup" aria-label="Billing">
+<label><input type="radio" name="billing_cycle" value="monthly" checked> Monthly</label>
+<label><input type="radio" name="billing_cycle" value="yearly"> Yearly</label>
 </div>
+<div id="plan-options" class="setup-options plan-options"></div>
+<p id="plan-fx" class="plan-fx" hidden></p>
+</fieldset>
+<fieldset class="setup-step" data-step="connect" hidden>
+<legend class="visually-hidden">Connect</legend>
+<p>All optional. Fill what you want now; skip the rest and come back any time.</p>
+<div class="setup-item" data-kind="whatsapp">
+<h3>Business WhatsApp</h3>
+<label>WhatsApp number used by your restaurant<input name="whatsapp_value" type="tel" inputmode="tel" autocomplete="tel" maxlength="32" placeholder="+92 300 1234567"></label>
+<input type="hidden" name="whatsapp_mode" value="meta_signup">
+<label class="setup-skip"><input type="checkbox" name="whatsapp_skip"> Skip WhatsApp for now</label>
+</div>
+<div class="setup-item" data-kind="ai_caller">
+<h3>AI Caller number</h3>
+<label>Number customers call today<input name="ai_caller_value" type="tel" inputmode="tel" autocomplete="tel" maxlength="32" placeholder="+92 42 1234567"></label>
+<label>How to connect<select name="ai_caller_mode">
+<option value="forward">Forward my calls (easiest)</option>
+<option value="import">Connect my own number</option>
+<option value="new">Get a new local number</option>
+</select></label>
+<label class="setup-skip"><input type="checkbox" name="ai_caller_skip"> Skip AI Caller for now</label>
+</div>
+<div class="setup-item" data-kind="website">
+<h3>Website</h3>
+<label>How to set it up<select name="website_mode">
+<option value="builder">Build it with AI</option>
+<option value="domain">AI website on my own domain</option>
+<option value="embed">Add AI tools to my website</option>
+</select></label>
+<label class="setup-domain" hidden>Your domain<input name="website_value" inputmode="url" autocomplete="url" maxlength="253" placeholder="myrestaurant.com"></label>
+<label class="setup-skip"><input type="checkbox" name="website_skip"> Skip website for now</label>
+</div>
+</fieldset>
+<fieldset class="setup-step" data-step="done" hidden>
+<legend class="visually-hidden">Status</legend>
+<p>Here is what is connected and what needs one more step.</p>
+<ul id="setup-results" class="setup-progress"></ul>
+</fieldset>
 <p id="setup-status" role="status"></p>
 <div class="setup-actions">
 <button type="button" id="defer-setup">Skip for now</button>
-<button type="submit" id="next-setup" disabled>Next</button>
+<button type="button" id="back-setup" hidden>Back</button>
+<button type="submit" id="next-setup">Next</button>
 </div>
 </form>
 </dialog>
