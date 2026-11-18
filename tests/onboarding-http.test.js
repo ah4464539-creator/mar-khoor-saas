@@ -26,7 +26,7 @@ test('onboarding API requires login, enforces restaurant membership and scopes e
       throw Error('Unexpected SQL: ' + sql);
     },
   };
-  const app = express(); app.use(express.json()); app.use('/auth', authRouter(pool)); app.use('/api', onboardingRouter(pool, { assignVoiceNumber: async () => ({ status: 'pending' }) }));
+  const app = express(); app.use(express.json()); app.use('/auth', authRouter(pool)); app.use('/api', onboardingRouter(pool, { assignVoiceNumber: async () => ({ status: 'pending' }), loadRates: async () => ({ rates: { USD: 1, PKR: 280.37 }, asOf: null, source: 'exchangerate-api' }) }));
   const server = app.listen(0, '127.0.0.1'); await new Promise(r => server.once('listening', r));
   const base = 'http://127.0.0.1:' + server.address().port;
   const json = (method, body) => ({ method, headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -43,10 +43,16 @@ test('onboarding API requires login, enforces restaurant membership and scopes e
     const plans = await (await fetch(base + '/api/restaurants/9/subscription', { headers })).json();
     assert.deepEqual(plans.plans.map(p => p.key), ['starter', 'premium', 'enterprise']);
     assert.equal(plans.subscription, null);
+    assert.equal(plans.plans[0].currency, 'PKR');
+    assert.equal(plans.plans[0].price_minor.monthly, 1090000);
+    assert.equal(plans.exchange.attribution.name, 'ExchangeRate-API');
 
     const chosen = await fetch(base + '/api/restaurants/9/subscription', json('PUT', { plan: 'premium', billing_cycle: 'yearly' }));
     assert.equal(chosen.status, 200);
-    assert.equal((await chosen.json()).subscription.plan, 'premium');
+    const chosenBody = await chosen.json();
+    assert.equal(chosenBody.subscription.plan, 'premium');
+    assert.equal(chosenBody.subscription.currency, 'PKR');
+    assert.equal(chosenBody.subscription.price_minor, 55790000, 'yearly 1,990 x 280.37 = 557,936 -> PKR 557,900');
     assert.equal((await fetch(base + '/api/restaurants/9/subscription', json('PUT', { plan: 'free', billing_cycle: 'yearly' }))).status, 400);
 
     const usage = await (await fetch(base + '/api/restaurants/9/usage', { headers })).json();
