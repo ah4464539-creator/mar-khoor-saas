@@ -11,12 +11,13 @@ test('tracking tokens are random 48-hex strings and only hashes are compared',()
  assert.notEqual(hashTrackingToken(a),a);
 });
 
-function pool(order){
+function pool(order,fulfillment=[]){
  const queries=[];
  return {queries,async execute(sql,args){
   queries.push({sql,args});
   if(sql.includes('FROM orders o JOIN order_tracking'))return [order&&args[1]===hashTrackingToken(order.token)?[order.row]:[]];
   if(sql.includes('FROM order_items'))return [[{name:'Zinger Burger',quantity:2,unit_price_minor:590}]];
+  if(sql.includes('FROM order_fulfillment')){if(fulfillment instanceof Error)throw fulfillment;return [fulfillment];}
   throw Error('unexpected '+sql);
  }};
 }
@@ -63,4 +64,26 @@ test('tracking page uses the fragment, a header token and safe rendering',()=>{
  assert.ok(!js.includes('innerHTML'));
  assert.match(readFileSync(new URL('../src/checkout.js',import.meta.url),'utf8'),/x-tracking-token/);
  assert.match(readFileSync(new URL('../db/schema.sql',import.meta.url),'utf8'),/CREATE TABLE IF NOT EXISTS order_tracking/);
+});
+
+test('tracking shows cash payment method and unpaid status but no phone or address',async()=>{
+ const token=newTrackingToken();
+ const p=pool({token,row:{id:9,status:'pending',total_minor:500,created_at:'x',restaurant_name:'R',restaurant_slug:'r',currency:'PKR'}},
+  [{order_type:'delivery',payment_method:'cod',payment_status:'unpaid'}]);
+ const result=await getOrderTracking(p,9,token);
+ assert.equal(result.status,200);
+ assert.equal(result.body.order_type,'delivery');
+ assert.equal(result.body.payment_method,'cod');
+ assert.equal(result.body.payment_status,'unpaid');
+ const fq=p.queries.find(q=>q.sql.includes('order_fulfillment'));
+ assert.doesNotMatch(fq.sql,/customer_phone|delivery_address/);
+});
+
+test('tracking still works before the order_fulfillment migration is applied',async()=>{
+ const token=newTrackingToken();
+ const missing=Object.assign(new Error('no table'),{code:'ER_NO_SUCH_TABLE'});
+ const p=pool({token,row:{id:9,status:'pending',total_minor:500,created_at:'x',restaurant_name:'R',restaurant_slug:'r',currency:'PKR'}},missing);
+ const result=await getOrderTracking(p,9,token);
+ assert.equal(result.status,200);
+ assert.equal(result.body.payment_status,undefined);
 });

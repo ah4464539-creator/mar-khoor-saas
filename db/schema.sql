@@ -46,6 +46,24 @@ CREATE TABLE IF NOT EXISTS orders (
  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id),
  INDEX (restaurant_id,created_at)
 );
+-- Fulfilment and payment intent for confirmed customer orders.
+-- Stripe remains disabled until a connected account and verified webhook are configured.
+CREATE TABLE IF NOT EXISTS order_fulfillment (
+ order_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+ restaurant_id BIGINT UNSIGNED NOT NULL,
+ order_type ENUM('delivery','pickup') NOT NULL,
+ customer_phone VARCHAR(32) NOT NULL,
+ delivery_address VARCHAR(500) NULL,
+ delivery_instructions VARCHAR(500) NULL,
+ payment_method ENUM('cod','cash_pickup','stripe') NOT NULL,
+ payment_status ENUM('unpaid','pending','paid','failed','refunded') NOT NULL DEFAULT 'unpaid',
+ stripe_checkout_session_id VARCHAR(255) NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+ UNIQUE KEY uq_fulfillment_stripe_session (stripe_checkout_session_id),
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
+ INDEX (restaurant_id,payment_status)
+);
 CREATE TABLE IF NOT EXISTS order_items (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
  order_id BIGINT UNSIGNED NOT NULL,

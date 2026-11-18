@@ -1,5 +1,6 @@
 import express from 'express';
 import { requireAuth } from './auth.js';
+import { isMissingFulfillmentSchema } from './order-fulfillment.js';
 export function operationsRouter(pool) {
  const router=express.Router();
  const access=async(req,res,next)=>{
@@ -131,8 +132,15 @@ export function operationsRouter(pool) {
   }catch{res.status(503).json({error:'Analytics unavailable'});}
  });
  router.get('/restaurants/:restaurantId/orders',async(req,res)=>{
-  try{const [orders]=await pool.execute('SELECT id,customer_name,status,total_minor,estimated_ready_epoch,created_at FROM orders WHERE restaurant_id=? ORDER BY id DESC LIMIT 100',[req.restaurantId]);res.json({orders});}
-  catch{res.status(503).json({error:'Database unavailable'});}
+  // Fulfilment rows are joined on both order and restaurant so one tenant never sees another's details.
+  const detailed='SELECT o.id,o.customer_name,o.status,o.total_minor,o.estimated_ready_epoch,o.created_at,f.order_type,f.customer_phone,f.delivery_address,f.delivery_instructions,f.payment_method,f.payment_status FROM orders o LEFT JOIN order_fulfillment f ON f.order_id=o.id AND f.restaurant_id=o.restaurant_id WHERE o.restaurant_id=? ORDER BY o.id DESC LIMIT 100';
+  const legacy='SELECT id,customer_name,status,total_minor,estimated_ready_epoch,created_at FROM orders WHERE restaurant_id=? ORDER BY id DESC LIMIT 100';
+  try{const [orders]=await pool.execute(detailed,[req.restaurantId]);res.json({orders});}
+  catch(error){
+   if(!isMissingFulfillmentSchema(error))return res.status(503).json({error:'Database unavailable'});
+   try{const [orders]=await pool.execute(legacy,[req.restaurantId]);res.json({orders});}
+   catch{res.status(503).json({error:'Database unavailable'});}
+  }
  });
  // The owner controls estimated readiness. Do not infer a duration from the AI or the order state.
  router.patch('/restaurants/:restaurantId/orders/:orderId/estimate',async(req,res)=>{

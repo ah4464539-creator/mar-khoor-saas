@@ -1,6 +1,7 @@
 // Customer order tracking. Each order made through the public checkout gets a random
 // tracking token; only its SHA-256 hash is stored. Knowing the order number alone is not enough.
 import crypto from 'node:crypto';
+import { isMissingFulfillmentSchema } from './order-fulfillment.js';
 
 export const newTrackingToken = () => crypto.randomBytes(24).toString('hex');
 export const hashTrackingToken = token => crypto.createHash('sha256').update(token).digest('hex');
@@ -28,6 +29,14 @@ export async function getOrderTracking(pool, orderId, token) {
     if (!rows.length) return { status: 404, body: { error: 'Order not found' } };
     const [items] = await pool.execute('SELECT name_snapshot AS name,quantity,unit_price_minor FROM order_items WHERE order_id=? ORDER BY id LIMIT 50', [orderId]);
     const order = rows[0];
+    // Customers see how they will receive and pay for the order; contact details stay with the restaurant.
+    let fulfillment = null;
+    try {
+      const [details] = await pool.execute('SELECT order_type,payment_method,payment_status FROM order_fulfillment WHERE order_id=? LIMIT 1', [orderId]);
+      fulfillment = details[0] ?? null;
+    } catch (error) {
+      if (!isMissingFulfillmentSchema(error)) throw error;
+    }
     return {
       status: 200,
       body: {
@@ -41,6 +50,7 @@ export async function getOrderTracking(pool, orderId, token) {
         restaurant_slug: order.restaurant_slug,
         placed_at: order.created_at,
         items,
+        ...(fulfillment ? { order_type: fulfillment.order_type, payment_method: fulfillment.payment_method, payment_status: fulfillment.payment_status } : {}),
       },
     };
   } catch {
