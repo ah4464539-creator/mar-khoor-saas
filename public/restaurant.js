@@ -444,38 +444,111 @@ const setupSummary = document.querySelector('#setup-summary');
 const setupStatus = document.querySelector('#setup-status');
 const openSetup = document.querySelector('#open-setup');
 const nextSetup = document.querySelector('#next-setup');
+const backSetup = document.querySelector('#back-setup');
 const deferSetup = document.querySelector('#defer-setup');
 const setupProgress = document.querySelector('#setup-progress');
-const setupDestinations = {
- website: ['Configure website', '#website'],
- voice: ['Review AI Call Assistant in My Plans', '#plan'],
- menu: ['Add menu items', '#menu-management'],
-};
+const setupResults = document.querySelector('#setup-results');
+const usageMeter = document.querySelector('#usage-meter');
+const planOptions = document.querySelector('#plan-options');
+const setupSteps = [...setupForm.querySelectorAll('.setup-step')];
+const setupTitles = ['Choose your plan', 'Connect your channels', 'Setup status'];
+const integrationLabels = {whatsapp:'Business WhatsApp', ai_caller:'AI Caller', website:'Website'};
+const statusLabels = {connected:'Connected', pending:'Pending', failed:'Failed', skipped:'Skipped', not_started:'Not started'};
+const metricLabels = {ai_chats:'AI chats', whatsapp_messages:'WhatsApp messages', ai_call_minutes:'AI call minutes'};
 let setupSelection = 0;
+let setupStep = 0;
+let setupData = {plans:[], subscription:null, integrations:[]};
 
-function selectedSetupServices() {
- return [...setupForm.querySelectorAll('input[name="service"]:checked')].map(input => input.value);
+const setupUrl = path => '/api/restaurants/' + restaurantId + path;
+const jsonBody = (method, body) => ({method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+
+function planPrice(plan, cycle) {
+ const amount = plan.price_minor?.[cycle];
+ if (amount == null) return 'Price to be confirmed';
+ return new Intl.NumberFormat(undefined, {style:'currency', currency:plan.currency}).format(amount / 100) + (cycle === 'yearly' ? ' / year' : ' / month');
 }
 
-function updateSetupActions() {
- const selected = selectedSetupServices().length > 0;
- nextSetup.disabled = !selected;
- deferSetup.textContent = selected ? 'Save and continue later' : 'Skip for now';
+function renderPlans() {
+ const cycle = setupForm.elements.billing_cycle.value;
+ const chosen = setupForm.querySelector('input[name="plan"]:checked')?.value || setupData.subscription?.plan || 'starter';
+ planOptions.replaceChildren(...setupData.plans.map(plan => {
+  const label = document.createElement('label');
+  const input = Object.assign(document.createElement('input'), {type:'radio', name:'plan', value:plan.key, checked:plan.key === chosen});
+  const body = document.createElement('span');
+  body.append(ownerText('strong', plan.name), ownerText('small', planPrice(plan, cycle)));
+  for (const [metric, limit] of Object.entries(plan.limits)) body.append(ownerText('small', limit.toLocaleString() + ' ' + metricLabels[metric] + ' / month'));
+  label.append(input, body);
+  return label;
+ }));
 }
 
-function showSetupProgress(services, skipped) {
- setupProgress.replaceChildren();
- for (const service of services) {
-  if (!Object.hasOwn(setupDestinations, service)) continue;
-  const [label, href] = setupDestinations[service];
-  const row = document.createElement('p');
-  const link = document.createElement('a');
-  link.textContent = label;
-  link.href = href;
-  row.append(link);
-  setupProgress.append(row);
+function statusList(root, integrations) {
+ root.replaceChildren(...integrations.map(item => {
+  const row = document.createElement('li');
+  row.dataset.status = item.status;
+  row.append(ownerText('strong', integrationLabels[item.kind]), ownerText('span', statusLabels[item.status] || item.status, 'setup-badge'));
+  if (item.detail) row.append(ownerText('small', item.detail));
+  return row;
+ }));
+ root.hidden = !integrations.length;
+}
+
+function renderUsage(data) {
+ if (!data?.subscription) { usageMeter.hidden = true; return; }
+ usageMeter.replaceChildren(...data.usage.map(entry => {
+  const row = document.createElement('div');
+  row.className = 'usage-row';
+  row.dataset.warning = entry.warning;
+  const meter = Object.assign(document.createElement('meter'), {min:0, max:100, low:75, high:90, optimum:0, value:Math.min(100, entry.percent)});
+  meter.setAttribute('aria-label', metricLabels[entry.metric]);
+  let text = metricLabels[entry.metric] + ': ' + entry.used.toLocaleString() + ' of ' + entry.limit.toLocaleString() + ' (' + entry.percent + '%)';
+  if (entry.warning >= 100) text += '. Over the limit; extra usage will be billed. Upgrade for a better rate.';
+  else if (entry.warning >= 75) text += '. Approaching your limit; consider upgrading.';
+  row.append(ownerText('span', text), meter);
+  return row;
+ }));
+ usageMeter.hidden = false;
+}
+
+function fillConnectStep() {
+ for (const item of setupData.integrations) {
+  const value = setupForm.elements[item.kind + '_value'];
+  const mode = setupForm.elements[item.kind + '_mode'];
+  if (value && item.value) value.value = item.value;
+  if (mode && item.mode && mode.tagName === 'SELECT') mode.value = item.mode;
+  setupForm.elements[item.kind + '_skip'].checked = item.status === 'skipped';
  }
- setupProgress.hidden = skipped || !setupProgress.childElementCount;
+ syncConnectStep();
+}
+
+function syncConnectStep() {
+ const domain = setupForm.querySelector('.setup-domain');
+ domain.hidden = setupForm.elements.website_mode.value === 'builder';
+ for (const kind of Object.keys(integrationLabels)) {
+  const skipped = setupForm.elements[kind + '_skip'].checked;
+  for (const field of setupForm.querySelectorAll('[data-kind="' + kind + '"] input:not([type=checkbox]):not([type=hidden]), [data-kind="' + kind + '"] select')) field.disabled = skipped;
+ }
+}
+
+function showSetupStep(index) {
+ setupStep = index;
+ setupSteps.forEach((step, i) => { step.hidden = i !== index; });
+ document.querySelector('#setup-step-label').textContent = 'Step ' + (index + 1) + ' of 3';
+ document.querySelector('#setup-title').textContent = setupTitles[index];
+ backSetup.hidden = index !== 1;
+ deferSetup.hidden = index === 2;
+ nextSetup.textContent = index === 0 ? 'Continue' : index === 1 ? 'Finish setup' : 'Done';
+ setupStatus.textContent = '';
+}
+
+function summarise() {
+ const sub = setupData.subscription;
+ const plan = sub && setupData.plans.find(entry => entry.key === sub.plan);
+ const connected = setupData.integrations.filter(item => item.status === 'connected').length;
+ setupSummary.textContent = sub
+  ? (plan?.name || sub.plan) + ' plan (' + sub.billing_cycle + ', ' + (sub.status === 'active' ? 'active' : 'payment pending') + '). ' + connected + ' of 3 channels connected.'
+  : 'Choose a plan and connect WhatsApp, AI Caller and your website.';
+ statusList(setupProgress, setupData.integrations.filter(item => item.status !== 'not_started'));
 }
 
 async function loadSetup(restaurant) {
@@ -486,57 +559,76 @@ async function loadSetup(restaurant) {
  if (setupPanel.hidden) return;
  setupSummary.textContent = 'Loading setup…';
  try {
-  const data = await api('/api/restaurants/' + restaurant.id + '/setup');
+  const [plans, integrations, usage] = await Promise.all([api(setupUrl('/subscription')), api(setupUrl('/integrations')), api(setupUrl('/usage'))]);
   if (selection !== setupSelection) return;
-  setupSummary.textContent = data.skipped ? 'Setup skipped. You can continue at any time.'
-   : data.saved ? data.services.length + ' of 3 services selected for setup.' : 'Choose the services you want to configure.';
-  for (const input of setupForm.querySelectorAll('input')) input.checked = data.services.includes(input.value);
-  updateSetupActions();
-  showSetupProgress(data.services, data.skipped);
+  setupData = {plans:plans.plans, subscription:plans.subscription, integrations:integrations.integrations};
+  if (setupData.subscription) setupForm.elements.billing_cycle.value = setupData.subscription.billing_cycle;
+  renderPlans();
+  fillConnectStep();
+  renderUsage(usage);
+  summarise();
   openSetup.disabled = false;
-  if (!data.saved && !location.hash) setupDialog.showModal();
+  openSetup.textContent = setupData.subscription ? 'Change plan or setup' : 'Start setup';
+  if (!setupData.subscription && !location.hash) { showSetupStep(0); setupDialog.showModal(); }
  } catch (error) {
   if (selection === setupSelection) setupSummary.textContent = error.message;
  }
 }
 
-async function saveSetup(advance) {
+function connectPayload() {
+ const body = {};
+ for (const kind of Object.keys(integrationLabels)) {
+  if (setupForm.elements[kind + '_skip'].checked) { body[kind] = {skip:true}; continue; }
+  const value = setupForm.elements[kind + '_value']?.value.trim() || '';
+  const mode = setupForm.elements[kind + '_mode'].value;
+  if (kind === 'website' && mode === 'builder') { body[kind] = {mode}; continue; }
+  if (!value) { body[kind] = {skip:true}; continue; }
+  body[kind] = {mode, value};
+ }
+ return body;
+}
+
+async function advanceSetup() {
  const selection = setupSelection;
- const services = selectedSetupServices();
- const skipped = services.length === 0;
- if (advance && skipped) return;
- const controls = [...setupForm.querySelectorAll('button,input')];
+ const controls = [...setupForm.querySelectorAll('button,input,select')];
  controls.forEach(control => { control.disabled = true; });
- setupStatus.textContent = 'Saving setup…';
  try {
-  await api('/api/restaurants/' + restaurantId + '/setup', {
-   method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ services, skipped }),
-  });
-  if (selection !== setupSelection) return;
-  setupSummary.textContent = skipped ? 'Setup skipped. You can continue at any time.' : services.length + ' of 3 services selected for setup.';
-  showSetupProgress(services, skipped);
-  setupDialog.close();
-  if (advance) {
-   const destination = setupDestinations[services[0]][1];
-   if (location.hash === destination) {
-    const panel = document.querySelector(destination);
-    panel.scrollIntoView({ block: 'start' });
-   } else {
-    location.hash = destination;
-   }
+  if (setupStep === 0) {
+   const plan = setupForm.querySelector('input[name="plan"]:checked')?.value;
+   if (!plan) { setupStatus.textContent = 'Choose a plan.'; return; }
+   setupStatus.textContent = 'Saving plan…';
+   const result = await api(setupUrl('/subscription'), jsonBody('PUT', {plan, billing_cycle:setupForm.elements.billing_cycle.value}));
+   if (selection !== setupSelection) return;
+   setupData.subscription = result.subscription;
+   showSetupStep(1);
+  } else if (setupStep === 1) {
+   setupStatus.textContent = 'Saving and connecting…';
+   await api(setupUrl('/integrations'), jsonBody('PUT', connectPayload()));
+   const result = await api(setupUrl('/integrations/finish'), {method:'POST'});
+   if (selection !== setupSelection) return;
+   setupData.integrations = result.integrations;
+   statusList(setupResults, result.integrations);
+   showSetupStep(2);
+  } else {
+   setupDialog.close();
   }
+  summarise();
  } catch (error) {
   if (selection === setupSelection) setupStatus.textContent = error.message;
  } finally {
   controls.forEach(control => { control.disabled = false; });
-  updateSetupActions();
+  syncConnectStep();
  }
 }
 
-openSetup.addEventListener('click', () => { setupStatus.textContent = ''; setupDialog.showModal(); });
-setupForm.addEventListener('change', updateSetupActions);
-deferSetup.addEventListener('click', () => saveSetup(false));
-setupForm.addEventListener('submit', event => { event.preventDefault(); saveSetup(true); });
+openSetup.addEventListener('click', () => { showSetupStep(0); renderPlans(); fillConnectStep(); setupDialog.showModal(); });
+setupForm.addEventListener('change', event => {
+ if (event.target.name === 'billing_cycle') renderPlans();
+ syncConnectStep();
+});
+backSetup.addEventListener('click', () => showSetupStep(0));
+deferSetup.addEventListener('click', () => setupDialog.close());
+setupForm.addEventListener('submit', event => { event.preventDefault(); advanceSetup(); });
 
 try { token = localStorage.getItem(sessionKey) || ''; } catch {}
 if (token) loadAccount().catch(() => {
