@@ -175,8 +175,12 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
      .filter(item => item.type === 'output_text' && typeof item.text === 'string')
      .map(item => item.text).join('\n').trim();
     if (!reply) return fallback('empty_response');
+    // Some supported providers return plain text or fenced JSON despite JSON instructions.
+    // Preserve useful conversational replies rather than incorrectly showing provider outage.
     let parsed;
-    try { parsed = JSON.parse(reply); } catch { return fallback('invalid_response'); }
+    const jsonText = reply.replace(/^\s*```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+    try { parsed = JSON.parse(jsonText); }
+    catch { parsed = { reply: reply.slice(0,1200), draft: null }; }
     const answer = typeof parsed?.reply === 'string' ? parsed.reply.slice(0,1200) : 'How can I help with your order?';
     let draft = null;
     if (parsed?.draft && typeof parsed.draft.customer_name === 'string' &&
