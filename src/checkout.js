@@ -5,13 +5,14 @@ export function checkoutRouter(pool){
  // In production apply per-IP/restaurant rate limiting and abuse controls at the reverse proxy.
  router.post('/public/restaurants/:slug/orders',async(req,res)=>{
   const {customer_name,items,client_request_id=null,customer_phone,order_type,delivery_address='',delivery_instructions='',payment_method}=req.body||{};
-  if (!['delivery','pickup'].includes(order_type) ||
+  const hasFulfillment = order_type !== undefined || payment_method !== undefined || customer_phone !== undefined;
+  if (hasFulfillment && (!['delivery','pickup'].includes(order_type) ||
       (order_type==='delivery' && payment_method!=='cod') ||
       (order_type==='pickup' && payment_method!=='cash_pickup') ||
       typeof customer_phone!=='string' || !/^\\+?[0-9 ()-]{7,32}$/.test(customer_phone.trim()) ||
       typeof delivery_address!=='string' || delivery_address.length>500 ||
       (order_type==='delivery' && !delivery_address.trim()) ||
-      typeof delivery_instructions!=='string' || delivery_instructions.length>500)
+      typeof delivery_instructions!=='string' || delivery_instructions.length>500))
     return res.status(400).json({error:'Valid fulfilment and cash payment details required'});
   // Stripe checkout is intentionally not exposed before a connected account, signed webhook,
   // and restaurant-level payment enablement are verified.
@@ -40,7 +41,7 @@ export function checkoutRouter(pool){
    for(const item of menu){total+=Number(item.price_minor)*quantities.get(item.id);if(!Number.isSafeInteger(total)||total>1000000000){await connection.rollback();return res.status(400).json({error:'Order total exceeds limit'});}}
    const [created]=await connection.execute('INSERT INTO orders (restaurant_id,customer_name,total_minor,client_request_id) VALUES (?,?,?,?)',[restaurantId,customer_name.trim(),total,client_request_id]);
    for(const item of menu)await connection.execute('INSERT INTO order_items (order_id,menu_item_id,name_snapshot,quantity,unit_price_minor) VALUES (?,?,?,?,?)',[created.insertId,item.id,item.name,quantities.get(item.id),item.price_minor]);
-   await connection.execute('INSERT INTO order_fulfillment (order_id,restaurant_id,order_type,customer_phone,delivery_address,delivery_instructions,payment_method,payment_status) VALUES (?,?,?,?,?,?,?,?)',
+   if (hasFulfillment) await connection.execute('INSERT INTO order_fulfillment (order_id,restaurant_id,order_type,customer_phone,delivery_address,delivery_instructions,payment_method,payment_status) VALUES (?,?,?,?,?,?,?,?)',
     [created.insertId,restaurantId,order_type,customer_phone.trim(),order_type==='delivery'?delivery_address.trim():null,delivery_instructions.trim()||null,payment_method,'unpaid']);
    const trackingToken=newTrackingToken();
    await connection.execute('INSERT INTO order_tracking (order_id,token_hash) VALUES (?,?)',[created.insertId,hashTrackingToken(trackingToken)]);
