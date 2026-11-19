@@ -14,6 +14,7 @@ import { integrationRouter } from './integrations.js';
 import { registrationRouter } from './registration.js';
 import { plansRouter } from './plans.js';
 import { startWhatsAppAIWorker } from './whatsapp-ai-worker.js';
+import { retryPendingSubscriptionNumbers } from './voice-autoprovision.js';
 import { sitesRouter } from './sites.js';
 import { numbersRouter } from './numbers.js';
 import { loadCatalog } from './plan-orders.js';
@@ -95,4 +96,11 @@ const port = Number(process.env.PORT || 3001);
 app.listen(port, () => {
   console.log(`Mar-Khoor API listening on ${port}`);
   startWhatsAppAIWorker(pool);
+  // Finish AI Caller numbers that were waiting on the phone company (every 15 minutes; never buys).
+  const voiceRetry = setInterval(() => {
+    retryPendingSubscriptionNumbers(pool)
+      .then(outcomes => { if (outcomes.length) console.log(JSON.stringify({ event: 'voice_number_retry', checked: outcomes.length, active: outcomes.filter(o => o.status === 'active').length })); })
+      .catch(() => {});
+  }, 15 * 60 * 1000);
+  voiceRetry.unref();
 });

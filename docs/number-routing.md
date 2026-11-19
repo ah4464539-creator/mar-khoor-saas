@@ -50,3 +50,16 @@ Environment variables (names only): `TELNYX_API_KEY`, `VAPI_API_KEY`, `VAPI_TELN
 Each order carries a customer reference (`mar-khoor-<order>-<uuid>`). If Telnyx gives an error answer, the row is `failed` (nothing was bought). If Telnyx does not answer at all (timeout), the purchase outcome is unknown: the row stays claimed with the reference in `last_error`, no second purchase is possible, and you must check the Telnyx portal for that reference before doing anything else. The buy request must also carry `confirm_purchase: true`, which the admin screen sends only after the confirmation dialog.
 
 Safety: super admin only; one number per order and one order per number (database unique keys, so a double click cannot buy twice); keys never leave the server; every purchase and retry is written to the audit log. Telnyx only lets you order numbers returned by a recent search, so buy soon after searching. Verify the first purchase in a country with a cheap local number before promising prices to restaurants.
+
+
+## Automatic AI Caller number for paid subscriptions
+**Status: built and unit-tested against mocks of Telnyx's and Vapi's published APIs. Not yet run against the live APIs: watch the first purchase.**
+
+When the super admin presses **Confirm payment** under **Subscriptions** for a Premium or Enterprise plan (both include a dedicated number), the server:
+1. makes sure the restaurant has exactly one active Vapi assistant, copying `VAPI_TEMPLATE_ASSISTANT_ID` if it has none (the copy keeps the template's model, voice, transcriber and tools; every `[RESTAURANT_NAME]` in its text becomes the restaurant's name; Mar-Khoor identifies the restaurant from the assistant id on each tool call);
+2. if the restaurant has no number yet, searches Telnyx in its country and picks the first local voice number whose cost Telnyx states in USD and is within `TELNYX_MAX_MONTHLY_USD` / `TELNYX_MAX_UPFRONT_USD` (default 15 / 15);
+3. claims it (one subscription number per restaurant, enforced by a unique key), orders it from Telnyx and imports it into Vapi bound to the assistant; the restaurant's setup box then shows the number.
+
+Countries that need documents leave the number `pending provider`; a background job checks every 15 minutes and connects it when Telnyx activates it (it never buys anything). **Set up AI number** re-runs the steps by hand. Starter does not include a number. Restaurants keep their own number by forwarding calls to the AI number.
+
+Requirements: a Telnyx route for the country (mode `manual`) under **Phone numbers by country**; server settings `TELNYX_API_KEY`, `VAPI_API_KEY`, `VAPI_TEMPLATE_ASSISTANT_ID` (without them the panel says which are missing and nothing is bought). `VAPI_TELNYX_CREDENTIAL_ID` is optional: without it the Telnyx credential saved in Vapi (Integrations → Telnyx) is looked up; database migration `db/migrations/voice-autoprovision.sql` (after a backup).

@@ -86,6 +86,7 @@ form.addEventListener('submit', async event => {
       [loadAssistants, '#assistant-list'],
       [() => loadWorkerMetrics(token), '#worker-status'],
       [loadRoutes, '#route-list'],
+      [loadSubscriptions, '#subscription-list'],
       [loadOrders, '#order-list'],
       [loadNumbers, '#number-list'],
     ];
@@ -163,6 +164,57 @@ async function loadRoutes() {
   }
   if (!routes.length) root.textContent = 'No routes yet. A country without a route cannot order a number.';
 }
+const subscriptionActions = {
+  pending_payment: [['active', 'Confirm payment'], ['cancelled', 'Cancel']],
+  active: [['past_due', 'Mark past due'], ['cancelled', 'Cancel']],
+  past_due: [['active', 'Confirm payment'], ['cancelled', 'Cancel']],
+  cancelled: [],
+};
+const subscriptionStatus = message => { document.querySelector('#subscription-status').textContent = message; };
+async function loadSubscriptions() {
+  const { subscriptions } = await platformApi('/api/platform/subscriptions');
+  const root = document.querySelector('#subscription-list');
+  root.replaceChildren();
+  for (const sub of subscriptions) {
+    const row = document.createElement('p');
+    const price = sub.price_minor == null ? 'price to confirm'
+      : new Intl.NumberFormat(undefined, { style: 'currency', currency: sub.currency, maximumFractionDigits: sub.price_minor % 100 ? 2 : 0 }).format(sub.price_minor / 100);
+    row.textContent = sub.restaurant_name + ' (' + sub.country_code + ') · ' + sub.plan_key + ' · ' + sub.billing_cycle + ' · ' + price + ' · '
+      + sub.status.replace('_', ' ') + ' · AI number: ' + (sub.voice_number || 'none') + ' ';
+    for (const [next, label] of subscriptionActions[sub.status] || []) {
+      const button = document.createElement('button');
+      button.textContent = label;
+      button.addEventListener('click', async () => {
+        if (next === 'active' && sub.plan_key !== 'starter' && !confirm('Confirm payment for ' + sub.restaurant_name + '? This also buys an AI phone number with Telnyx (real money).')) return;
+        button.disabled = true;
+        subscriptionStatus(next === 'active' ? 'Confirming payment and setting up the AI number…' : 'Saving…');
+        try {
+          const result = await platformApi('/api/platform/subscriptions/' + sub.restaurant_id + '/status', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: next }) });
+          subscriptionStatus('Saved: ' + result.status.replace('_', ' ') + '.' + (result.voice ? ' AI number: ' + result.voice.detail : ''));
+          await Promise.all([loadSubscriptions(), loadNumbers()]);
+        } catch (error) { subscriptionStatus(error.message); button.disabled = false; }
+      });
+      row.append(button);
+    }
+    if (sub.status === 'active' && sub.plan_key !== 'starter' && !/· active$/.test(sub.voice_number || '')) {
+      const retry = document.createElement('button');
+      retry.textContent = 'Set up AI number';
+      retry.addEventListener('click', async () => {
+        if (!confirm('Set up the AI number for ' + sub.restaurant_name + '? If none exists yet this buys one with Telnyx (real money).')) return;
+        retry.disabled = true;
+        subscriptionStatus('Setting up the AI number…');
+        try {
+          const result = await platformApi('/api/platform/subscriptions/' + sub.restaurant_id + '/voice-number', { method: 'POST' });
+          subscriptionStatus('AI number: ' + result.voice.detail);
+          await Promise.all([loadSubscriptions(), loadNumbers()]);
+        } catch (error) { subscriptionStatus(error.message); retry.disabled = false; }
+      });
+      row.append(retry);
+    }
+    root.append(row);
+  }
+  if (!subscriptions.length) root.textContent = 'No restaurant has chosen a plan yet.';
+}
 async function loadOrders() {
   const { orders } = await platformApi('/api/platform/plan-orders');
   const root = document.querySelector('#order-list');
@@ -227,7 +279,7 @@ async function loadNumbers() {
   root.replaceChildren();
   for (const n of numbers) {
     const row = document.createElement('p');
-    row.textContent = n.phone_number + ' · ' + n.restaurant_name + ' · order #' + n.plan_order_id + ' · ' + n.status.replace('_', ' ') + (n.last_error ? ' · ' + n.last_error : '') + ' ';
+    row.textContent = n.phone_number + ' · ' + n.restaurant_name + ' · ' + (n.plan_order_id ? 'order #' + n.plan_order_id : 'subscription') + ' · ' + n.status.replace('_', ' ') + (n.last_error ? ' · ' + n.last_error : '') + ' ';
     if (['pending_provider', 'import_failed'].includes(n.status)) {
       const retry = document.createElement('button');
       retry.textContent = 'Retry import';
