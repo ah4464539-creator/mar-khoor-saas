@@ -1,13 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
-import { provisionSubscriptionNumber, retryPendingSubscriptionNumbers, pickNumber, includesNumber, missingConfig } from '../src/voice-autoprovision.js';
-import { assistantCopy } from '../src/providers/vapi-assistants.js';
+import { provisionSubscriptionNumber, retryPendingSubscriptionNumbers, pickNumber, includesNumber, missingConfig, autoProvisionDeps } from '../src/voice-autoprovision.js';
+import { assistantCopy, cloneAssistant } from '../src/providers/vapi-assistants.js';
 import { findTelnyxCredential } from '../src/providers/vapi-numbers.js';
 import { resetDiscoveredCredential } from '../src/voice-autoprovision.js';
 import { plansRouter } from '../src/plans.js';
 
 const deps = fetcher => ({
+  purchaseEnabled: true, // Tests only: no live provider calls; fakeProviders intercepts all fetches.
   fetcher, telnyxKey: 'tk', vapiKey: 'vk', credentialId: 'cred', templateAssistantId: 'tmpl-1',
   maxMonthlyUsd: 15, maxUpfrontUsd: 15, requirementGroup: () => undefined,
 });
@@ -62,6 +63,36 @@ function fakeProviders({ numbers = [{ phone_number: '+12025550123', features: [{
   };
   return { fetcher, calls };
 }
+
+test('fail closed: no provider calls, DB writes, assistant clone or purchase without explicit opt-in', async () => {
+  assert.equal(autoProvisionDeps({}).purchaseEnabled, false);
+  assert.equal(autoProvisionDeps({ AI_CALLER_AUTO_PURCHASE_ENABLED: 'false' }).purchaseEnabled, false);
+  assert.equal(autoProvisionDeps({ AI_CALLER_AUTO_PURCHASE_ENABLED: 'true' }).purchaseEnabled, true);
+  const db = fakeDb();
+  const { fetcher, calls } = fakeProviders();
+  const outcome = await provisionSubscriptionNumber(db.pool, 7, { ...deps(fetcher), purchaseEnabled: false });
+  assert.equal(outcome.status, 'disabled');
+  assert.deepEqual(calls, []);
+  assert.deepEqual(db.log, []);
+  assert.equal(db.assistants.length, 0);
+  assert.equal(db.numbers.length, 0);
+});
+
+test('staging never clones a template whose webhook points at production', async () => {
+  const calls = [];
+  const fetcher = async (url, options = {}) => {
+    calls.push((options.method || 'GET') + ' ' + url);
+    if (url.endsWith('/assistant/tmpl-1')) return {
+      ok: true, json: async () => ({ id: 'tmpl-1', server: { url: 'https://mar-khoor.com/integrations/vapi/tools' } }),
+    };
+    throw Error('staging must not create a production-routed assistant');
+  };
+  await assert.rejects(cloneAssistant({
+    apiKey: 'test', templateId: 'tmpl-1', name: 'Staging restaurant', restaurantId: 7,
+    restaurantName: 'Staging restaurant', isStaging: true, fetcher,
+  }), /Staging Vapi template points at a production URL/);
+  assert.deepEqual(calls, ['GET https://api.vapi.ai/assistant/tmpl-1']);
+});
 
 test('only Premium and Enterprise include a number; config gaps are reported by name', () => {
   assert.equal(includesNumber('starter'), false);

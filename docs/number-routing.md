@@ -63,3 +63,9 @@ When the super admin presses **Confirm payment** under **Subscriptions** for a P
 Countries that need documents leave the number `pending provider`; a background job checks every 15 minutes and connects it when Telnyx activates it (it never buys anything). **Set up AI number** re-runs the steps by hand. Starter does not include a number. Restaurants keep their own number by forwarding calls to the AI number.
 
 Requirements: a Telnyx route for the country (mode `manual`) under **Phone numbers by country**; server settings `TELNYX_API_KEY`, `VAPI_API_KEY`, `VAPI_TEMPLATE_ASSISTANT_ID` (without them the panel says which are missing and nothing is bought). `VAPI_TELNYX_CREDENTIAL_ID` is optional: without it the Telnyx credential saved in Vapi (Integrations → Telnyx) is looked up; database migration `db/migrations/voice-autoprovision.sql` (after a backup).
+
+### Production safety gate (default OFF)
+`AI_CALLER_AUTO_PURCHASE_ENABLED` defaults to off. When it is not exactly `true`, automatic AI Caller provisioning returns `disabled` **before querying the database, cloning a Vapi assistant, or calling Telnyx**. Existing manually initiated plan-order purchases are a separate flow. This gate is deliberately fail-closed until a separate staging MariaDB and Node.js app, isolated assistant webhook URLs, and mock + end-to-end tests have been verified. Do not enable it on production merely because a PR was merged.
+
+### Staging Vapi isolation
+Set `MAR_KHOOR_ENV=staging` on the staging Node.js app only. In this mode a newly cloned Vapi assistant is rejected before the create call if the copied template refers to `mar-khoor.com` production URLs. Use a separate staging Vapi template with non-production tool/webhook URLs. This does not validate existing assistants; review those mappings separately. Keep staging DB separate and paid purchases off for mock testing.
