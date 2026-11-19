@@ -110,10 +110,10 @@ function renderOwnerInsights(analytics, menuItems = []) {
  const gradient = svgNode('linearGradient', {id:'mk-owner-sales-area',x1:'0',y1:'0',x2:'0',y2:'1'});
  gradient.append(svgNode('stop', {offset:'0%', 'stop-color':'#fa9a31', 'stop-opacity':'.48'}),svgNode('stop',{offset:'100%','stop-color':'#ffddb4','stop-opacity':'.03'}));
  defs.append(gradient);svg.append(defs);
- const left=52,right=687,top=20,bottom=190;
- const y=value=>bottom-(value/max)*(bottom-top);
+ const left=52,right=687,chartTop=20,bottom=190;
+ const y=value=>bottom-(value/max)*(bottom-chartTop);
  for(let i=0;i<=4;i++){
-  const yy=bottom-i*(bottom-top)/4;
+  const yy=bottom-i*(bottom-chartTop)/4;
   svg.append(svgNode('line',{x1:left,y1:yy,x2:right,y2:yy,class:'axis'}));
   svg.append(svgNode('text',{x:4,y:yy+4,class:'tick'},ownerMoney(Math.round(max*i/4))));
  }
