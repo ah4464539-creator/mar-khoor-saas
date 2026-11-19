@@ -11,7 +11,7 @@
 // This spends real money: it only runs for an active, paid subscription, never twice per restaurant.
 import { randomUUID } from 'node:crypto';
 import { searchNumbers, orderNumber, E164 } from './providers/telnyx.js';
-import { importTelnyxNumber } from './providers/vapi-numbers.js';
+import { importTelnyxNumber, findTelnyxCredential } from './providers/vapi-numbers.js';
 import { cloneAssistant } from './providers/vapi-assistants.js';
 import { retryNumber } from './provisioning.js';
 import { planCatalog } from './subscriptions.js';
@@ -37,7 +37,6 @@ export function missingConfig(deps) {
   const missing = [];
   if (!deps.telnyxKey) missing.push('TELNYX_API_KEY');
   if (!deps.vapiKey) missing.push('VAPI_API_KEY');
-  if (!deps.credentialId) missing.push('VAPI_TELNYX_CREDENTIAL_ID');
   if (!deps.templateAssistantId) missing.push('VAPI_TEMPLATE_ASSISTANT_ID');
   return missing;
 }
@@ -78,9 +77,22 @@ async function ensureAssistant(pool, restaurant, deps) {
   return created.id;
 }
 
-export async function provisionSubscriptionNumber(pool, restaurantId, deps = autoProvisionDeps()) {
-  const missing = missingConfig(deps);
+// VAPI_TELNYX_CREDENTIAL_ID is optional: without it the Telnyx credential saved in the Vapi
+// dashboard is looked up once and reused.
+let discoveredCredential = null;
+async function withCredential(deps) {
+  if (deps.credentialId) return deps;
+  if (!discoveredCredential) discoveredCredential = await findTelnyxCredential({ apiKey: deps.vapiKey, fetcher: deps.fetcher });
+  return { ...deps, credentialId: discoveredCredential };
+}
+export function resetDiscoveredCredential() { discoveredCredential = null; }
+
+export async function provisionSubscriptionNumber(pool, restaurantId, baseDeps = autoProvisionDeps()) {
+  const missing = missingConfig(baseDeps);
   if (missing.length) return result('not_configured', 'Automatic numbers are off until these server settings are added: ' + missing.join(', ') + '.');
+  let deps;
+  try { deps = await withCredential(baseDeps); }
+  catch (error) { return result('not_configured', error.message); }
 
   const [subs] = await pool.execute('SELECT plan_key,status FROM restaurant_subscriptions WHERE restaurant_id=? LIMIT 1', [restaurantId]);
   const sub = subs[0];
@@ -175,8 +187,10 @@ async function finishPending(pool, restaurantId, row, deps) {
 
 // Background job: finishes subscription numbers that were waiting on the phone company or the
 // Vapi import. Small batches; never buys anything new.
-export async function retryPendingSubscriptionNumbers(pool, deps = autoProvisionDeps(), limit = 10) {
-  if (missingConfig(deps).length) return [];
+export async function retryPendingSubscriptionNumbers(pool, baseDeps = autoProvisionDeps(), limit = 10) {
+  if (missingConfig(baseDeps).length) return [];
+  let deps;
+  try { deps = await withCredential(baseDeps); } catch { return []; }
   const [rows] = await pool.execute(
     "SELECT id,restaurant_id,phone_number,status FROM restaurant_numbers WHERE subscription_restaurant_id IS NOT NULL AND status IN ('pending_provider','import_failed') ORDER BY updated_at LIMIT " + Math.min(Math.max(Number(limit) || 10, 1), 50));
   const outcomes = [];

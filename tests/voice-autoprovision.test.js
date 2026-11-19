@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import express from 'express';
 import { provisionSubscriptionNumber, retryPendingSubscriptionNumbers, pickNumber, includesNumber, missingConfig } from '../src/voice-autoprovision.js';
 import { assistantCopy } from '../src/providers/vapi-assistants.js';
+import { findTelnyxCredential } from '../src/providers/vapi-numbers.js';
+import { resetDiscoveredCredential } from '../src/voice-autoprovision.js';
 import { plansRouter } from '../src/plans.js';
 
 const deps = fetcher => ({
@@ -65,7 +67,7 @@ test('only Premium and Enterprise include a number; config gaps are reported by 
   assert.equal(includesNumber('starter'), false);
   assert.equal(includesNumber('premium'), true);
   assert.equal(includesNumber('enterprise'), true);
-  assert.deepEqual(missingConfig({ telnyxKey: 'x' }), ['VAPI_API_KEY', 'VAPI_TELNYX_CREDENTIAL_ID', 'VAPI_TEMPLATE_ASSISTANT_ID']);
+  assert.deepEqual(missingConfig({ telnyxKey: 'x' }), ['VAPI_API_KEY', 'VAPI_TEMPLATE_ASSISTANT_ID']);
 });
 
 test('number choice skips unknown or expensive costs', () => {
@@ -177,4 +179,26 @@ test('super admin confirms payment and the AI number starts automatically', asyn
     delete process.env.SUPER_ADMIN_OWNER_EMAIL;
     void hashPassword; void authRouter;
   }
+});
+
+test('the Telnyx credential is found in Vapi when VAPI_TELNYX_CREDENTIAL_ID is not set', async () => {
+  const fetcher = async url => {
+    assert.equal(url, 'https://api.vapi.ai/credential');
+    return { ok: true, json: async () => [{ id: 'c-old', provider: 'telnyx', createdAt: '2026-01-01' }, { id: 'c-openai', provider: 'openai' }, { id: 'c-new', provider: 'telnyx', createdAt: '2026-11-19' }] };
+  };
+  assert.equal(await findTelnyxCredential({ apiKey: 'k', fetcher }), 'c-new');
+  await assert.rejects(findTelnyxCredential({ apiKey: 'k', fetcher: async () => ({ ok: true, json: async () => [] }) }), /No Telnyx credential/);
+
+  resetDiscoveredCredential();
+  const db = fakeDb();
+  const providers = fakeProviders();
+  const lookups = [];
+  const outcome = await provisionSubscriptionNumber(db.pool, 7, { ...deps(async (url, init) => {
+    if (url === 'https://api.vapi.ai/credential') { lookups.push(url); return { ok: true, json: async () => [{ id: 'cred-found', provider: 'telnyx' }] }; }
+    if (url === 'https://api.vapi.ai/phone-number') assert.equal(JSON.parse(init.body).credentialId, 'cred-found');
+    return providers.fetcher(url, init);
+  }), credentialId: undefined });
+  assert.equal(outcome.status, 'active', outcome.detail);
+  assert.equal(lookups.length, 1);
+  resetDiscoveredCredential();
 });
