@@ -53,7 +53,13 @@ app.get('/super-admin', (_req, res) => {
   res.set('X-Robots-Tag', 'noindex, nofollow');
   res.sendFile(path.resolve(publicDirectory, '../src/views/super-admin.html'), { cacheControl: false });
 });
-app.use(express.static(publicDirectory));
+// Browsers must re-check pages, scripts and styles on every visit (cheap 304 via ETag), so a
+// deploy is seen immediately instead of an old cached copy running against the new API.
+app.use(express.static(publicDirectory, {
+  setHeaders(res, file) {
+    if (/\.(html|js|css)$/.test(file)) res.setHeader('Cache-Control', 'no-cache');
+  },
+}));
 app.post('/api/public/plan-quote', async (req, res) => {
   try {
     res.json(quotePlan(req.body, await loadCatalog(pool)));
