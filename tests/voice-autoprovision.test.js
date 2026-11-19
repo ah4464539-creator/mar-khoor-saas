@@ -50,7 +50,7 @@ function fakeProviders({ numbers = [{ phone_number: '+12025550123', features: [{
   const json = (body, status = 200) => ({ ok: status < 400, status, json: async () => body });
   const fetcher = async (url, init = {}) => {
     calls.push((init.method || 'GET') + ' ' + url.replace(/\?.*/, ''));
-    if (url.startsWith('https://api.vapi.ai/assistant/tmpl-1')) return json({ id: 'tmpl-1', orgId: 'o', createdAt: 'x', name: 'Template', model: { provider: 'openai' }, voice: { provider: 'vapi' }, server: { url: 'https://mar-khoor.com/vapi/tools' } });
+    if (url.startsWith('https://api.vapi.ai/assistant/tmpl-1')) return json({ id: 'tmpl-1', orgId: 'o', createdAt: 'x', name: 'Template', model: { provider: 'openai' }, voice: { provider: 'vapi' }, server: { url: 'https://mar-khoor.com/integrations/vapi/tools' } });
     if (url === 'https://api.vapi.ai/assistant') { const body = JSON.parse(init.body); assert.equal(body.id, undefined); assert.equal(body.orgId, undefined); return json({ id: 'asst-new', ...body }); }
     if (url.startsWith('https://api.telnyx.com/v2/available_phone_numbers')) return json({ data: numbers });
     if (url === 'https://api.telnyx.com/v2/number_orders') return orderFails ? json({ errors: [{ detail: 'not available' }] }, 422) : json({ data: { id: 'ord-1', status: orderStatus } });
