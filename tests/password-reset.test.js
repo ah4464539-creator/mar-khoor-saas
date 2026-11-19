@@ -230,7 +230,7 @@ test('login card shows errors inside the card and offers forgot password', () =>
   assert.ok(form.includes('id="forgot-link"'));
   for (const id of ['forgot-view', 'forgot-form', 'forgot-email', 'forgot-message', 'reset-view', 'reset-form', 'reset-password', 'reset-confirm', 'reset-message', 'login-notice'])
     assert.ok(html.includes('id="' + id + '"'), id);
-  assert.ok(html.includes('src="/password-reset.js"'));
+  assert.ok(html.includes('src="/password-reset.js?v='));
   const submit = js.slice(js.indexOf("const loginError"), js.indexOf("logoutButton.addEventListener('click'"));
   assert.ok(submit.includes("fetch('/auth/login'"));
   assert.ok(!submit.includes('status.textContent'), 'login errors no longer go to the page-bottom status line');
