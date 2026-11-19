@@ -250,11 +250,13 @@ CREATE TABLE IF NOT EXISTS restaurant_sites (
  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
 );
 
--- Dedicated phone numbers bought for a restaurant (one per plan order). Bought only by an explicit super admin action.
+-- Dedicated phone numbers bought for a restaurant: one per plan order (bought by the super admin), or one per
+-- restaurant bought automatically when a Premium/Enterprise subscription payment is confirmed.
 CREATE TABLE IF NOT EXISTS restaurant_numbers (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
  restaurant_id BIGINT UNSIGNED NOT NULL,
- plan_order_id BIGINT UNSIGNED NOT NULL,
+ plan_order_id BIGINT UNSIGNED NULL,
+ subscription_restaurant_id BIGINT UNSIGNED NULL,
  country_code CHAR(2) NOT NULL,
  phone_number VARCHAR(20) NOT NULL,
  provider VARCHAR(32) NOT NULL,
@@ -266,6 +268,7 @@ CREATE TABLE IF NOT EXISTS restaurant_numbers (
  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
  UNIQUE KEY uq_number_order (plan_order_id),
  UNIQUE KEY uq_number_value (phone_number),
+ UNIQUE KEY uq_number_subscription (subscription_restaurant_id),
  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
  FOREIGN KEY (plan_order_id) REFERENCES plan_orders(id),
  INDEX (restaurant_id,status)

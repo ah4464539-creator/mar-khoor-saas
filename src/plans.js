@@ -3,8 +3,12 @@ import { requireAuth } from './auth.js';
 import { normalizeRoute } from './number-routes.js';
 import { createPlanOrder, listPlanOrders, changeOrderStatus } from './plan-orders.js';
 import { audit } from './security.js';
+import { provisionSubscriptionNumber } from './voice-autoprovision.js';
 
-export function plansRouter(pool) {
+// Allowed previous statuses for each target status.
+const SUBSCRIPTION_MOVES = { active: ['pending_payment', 'past_due'], past_due: ['active'], cancelled: ['pending_payment', 'active', 'past_due'] };
+
+export function plansRouter(pool, { provision = provisionSubscriptionNumber } = {}) {
  const router = express.Router();
  const superOnly = (req, res, next) => req.user.platformRole === 'super_admin' ? next() : res.status(403).json({ error: 'Forbidden' });
  const restaurantAdmin = async (req, res, next) => {
@@ -48,6 +52,45 @@ export function plansRouter(pool) {
   const result = await changeOrderStatus(pool, Number(req.params.orderId), req.body?.status);
   if (result.status === 200) await audit(pool, { actorUserId: req.user.id, action: 'plan_order.status:' + Number(req.params.orderId) + ':' + String(req.body?.status) });
   res.status(result.status).json(result.body);
+ });
+
+ // Super admin: subscriptions (Starter / Premium / Enterprise). Payment is confirmed by hand for
+ // now; confirming a plan that includes a dedicated number starts the automatic AI Caller number.
+ router.get('/platform/subscriptions', requireAuth, superOnly, async (_req, res) => {
+  try {
+   const [rows] = await pool.query(
+    "SELECT s.restaurant_id,r.name AS restaurant_name,r.country_code,s.plan_key,s.billing_cycle,s.status,s.currency,s.price_minor,s.updated_at,"
+    + "(SELECT CONCAT(n.phone_number,' · ',n.status) FROM restaurant_numbers n WHERE n.restaurant_id=s.restaurant_id AND n.status<>'failed' ORDER BY n.id DESC LIMIT 1) AS voice_number "
+    + "FROM restaurant_subscriptions s JOIN restaurants r ON r.id=s.restaurant_id ORDER BY s.updated_at DESC LIMIT 200");
+   res.json({ subscriptions: rows.map(row => ({ ...row, price_minor: row.price_minor == null ? null : Number(row.price_minor) })) });
+  } catch { res.status(503).json({ error: 'Subscriptions unavailable' }); }
+ });
+ router.put('/platform/subscriptions/:restaurantId/status', requireAuth, superOnly, async (req, res) => {
+  const restaurantId = Number(req.params.restaurantId);
+  const status = req.body?.status;
+  if (!Number.isSafeInteger(restaurantId) || restaurantId < 1 || !SUBSCRIPTION_MOVES[status]) return res.status(400).json({ error: 'Choose active, past_due or cancelled' });
+  try {
+   const [rows] = await pool.execute('SELECT status FROM restaurant_subscriptions WHERE restaurant_id=? LIMIT 1', [restaurantId]);
+   if (!rows.length) return res.status(404).json({ error: 'This restaurant has not chosen a plan yet' });
+   const current = rows[0].status;
+   if (!SUBSCRIPTION_MOVES[status].includes(current)) return res.status(409).json({ error: 'Cannot move a ' + current.replace('_', ' ') + ' subscription to ' + status.replace('_', ' '), current });
+   const [result] = await pool.execute('UPDATE restaurant_subscriptions SET status=? WHERE restaurant_id=? AND status=?', [status, restaurantId, current]);
+   if (!result.affectedRows) return res.status(409).json({ error: 'Subscription changed; reload and retry' });
+   await audit(pool, { actorUserId: req.user.id, restaurantId, action: 'subscription.status:' + current + '->' + status });
+   let voice = null;
+   if (status === 'active') {
+    voice = await provision(pool, restaurantId).catch(() => ({ status: 'failed', detail: 'Automatic number setup failed; use "Set up AI number" to retry.' }));
+    await audit(pool, { actorUserId: req.user.id, restaurantId, action: 'voice.autoprovision:' + voice.status });
+   }
+   res.json({ restaurant_id: restaurantId, status, voice });
+  } catch { res.status(503).json({ error: 'Subscriptions unavailable' }); }
+ });
+ router.post('/platform/subscriptions/:restaurantId/voice-number', requireAuth, superOnly, async (req, res) => {
+  const restaurantId = Number(req.params.restaurantId);
+  if (!Number.isSafeInteger(restaurantId) || restaurantId < 1) return res.status(400).json({ error: 'Invalid restaurant' });
+  const voice = await provision(pool, restaurantId).catch(() => ({ status: 'failed', detail: 'Automatic number setup failed.' }));
+  await audit(pool, { actorUserId: req.user.id, restaurantId, action: 'voice.autoprovision:' + voice.status });
+  res.json({ restaurant_id: restaurantId, voice });
  });
 
  // Restaurant admin: own cart.
