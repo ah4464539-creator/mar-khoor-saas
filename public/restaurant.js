@@ -25,13 +25,12 @@ async function refresh(){
   }
   inboxEl.append(p);
  }
- const summary = analytics.summary;
- const revenue = (Number(summary.completed_revenue_minor) / 100).toFixed(2) + ' ' + restaurantCurrency;
+ const summary = analytics.summary || {};
  const metrics = [
-  ['M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6m-6 4h6m-6 4h4', 'Total orders', summary.total_orders],
-  ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm0-15v5l3 2', 'Pending orders', summary.pending_orders],
-  ['M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM8 12l3 3 5-6', 'Completed orders', summary.completed_orders],
-  ['M4 4v16h16M8 16l4-5 3 2 5-7m-4 0h4v4', 'Completed revenue', revenue],
+  ['M3 4h18l-2 10H5L3 4zm3 14a1 1 0 1 0 0 2 1 1 0 0 0 0-2zm12 0a1 1 0 1 0 0 2 1 1 0 0 0 0-2z', 'Total Orders', Number(summary.total_orders ?? 0)],
+  ['M12 2v20m7-15c0 3-14 3-14 0s14-3 14 0zm0 10c0 3-14 3-14 0m14 5c0 3-14 3-14 0', 'Total Sales', ownerMoney(summary.completed_revenue_minor ?? 0)],
+  ['M4 3v6a3 3 0 0 0 6 0V3M7 3v18m12 0V3c-3 2-4 5-4 9h4', 'Menu Items', menu.items.length],
+  ['M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m7-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm11 10v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75', 'Customers', Number(summary.customer_names_count ?? 0)],
  ];
  const analyticsPanel = document.querySelector('#analytics');
  analyticsPanel.replaceChildren(...metrics.map(([symbol, label, value]) => {
@@ -58,8 +57,9 @@ async function refresh(){
  }));
  const items=document.querySelector('#items');items.replaceChildren();
  for(const item of menu.items){const p=document.createElement('p'),button=document.createElement('button');p.textContent=item.name+' — '+(item.price_minor/100).toFixed(2)+' · '+(item.active?'Active':'Hidden')+' ';button.textContent=item.active?'Hide':'Show';button.addEventListener('click',async()=>{try{await api('/api/restaurants/'+restaurantId+'/menu/'+item.id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({...item,active:!item.active})});await refresh()}catch(e){status.textContent=e.message}});const edit=document.createElement('button');edit.type='button';edit.textContent='Edit';edit.addEventListener('click',()=>editMenuItem(item));p.append(button,edit);items.append(p)}
- renderOwnerInsights(analytics);
+ renderOwnerInsights(analytics, menu.items);
  ownerOrders = orders.orders;
+ renderOwnerOrderActivity(ownerOrders);
  renderOwnerOrders();
 }
 
@@ -69,6 +69,9 @@ const orderTransitions = {pending:['accepted','cancelled'],accepted:['preparing'
 let ownerOrders = [];
 orderSearch.addEventListener('input', renderOwnerOrders);
 orderFilter.addEventListener('change', renderOwnerOrders);
+const ownerGlobalSearch=document.querySelector('#owner-global-search');
+ownerGlobalSearch?.addEventListener('input',()=>{orderSearch.value=ownerGlobalSearch.value;renderOwnerOrders();});
+ownerGlobalSearch?.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();document.querySelector('#order-desk')?.scrollIntoView({behavior:'smooth',block:'start'});}});
 
 function ownerMoney(minor) {
  return new Intl.NumberFormat(undefined, {style:'currency',currency:restaurantCurrency}).format(Number(minor)/100);
@@ -81,58 +84,107 @@ function ownerText(tag, value, className = '') {
  return node;
 }
 
-function renderOwnerInsights(analytics) {
+function renderOwnerInsights(analytics, menuItems = []) {
  const sales = document.querySelector('#owner-sales');
- const days = [...analytics.last_30_days].reverse();
- const max = Math.max(1, ...days.map(day => Number(day.completed_revenue_minor)));
- const salesChart = ownerText('div', '', 'owner-sales-chart');
- for (const day of days) {
-  const date = String(day.day).slice(0, 10);
-  const plot = ownerText('div', '', 'owner-sales-day');
-  const label = date + ' · ' + ownerMoney(day.completed_revenue_minor);
-  const bar = document.createElement('meter');
-  bar.max = max;
-  bar.value = Number(day.completed_revenue_minor);
-  bar.setAttribute('aria-label', label);
-  bar.title = label;
-  plot.append(bar);
-  salesChart.append(plot);
+ const byDay = new Map((analytics.last_30_days ?? []).map(day => [String(day.day).slice(0, 10), Number(day.completed_revenue_minor) || 0]));
+ const today = new Date();
+ const series = [];
+ for (let offset = 29; offset >= 0; offset--) {
+  const date = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - offset));
+  const day = date.toISOString().slice(0, 10);
+  series.push({day, amount:Math.max(0, byDay.get(day) || 0)});
  }
- const first = String(days[0]?.day ?? '').slice(0,10);
- const last = String(days.at(-1)?.day ?? '').slice(0,10);
- const caption = first === last ? first : first + ' – ' + last;
- sales.replaceChildren(...(days.length ? [salesChart, ownerText('small', caption)] : [ownerText('p','No sales activity in this period.')]));
+ const max = Math.max(1, ...series.map(day => day.amount));
+ const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+ const svgNode = (tag, attributes = {}, content = null) => {
+  const element = document.createElementNS(svg.namespaceURI, tag);
+  for (const [name, value] of Object.entries(attributes)) element.setAttribute(name, String(value));
+  if (content !== null) element.textContent = String(content);
+  return element;
+ };
+ svg.setAttribute('viewBox', '0 0 700 228');
+ svg.setAttribute('role', 'img');
+ svg.setAttribute('class', 'owner-revenue-chart');
+ svg.setAttribute('aria-label', 'Real completed revenue for each of the last 30 days');
+ const defs = svgNode('defs');
+ const gradient = svgNode('linearGradient', {id:'mk-owner-sales-area',x1:'0',y1:'0',x2:'0',y2:'1'});
+ gradient.append(svgNode('stop', {offset:'0%', 'stop-color':'#fa9a31', 'stop-opacity':'.48'}),svgNode('stop',{offset:'100%','stop-color':'#ffddb4','stop-opacity':'.03'}));
+ defs.append(gradient);svg.append(defs);
+ const left=52,right=687,top=20,bottom=190;
+ const y=value=>bottom-(value/max)*(bottom-top);
+ for(let i=0;i<=4;i++){
+  const yy=bottom-i*(bottom-top)/4;
+  svg.append(svgNode('line',{x1:left,y1:yy,x2:right,y2:yy,class:'axis'}));
+  svg.append(svgNode('text',{x:4,y:yy+4,class:'tick'},ownerMoney(Math.round(max*i/4))));
+ }
+ const points=series.map((day,i)=>({x:left+i*(right-left)/29,y:y(day.amount),day:day.day,amount:day.amount}));
+ const path=points.map((p,i)=>(i?'L':'M')+p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ');
+ svg.append(svgNode('path',{d:path+' L'+right+','+bottom+' L'+left+','+bottom+' Z',fill:'url(#mk-owner-sales-area)'}));
+ svg.append(svgNode('path',{d:path,class:'revenue-line'}));
+ for(const i of [0,7,14,21,29]){
+  const p=points[i];
+  svg.append(svgNode('circle',{cx:p.x,cy:p.y,r:'3.8',class:'revenue-dot'}));
+  const label=new Date(p.day+'T00:00:00Z').toLocaleDateString(undefined,{month:'short',day:'numeric',timeZone:'UTC'});
+  svg.append(svgNode('text',{x:p.x,y:215,'text-anchor':i===0?'start':i===29?'end':'middle',class:'tick'},label));
+ }
+ sales.replaceChildren(svg);
+ if(!series.some(day=>day.amount>0))sales.append(ownerText('small','No completed revenue in this period.'));
 
- const statuses = analytics.by_status ?? [];
- const total = statuses.reduce((sum, row) => sum + Number(row.count), 0);
- const legend = ownerText('ul', '', 'owner-status-legend');
- const colors = {pending:'#db741e',accepted:'#634ceb',preparing:'#336ac6',ready:'#168d8b',completed:'#258050',cancelled:'#ab4454'};
- let position = 0;
- const segments = statuses.map(row => {
-  const color = colors[row.status] ?? '#7d7490';
-  const end = position + Number(row.count) / total * 100;
-  const segment = color + ' ' + position + '% ' + end + '%';
-  position = end;
-  const item = ownerText('li', '');
-  const swatch = ownerText('span', '', 'owner-status-dot');
-  swatch.style.backgroundColor = color;
-  item.append(swatch, ownerText('span', row.status), ownerText('strong', row.count));
-  legend.append(item);
-  return segment;
- });
- const ring = ownerText('div', '', 'owner-status-ring');
- ring.setAttribute('aria-hidden','true');
- if (segments.length) ring.style.backgroundImage = 'conic-gradient(' + segments.join(',') + ')';
- ring.append(ownerText('strong', total));
- document.querySelector('#owner-status-summary').replaceChildren(ring, ...(total ? [legend] : [ownerText('p','No orders yet.')]));
- const top = analytics.top_items ?? [];
- const items = ownerText('ul', '', 'owner-top-list');
- for (const item of top) {
-  const row = ownerText('li', '');
-  row.append(ownerText('span', item.name), ownerText('strong', item.quantity + ' sold'));
-  items.append(row);
+ const statuses=analytics.by_status ?? [];
+ const total=statuses.reduce((sum,row)=>sum+Number(row.count||0),0);
+ const legend=ownerText('ul','','owner-status-legend');
+ const colors={pending:'#e78b2f',accepted:'#715ac7',preparing:'#4162b3',ready:'#24a3a0',completed:'#258050',cancelled:'#c45160'};
+ let position=0;
+ const segments=[];
+ for(const row of statuses){
+  const count=Number(row.count)||0;
+  if(count<=0 || total<=0)continue;
+  const color=colors[row.status]??'#7d7490';
+  const end=position+count/total*100;
+  segments.push(color+' '+position+'% '+end+'%');
+  position=end;
+  const item=ownerText('li','');
+  const swatch=ownerText('span','','owner-status-dot');swatch.style.backgroundColor=color;
+  item.append(swatch,ownerText('span',row.status),ownerText('strong',count));legend.append(item);
  }
- document.querySelector('#owner-top-items').replaceChildren(top.length ? items : ownerText('p','Completed orders will appear here.'));
+ const ring=ownerText('div','','owner-status-ring');ring.setAttribute('aria-hidden','true');
+ if(segments.length)ring.style.backgroundImage='conic-gradient('+segments.join(',')+')';
+ ring.append(ownerText('strong',total));
+ document.querySelector('#owner-status-summary').replaceChildren(ring,...(total?[legend]:[ownerText('p','No orders yet.')]));
+ const top=analytics.top_items ?? [];
+ const items=ownerText('ul','','owner-top-list');
+ const topCount=Math.max(1,...top.map(item=>Number(item.quantity)||0));
+ for(const item of top){
+  const row=ownerText('li','');
+  const matched=menuItems.find(menuItem=>menuItem.name===item.name && typeof menuItem.image_url==='string');
+  let picture;
+  try{
+   const url=new URL(matched?.image_url);
+   if(url.protocol!=='https:' || url.username || url.password)throw Error('Image URL not allowed');
+   picture=document.createElement('img');picture.className='owner-dish-thumb';picture.alt='';picture.loading='lazy';picture.src=url.href;
+  }catch{picture=ownerText('span','✦','owner-dish-thumb owner-dish-placeholder');}
+  const details=ownerText('div','','owner-dish-details');
+  details.append(ownerText('strong',item.name),ownerText('small',String(item.quantity)+' sold'));
+  const bar=ownerText('span','','owner-dish-bar'),fill=document.createElement('i');
+  fill.style.width=(100*(Number(item.quantity)||0)/topCount).toFixed(0)+'%';bar.append(fill);
+  row.append(picture,details,bar);items.append(row);
+ }
+ document.querySelector('#owner-top-items').replaceChildren(top.length?items:ownerText('p','Completed orders will appear here.'));
+}
+
+function renderOwnerOrderActivity(orders) {
+ const list=ownerText('ul','','owner-activity-list');
+ for (const order of orders.slice(0,4)) {
+  const entry=ownerText('li','');
+  const icon=ownerText('span',order.status==='completed'?'✓':order.status==='cancelled'?'×':'●','owner-activity-icon');
+  const text=ownerText('div','');
+  const statusName=String(order.status||'pending').replace(/_/g,' ');
+  text.append(ownerText('strong','Order #'+order.id+' · '+statusName),ownerText('small',(order.customer_name||'Customer')+' · '+ownerMoney(order.total_minor)));
+  const date=new Date(order.created_at);
+  const time=ownerText('time',Number.isNaN(date.valueOf())?'':date.toLocaleString());
+  entry.append(icon,text,time);list.append(entry);
+ }
+ document.querySelector('#owner-order-activity').replaceChildren(orders.length?list:ownerText('p','No order activity yet.','muted'));
 }
 
 function renderOwnerOrders() {
