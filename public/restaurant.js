@@ -280,26 +280,48 @@ async function openRestaurant(restaurant) {
  try { await refresh(); } catch (error) { status.textContent = error.message; }
 }
 
+const loginError = document.querySelector('#login-error');
+const loginNotice = document.querySelector('#login-notice');
+function showLoginError(message) {
+ loginError.textContent = message;
+ loginError.hidden = !message;
+}
+function loginErrorMessage(status, serverMessage) {
+ if (status === 400 || status === 401) return 'Incorrect email or password. Please try again, or use “Forgot password?”.';
+ if (status === 429) return 'Too many sign-in attempts. Please wait a few minutes and try again.';
+ if (status >= 500) return 'Sign-in is temporarily unavailable. Please try again shortly.';
+ return serverMessage || 'Sign-in failed. Please try again.';
+}
+for (const input of form.querySelectorAll('input:not([type=checkbox])')) input.addEventListener('input', () => showLoginError(''));
+
 form.addEventListener('submit', async event => {
  event.preventDefault();
  const submit = form.querySelector('button[type=submit]');
  submit.disabled = true;
- status.textContent = 'Signing in…';
+ submit.textContent = 'Signing in…';
+ showLoginError('');
+ if (loginNotice) loginNotice.hidden = true;
  try {
-  const response = await fetch('/auth/login', {
-   method: 'POST', headers: { 'Content-Type': 'application/json' },
-   body: JSON.stringify({ email: document.querySelector('#email').value, password: document.querySelector('#password').value }),
-  });
-  const data = await response.json();
-  if (!response.ok) throw Error(data.error || 'Login failed');
+  let response;
+  try {
+   response = await fetch('/auth/login', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: document.querySelector('#email').value, password: document.querySelector('#password').value }),
+   });
+  } catch { throw Error('Could not reach Mar-Khoor. Check your internet connection and try again.'); }
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw Error(loginErrorMessage(response.status, data.error));
   token = data.token;
   await loadAccount();
   if (document.querySelector('#remember-login').checked) {
    try { localStorage.setItem(sessionKey, token); } catch {}
   }
   form.reset();
- } catch (error) { status.textContent = error.message; }
- finally { submit.disabled = false; }
+ } catch (error) {
+  showLoginError(error.message);
+  document.querySelector('#password').select();
+ }
+ finally { submit.disabled = false; submit.textContent = 'Sign in'; }
 });
 
 logoutButton.addEventListener('click', async () => {
@@ -657,7 +679,8 @@ deferSetup.addEventListener('click', () => setupDialog.close());
 setupForm.addEventListener('submit', event => { event.preventDefault(); advanceSetup(); });
 
 try { token = localStorage.getItem(sessionKey) || ''; } catch {}
-if (token) loadAccount().catch(() => {
+// Do not auto-open a saved session while someone is completing a password reset link.
+if (token && document.querySelector('#reset-view')?.hidden !== false) loadAccount().catch(() => {
  token = '';
  try { localStorage.removeItem(sessionKey); } catch {}
 });

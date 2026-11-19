@@ -219,6 +219,19 @@ CREATE TABLE IF NOT EXISTS sessions (
  INDEX (user_id)
 );
 
+-- Self-service password reset links. Only a SHA-256 hash of the emailed token is stored.
+CREATE TABLE IF NOT EXISTS password_resets (
+ token_hash CHAR(64) NOT NULL PRIMARY KEY,
+ user_id BIGINT UNSIGNED NOT NULL,
+ expires_at DATETIME NOT NULL,
+ used_at DATETIME NULL DEFAULT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+ INDEX (user_id),
+ INDEX (expires_at)
+);
+
+
 -- Customer order tracking: only a hash of the tracking token is stored.
 CREATE TABLE IF NOT EXISTS order_tracking (
  order_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
