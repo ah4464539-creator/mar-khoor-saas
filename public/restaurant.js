@@ -333,6 +333,9 @@ function updateWorkspaceView(focusHeading = false) {
 window.addEventListener('hashchange', () => updateWorkspaceView(true));
 
 async function openRestaurant(restaurant) {
+ siteDirty=false;
+ document.querySelector('#site-preview-wrap').hidden=true;
+ document.querySelector('#site-preview-frame').removeAttribute('srcdoc');
  restaurantId = restaurant.id;
  restaurantCurrency = restaurant.currency;
  document.querySelector('#owner-heading').textContent = 'Restaurant Dashboard';
@@ -493,39 +496,76 @@ planForm.addEventListener('submit',async e=>{
 // My website: AI-written copy, owner edits, publish toggle.
 const siteForm=document.querySelector('#site-form'),siteStatus=document.querySelector('#site-status'),siteLink=document.querySelector('#site-link'),sitePublish=document.querySelector('#site-publish');
 const siteField=name=>document.querySelector('#site-'+name);
-let sitePublished=false,siteSlug='',siteSections=['about','menu','hours','contact'];
+let sitePublished=false,siteSlug='',siteSections=['about','menu','hours','contact'],siteDirty=false;
+siteForm.addEventListener('input',()=>{siteDirty=true;});
+siteForm.addEventListener('change',()=>{siteDirty=true;});
 function showSite(data){
  siteField('headline').value=data.config.headline;siteField('tagline').value=data.config.tagline;siteField('about').value=data.config.about;
  siteField('hours').value=data.config.hours;siteField('phone').value=data.config.phone;siteField('address').value=data.config.address;siteField('theme').value=data.config.theme;
  siteField('description').value=data.description||siteField('description').value;siteSections=data.config.sections;
+ const chosenTemplate=siteForm.querySelector('input[name="site-template"][value="'+(data.config.template||'classic')+'"]');
+ if(chosenTemplate)chosenTemplate.checked=true;
  siteField('assistant-recording').checked=data.config.assistantRecording===true;
  if(data.slug)siteSlug=data.slug;
  if(typeof data.published==='boolean')sitePublished=data.published;
+ siteDirty=false;
  sitePublish.textContent=sitePublished?'Unpublish':'Publish';
  siteLink.replaceChildren();
  if(sitePublished&&siteSlug){const a=document.createElement('a');a.href='/r/'+siteSlug;a.textContent='mar-khoor.com/r/'+siteSlug;a.target='_blank';a.rel='noopener';siteLink.append('Live at ',a)}
 }
-async function loadSite(){if(!restaurantId)return;showSite(await api('/api/restaurants/'+restaurantId+'/site'))}
-const siteConfig=()=>({headline:siteField('headline').value,tagline:siteField('tagline').value,about:siteField('about').value,hours:siteField('hours').value,phone:siteField('phone').value,address:siteField('address').value,theme:siteField('theme').value,assistantRecording:siteField('assistant-recording').checked,sections:siteSections});
+async function loadSite({force=false}={}){if(!restaurantId||(siteDirty&&!force))return;const id=restaurantId;const data=await api('/api/restaurants/'+id+'/site');if(id===restaurantId)showSite(data)}
+const siteConfig=()=>({template:siteForm.querySelector('input[name="site-template"]:checked')?.value||'classic',headline:siteField('headline').value,tagline:siteField('tagline').value,about:siteField('about').value,hours:siteField('hours').value,phone:siteField('phone').value,address:siteField('address').value,theme:siteField('theme').value,assistantRecording:siteField('assistant-recording').checked,sections:siteSections});
 const siteJson={'Content-Type':'application/json'};
 document.querySelector('#site-generate').addEventListener('click',async e=>{
  if(!restaurantId){siteStatus.textContent='Select your restaurant first.';return}
  const button = e.currentTarget;
  button.disabled=true;siteStatus.textContent='Writing…';
- try{const data=await api('/api/restaurants/'+restaurantId+'/site/generate',{method:'POST',headers:siteJson,body:JSON.stringify({description:siteField('description').value})});showSite(data);siteStatus.textContent=data.source==='ai'?'Draft written by AI and saved. Edit anything you like.':'AI is not available, so a basic draft was saved. Edit it below.'}
+ try{
+  const template=siteConfig().template;
+  const data=await api('/api/restaurants/'+restaurantId+'/site/generate',{method:'POST',headers:siteJson,body:JSON.stringify({description:siteField('description').value})});
+  data.config.template=template;showSite(data);siteDirty=true;
+  siteStatus.textContent=data.source==='ai'?'AI draft ready. Review and preview it, then select Save website. Nothing has been published.':'AI writing is unavailable. You can still edit, preview and save this template manually. Nothing has been published.';
+ }
  catch(error){siteStatus.textContent=error.message}finally{button.disabled=false}
 });
 siteForm.addEventListener('submit',async e=>{
  e.preventDefault();if(!restaurantId){siteStatus.textContent='Select your restaurant first.';return}
- try{showSite(await api('/api/restaurants/'+restaurantId+'/site',{method:'PUT',headers:siteJson,body:JSON.stringify({config:siteConfig(),description:siteField('description').value})}));siteStatus.textContent='Saved.'}
+ try{const wasPublished=sitePublished;showSite(await api('/api/restaurants/'+restaurantId+'/site',{method:'PUT',headers:siteJson,body:JSON.stringify({config:siteConfig(),description:siteField('description').value})}));siteStatus.textContent=wasPublished?'Saved. Your published site has been updated.':'Draft saved. Publish when you are ready.'}
  catch(error){siteStatus.textContent=error.message}
 });
 sitePublish.addEventListener('click',async()=>{
  if(!restaurantId){siteStatus.textContent='Select your restaurant first.';return}
- try{await api('/api/restaurants/'+restaurantId+'/site',{method:'PUT',headers:siteJson,body:JSON.stringify({config:siteConfig(),description:siteField('description').value})});
-  const next=!sitePublished;await api('/api/restaurants/'+restaurantId+'/site/publish',{method:'POST',headers:siteJson,body:JSON.stringify({published:next})});
-  await loadSite();siteStatus.textContent=next?'Your website is live.':'Your website is unpublished.'}
- catch(error){siteStatus.textContent=error.message}
+ sitePublish.disabled=true;
+ try{
+  const next=!sitePublished;
+  if(next)await api('/api/restaurants/'+restaurantId+'/site',{method:'PUT',headers:siteJson,body:JSON.stringify({config:siteConfig(),description:siteField('description').value})});
+  await api('/api/restaurants/'+restaurantId+'/site/publish',{method:'POST',headers:siteJson,body:JSON.stringify({published:next})});
+  siteDirty=false;await loadSite({force:true});
+  siteStatus.textContent=next?'Your approved website is live.':'Your website is unpublished. Your saved draft remains available.';
+ }catch(error){siteStatus.textContent=error.message}finally{sitePublish.disabled=false}
+});
+const sitePreviewWrap=document.querySelector('#site-preview-wrap');
+const sitePreviewFrame=document.querySelector('#site-preview-frame');
+document.querySelector('#site-preview-close').addEventListener('click',()=>{
+ sitePreviewWrap.hidden=true;sitePreviewFrame.removeAttribute('srcdoc');
+});
+document.querySelector('#site-preview-button').addEventListener('click',async event=>{
+ if(!restaurantId){siteStatus.textContent='Select your restaurant first.';return}
+ const button=event.currentTarget,id=restaurantId;
+ button.disabled=true;siteStatus.textContent='Preparing your private preview…';
+ try{
+  const response=await fetch('/api/restaurants/'+id+'/site/preview',{
+   method:'POST',
+   headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+   body:JSON.stringify({config:siteConfig()}),
+  });
+  if(!response.ok){const result=await response.json().catch(()=>({}));throw Error(result.error||'Preview unavailable')}
+  const html=await response.text();
+  if(id!==restaurantId)return;
+  sitePreviewFrame.srcdoc=html;sitePreviewWrap.hidden=false;
+  sitePreviewWrap.scrollIntoView({behavior:'smooth',block:'start'});
+  siteStatus.textContent='Preview ready. This view is private; nothing was published.';
+ }catch(error){siteStatus.textContent=error.message}finally{button.disabled=false}
 });
 
 const setupPanel = document.querySelector('#restaurant-setup');
