@@ -14,19 +14,32 @@ for (const first of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') {
 regions.sort((a, b) => a.name.localeCompare(b.name));
 for (const { code, name } of regions) country.add(new Option(name, code));
 
-// Plan chosen on /build-plan.html is remembered and preselected in the dashboard setup after sign-in.
+// Plan chosen on the landing page or /build-plan.html. It is remembered and preselected in the
+// dashboard setup right after registration (we sign the new owner in automatically).
 const chosen = new URLSearchParams(location.search);
-const chosenPlan = ['starter', 'premium', 'enterprise'].includes(chosen.get('plan')) ? chosen.get('plan') : null;
-if (chosenPlan) {
-  const cycle = chosen.get('cycle') === 'yearly' ? 'yearly' : 'monthly';
-  try { localStorage.setItem('mar-khoor.chosen-plan', JSON.stringify({ plan: chosenPlan, cycle, at: Date.now() })); } catch {}
-  const note = document.querySelector('#chosen-plan');
-  if (note) {
-    note.textContent = 'Selected plan: ' + chosenPlan[0].toUpperCase() + chosenPlan.slice(1) + ' (' + cycle + '). You will confirm it after signing in. ';
-    note.append(Object.assign(document.createElement('a'), { href: '/build-plan.html?' + chosen, textContent: 'Change plan' }));
-    note.hidden = false;
-  }
+const PLAN_STORE = 'mar-khoor.chosen-plan';
+const planSelect = document.querySelector('#chosen-plan-select');
+const cycleSelect = document.querySelector('#chosen-cycle-select');
+const signinLink = document.querySelector('#signin-link');
+const compareLink = document.querySelector('#compare-plans');
+if (['starter', 'premium', 'enterprise'].includes(chosen.get('plan'))) planSelect.value = chosen.get('plan');
+if (chosen.get('cycle') === 'yearly') cycleSelect.value = 'yearly';
+function rememberPlan() {
+  const plan = planSelect.value;
+  cycleSelect.hidden = !plan;
+  try {
+    if (plan) localStorage.setItem(PLAN_STORE, JSON.stringify({ plan, cycle: cycleSelect.value, at: Date.now() }));
+    else localStorage.removeItem(PLAN_STORE);
+  } catch {}
+  const query = plan ? '?' + new URLSearchParams({ plan, cycle: cycleSelect.value }) : '';
+  if (signinLink) signinLink.href = '/restaurant.html' + query;
+  if (compareLink) compareLink.href = '/build-plan.html' + query;
+  const doneLink = document.querySelector('#done a.button');
+  if (doneLink) doneLink.href = '/restaurant.html' + query;
 }
+planSelect.addEventListener('change', rememberPlan);
+cycleSelect.addEventListener('change', rememberPlan);
+rememberPlan();
 if (/^[A-Z]{2}$/.test(chosen.get('country') || '') && [...country.options].some(option => option.value === chosen.get('country'))) country.value = chosen.get('country');
 
 form.addEventListener('submit', async event => {
@@ -53,11 +66,25 @@ form.addEventListener('submit', async event => {
     if (!response.ok) throw Error(data.error || 'Registration failed');
     form.hidden = true;
     status.textContent = '';
-    document.querySelector('#done-text').textContent = 'Sign in with the email and password you just chose. You will then choose your plan and connect WhatsApp, AI Caller and your website. Your restaurant name for customers is "' + data.slug + '": they can enter it on the menu page at mar-khoor.com/menu.html once you add menu items.';
+    document.querySelector('#done-text').textContent = 'Your restaurant name for customers is "' + data.slug + '". Opening your workspace to finish setup' + (planSelect.value ? ' with the ' + planSelect.options[planSelect.selectedIndex].text + ' plan' : '') + '…';
     document.querySelector('#registration-voice').textContent = data.voice?.status === 'active'
       ? 'Your AI call number: ' + data.voice.number
       : 'AI call number: pending.';
     done.hidden = false;
+    // Sign the new owner in and continue straight to plan and channel setup.
+    try {
+      const login = await fetch('/auth/login', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: document.querySelector('#email').value, password })
+      });
+      const session = await login.json();
+      if (login.ok && session.token) {
+        try { sessionStorage.setItem('mar-khoor.owner-session', session.token); } catch {}
+        location.assign('/restaurant.html' + (planSelect.value ? '?' + new URLSearchParams({ plan: planSelect.value, cycle: cycleSelect.value }) : ''));
+        return;
+      }
+    } catch {}
+    document.querySelector('#done-text').textContent = 'Sign in with the email and password you just chose to finish setup. Your restaurant name for customers is "' + data.slug + '".';
   } catch (error) {
     status.textContent = error.message;
   } finally {

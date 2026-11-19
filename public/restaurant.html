@@ -67,6 +67,12 @@
 .mk-owner.signing-in .access-panel :is(#forgot-form,#reset-form) button:disabled{opacity:.7;cursor:progress}
 .mk-owner.signing-in .access-panel :is(#forgot-form,#reset-form){display:grid;gap:16px}
 </style>
+<style>
+.mk-owner .website-options label{grid-template-columns:minmax(0,1fr) auto!important;cursor:pointer}
+.mk-owner .website-options label span{grid-area:auto!important}
+.mk-owner .website-options label input{grid-area:auto!important}
+.mk-owner .website-options small{display:block;margin-top:4px;line-height:1.4;opacity:.85}
+</style>
 </head>
 <body class="dashboard restaurant-dashboard mk-owner signing-in">
 <div class="layout">
@@ -127,7 +133,7 @@
 </section>
 <dialog id="setup-dialog" aria-labelledby="setup-title">
 <form id="setup-form" novalidate>
-<p class="eyebrow" id="setup-step-label">Step 1 of 3</p>
+<p class="eyebrow" id="setup-step-label">Step 1 of 4</p>
 <h2 id="setup-title">Choose your plan</h2>
 <fieldset class="setup-step" data-step="plan">
 <legend class="visually-hidden">Plan</legend>
@@ -141,7 +147,7 @@
 </fieldset>
 <fieldset class="setup-step" data-step="connect" hidden>
 <legend class="visually-hidden">Connect</legend>
-<p>All optional. Fill what you want now; skip the rest and come back any time.</p>
+<p>Add the numbers your restaurant uses. Both are optional: skip one and come back any time.</p>
 <div class="setup-item" data-kind="whatsapp">
 <h3>Business WhatsApp</h3>
 <label>WhatsApp number used by your restaurant<input name="whatsapp_value" type="tel" inputmode="tel" autocomplete="tel" maxlength="32" placeholder="+92 300 1234567"></label>
@@ -158,13 +164,16 @@
 </select></label>
 <label class="setup-skip"><input type="checkbox" name="ai_caller_skip"> Skip AI Caller for now</label>
 </div>
+</fieldset>
+<fieldset class="setup-step" data-step="website" hidden>
+<legend class="visually-hidden">Website</legend>
 <div class="setup-item" data-kind="website">
-<h3>Website</h3>
-<label>How to set it up<select name="website_mode">
-<option value="builder">Build it with AI</option>
-<option value="domain">AI website on my own domain</option>
-<option value="embed">Add AI tools to my website</option>
-</select></label>
+<p>Do you already have a website for your restaurant?</p>
+<div class="setup-options website-options" role="radiogroup" aria-label="Website">
+<label><span><strong>No, build my website with AI</strong><small>The AI Website Builder opens next. Describe your restaurant and it writes your page, with your menu, AI Assistant, WhatsApp and AI Caller built in.</small></span><input type="radio" name="website_mode" value="builder" checked></label>
+<label><span><strong>Yes, use my own domain</strong><small>Connect your domain (for example myrestaurant.com) to a new AI-built Mar-Khoor website.</small></span><input type="radio" name="website_mode" value="domain"></label>
+<label><span><strong>Yes, keep my current website</strong><small>Keep your site as it is and add the Mar-Khoor AI Assistant, WhatsApp button and AI Caller to it.</small></span><input type="radio" name="website_mode" value="embed"></label>
+</div>
 <label class="setup-domain" hidden>Your domain<input name="website_value" inputmode="url" autocomplete="url" maxlength="253" placeholder="myrestaurant.com"></label>
 <label class="setup-skip"><input type="checkbox" name="website_skip"> Skip website for now</label>
 </div>

@@ -44,9 +44,36 @@ test('build-plan page uses the real plans and hands the choice to registration',
   for (const id of ['plan', 'country', 'plans', 'continue', 'summary-text', 'status']) assert.ok(html.includes('id="' + id + '"'), id);
   assert.ok(js.includes("fetch('/api/public/plans'"));
   assert.ok(!js.includes('plan-quote'), 'no longer uses the unpriced per-service quote');
-  assert.ok(js.includes("'/register.html?'"));
-  for (const plan of ['starter', 'premium', 'enterprise']) assert.ok(home.includes('/build-plan.html?plan=' + plan), plan);
+  for (const plan of ['starter', 'premium', 'enterprise']) assert.ok(home.includes('href="/register.html?plan=' + plan + '" data-plan="' + plan + '"'), plan);
+  assert.ok(home.includes("'/restaurant.html?plan='"), 'signed-in owners go to their dashboard');
+  assert.ok(js.includes("'/restaurant.html?'") && js.includes("'/register.html?'"));
   assert.ok(!home.includes('Professional</h3>'), 'homepage uses the real plan name');
   assert.ok(read('public/register.js').includes("'mar-khoor.chosen-plan'"));
   assert.ok(read('public/restaurant.js').includes('rememberedPlan()'));
+});
+
+test('registration keeps the chosen plan and signs the new owner in to continue setup', () => {
+  const html = read('public/register.html'), js = read('public/register.js');
+  for (const id of ['chosen-plan-select', 'chosen-cycle-select', 'signin-link']) assert.ok(html.includes('id="' + id + '"'), id);
+  assert.ok(js.includes("fetch('/auth/login'"), 'auto sign-in after registration');
+  assert.ok(js.includes("sessionStorage.setItem('mar-khoor.owner-session'"));
+  assert.ok(js.includes("'/restaurant.html'"));
+  const dashboard = read('public/restaurant.js');
+  assert.ok(dashboard.includes("sessionStorage.getItem(sessionKey)"), 'dashboard picks up the new session');
+  assert.ok(dashboard.includes('planIntent'), 'a plan clicked on the landing page opens setup on that plan');
+});
+
+test('setup asks for WhatsApp and AI Caller numbers, then opens the AI Website Builder', () => {
+  const html = read('public/restaurant.html'), js = read('public/restaurant.js');
+  const dialog = html.slice(html.indexOf('<dialog id="setup-dialog"'), html.indexOf('</dialog>'));
+  const order = ['data-step="plan"', 'data-step="connect"', 'data-step="website"', 'data-step="done"'].map(marker => dialog.indexOf(marker));
+  assert.ok(order.every((index, i) => index > 0 && (i === 0 || index > order[i - 1])), 'plan → numbers → website → status');
+  const connect = dialog.slice(order[1], order[2]);
+  assert.ok(connect.includes('name="whatsapp_value"') && connect.includes('name="ai_caller_value"') && !connect.includes('website_mode'));
+  const website = dialog.slice(order[2], order[3]);
+  for (const mode of ['builder', 'domain', 'embed']) assert.ok(website.includes('name="website_mode" value="' + mode + '"'), mode);
+  assert.ok(website.includes('name="website_value"'));
+  assert.ok(js.includes("location.hash = '#website'"), 'builder opens after setup');
+  assert.ok(js.includes('function websiteNeedsBuilder'));
+  assert.ok(js.includes("jsonBody('PUT', { whatsapp, ai_caller })"), 'numbers are saved before the website step');
 });

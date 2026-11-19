@@ -281,13 +281,13 @@
     </section>
     <section id="plans" class="landing-section">
       <h2>Options for each stage of growth</h2>
-      <p class="muted">Choose the services you need and see a USD estimate.</p>
+      <p class="muted">Every plan includes your website, AI Assistant, WhatsApp Business and the AI Caller. Plans differ only in monthly usage.</p>
       <div class="tiles">
-        <article><h3>✧ Starter</h3><p>Menu publishing, website ordering, and a restaurant workspace.</p><ul><li>Digital menu and online orders</li><li>Restaurant dashboard</li><li>Manage your menu</li></ul><a class="plan-link" href="/build-plan.html?plan=starter">Choose Starter</a></article>
-        <article class="featured-plan"><span class="popular">Most popular</span><h3>♛ Premium</h3><p>Restaurant operations with connected communication and automation tools.</p><ul><li>Everything in Starter</li><li>Connected communication tools</li><li>Automation options</li></ul><a class="plan-link" href="/build-plan.html?plan=premium">Choose Premium</a></article>
-        <article><h3>▤ Enterprise</h3><p>For businesses with multiple locations and custom onboarding needs.</p><ul><li>Multi-location requirements</li><li>Custom onboarding</li><li>Discuss integrations</li></ul><a class="plan-link" href="/build-plan.html?plan=enterprise">Choose Enterprise</a></article>
+        <article><h3>✧ Starter</h3><p>For a single restaurant getting started with online orders and AI.</p><ul><li>1,500 AI chats / month</li><li>1,000 WhatsApp messages / month</li><li>100 AI call minutes / month</li><li>AI phone number as an add-on</li></ul><a class="plan-link" href="/register.html?plan=starter" data-plan="starter">Choose Starter</a></article>
+        <article class="featured-plan"><span class="popular">Most popular</span><h3>♛ Premium</h3><p>For busy restaurants that want a dedicated AI phone line.</p><ul><li>5,000 AI chats / month</li><li>3,000 WhatsApp messages / month</li><li>400 AI call minutes / month</li><li>Dedicated AI phone number included</li></ul><a class="plan-link" href="/register.html?plan=premium" data-plan="premium">Choose Premium</a></article>
+        <article><h3>▤ Enterprise</h3><p>For high-volume restaurants and groups with several branches.</p><ul><li>15,000 AI chats / month</li><li>8,000 WhatsApp messages / month</li><li>1,200 AI call minutes / month</li><li>Dedicated AI phone number included</li></ul><a class="plan-link" href="/register.html?plan=enterprise" data-plan="enterprise">Choose Enterprise</a></article>
       </div>
-      
+      <p class="muted" style="text-align:center;margin-top:22px"><a href="/build-plan.html" style="color:#ffbc80;font-weight:700">Compare prices in your currency →</a></p>
     </section>
     <section id="how-it-works" class="landing-section steps-section"><h2>How <em>It Works</em></h2><div class="steps-grid"><article><b>1</b><h3>Register</h3><p>Create your restaurant account and add your details.</p></article><article><b>2</b><h3>Set up services</h3><p>Configure your menu and available integrations.</p></article><article><b>3</b><h3>Start taking orders</h3><p>Publish your menu and manage orders in your workspace.</p></article></div></section>
     <section id="about" class="landing-section"><h2>About Mar-Khoor</h2><p>Mar-Khoor brings restaurant menus, orders and connected communication channels into one workspace.</p></section>
@@ -303,6 +303,21 @@
 <button id="mk-ai-launch" hidden type="button" aria-expanded="false" aria-controls="mk-ai-panel">Ask Mar-Khoor AI</button>
 <section id="mk-ai-panel" hidden aria-label="Mar-Khoor AI chat"><header><strong>Mar-Khoor AI</strong><button id="mk-ai-close" type="button" aria-label="Close assistant">×</button></header><div id="mk-ai-messages" role="log" aria-live="polite"><p>Ask about Mar-Khoor features or registration. Restaurant ordering and live voice are not enabled in this chat yet.</p></div><form id="mk-ai-form"><input id="mk-ai-input" aria-label="Your message" maxlength="1200" required placeholder="Ask a question..." autocomplete="off"><button id="mk-ai-send" type="submit">Send</button></form></section>
 <script type="module" src="/website-assistant.js"></script>
+<script>
+// Plan buttons: new visitors go straight to registration with the plan; signed-in owners go to
+// their dashboard, where setup opens on the same plan.
+(function () {
+  var signedIn = false;
+  try { signedIn = Boolean(localStorage.getItem('mar-khoor.owner-session') || sessionStorage.getItem('mar-khoor.owner-session')); } catch (e) {}
+  document.querySelectorAll('a[data-plan]').forEach(function (link) {
+    var plan = link.getAttribute('data-plan');
+    if (signedIn) link.href = '/restaurant.html?plan=' + plan;
+    link.addEventListener('click', function () {
+      try { localStorage.setItem('mar-khoor.chosen-plan', JSON.stringify({ plan: plan, cycle: 'monthly', at: Date.now() })); } catch (e) {}
+    });
+  });
+})();
+</script>
 </body>
 </html>
 

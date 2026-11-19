@@ -98,7 +98,9 @@ function updateSummary() {
     amount == null ? 'price confirmed during setup.' : money(amount, plan.currency) + (current === 'yearly' ? ' per year' : ' per month') + ', before taxes.');
   const target = new URLSearchParams({ plan: plan.key, cycle: current });
   if (country.value) target.set('country', country.value);
-  next.href = '/register.html?' + target;
+  let signedIn = false;
+  try { signedIn = Boolean(localStorage.getItem('mar-khoor.owner-session') || sessionStorage.getItem('mar-khoor.owner-session')); } catch {}
+  next.href = (signedIn ? '/restaurant.html?' : '/register.html?') + target;
   next.textContent = 'Continue with ' + plan.name;
   next.removeAttribute('aria-disabled');
 
