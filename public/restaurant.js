@@ -775,7 +775,14 @@ async function loadSetup(restaurant) {
   openSetup.disabled = false;
   openSetup.textContent = setupData.subscription ? 'Change plan or setup' : 'Start setup';
   const wantsChange = planIntent && remembered && (remembered.plan !== setupData.subscription?.plan || remembered.cycle !== setupData.subscription?.billing_cycle);
-  if ((!setupData.subscription && !location.hash) || wantsChange) { showSetupStep(0); setupDialog.showModal(); }
+  // First-time setup is skippable: do not interrupt returning owners on every sign-in.
+  const firstPromptKey = 'mar-khoor.setup-prompted.' + restaurant.id;
+  let alreadyPrompted = false;
+  try { alreadyPrompted = localStorage.getItem(firstPromptKey) === '1'; } catch {}
+  if ((!setupData.subscription && !location.hash && !alreadyPrompted) || wantsChange) {
+   if (!wantsChange) { try { localStorage.setItem(firstPromptKey,'1'); } catch {} }
+   showSetupStep(0); setupDialog.showModal();
+  }
   planIntent = false;
  } catch (error) {
   if (selection === setupSelection) setupSummary.textContent = error.message;

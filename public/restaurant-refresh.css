@@ -239,3 +239,59 @@
 }
 @media(max-width:390px){.mk-owner:not(.signing-in) .kpi-cards{grid-template-columns:minmax(0,1fr)}}
 @media(prefers-reduced-motion:reduce){.mk-owner:not(.signing-in) *{transition:none!important}}
+
+
+/* Specificity correction: the legacy :is(.panel,.kpi-cards article) selector
+   has element specificity, so the earlier cream rule did not replace its dark background. */
+.mk-owner:not(.signing-in) #owner-workspace :is(.panel,.kpi-cards article){
+ background:#fffdfb;color:#30231d;border:1px solid #f0e2d7;
+ border-radius:22px;box-shadow:0 9px 27px #65311612;
+}
+.mk-owner:not(.signing-in) #owner-workspace .panel :is(h2,h3,legend,strong){color:#30231d}
+.mk-owner:not(.signing-in) #owner-workspace .panel p.muted{color:#7f6c5f}
+.mk-owner:not(.signing-in) #owner-workspace .panel .owner-activity-list strong{color:#332720}
+.mk-owner:not(.signing-in) #owner-workspace .panel .owner-period{color:#6d5040}
+
+/* The setup wizard should never appear as the unrelated old purple dashboard. */
+.mk-owner:not(.signing-in) #owner-workspace #setup-dialog{
+ color:#2e221c;background:#fffaf5;border:1px solid #edc9a6;
+ border-radius:24px;box-shadow:0 24px 76px #2d180b48;
+ width:min(900px,calc(100% - 28px));
+ max-height:calc(100dvh - 28px);overflow-y:auto;
+}
+.mk-owner:not(.signing-in) #owner-workspace #setup-dialog::backdrop{background:#17110bd4}
+.mk-owner:not(.signing-in) #owner-workspace #setup-dialog :is(h2,h3,legend,strong){color:#30241e}
+.mk-owner:not(.signing-in) #owner-workspace #setup-dialog :is(p,small,label,.plan-fx,.eyebrow){color:#735749}
+.mk-owner:not(.signing-in) #owner-workspace #setup-dialog .setup-step{color:#3c2a20}
+.mk-owner:not(.signing-in) #owner-workspace #setup-dialog :is(.setup-options label,.setup-item,.setup-progress li,.plan-services label){
+ border:1px solid #ead9c9;background:#fffdfa;color:#39281e;border-radius:13px;
+}
+.mk-owner:not(.signing-in) #owner-workspace #setup-dialog .setup-options label:has(input:checked){
+ border-color:#e98d33;background:#fff0dd;box-shadow:0 0 0 2px #ffbc7880;
+}
+.mk-owner:not(.signing-in) #owner-workspace #setup-dialog .billing-toggle{
+ border-color:#edd7c0;background:#fff1e1;
+}
+.mk-owner:not(.signing-in) #owner-workspace #setup-dialog .billing-toggle label{
+ background:transparent;border-color:transparent;color:#5d4333;
+}
+.mk-owner:not(.signing-in) #owner-workspace #setup-dialog .billing-toggle label:has(input:checked){
+ background:#ffc274;color:#392314;
+}
+.mk-owner:not(.signing-in) #owner-workspace #setup-dialog :is(input:not([type=checkbox]),select){
+ color:#30241d;background:#fff;border:1px solid #e8ccba;border-radius:9px;
+}
+.mk-owner:not(.signing-in) #owner-workspace #setup-dialog input[type=checkbox],
+.mk-owner:not(.signing-in) #owner-workspace #setup-dialog input[type=radio]{accent-color:#e88624}
+.mk-owner:not(.signing-in) #owner-workspace #setup-dialog .setup-item :is(h3,strong){color:#2e211c}
+.mk-owner:not(.signing-in) #owner-workspace #setup-dialog :is(.setup-options .ui-icon,.setup-badge){color:#ba6119;background:#ffe6c5}
+.mk-owner:not(.signing-in) #owner-workspace #setup-dialog .setup-actions{padding-top:16px}
+.mk-owner:not(.signing-in) #owner-workspace #setup-dialog button{min-height:44px;border-radius:10px}
+.mk-owner:not(.signing-in) #owner-workspace #setup-dialog #defer-setup,
+.mk-owner:not(.signing-in) #owner-workspace #setup-dialog #back-setup{
+ border:1px solid #e7c9aa;background:#fff8ee;color:#6a3c1c;
+}
+@media(max-width:680px){
+ .mk-owner:not(.signing-in) #owner-workspace #setup-dialog{width:calc(100% - 16px);max-height:calc(100dvh - 16px);padding:17px}
+ .mk-owner:not(.signing-in) #owner-workspace #setup-dialog .setup-options{grid-template-columns:minmax(0,1fr)}
+}
