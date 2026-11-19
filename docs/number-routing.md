@@ -56,7 +56,7 @@ Safety: super admin only; one number per order and one order per number (databas
 **Status: built and unit-tested against mocks of Telnyx's and Vapi's published APIs. Not yet run against the live APIs: watch the first purchase.**
 
 When the super admin presses **Confirm payment** under **Subscriptions** for a Premium or Enterprise plan (both include a dedicated number), the server:
-1. makes sure the restaurant has exactly one active Vapi assistant, copying `VAPI_TEMPLATE_ASSISTANT_ID` if it has none (the copy keeps the template's model, voice, transcriber and tool server; Mar-Khoor identifies the restaurant from the assistant id);
+1. makes sure the restaurant has exactly one active Vapi assistant, copying `VAPI_TEMPLATE_ASSISTANT_ID` if it has none (the copy keeps the template's model, voice, transcriber and tools; every `[RESTAURANT_NAME]` in its text becomes the restaurant's name; Mar-Khoor identifies the restaurant from the assistant id on each tool call);
 2. if the restaurant has no number yet, searches Telnyx in its country and picks the first local voice number whose cost Telnyx states in USD and is within `TELNYX_MAX_MONTHLY_USD` / `TELNYX_MAX_UPFRONT_USD` (default 15 / 15);
 3. claims it (one subscription number per restaurant, enforced by a unique key), orders it from Telnyx and imports it into Vapi bound to the assistant; the restaurant's setup box then shows the number.
 

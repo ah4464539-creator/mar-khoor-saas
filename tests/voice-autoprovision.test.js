@@ -202,3 +202,10 @@ test('the Telnyx credential is found in Vapi when VAPI_TELNYX_CREDENTIAL_ID is n
   assert.equal(lookups.length, 1);
   resetDiscoveredCredential();
 });
+
+test('[RESTAURANT_NAME] in the template becomes the restaurant name in every copy', () => {
+  const copy = assistantCopy({ firstMessage: 'Assalam-o-alaikum, [RESTAURANT_NAME] mein khush aamdeed!', model: { messages: [{ role: 'system', content: 'Tum [RESTAURANT_NAME] ki order assistant ho. [RESTAURANT_NAME]' }] } },
+    { name: 'MarKhoor 7', restaurantId: 7, restaurantName: 'Cheema Grill' });
+  assert.equal(copy.firstMessage, 'Assalam-o-alaikum, Cheema Grill mein khush aamdeed!');
+  assert.equal(copy.model.messages[0].content, 'Tum Cheema Grill ki order assistant ho. Cheema Grill');
+});
