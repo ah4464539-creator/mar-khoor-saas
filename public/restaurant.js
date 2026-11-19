@@ -194,6 +194,17 @@ function renderOwnerOrders() {
   (!orderFilter.value || order.status === orderFilter.value) &&
   (String(order.id).includes(query) || (order.customer_name ?? '').toLowerCase().includes(query) || (order.customer_phone ?? '').includes(query))
  );
+ const cards=document.querySelector('#owner-order-cards');
+ const recent=ownerText('div','','owner-order-list');
+ for(const order of visible.slice(0,4)){
+  const entry=ownerText('div','','owner-order-card');
+  const meta=ownerText('div','','owner-order-meta');
+  meta.append(ownerText('strong','#'+order.id+' · '+(order.customer_name||'Customer')),ownerText('small',ownerMoney(order.total_minor)+' · '+new Date(order.created_at).toLocaleDateString()));
+  const badge=ownerText('span',String(order.status||'pending').replace(/_/g,' '),'owner-order-badge');
+  badge.dataset.status=order.status||'pending';
+  entry.append(meta,badge);recent.append(entry);
+ }
+ cards.replaceChildren(visible.length?recent:ownerText('p',ownerOrders.length?'No matching orders.':'No orders yet.','muted'));
  if (!visible.length) {
   root.replaceChildren(ownerText('p', ownerOrders.length ? 'No orders match these filters.' : 'No orders yet.'));
   return;
@@ -324,7 +335,10 @@ window.addEventListener('hashchange', () => updateWorkspaceView(true));
 async function openRestaurant(restaurant) {
  restaurantId = restaurant.id;
  restaurantCurrency = restaurant.currency;
- document.querySelector('#owner-heading').textContent = restaurant.name;
+ document.querySelector('#owner-heading').textContent = 'Restaurant Dashboard';
+ document.querySelector('#owner-restaurant-label').textContent = restaurant.name;
+ document.querySelector('#owner-switch-name').textContent = restaurant.name;
+ document.querySelector('#owner-restaurant-switch').hidden = false;
  document.querySelector('#management').hidden = false;
  ownerNavigation.hidden = restaurant.role !== 'admin';
  updateWorkspaceView();
