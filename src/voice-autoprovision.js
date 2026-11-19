@@ -29,6 +29,7 @@ export function autoProvisionDeps(env = process.env) {
     templateAssistantId: env.VAPI_TEMPLATE_ASSISTANT_ID,
     // Fail closed: only an explicit opt-in may place a paid Telnyx order.
     purchaseEnabled: env.AI_CALLER_AUTO_PURCHASE_ENABLED === 'true',
+    isStaging: env.MAR_KHOOR_ENV === 'staging',
     maxMonthlyUsd: cap(env.TELNYX_MAX_MONTHLY_USD, 15),
     maxUpfrontUsd: cap(env.TELNYX_MAX_UPFRONT_USD, 15),
     requirementGroup: country => env['TELNYX_REQUIREMENT_GROUP_' + country],
@@ -74,7 +75,7 @@ async function ensureAssistant(pool, restaurant, deps) {
   const [rows] = await pool.execute('SELECT assistant_id FROM voice_assistants WHERE restaurant_id=? AND active=1 LIMIT 2', [restaurant.id]);
   if (rows.length === 1) return rows[0].assistant_id;
   if (rows.length > 1) throw Object.assign(Error('This restaurant has more than one active voice assistant; keep one in Voice integrations'), { needsReview: true });
-  const created = await cloneAssistant({ apiKey: deps.vapiKey, templateId: deps.templateAssistantId, name: 'MarKhoor ' + restaurant.id + ' ' + restaurant.name, restaurantId: restaurant.id, restaurantName: restaurant.name, fetcher: deps.fetcher });
+  const created = await cloneAssistant({ apiKey: deps.vapiKey, templateId: deps.templateAssistantId, name: 'MarKhoor ' + restaurant.id + ' ' + restaurant.name, restaurantId: restaurant.id, restaurantName: restaurant.name, isStaging: deps.isStaging, fetcher: deps.fetcher });
   await pool.execute('INSERT INTO voice_assistants(assistant_id,restaurant_id,active) VALUES (?,?,TRUE)', [created.id, restaurant.id]);
   return created.id;
 }
