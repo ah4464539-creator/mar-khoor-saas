@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
 import { provisionSubscriptionNumber, retryPendingSubscriptionNumbers, pickNumber, includesNumber, missingConfig, autoProvisionDeps } from '../src/voice-autoprovision.js';
-import { assistantCopy } from '../src/providers/vapi-assistants.js';
+import { assistantCopy, cloneAssistant } from '../src/providers/vapi-assistants.js';
 import { findTelnyxCredential } from '../src/providers/vapi-numbers.js';
 import { resetDiscoveredCredential } from '../src/voice-autoprovision.js';
 import { plansRouter } from '../src/plans.js';
@@ -76,6 +76,22 @@ test('fail closed: no provider calls, DB writes, assistant clone or purchase wit
   assert.deepEqual(db.log, []);
   assert.equal(db.assistants.length, 0);
   assert.equal(db.numbers.length, 0);
+});
+
+test('staging never clones a template whose webhook points at production', async () => {
+  const calls = [];
+  const fetcher = async (url, options = {}) => {
+    calls.push((options.method || 'GET') + ' ' + url);
+    if (url.endsWith('/assistant/tmpl-1')) return {
+      ok: true, json: async () => ({ id: 'tmpl-1', server: { url: 'https://mar-khoor.com/integrations/vapi/tools' } }),
+    };
+    throw Error('staging must not create a production-routed assistant');
+  };
+  await assert.rejects(cloneAssistant({
+    apiKey: 'test', templateId: 'tmpl-1', name: 'Staging restaurant', restaurantId: 7,
+    restaurantName: 'Staging restaurant', isStaging: true, fetcher,
+  }), /Staging Vapi template points at a production URL/);
+  assert.deepEqual(calls, ['GET https://api.vapi.ai/assistant/tmpl-1']);
 });
 
 test('only Premium and Enterprise include a number; config gaps are reported by name', () => {
