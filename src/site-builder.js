@@ -100,6 +100,9 @@ export function renderSitePage({ restaurant, config, items }, { assistant = '' }
   const t = { bg: '#0b0b0d', ink: '#fff8ef', accent: '#ff952f', accentInk: '#190d05', card: '#181719', muted: '#bfb6ae' };
   const slug = /^[a-z0-9-]{1,160}$/.test(restaurant.slug) ? restaurant.slug : '';
   const restaurantName = escapeHtml(clean(restaurant.name, 160).toUpperCase());
+  const chosenHeadline = clean(c.headline, 80);
+  const introHeadline = chosenHeadline && chosenHeadline.toUpperCase() !== clean(restaurant.name, 160).toUpperCase()
+    ? '<p class="hero-kicker">' + escapeHtml(chosenHeadline) + '</p>' : '';
   const menuHref = '/menu.html?restaurant=' + slug;
   const ordersHref = '/orders.html?restaurant=' + slug;
   const menuVisible = c.sections.includes('menu');
@@ -166,6 +169,7 @@ a:focus-visible,summary:focus-visible,button:focus-visible{outline:2px solid #ff
 .hero{background:radial-gradient(ellipse at 80% 45%,#392017 0,transparent 56%),#0d0c0e;border-bottom:1px solid #ffffff12}
 .hero .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.83fr);align-items:center;gap:clamp(24px,6vw,84px);padding-block:clamp(48px,9vw,114px)}
 .hero h1{font-size:clamp(2.55rem,7vw,5.5rem);font-weight:850;line-height:1;letter-spacing:-.065em;margin:0 0 18px}
+.hero-kicker{color:#ffb46b;font-weight:750;font-size:clamp(1.05rem,1.8vw,1.4rem);margin-bottom:10px}
 .hero p,.info-card p,.dish p{color:#cfc3b9}.hero p{max-width:44ch;margin:0 0 22px}
 .btn{display:inline-flex;align-items:center;min-height:44px;padding:9px 17px;border-radius:8px 16px 8px 16px;background:linear-gradient(120deg,#ffbd61,#ff842e);color:#1b0e06;font-weight:750;text-decoration:none}
 .btn:hover{background:#ffc276}
@@ -229,7 +233,7 @@ main section+section{margin-top:22px}
     + '</style></head><body class="site-template-' + c.template + '">'
     + '<header class="site-header"><div class="wrap"><a class="wordmark" href="#top">' + restaurantName + '</a>'
     + '<nav class="site-nav" aria-label="Customer navigation">' + (menuVisible ? '<a href="#menu">Menu</a>' : '') + orderLinks + '</nav></div></header>'
-    + '<div class="hero" id="top"><div class="wrap"><div><h1>' + restaurantName + '</h1><p>' + escapeHtml(c.tagline) + '</p>'
+    + '<div class="hero" id="top"><div class="wrap"><div><h1>' + restaurantName + '</h1>' + introHeadline + '<p>' + escapeHtml(c.tagline) + '</p>'
     + (menuVisible ? '<a class="btn" href="#menu">Explore menu</a>' : '') + '</div>'
     + (featured ? '<aside class="feature" aria-label="Featured dish">' + picture(featured, 'feature-photo') + '<span>Featured dish</span><h2>'
       + escapeHtml(clean(featured.name, 180)) + '</h2>'
