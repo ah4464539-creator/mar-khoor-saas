@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {SECTIONS,SITE_CSP,defaultSiteConfig,sanitizeSiteConfig,generateSiteConfig,renderSitePage,escapeHtml} from '../src/site-builder.js';
+import {SECTIONS,SITE_CSP,SITE_TEMPLATES,defaultSiteConfig,sanitizeSiteConfig,generateSiteConfig,renderSitePage,escapeHtml} from '../src/site-builder.js';
 
 const restaurant={name:'Cheema Cafe',slug:'cheema-cafe',country_code:'PK',currency:'PKR'};
 const items=[{name:'Zinger Burger',description:'Crispy chicken',price_minor:59000},{name:'Fries',description:null,price_minor:19000}];
@@ -86,4 +86,20 @@ test('page language follows the restaurant locale and rejects odd values',()=>{
  const html=renderSitePage({restaurant:{...restaurant,locale:'ur'},config:defaultSiteConfig(restaurant),items});
  assert.match(html,/<html lang="ur" dir="auto">/);
  assert.match(renderSitePage({restaurant:{...restaurant,locale:'x"><script>'},config:defaultSiteConfig(restaurant),items}),/<html lang="en" dir="auto">/);
+});
+
+test('templates are allowlisted, existing sites stay classic and each preset has distinct styling',()=>{
+ assert.equal(defaultSiteConfig(restaurant).template,'classic');
+ assert.equal(sanitizeSiteConfig({template:'constructor'},restaurant).template,'classic');
+ assert.equal(sanitizeSiteConfig({template:'" onload="alert(1)'},restaurant).template,'classic');
+ assert.deepEqual(Object.keys(SITE_TEMPLATES),['classic','bistro','minimal','midnight']);
+ for(const id of Object.keys(SITE_TEMPLATES)){
+  const config=sanitizeSiteConfig({template:id,headline:'Hello'},restaurant);
+  assert.equal(config.template,id);
+  const html=renderSitePage({restaurant,config,items});
+  assert.match(html,new RegExp('body class="site-template-'+id+'"'));
+  assert.match(html,/href="\/menu\.html\?restaurant=cheema-cafe"/);
+  assert.ok(!html.includes('<script'));
+ }
+ assert.match(renderSitePage({restaurant,config:{template:'<img>',headline:'Bad'},items}),/<body class="site-template-classic">/);
 });

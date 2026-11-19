@@ -12,6 +12,13 @@ export const THEMES = {
   dark: { bg: '#14171a', ink: '#f1f1f1', accent: '#e0b84c', accentInk: '#14171a', card: '#1f2328', muted: '#b4bac0' },
 };
 export const SECTIONS = ['about', 'menu', 'hours', 'contact'];
+// Layout presets are strictly allowlisted. Existing published sites stay on the original Classic layout.
+export const SITE_TEMPLATES = Object.freeze({
+  classic: 'Classic Dark',
+  bistro: 'Warm Bistro',
+  minimal: 'Clean Editorial',
+  midnight: 'Midnight Modern',
+});
 export const SITE_CSP = "default-src 'none'; style-src 'unsafe-inline'; img-src data: https:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 
 const clean = (value, max, { newlines = false } = {}) => {
@@ -22,7 +29,7 @@ const clean = (value, max, { newlines = false } = {}) => {
 
 export function defaultSiteConfig(restaurant) {
   const name = clean(restaurant?.name, 80) || 'Our restaurant';
-  return { theme: 'green', headline: name, tagline: 'Order online from ' + name, about: '', hours: '', phone: '', address: '', sections: [...SECTIONS] };
+  return { template: 'classic', theme: 'green', headline: name, tagline: 'Order online from ' + name, about: '', hours: '', phone: '', address: '', sections: [...SECTIONS] };
 }
 
 // Accepts untrusted input (owner form or AI output) and returns a config that is always safe to store.
@@ -32,6 +39,7 @@ export function sanitizeSiteConfig(input, restaurant) {
   const phone = clean(source.phone, 30);
   const sections = Array.isArray(source.sections) ? [...new Set(source.sections.filter(s => SECTIONS.includes(s)))] : base.sections;
   return {
+    template: Object.hasOwn(SITE_TEMPLATES, source.template) ? source.template : base.template,
     theme: Object.hasOwn(THEMES, source.theme) ? source.theme : base.theme,
     headline: clean(source.headline, 80) || base.headline,
     tagline: clean(source.tagline, 160) || base.tagline,
@@ -92,6 +100,9 @@ export function renderSitePage({ restaurant, config, items }, { assistant = '' }
   const t = { bg: '#0b0b0d', ink: '#fff8ef', accent: '#ff952f', accentInk: '#190d05', card: '#181719', muted: '#bfb6ae' };
   const slug = /^[a-z0-9-]{1,160}$/.test(restaurant.slug) ? restaurant.slug : '';
   const restaurantName = escapeHtml(clean(restaurant.name, 160).toUpperCase());
+  const chosenHeadline = clean(c.headline, 80);
+  const introHeadline = chosenHeadline && chosenHeadline.toUpperCase() !== clean(restaurant.name, 160).toUpperCase()
+    ? '<p class="hero-kicker">' + escapeHtml(chosenHeadline) + '</p>' : '';
   const menuHref = '/menu.html?restaurant=' + slug;
   const ordersHref = '/orders.html?restaurant=' + slug;
   const menuVisible = c.sections.includes('menu');
@@ -139,6 +150,7 @@ export function renderSitePage({ restaurant, config, items }, { assistant = '' }
   const body = c.sections.map(name => blocks[name]).join('');
   const lang = /^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8}){0,2}$/.test(restaurant.locale ?? '') ? restaurant.locale : 'en';
   const orderLinks = '<a href="' + ordersHref + '#orders">Track order</a><a href="' + ordersHref + '#orders">Order history</a><a href="' + ordersHref + '#refunds">Refunds</a>';
+  const SITE_TEMPLATE_CSS = "\n/* Safe layout presets: preset names are always server-side allowlisted. */\nbody.site-template-bistro{background:#fff8ef;color:#30231d}\n.site-template-bistro .site-header{background:#fff2e4;border-bottom:1px solid #e8cdb9}\n.site-template-bistro .wordmark{color:#9c491e}\n.site-template-bistro .site-nav a{color:#553a2c}\n.site-template-bistro .hero{background:radial-gradient(ellipse at 82% 30%,#f6c5a2 0,transparent 57%),#fff0dc;border-color:#eccab2}\n.site-template-bistro .hero p,.site-template-bistro .info-card p,.site-template-bistro .dish p{color:#69534a}\n.site-template-bistro .btn{background:linear-gradient(130deg,#e89348,#c25c2e);color:#fff}\n.site-template-bistro .feature{background:linear-gradient(145deg,#f5d6bd,#fff4e8);border:1px solid #dbb08e;box-shadow:0 20px 40px #7f462120}\n.site-template-bistro .feature span,.site-template-bistro .feature strong,.site-template-bistro .dish-footer strong{color:#9d451f}\n.site-template-bistro .dish,.site-template-bistro .info-card{background:#fffdf9;border:1px solid #eddbcd;box-shadow:0 12px 30px #75471c12}\n.site-template-bistro .category-nav a{color:#7a3d23;border-color:#e5b88d}\n.site-template-bistro .site-footer{border-top:1px solid #e8d6c7}\nbody.site-template-minimal{background:#ffffff;color:#222222;font-family:Georgia,'Times New Roman',serif}\n.site-template-minimal .site-header{background:#fff;border-color:#e5e1dd}\n.site-template-minimal .wordmark{font-family:system-ui,sans-serif;color:#232323;letter-spacing:.02em}\n.site-template-minimal .site-nav a{color:#424242}\n.site-template-minimal .hero{background:#f6f4f0;border-color:#e1ddd8}\n.site-template-minimal .hero .wrap{grid-template-columns:1fr minmax(0,.65fr)}\n.site-template-minimal .hero h1{font-family:Georgia,serif;font-weight:600;letter-spacing:-.06em}\n.site-template-minimal .hero p,.site-template-minimal .info-card p,.site-template-minimal .dish p{color:#565656}\n.site-template-minimal .btn{background:#242424;color:#fff;border-radius:4px}\n.site-template-minimal .feature{background:#fff;border:1px solid #dadada;border-radius:4px;box-shadow:none}\n.site-template-minimal .feature span,.site-template-minimal .feature strong,.site-template-minimal .dish-footer strong{color:#242424}\n.site-template-minimal .dish,.site-template-minimal .info-card{background:#fff;border:1px solid #e6e2dc;border-radius:4px}\n.site-template-minimal .dish-photo,.site-template-minimal .feature-photo{border-radius:3px}\n.site-template-minimal .category-nav a{color:#303030;border-color:#d1ccc5}\nbody.site-template-midnight{background:#0b1020;color:#eef1ff}\n.site-template-midnight .site-header{background:#111931;border-color:#ffffff17}\n.site-template-midnight .wordmark{color:#ffd18a}\n.site-template-midnight .site-nav a{color:#dae4ff}\n.site-template-midnight .hero{background:radial-gradient(ellipse at 80% 30%,#34487f 0,transparent 60%),#0b1430}\n.site-template-midnight .hero p,.site-template-midnight .info-card p,.site-template-midnight .dish p{color:#bfc9e3}\n.site-template-midnight .btn{background:linear-gradient(120deg,#ffc568,#ff9840);color:#20180d}\n.site-template-midnight .feature{background:linear-gradient(155deg,#202f52,#101b38);border:1px solid #6482be63}\n.site-template-midnight .dish,.site-template-midnight .info-card{background:#151e38;border:1px solid #7386b13b}\n.site-template-midnight .feature span,.site-template-midnight .feature strong,.site-template-midnight .dish-footer strong{color:#ffc576}\n.site-template-midnight .category-nav a{border-color:#627cb6;color:#cbdafa}\n@media(max-width:720px){.site-template-minimal .hero .wrap{grid-template-columns:minmax(0,1fr)}}\n";
   return '<!doctype html><html lang="' + escapeHtml(lang) + '" dir="auto"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
     + '<title>' + restaurantName + '</title><meta name="description" content="' + escapeHtml(c.tagline) + '">'
     + `<style>
@@ -157,6 +169,7 @@ a:focus-visible,summary:focus-visible,button:focus-visible{outline:2px solid #ff
 .hero{background:radial-gradient(ellipse at 80% 45%,#392017 0,transparent 56%),#0d0c0e;border-bottom:1px solid #ffffff12}
 .hero .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.83fr);align-items:center;gap:clamp(24px,6vw,84px);padding-block:clamp(48px,9vw,114px)}
 .hero h1{font-size:clamp(2.55rem,7vw,5.5rem);font-weight:850;line-height:1;letter-spacing:-.065em;margin:0 0 18px}
+.hero-kicker{color:#ffb46b;font-weight:750;font-size:clamp(1.05rem,1.8vw,1.4rem);margin-bottom:10px}
 .hero p,.info-card p,.dish p{color:#cfc3b9}.hero p{max-width:44ch;margin:0 0 22px}
 .btn{display:inline-flex;align-items:center;min-height:44px;padding:9px 17px;border-radius:8px 16px 8px 16px;background:linear-gradient(120deg,#ffbd61,#ff842e);color:#1b0e06;font-weight:750;text-decoration:none}
 .btn:hover{background:#ffc276}
@@ -173,7 +186,7 @@ main section+section{margin-top:22px}
 .site-footer{border-top:1px solid #ffffff1a}.site-footer .wrap{padding-block:24px 85px}
 @media(max-width:720px){.hero .wrap{grid-template-columns:minmax(0,1fr)}.feature{min-height:0}.menu-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:430px){.wrap{width:calc(100% - 32px)}.menu-grid{gap:10px}.dish{padding:14px;border-radius:18px}.site-nav{gap:8px 14px}.site-nav a{min-height:44px;display:inline-flex;align-items:center}}
-</style><style>`
+` + SITE_TEMPLATE_CSS + '</style><style>'
     + (assistant ? `.restaurant-assistant{position:fixed;inset-inline-end:16px;bottom:max(16px,env(safe-area-inset-bottom));z-index:2;font-size:14px}
 .restaurant-assistant>summary{display:block;cursor:pointer;padding:9px 15px;border-radius:999px;background:${t.accent};color:${t.accentInk};font-weight:700;box-shadow:0 3px 16px #0003}
 .assistant-panel{position:absolute;inset-inline-end:0;bottom:calc(100% + 8px);width:min(340px,calc(100vw - 32px));height:min(420px,calc(100dvh - 88px),68dvh);display:flex;flex-direction:column;overflow:hidden;background:${t.card};color:${t.ink};border:1px solid ${t.muted};border-radius:15px;box-shadow:0 8px 32px #0003}
@@ -217,10 +230,10 @@ main section+section{margin-top:22px}
 [data-assistant-messages] .assistant-reply{display:flex;align-items:flex-start;gap:5px}
 .restaurant-assistant .assistant-speak{min-height:28px;padding:4px;background:transparent;border:1px solid ${t.muted};font-size:15px}
 ` : '')
-    + '</style></head><body>'
+    + '</style></head><body class="site-template-' + c.template + '">'
     + '<header class="site-header"><div class="wrap"><a class="wordmark" href="#top">' + restaurantName + '</a>'
     + '<nav class="site-nav" aria-label="Customer navigation">' + (menuVisible ? '<a href="#menu">Menu</a>' : '') + orderLinks + '</nav></div></header>'
-    + '<div class="hero" id="top"><div class="wrap"><div><h1>' + restaurantName + '</h1><p>' + escapeHtml(c.tagline) + '</p>'
+    + '<div class="hero" id="top"><div class="wrap"><div><h1>' + restaurantName + '</h1>' + introHeadline + '<p>' + escapeHtml(c.tagline) + '</p>'
     + (menuVisible ? '<a class="btn" href="#menu">Explore menu</a>' : '') + '</div>'
     + (featured ? '<aside class="feature" aria-label="Featured dish">' + picture(featured, 'feature-photo') + '<span>Featured dish</span><h2>'
       + escapeHtml(clean(featured.name, 180)) + '</h2>'
