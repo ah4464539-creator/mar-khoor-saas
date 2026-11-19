@@ -47,3 +47,31 @@ test('database store returns null for unknown or expired sessions and survives c
  await flaky.create('h',{id:1},60);
  assert.equal(calls,2);
 });
+
+test('restaurant sessions slide forward while used; super admin sessions do not',async()=>{
+ const {requireAuth,useSessionStore,SESSION_SECONDS}=await import('../src/auth.js');
+ assert.equal(SESSION_SECONDS,90*86400);
+ const touched=[];
+ const sessions={u:{id:1,email:'owner@cafe.pk',platformRole:'user'},s:{id:2,email:'boss@x.y',platformRole:'super_admin'}};
+ useSessionStore({async get(hash){return hash===hashToken('a'.repeat(64))?sessions.u:hash===hashToken('b'.repeat(64))?sessions.s:null},async touch(hash,ttl,min){touched.push({hash,ttl,min})}});
+ const run=token=>new Promise(resolve=>{const req={get:()=> 'Bearer '+token};const res={status(){return this},json(body){resolve(body)}};requireAuth(req,res,()=>resolve('next'))});
+ assert.equal(await run('a'.repeat(64)),'next');
+ assert.equal(touched.length,1);
+ assert.equal(touched[0].ttl,90*86400);
+ assert.ok(touched[0].min<touched[0].ttl);
+ await run('b'.repeat(64));
+ assert.equal(touched.length,1,'super admin session is not extended');
+ useSessionStore(createMemorySessionStore());
+});
+
+test('memory and database stores extend only sessions that are close to expiring',async()=>{
+ const memory=createMemorySessionStore();
+ await memory.create('h',{id:1,email:'a@b.c',platformRole:'user'},10);
+ await memory.touch('h',1000,100);
+ assert.ok(await memory.get('h'));
+ const queries=[];
+ const db=createDbSessionStore({async execute(sql,args){queries.push({sql,args});return [{}]}});
+ await db.touch('hash',7776000,7689600);
+ assert.match(queries[0].sql,/UPDATE sessions SET expires_at=DATE_ADD\(NOW\(\), INTERVAL \? SECOND\) WHERE token_hash=\? AND expires_at < DATE_ADD/);
+ assert.deepEqual(queries[0].args,[7776000,'hash',7689600]);
+});

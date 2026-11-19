@@ -56,7 +56,7 @@ test('registration keeps the chosen plan and signs the new owner in to continue 
   const html = read('public/register.html'), js = read('public/register.js');
   for (const id of ['chosen-plan-select', 'chosen-cycle-select', 'signin-link']) assert.ok(html.includes('id="' + id + '"'), id);
   assert.ok(js.includes("fetch('/auth/login'"), 'auto sign-in after registration');
-  assert.ok(js.includes("sessionStorage.setItem('mar-khoor.owner-session'"));
+  assert.ok(js.includes("localStorage.setItem('mar-khoor.owner-session'"), 'new owner stays signed in');
   assert.ok(js.includes("'/restaurant.html'"));
   const dashboard = read('public/restaurant.js');
   assert.ok(dashboard.includes("sessionStorage.getItem(sessionKey)"), 'dashboard picks up the new session');

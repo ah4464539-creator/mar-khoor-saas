@@ -16,6 +16,11 @@ export function createMemorySessionStore() {
       return { id: session.id, email: session.email, platformRole: session.platformRole };
     },
     async delete(tokenHash) { map.delete(tokenHash); },
+    // Pushes the expiry forward when less than minSeconds are left (sliding session).
+    async touch(tokenHash, ttlSeconds, minSeconds) {
+      const session = map.get(tokenHash);
+      if (session && session.expires - Date.now() < minSeconds * 1000) session.expires = Date.now() + ttlSeconds * 1000;
+    },
   };
 }
 
@@ -36,5 +41,9 @@ export function createDbSessionStore(pool) {
       return rows.length ? { id: rows[0].id, email: rows[0].email, platformRole: rows[0].platformRole } : null;
     },
     async delete(tokenHash) { await pool.execute('DELETE FROM sessions WHERE token_hash=?', [tokenHash]); },
+    // Sliding session: only writes when the session is closer than minSeconds to expiring.
+    async touch(tokenHash, ttlSeconds, minSeconds) {
+      await pool.execute('UPDATE sessions SET expires_at=DATE_ADD(NOW(), INTERVAL ? SECOND) WHERE token_hash=? AND expires_at < DATE_ADD(NOW(), INTERVAL ? SECOND)', [ttlSeconds, tokenHash, minSeconds]);
+    },
   };
 }

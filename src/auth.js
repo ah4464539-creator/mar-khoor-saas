@@ -12,7 +12,12 @@ function clearAttempt(key){attempts.delete(key);}
 // In-memory by default (tests, local tools). server.js switches to the database store.
 let store = createMemorySessionStore();
 export function useSessionStore(next) { store = next; }
-const SESSION_SECONDS = 86400;
+// Restaurant accounts stay signed in until they sign out. The session slides forward while it is
+// used and only lapses after 90 days without any visit. Platform super admins keep a 1-hour session.
+export const SESSION_SECONDS = 90 * 86400;
+const RENEW_BELOW_SECONDS = 89 * 86400; // renew at most about once a day per session
+const SUPER_ADMIN_SECONDS = 3600;
+const lastTouched = new Map();
 const bearer = req => (/^Bearer ([a-f0-9]{64})$/.exec(req.get('authorization') || '') || [])[1];
 function isAllowedPlatformOwner(email) {
  const owner = process.env.SUPER_ADMIN_OWNER_EMAIL;
@@ -41,6 +46,14 @@ export async function requireAuth(req, res, next) {
  if (!session) return res.status(401).json({error:'Unauthorized'});
  if (session.platformRole==='super_admin' && !isAllowedPlatformOwner(session.email))
   return res.status(403).json({error:'Forbidden'});
+ if (session.platformRole !== 'super_admin' && store.touch) {
+  const hash = hashToken(token), now = Date.now();
+  if (!(lastTouched.get(hash) > now - 3600000)) { // at most one renewal check per session per hour
+   if (lastTouched.size > 50000) lastTouched.clear();
+   lastTouched.set(hash, now);
+   store.touch(hash, SESSION_SECONDS, RENEW_BELOW_SECONDS).catch(() => {});
+  }
+ }
  req.user = session; next();
 }
 export function authRouter(pool) {
@@ -61,7 +74,7 @@ export function authRouter(pool) {
    }
    clearAttempt(key);
    const token = crypto.randomBytes(32).toString('hex');
-   const expiresIn = rows[0].platform_role === 'super_admin' ? 3600 : SESSION_SECONDS;
+   const expiresIn = rows[0].platform_role === 'super_admin' ? SUPER_ADMIN_SECONDS : SESSION_SECONDS;
    await store.create(hashToken(token), {id:rows[0].id,email:rows[0].email,platformRole:rows[0].platform_role}, expiresIn);
    res.json({token,expiresIn});
   } catch {res.status(503).json({error:'Authentication unavailable'});}

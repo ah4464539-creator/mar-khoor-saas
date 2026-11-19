@@ -313,9 +313,12 @@ form.addEventListener('submit', async event => {
   if (!response.ok) throw Error(loginErrorMessage(response.status, data.error));
   token = data.token;
   await loadAccount();
-  if (document.querySelector('#remember-login').checked) {
-   try { localStorage.setItem(sessionKey, token); } catch {}
-  }
+  // Kept signed in (default): survives closing the browser until "Sign out".
+  // Unticked: signed in only until this browser tab/window is closed.
+  try {
+   if (document.querySelector('#remember-login').checked) { localStorage.setItem(sessionKey, token); sessionStorage.removeItem(sessionKey); }
+   else { sessionStorage.setItem(sessionKey, token); localStorage.removeItem(sessionKey); }
+  } catch {}
   form.reset();
  } catch (error) {
   showLoginError(error.message);
