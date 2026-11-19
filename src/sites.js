@@ -1,7 +1,7 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import express from 'express';
 import { requireAuth } from './auth.js';
-import { generateSiteConfig, renderSitePage, SITE_CSP } from './site-builder.js';
+import { generateSiteConfig, renderSitePage, SITE_CSP, SITE_TEMPLATES } from './site-builder.js';
 import { loadRestaurant, loadSite, saveSite, canPublish, setPublished, loadPublicSite } from './site-store.js';
 import { audit, rateLimit } from './security.js';
 import { restaurantAssistantInstructions } from './restaurant-assistant-policy.js';
@@ -309,14 +309,29 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
   try { res.json({ slug: req.restaurant.slug, ...(await loadSite(pool, req.restaurant)) }); }
   catch { res.status(503).json({ error: 'Website unavailable' }); }
  });
+ // Preview does not write settings or publish a website. It is scoped to the signed-in tenant.
+ router.get('/api/restaurants/:restaurantId/site/templates', requireAuth, restaurantAdmin, (_req, res) => {
+  res.json({ templates: Object.entries(SITE_TEMPLATES).map(([id, label]) => ({ id, label })) });
+ });
+ router.post('/api/restaurants/:restaurantId/site/preview', requireAuth, restaurantAdmin, async (req, res) => {
+  if (!req.body?.config || typeof req.body.config !== 'object' || Array.isArray(req.body.config))
+   return res.status(400).json({ error: 'Invalid website settings' });
+  try {
+   const [items] = await pool.execute('SELECT id,name,description,price_minor,category,image_url FROM menu_items WHERE restaurant_id=? AND active=1 ORDER BY id LIMIT 100', [req.restaurant.id]);
+   res.set('Content-Security-Policy', SITE_CSP);
+   res.set('Cache-Control', 'no-store, private');
+   res.type('html').send(renderSitePage({ restaurant:req.restaurant, config:req.body.config, items }));
+  } catch { res.status(503).json({ error: 'Website preview unavailable' }); }
+ });
  router.post('/api/restaurants/:restaurantId/site/generate', requireAuth, restaurantAdmin, async (req, res) => {
   try {
    const current = await loadSite(pool, req.restaurant);
    const description = typeof req.body?.description === 'string' ? req.body.description : current.description;
    const [menuItems] = await pool.execute('SELECT name FROM menu_items WHERE restaurant_id=? AND active=1 ORDER BY id LIMIT 30', [req.restaurant.id]);
    const generated = await generateSiteConfig({ restaurant: req.restaurant, menuItems, description, current: current.config });
-   const saved = await saveSite(pool, req.restaurant, { config: generated.config, description });
-   res.json({ ...saved, source: generated.source, published: current.published });
+   // AI text is a draft: never change a published website until its owner reviews and saves.
+   res.set('Cache-Control', 'no-store, private');
+   res.json({ config: generated.config, description, slug: req.restaurant.slug, source: generated.source, published: current.published });
   } catch { res.status(503).json({ error: 'Website unavailable' }); }
  });
  router.put('/api/restaurants/:restaurantId/site', requireAuth, restaurantAdmin, async (req, res) => {
