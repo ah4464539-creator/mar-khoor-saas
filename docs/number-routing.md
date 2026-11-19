@@ -66,3 +66,6 @@ Requirements: a Telnyx route for the country (mode `manual`) under **Phone numbe
 
 ### Production safety gate (default OFF)
 `AI_CALLER_AUTO_PURCHASE_ENABLED` defaults to off. When it is not exactly `true`, automatic AI Caller provisioning returns `disabled` **before querying the database, cloning a Vapi assistant, or calling Telnyx**. Existing manually initiated plan-order purchases are a separate flow. This gate is deliberately fail-closed until a separate staging MariaDB and Node.js app, isolated assistant webhook URLs, and mock + end-to-end tests have been verified. Do not enable it on production merely because a PR was merged.
+
+### Staging Vapi isolation
+Set `MAR_KHOOR_ENV=staging` on the staging Node.js app only. In this mode a newly cloned Vapi assistant is rejected before the create call if the copied template refers to `mar-khoor.com` production URLs. Use a separate staging Vapi template with non-production tool/webhook URLs. This does not validate existing assistants; review those mappings separately. Keep staging DB separate and paid purchases off for mock testing.
