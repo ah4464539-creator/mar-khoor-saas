@@ -79,7 +79,7 @@ form.addEventListener('submit', async event => {
       });
       const session = await login.json();
       if (login.ok && session.token) {
-        try { sessionStorage.setItem('mar-khoor.owner-session', session.token); } catch {}
+        try { localStorage.setItem('mar-khoor.owner-session', session.token); } catch {}
         location.assign('/restaurant.html' + (planSelect.value ? '?' + new URLSearchParams({ plan: planSelect.value, cycle: cycleSelect.value }) : ''));
         return;
       }
