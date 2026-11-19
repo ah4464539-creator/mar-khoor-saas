@@ -14,6 +14,21 @@ for (const first of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') {
 regions.sort((a, b) => a.name.localeCompare(b.name));
 for (const { code, name } of regions) country.add(new Option(name, code));
 
+// Plan chosen on /build-plan.html is remembered and preselected in the dashboard setup after sign-in.
+const chosen = new URLSearchParams(location.search);
+const chosenPlan = ['starter', 'premium', 'enterprise'].includes(chosen.get('plan')) ? chosen.get('plan') : null;
+if (chosenPlan) {
+  const cycle = chosen.get('cycle') === 'yearly' ? 'yearly' : 'monthly';
+  try { localStorage.setItem('mar-khoor.chosen-plan', JSON.stringify({ plan: chosenPlan, cycle, at: Date.now() })); } catch {}
+  const note = document.querySelector('#chosen-plan');
+  if (note) {
+    note.textContent = 'Selected plan: ' + chosenPlan[0].toUpperCase() + chosenPlan.slice(1) + ' (' + cycle + '). You will confirm it after signing in. ';
+    note.append(Object.assign(document.createElement('a'), { href: '/build-plan.html?' + chosen, textContent: 'Change plan' }));
+    note.hidden = false;
+  }
+}
+if (/^[A-Z]{2}$/.test(chosen.get('country') || '') && [...country.options].some(option => option.value === chosen.get('country'))) country.value = chosen.get('country');
+
 form.addEventListener('submit', async event => {
   event.preventDefault();
   if (stage < steps.length - 1) { next.click(); return; }

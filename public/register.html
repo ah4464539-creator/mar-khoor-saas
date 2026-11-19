@@ -385,6 +385,7 @@
 .mk-register #register input[type=checkbox],.mk-owner.signing-in #login input[type=checkbox] {accent-color:#ffab52}
 :is(.mk-register,.mk-owner.signing-in) :is(a,button,input,select):focus-visible {outline:2px solid #ffbc79;outline-offset:3px}
 </style>
+<style>.chosen-plan{margin:14px 0 0;padding:10px 14px;border-radius:10px;border:1px solid #e2b766;background:#fff7e3;color:#5a4115!important;font-weight:600}.chosen-plan a{margin-left:4px;color:#8a5a0c}</style>
 </head>
 <body class="landing mk-register">
   <header class="top"><a class="brand" href="/"><img src="/assets/approved-markhor.svg" width="34" height="34" alt=""><span class="wordmark">Mar-Khoor</span></a></header>
@@ -403,6 +404,7 @@
         <ol class="register-steps" aria-label="Registration progress">
           <li aria-current="step">Restaurant Details</li><li>Owner Information</li><li>Account Setup</li>
         </ol>
+        <p id="chosen-plan" class="chosen-plan" hidden></p>
         <form id="register">
           <fieldset><legend>Restaurant Details</legend><div class="field"><label for="restaurant-name"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3v6a3 3 0 0 0 6 0V3M7 3v18m12 0V3c-3 2-4 5-4 9h4"/></svg>Restaurant name *</label><input id="restaurant-name" required maxlength="160" autocomplete="organization" placeholder="e.g. Cheema Cafe"></div><div class="field"><label for="country"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h18v13H3zM8 21h8m-4-4v4"/></svg>Country *</label><select id="country" required><option value="">Select country</option></select></div></fieldset>
           <fieldset hidden disabled><legend>Owner Information</legend><div class="field full"><label for="email"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18v14H3zM3 6l9 7 9-7"/></svg>Owner Email *</label><input id="email" type="email" required maxlength="254" autocomplete="username" placeholder="owner@example.com"></div></fieldset>

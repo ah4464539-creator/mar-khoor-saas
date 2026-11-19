@@ -504,9 +504,18 @@ function numberLine(plan) {
  return 'Dedicated AI phone number: +' + money(number.addon_price_minor, plan.currency) + ' / month add-on';
 }
 
+// Plan picked on /build-plan.html before registering (kept for 30 days).
+function rememberedPlan() {
+ try {
+  const saved = JSON.parse(localStorage.getItem('mar-khoor.chosen-plan') || 'null');
+  if (saved && ['starter','premium','enterprise'].includes(saved.plan) && Date.now() - saved.at < 30 * 86400000) return saved;
+ } catch {}
+ return null;
+}
+
 function renderPlans() {
  const cycle = setupForm.elements.billing_cycle.value;
- const chosen = setupForm.querySelector('input[name="plan"]:checked')?.value || setupData.subscription?.plan || 'starter';
+ const chosen = setupForm.querySelector('input[name="plan"]:checked')?.value || setupData.subscription?.plan || rememberedPlan()?.plan || 'starter';
  planOptions.replaceChildren(...setupData.plans.map(plan => {
   const label = document.createElement('label');
   const input = Object.assign(document.createElement('input'), {type:'radio', name:'plan', value:plan.key, checked:plan.key === chosen});
@@ -611,6 +620,7 @@ async function loadSetup(restaurant) {
   if (selection !== setupSelection) return;
   setupData = {plans:plans.plans, subscription:plans.subscription, integrations:integrations.integrations, exchange:plans.exchange};
   if (setupData.subscription) setupForm.elements.billing_cycle.value = setupData.subscription.billing_cycle;
+  else if (rememberedPlan()) setupForm.elements.billing_cycle.value = rememberedPlan().cycle === 'yearly' ? 'yearly' : 'monthly';
   renderPlans();
   fillConnectStep();
   renderUsage(usage);
@@ -648,6 +658,7 @@ async function advanceSetup() {
    const result = await api(setupUrl('/subscription'), jsonBody('PUT', {plan, billing_cycle:setupForm.elements.billing_cycle.value}));
    if (selection !== setupSelection) return;
    setupData.subscription = result.subscription;
+   try { localStorage.removeItem('mar-khoor.chosen-plan'); } catch {}
    showSetupStep(1);
   } else if (setupStep === 1) {
    setupStatus.textContent = 'Saving and connecting…';
