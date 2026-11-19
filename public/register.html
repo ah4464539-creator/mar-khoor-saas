@@ -385,6 +385,7 @@
 .mk-register #register input[type=checkbox],.mk-owner.signing-in #login input[type=checkbox] {accent-color:#ffab52}
 :is(.mk-register,.mk-owner.signing-in) :is(a,button,input,select):focus-visible {outline:2px solid #ffbc79;outline-offset:3px}
 </style>
+<style>.chosen-plan{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:16px 0 0;padding:12px 14px;border-radius:12px;border:1px solid #6d4c3a;background:#2a201c;color:#fff0e3;font-weight:600}.chosen-plan label{font-weight:800;color:#ffd8b0}.chosen-plan select{height:40px;padding:0 10px;border:1px solid #725145;border-radius:9px;background:#151214;color:#fff7ec;font-weight:700}.chosen-plan a{color:#ffbc80;font-weight:700}</style>
 </head>
 <body class="landing mk-register">
   <header class="top"><a class="brand" href="/"><img src="/assets/approved-markhor.svg" width="34" height="34" alt=""><span class="wordmark">Mar-Khoor</span></a></header>
@@ -403,6 +404,12 @@
         <ol class="register-steps" aria-label="Registration progress">
           <li aria-current="step">Restaurant Details</li><li>Owner Information</li><li>Account Setup</li>
         </ol>
+        <div id="chosen-plan" class="chosen-plan">
+          <label for="chosen-plan-select">Your plan</label>
+          <select id="chosen-plan-select"><option value="">Decide after sign-in</option><option value="starter">Starter</option><option value="premium">Premium</option><option value="enterprise">Enterprise</option></select>
+          <select id="chosen-cycle-select" aria-label="Billing"><option value="monthly">Monthly</option><option value="yearly">Yearly (2 months free)</option></select>
+          <a href="/build-plan.html" id="compare-plans">Compare plans</a>
+        </div>
         <form id="register">
           <fieldset><legend>Restaurant Details</legend><div class="field"><label for="restaurant-name"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3v6a3 3 0 0 0 6 0V3M7 3v18m12 0V3c-3 2-4 5-4 9h4"/></svg>Restaurant name *</label><input id="restaurant-name" required maxlength="160" autocomplete="organization" placeholder="e.g. Cheema Cafe"></div><div class="field"><label for="country"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h18v13H3zM8 21h8m-4-4v4"/></svg>Country *</label><select id="country" required><option value="">Select country</option></select></div></fieldset>
           <fieldset hidden disabled><legend>Owner Information</legend><div class="field full"><label for="email"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18v14H3zM3 6l9 7 9-7"/></svg>Owner Email *</label><input id="email" type="email" required maxlength="254" autocomplete="username" placeholder="owner@example.com"></div></fieldset>
@@ -411,7 +418,7 @@
         </form>
         <p id="status" role="status" aria-live="polite"></p>
         <div id="done" hidden><h2>Restaurant created</h2><p id="done-text"></p><p id="registration-voice"></p><a class="button" href="/restaurant.html">Sign in to your workspace</a></div>
-        <p style="margin-top:22px">Already registered? <a href="/restaurant.html">Sign in</a></p>
+        <p style="margin-top:22px">Already registered? <a href="/restaurant.html" id="signin-link">Sign in</a></p>
       </section>
     </div>
   </main>

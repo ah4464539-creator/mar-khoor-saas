@@ -4,6 +4,7 @@ import { publicAssistantRouter } from './public-assistant.js';
 import express from 'express';
 import mysql from 'mysql2/promise';
 import { authRouter, useSessionStore } from './auth.js';
+import { passwordResetRouter } from './password-reset.js';
 import { createDbSessionStore } from './sessions.js';
 import { apiRouter } from './api.js';
 import { operationsRouter } from './operations.js';
@@ -39,6 +40,7 @@ const pool = mysql.createPool({
 });
 useSessionStore(createDbSessionStore(pool));
 app.use('/integrations', integrationRouter(pool));
+app.use('/auth/password', rateLimit({ windowMs: 15 * 60 * 1000, max: 10, methods: ['POST'], name: 'password-reset' }));
 app.use(['/auth/login', '/auth/platform-login'], rateLimit({ windowMs: 15 * 60 * 1000, max: 30, methods: ['POST'], name: 'login' }));
 app.use('/api/public', rateLimit({ windowMs: 60 * 1000, max: 120, name: 'public' }));
 app.use('/api/public/assistant/chat', rateLimit({ windowMs: 10 * 60 * 1000, max: 12, methods: ['POST'], name: 'public-assistant' }));
@@ -62,6 +64,7 @@ app.post('/api/public/plan-quote', async (req, res) => {
 });
 app.use('/api', publicAssistantRouter());
 app.use('/auth', authRouter(pool));
+app.use('/auth', passwordResetRouter(pool));
 app.use('/auth', registrationRouter(pool));
 app.use('/api', apiRouter(pool));
 app.use('/api', operationsRouter(pool));

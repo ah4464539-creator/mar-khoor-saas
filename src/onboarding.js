@@ -6,6 +6,7 @@ import { planCatalog, chooseSubscription, getSubscription, getUsage } from './su
 import { getIntegrations, saveSetup, finishSetup } from './setup-integrations.js';
 import { assignRegistrationNumber } from './registration-voice.js';
 import { getUsdRates, FX_ATTRIBUTION } from './fx-rates.js';
+import { defaultCurrency } from './registration-core.js';
 
 export function onboardingRouter(pool, { assignVoiceNumber = assignRegistrationNumber, loadRates = getUsdRates } = {}) {
  const router = express.Router();
@@ -23,6 +24,19 @@ export function onboardingRouter(pool, { assignVoiceNumber = assignRegistrationN
   } catch { res.status(503).json({ error: 'Database unavailable' }); }
  };
  const base = '/restaurants/:restaurantId';
+
+ // Public price list for the "Build your plan" page: same catalog the dashboard uses, shown in the
+ // currency a restaurant from that country would be billed in.
+ router.get('/public/plans', async (req, res) => {
+  const country = typeof req.query?.country === 'string' && /^[A-Z]{2}$/.test(req.query.country) ? req.query.country : null;
+  const currency = country ? defaultCurrency(country) : 'USD';
+  try {
+   const fx = await loadRates();
+   res.set('Cache-Control', 'public, max-age=900');
+   res.json({ country, plans: planCatalog(currency, { fx }),
+    exchange: fx ? { source: fx.source, as_of: fx.asOf, attribution: fx.source === 'exchangerate-api' ? FX_ATTRIBUTION : null } : null });
+  } catch { res.status(503).json({ error: 'Plans unavailable' }); }
+ });
 
  router.get(base + '/subscription', requireAuth, restaurantAdmin, async (req, res) => {
   try {

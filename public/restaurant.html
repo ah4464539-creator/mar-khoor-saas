@@ -50,6 +50,29 @@
  background-color:#0d0c0e;
 }
 </style>
+<style>
+/* Login, forgot and reset messages live inside the card, right above the action button. */
+.mk-owner .access-panel .auth-message{display:flex;gap:10px;align-items:flex-start;margin:4px 0 2px;padding:12px 14px;border-radius:10px;font-size:.95rem;line-height:1.4;border:1px solid transparent}
+.mk-owner .access-panel .auth-message[hidden]{display:none}
+.mk-owner .access-panel .auth-message::before{flex:0 0 auto;font-weight:800}
+.mk-owner .access-panel .auth-error{color:#ffd9cf;background:#3a1b18;border-color:#a8473b}
+.mk-owner .access-panel .auth-error::before{content:"!";display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#e2553f;color:#fff;font-size:.8rem}
+.mk-owner .access-panel .auth-success{color:#e8f7dc;background:#1d2b1a;border-color:#4f7a3c}
+.mk-owner .access-panel .auth-success::before{content:"\2713";color:#9fd77e}
+.mk-owner .access-panel .auth-info{color:#ffe9d2;background:#2c221c;border-color:#6d4c3a}
+.mk-owner .access-panel .login-options{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.mk-owner .access-panel .login-forgot{color:#ffbc80;font-weight:700;text-decoration:underline;text-underline-offset:.18em}
+.mk-owner.signing-in .access-panel :is(#forgot-form,#reset-form) input:not([type=checkbox]){width:100%;min-height:48px;color:#fff7ec;background:#151214;border:1px solid #725145;border-radius:10px;font-size:16px}
+.mk-owner.signing-in .access-panel :is(#forgot-form,#reset-form) button{min-height:48px;color:#211207;background:linear-gradient(125deg,#ffc16d,#ff8b3b);border:0;border-radius:12px;font-weight:800;cursor:pointer}
+.mk-owner.signing-in .access-panel :is(#forgot-form,#reset-form) button:disabled{opacity:.7;cursor:progress}
+.mk-owner.signing-in .access-panel :is(#forgot-form,#reset-form){display:grid;gap:16px}
+</style>
+<style>
+.mk-owner .website-options label{grid-template-columns:minmax(0,1fr) auto!important;cursor:pointer}
+.mk-owner .website-options label span{grid-area:auto!important}
+.mk-owner .website-options label input{grid-area:auto!important}
+.mk-owner .website-options small{display:block;margin-top:4px;line-height:1.4;opacity:.85}
+</style>
 </head>
 <body class="dashboard restaurant-dashboard mk-owner signing-in">
 <div class="layout">
@@ -71,10 +94,24 @@
 </div>
 
 <div class="mk-login-grid"><div class="mk-login-intro"><p class="eyebrow">Restaurant Login</p><h1>Manage Your Restaurant Anywhere</h1><p>Access your dashboard, orders and menu from one workspace.</p></div><section class="panel access-panel">
+<div id="login-view">
 <h2>Welcome back</h2><p class="muted">Sign in to manage your restaurant.</p>
-<form id="login"><div class="login-field"><label for="email"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18v14H3zM3 6l9 7 9-7"/></svg>Owner email *</label><input id="email" aria-label="Email address" type="email" placeholder="owner@example.com" required autocomplete="username"></div><div class="login-field"><label for="password"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 10h12v11H6zM8 10V7a4 4 0 0 1 8 0v3"/></svg>Password *</label><input id="password" aria-label="Password" type="password" placeholder="Enter your password" required autocomplete="current-password"></div><label class="login-show"><input id="login-show-password" type="checkbox"> Show password</label><label class="login-show"><input id="remember-login" type="checkbox"> Remember me</label><button type="submit">Sign in</button>
+<p id="login-notice" class="auth-message auth-success" role="status" hidden></p>
+<form id="login"><div class="login-field"><label for="email"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18v14H3zM3 6l9 7 9-7"/></svg>Owner email *</label><input id="email" aria-label="Email address" type="email" placeholder="owner@example.com" required autocomplete="username"></div><div class="login-field"><label for="password"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 10h12v11H6zM8 10V7a4 4 0 0 1 8 0v3"/></svg>Password *</label><input id="password" aria-label="Password" type="password" placeholder="Enter your password" required autocomplete="current-password"></div><div class="login-options"><label class="login-show"><input id="login-show-password" type="checkbox"> Show password</label><a href="#forgot-password" id="forgot-link" class="login-forgot">Forgot password?</a></div><label class="login-show"><input id="remember-login" type="checkbox"> Remember me</label><p id="login-error" class="auth-message auth-error" role="alert" hidden></p><button type="submit">Sign in</button>
 </form>
-<p class="login-register">New restaurant owner? <a href="/register.html">Register your restaurant</a></p></section></div>
+<p class="login-register">New restaurant owner? <a href="/register.html">Register your restaurant</a></p>
+</div>
+<div id="forgot-view" hidden>
+<h2>Forgot your password?</h2><p class="muted">Enter your account email and we will send you a link to choose a new password.</p>
+<form id="forgot-form"><div class="login-field"><label for="forgot-email"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18v14H3zM3 6l9 7 9-7"/></svg>Owner email *</label><input id="forgot-email" type="email" placeholder="owner@example.com" required autocomplete="username" maxlength="254"></div><p id="forgot-message" class="auth-message" role="alert" hidden></p><button type="submit">Send reset link</button></form>
+<p class="login-register"><a href="#" class="back-to-login">Back to sign in</a></p>
+</div>
+<div id="reset-view" hidden>
+<h2>Choose a new password</h2><p class="muted">Use at least 12 characters. All devices will be signed out after the change.</p>
+<form id="reset-form"><div class="login-field"><label for="reset-password"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 10h12v11H6zM8 10V7a4 4 0 0 1 8 0v3"/></svg>New password *</label><input id="reset-password" type="password" placeholder="At least 12 characters" required minlength="12" maxlength="1024" autocomplete="new-password"></div><div class="login-field"><label for="reset-confirm"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 10h12v11H6zM8 10V7a4 4 0 0 1 8 0v3"/></svg>Confirm new password *</label><input id="reset-confirm" type="password" placeholder="Repeat the new password" required minlength="12" maxlength="1024" autocomplete="new-password"></div><label class="login-show"><input id="reset-show-password" type="checkbox"> Show password</label><p id="reset-message" class="auth-message" role="alert" hidden></p><button type="submit">Update password</button></form>
+<p class="login-register"><a href="#" class="back-to-login">Back to sign in</a></p>
+</div>
+</section></div>
 <p id="status" role="status" class="muted"></p>
 <section class="panel mk-restaurant-list">
 <h2>Switch restaurant</h2>
@@ -96,7 +133,7 @@
 </section>
 <dialog id="setup-dialog" aria-labelledby="setup-title">
 <form id="setup-form" novalidate>
-<p class="eyebrow" id="setup-step-label">Step 1 of 3</p>
+<p class="eyebrow" id="setup-step-label">Step 1 of 4</p>
 <h2 id="setup-title">Choose your plan</h2>
 <fieldset class="setup-step" data-step="plan">
 <legend class="visually-hidden">Plan</legend>
@@ -110,7 +147,7 @@
 </fieldset>
 <fieldset class="setup-step" data-step="connect" hidden>
 <legend class="visually-hidden">Connect</legend>
-<p>All optional. Fill what you want now; skip the rest and come back any time.</p>
+<p>Add the numbers your restaurant uses. Both are optional: skip one and come back any time.</p>
 <div class="setup-item" data-kind="whatsapp">
 <h3>Business WhatsApp</h3>
 <label>WhatsApp number used by your restaurant<input name="whatsapp_value" type="tel" inputmode="tel" autocomplete="tel" maxlength="32" placeholder="+92 300 1234567"></label>
@@ -127,13 +164,16 @@
 </select></label>
 <label class="setup-skip"><input type="checkbox" name="ai_caller_skip"> Skip AI Caller for now</label>
 </div>
+</fieldset>
+<fieldset class="setup-step" data-step="website" hidden>
+<legend class="visually-hidden">Website</legend>
 <div class="setup-item" data-kind="website">
-<h3>Website</h3>
-<label>How to set it up<select name="website_mode">
-<option value="builder">Build it with AI</option>
-<option value="domain">AI website on my own domain</option>
-<option value="embed">Add AI tools to my website</option>
-</select></label>
+<p>Do you already have a website for your restaurant?</p>
+<div class="setup-options website-options" role="radiogroup" aria-label="Website">
+<label><span><strong>No, build my website with AI</strong><small>The AI Website Builder opens next. Describe your restaurant and it writes your page, with your menu, AI Assistant, WhatsApp and AI Caller built in.</small></span><input type="radio" name="website_mode" value="builder" checked></label>
+<label><span><strong>Yes, use my own domain</strong><small>Connect your domain (for example myrestaurant.com) to a new AI-built Mar-Khoor website.</small></span><input type="radio" name="website_mode" value="domain"></label>
+<label><span><strong>Yes, keep my current website</strong><small>Keep your site as it is and add the Mar-Khoor AI Assistant, WhatsApp button and AI Caller to it.</small></span><input type="radio" name="website_mode" value="embed"></label>
+</div>
 <label class="setup-domain" hidden>Your domain<input name="website_value" inputmode="url" autocomplete="url" maxlength="253" placeholder="myrestaurant.com"></label>
 <label class="setup-skip"><input type="checkbox" name="website_skip"> Skip website for now</label>
 </div>
@@ -220,6 +260,7 @@
 </div>
 </main>
 </div>
+<script src="/password-reset.js"></script>
 <script type="module" src="/restaurant.js">
 </script>
 <script>document.getElementById("login-show-password")?.addEventListener("change",function(){document.getElementById("password").type=this.checked?"text":"password"});</script></body>

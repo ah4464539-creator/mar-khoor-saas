@@ -280,33 +280,55 @@ async function openRestaurant(restaurant) {
  try { await refresh(); } catch (error) { status.textContent = error.message; }
 }
 
+const loginError = document.querySelector('#login-error');
+const loginNotice = document.querySelector('#login-notice');
+function showLoginError(message) {
+ loginError.textContent = message;
+ loginError.hidden = !message;
+}
+function loginErrorMessage(status, serverMessage) {
+ if (status === 400 || status === 401) return 'Incorrect email or password. Please try again, or use “Forgot password?”.';
+ if (status === 429) return 'Too many sign-in attempts. Please wait a few minutes and try again.';
+ if (status >= 500) return 'Sign-in is temporarily unavailable. Please try again shortly.';
+ return serverMessage || 'Sign-in failed. Please try again.';
+}
+for (const input of form.querySelectorAll('input:not([type=checkbox])')) input.addEventListener('input', () => showLoginError(''));
+
 form.addEventListener('submit', async event => {
  event.preventDefault();
  const submit = form.querySelector('button[type=submit]');
  submit.disabled = true;
- status.textContent = 'Signing in…';
+ submit.textContent = 'Signing in…';
+ showLoginError('');
+ if (loginNotice) loginNotice.hidden = true;
  try {
-  const response = await fetch('/auth/login', {
-   method: 'POST', headers: { 'Content-Type': 'application/json' },
-   body: JSON.stringify({ email: document.querySelector('#email').value, password: document.querySelector('#password').value }),
-  });
-  const data = await response.json();
-  if (!response.ok) throw Error(data.error || 'Login failed');
+  let response;
+  try {
+   response = await fetch('/auth/login', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: document.querySelector('#email').value, password: document.querySelector('#password').value }),
+   });
+  } catch { throw Error('Could not reach Mar-Khoor. Check your internet connection and try again.'); }
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw Error(loginErrorMessage(response.status, data.error));
   token = data.token;
   await loadAccount();
   if (document.querySelector('#remember-login').checked) {
    try { localStorage.setItem(sessionKey, token); } catch {}
   }
   form.reset();
- } catch (error) { status.textContent = error.message; }
- finally { submit.disabled = false; }
+ } catch (error) {
+  showLoginError(error.message);
+  document.querySelector('#password').select();
+ }
+ finally { submit.disabled = false; submit.textContent = 'Sign in'; }
 });
 
 logoutButton.addEventListener('click', async () => {
  logoutButton.disabled = true;
  try {
   await api('/auth/logout', { method: 'POST' });
-  try { localStorage.removeItem(sessionKey); } catch {}
+  try { localStorage.removeItem(sessionKey); sessionStorage.removeItem(sessionKey); } catch {}
   location.reload();
  } catch (error) { status.textContent = error.message; logoutButton.disabled = false; }
 });
@@ -451,7 +473,7 @@ const setupResults = document.querySelector('#setup-results');
 const usageMeter = document.querySelector('#usage-meter');
 const planOptions = document.querySelector('#plan-options');
 const setupSteps = [...setupForm.querySelectorAll('.setup-step')];
-const setupTitles = ['Choose your plan', 'Connect your channels', 'Setup status'];
+const setupTitles = ['Choose your plan', 'Connect WhatsApp and AI Caller', 'Your website', 'Setup status'];
 const integrationLabels = {whatsapp:'Business WhatsApp', ai_caller:'AI Caller', website:'Website'};
 const statusLabels = {connected:'Connected', pending:'Pending', failed:'Failed', skipped:'Skipped', not_started:'Not started'};
 const metricLabels = {ai_chats:'AI chats', whatsapp_messages:'WhatsApp messages', ai_call_minutes:'AI call minutes'};
@@ -482,9 +504,34 @@ function numberLine(plan) {
  return 'Dedicated AI phone number: +' + money(number.addon_price_minor, plan.currency) + ' / month add-on';
 }
 
+// A plan clicked on the landing page (?plan=...) is an explicit choice: remember it and open
+// setup on that plan after sign-in, even when the restaurant already has a plan.
+const PLAN_STORE = 'mar-khoor.chosen-plan';
+let planIntent = false;
+{
+ const params = new URLSearchParams(location.search);
+ const plan = params.get('plan');
+ if (['starter','premium','enterprise'].includes(plan)) {
+  planIntent = true;
+  try { localStorage.setItem(PLAN_STORE, JSON.stringify({plan, cycle: params.get('cycle') === 'yearly' ? 'yearly' : 'monthly', at: Date.now()})); } catch {}
+  history.replaceState(null, '', location.pathname + location.hash);
+  const notice = document.querySelector('#login-notice');
+  if (notice) { notice.textContent = 'Sign in to continue with the ' + plan[0].toUpperCase() + plan.slice(1) + ' plan.'; notice.className = 'auth-message auth-info'; notice.hidden = false; }
+ }
+}
+
+// Plan picked on /build-plan.html before registering (kept for 30 days).
+function rememberedPlan() {
+ try {
+  const saved = JSON.parse(localStorage.getItem(PLAN_STORE) || 'null');
+  if (saved && ['starter','premium','enterprise'].includes(saved.plan) && Date.now() - saved.at < 30 * 86400000) return saved;
+ } catch {}
+ return null;
+}
+
 function renderPlans() {
  const cycle = setupForm.elements.billing_cycle.value;
- const chosen = setupForm.querySelector('input[name="plan"]:checked')?.value || setupData.subscription?.plan || 'starter';
+ const chosen = setupForm.querySelector('input[name="plan"]:checked')?.value || (planIntent && rememberedPlan()?.plan) || setupData.subscription?.plan || rememberedPlan()?.plan || 'starter';
  planOptions.replaceChildren(...setupData.plans.map(plan => {
   const label = document.createElement('label');
   const input = Object.assign(document.createElement('input'), {type:'radio', name:'plan', value:plan.key, checked:plan.key === chosen});
@@ -541,7 +588,7 @@ function fillConnectStep() {
   const value = setupForm.elements[item.kind + '_value'];
   const mode = setupForm.elements[item.kind + '_mode'];
   if (value && item.value) value.value = item.value;
-  if (mode && item.mode && mode.tagName === 'SELECT') mode.value = item.mode;
+  if (mode && item.mode && (mode.tagName === 'SELECT' || mode instanceof RadioNodeList)) mode.value = item.mode;
   setupForm.elements[item.kind + '_skip'].checked = item.status === 'skipped';
  }
  syncConnectStep();
@@ -556,15 +603,36 @@ function syncConnectStep() {
  }
 }
 
+const LAST_SETUP_STEP = 3;
+function websiteNeedsBuilder() {
+ return !setupForm.elements.website_skip.checked && ['builder', 'domain'].includes(setupForm.elements.website_mode.value);
+}
 function showSetupStep(index) {
  setupStep = index;
  setupSteps.forEach((step, i) => { step.hidden = i !== index; });
- document.querySelector('#setup-step-label').textContent = 'Step ' + (index + 1) + ' of 3';
+ document.querySelector('#setup-step-label').textContent = 'Step ' + (index + 1) + ' of ' + (LAST_SETUP_STEP + 1);
  document.querySelector('#setup-title').textContent = setupTitles[index];
- backSetup.hidden = index !== 1;
- deferSetup.hidden = index === 2;
- nextSetup.textContent = index === 0 ? 'Continue' : index === 1 ? 'Finish setup' : 'Done';
+ backSetup.hidden = index === 0 || index === LAST_SETUP_STEP;
+ deferSetup.hidden = index === LAST_SETUP_STEP;
+ nextSetup.textContent = index === 0 || index === 1 ? 'Continue'
+  : index === 2 ? (websiteNeedsBuilder() ? 'Finish and open AI Website Builder' : 'Finish setup')
+  : 'Done';
  setupStatus.textContent = '';
+}
+
+// After setup, take the owner straight into the AI Website Builder with what we already know.
+async function openWebsiteBuilder(integrations) {
+ setupDialog.close();
+ location.hash = '#website';
+ try { await loadSite(); } catch {}
+ const caller = setupForm.elements.ai_caller_value?.value.trim();
+ const phone = document.querySelector('#site-phone');
+ if (caller && phone && !phone.value) phone.value = caller;
+ const pending = integrations.filter(item => item.kind !== 'website' && item.status !== 'skipped')
+  .map(item => integrationLabels[item.kind] + ': ' + (statusLabels[item.status] || item.status).toLowerCase());
+ siteStatus.textContent = (pending.length ? 'Setup saved (' + pending.join(', ') + '). ' : 'Setup saved. ')
+  + 'Now describe your restaurant and press “Write with AI”. Edit anything, then Save and Publish.';
+ document.querySelector('#site-description')?.focus();
 }
 
 function summarise() {
@@ -588,14 +656,18 @@ async function loadSetup(restaurant) {
   const [plans, integrations, usage] = await Promise.all([api(setupUrl('/subscription')), api(setupUrl('/integrations')), api(setupUrl('/usage'))]);
   if (selection !== setupSelection) return;
   setupData = {plans:plans.plans, subscription:plans.subscription, integrations:integrations.integrations, exchange:plans.exchange};
-  if (setupData.subscription) setupForm.elements.billing_cycle.value = setupData.subscription.billing_cycle;
+  const remembered = rememberedPlan();
+  if (remembered && (planIntent || !setupData.subscription)) setupForm.elements.billing_cycle.value = remembered.cycle === 'yearly' ? 'yearly' : 'monthly';
+  else if (setupData.subscription) setupForm.elements.billing_cycle.value = setupData.subscription.billing_cycle;
   renderPlans();
   fillConnectStep();
   renderUsage(usage);
   summarise();
   openSetup.disabled = false;
   openSetup.textContent = setupData.subscription ? 'Change plan or setup' : 'Start setup';
-  if (!setupData.subscription && !location.hash) { showSetupStep(0); setupDialog.showModal(); }
+  const wantsChange = planIntent && remembered && (remembered.plan !== setupData.subscription?.plan || remembered.cycle !== setupData.subscription?.billing_cycle);
+  if ((!setupData.subscription && !location.hash) || wantsChange) { showSetupStep(0); setupDialog.showModal(); }
+  planIntent = false;
  } catch (error) {
   if (selection === setupSelection) setupSummary.textContent = error.message;
  }
@@ -626,15 +698,28 @@ async function advanceSetup() {
    const result = await api(setupUrl('/subscription'), jsonBody('PUT', {plan, billing_cycle:setupForm.elements.billing_cycle.value}));
    if (selection !== setupSelection) return;
    setupData.subscription = result.subscription;
+   try { localStorage.removeItem(PLAN_STORE); } catch {}
    showSetupStep(1);
   } else if (setupStep === 1) {
+   // Save and validate the two numbers now, so a wrong number is caught before the website step.
+   setupStatus.textContent = 'Saving numbers…';
+   const { whatsapp, ai_caller } = connectPayload();
+   await api(setupUrl('/integrations'), jsonBody('PUT', { whatsapp, ai_caller }));
+   if (selection !== setupSelection) return;
+   showSetupStep(2);
+  } else if (setupStep === 2) {
+   if (!setupForm.elements.website_skip.checked && setupForm.elements.website_mode.value !== 'builder' && !setupForm.elements.website_value.value.trim()) {
+    setupStatus.textContent = 'Enter your website domain, for example myrestaurant.com, or choose “build my website with AI”.';
+    return;
+   }
    setupStatus.textContent = 'Saving and connecting…';
    await api(setupUrl('/integrations'), jsonBody('PUT', connectPayload()));
    const result = await api(setupUrl('/integrations/finish'), {method:'POST'});
    if (selection !== setupSelection) return;
    setupData.integrations = result.integrations;
    statusList(setupResults, result.integrations);
-   showSetupStep(2);
+   if (websiteNeedsBuilder()) { summarise(); await openWebsiteBuilder(result.integrations); return; }
+   showSetupStep(LAST_SETUP_STEP);
   } else {
    setupDialog.close();
   }
@@ -651,14 +736,16 @@ openSetup.addEventListener('click', () => { showSetupStep(0); renderPlans(); fil
 setupForm.addEventListener('change', event => {
  if (event.target.name === 'billing_cycle') renderPlans();
  syncConnectStep();
+ if (setupStep === 2) showSetupStep(2); // refresh the button label for the chosen website path
 });
-backSetup.addEventListener('click', () => showSetupStep(0));
+backSetup.addEventListener('click', () => showSetupStep(Math.max(0, setupStep - 1)));
 deferSetup.addEventListener('click', () => setupDialog.close());
 setupForm.addEventListener('submit', event => { event.preventDefault(); advanceSetup(); });
 
-try { token = localStorage.getItem(sessionKey) || ''; } catch {}
-if (token) loadAccount().catch(() => {
+try { token = localStorage.getItem(sessionKey) || sessionStorage.getItem(sessionKey) || ''; } catch {}
+// Do not auto-open a saved session while someone is completing a password reset link.
+if (token && document.querySelector('#reset-view')?.hidden !== false) loadAccount().catch(() => {
  token = '';
- try { localStorage.removeItem(sessionKey); } catch {}
+ try { localStorage.removeItem(sessionKey); sessionStorage.removeItem(sessionKey); } catch {}
 });
 
