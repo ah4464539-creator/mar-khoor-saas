@@ -42,10 +42,16 @@ export function assistantCopy(template, { name, restaurantId, restaurantName = '
   return copy;
 }
 
-export async function cloneAssistant({ apiKey, templateId, name, restaurantId, restaurantName, fetcher = fetch }) {
+export async function cloneAssistant({ apiKey, templateId, name, restaurantId, restaurantName, isStaging = false, fetcher = fetch }) {
   if (!/^[a-zA-Z0-9_-]{1,128}$/.test(templateId || '')) throw Error('Invalid template assistant id');
   const template = await call(fetcher, apiKey, '/assistant/' + templateId);
-  const created = await call(fetcher, apiKey, '/assistant', { method: 'POST', body: JSON.stringify(assistantCopy(template, { name, restaurantId, restaurantName })) });
+  const copy = assistantCopy(template, { name, restaurantId, restaurantName });
+  // In staging, never create a Vapi assistant whose webhook/tool URLs target production.
+  // This check occurs before the provider's create call.
+  if (isStaging && /https?:\/\/(?:[a-z0-9-]+\.)*mar-khoor\.com(?:[/?#:]|$)/i.test(JSON.stringify(copy))) {
+    throw Error('Staging Vapi template points at a production URL. Configure a separate staging template.');
+  }
+  const created = await call(fetcher, apiKey, '/assistant', { method: 'POST', body: JSON.stringify(copy) });
   if (typeof created?.id !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(created.id)) throw Error('Vapi returned no assistant id');
   return { id: created.id };
 }
