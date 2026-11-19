@@ -9,6 +9,7 @@
 
 <link rel="stylesheet" href="/mar-khoor-design.css">
 <link rel="stylesheet" href="/restaurant-owner.css">
+<link rel="stylesheet" href="/restaurant-refresh.css?v=20261120">
 
 <!-- Approved charcoal-orange UI overrides from PR 27 -->
 <style>
@@ -77,6 +78,7 @@
 <body class="dashboard restaurant-dashboard mk-owner signing-in">
 <div class="layout">
 <aside><a class="brand" href="/"><img src="/assets/approved-markhor.svg" width="34" height="34" alt=""><span class="wordmark">Mar-Khoor</span></a>
+<div class="owner-restaurant-switch" id="owner-restaurant-switch" hidden><div class="owner-switch-icon" aria-hidden="true">✦</div><div><strong id="owner-switch-name">Restaurant</strong><small>Restaurant Admin</small></div></div>
 <div class="navlabel">RESTAURANT</div><a class="selected" aria-current="page" href="#owner-overview"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8v10H3z"/></svg>Restaurant Overview</a>
 <nav id="owner-navigation" aria-label="Restaurant workspace" hidden>
 <a href="#restaurant-setup"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14v18H5zM8 8h8m-8 4h8m-8 4h5"/></svg>Restaurant Setup</a><a href="#website"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h18v13H3zM8 21h8m-4-4v4"/></svg>My Website</a><a href="#menu-management"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3v6a3 3 0 0 0 6 0V3M7 3v18m12 0V3c-3 2-4 5-4 9h4"/></svg>Menu &amp; Items</a><a href="#order-desk"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14v18H5zM8 8h8m-8 4h8m-8 4h5"/></svg>Live Orders</a><a href="#analytics"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3v17h16M8 15l4-4 4 2 4-7"/></svg>Analytics</a>
@@ -87,10 +89,9 @@
 </nav>
 </aside>
 <main class="workspace" id="owner-workspace">
-<div class="page-heading">
-<div>
-<h1 id="owner-heading">Restaurant Dashboard</h1>
-</div><button type="button" id="owner-logout" hidden>Sign out</button>
+<div class="page-heading owner-dashboard-heading">
+<div class="owner-heading-text"><p class="owner-greeting">Good to see you, <strong id="owner-restaurant-label">Restaurant</strong></p><h1 id="owner-heading">Restaurant Dashboard</h1><p class="owner-heading-subtitle">Manage orders, menu, customers and your restaurant in one place.</p></div>
+<div class="owner-header-actions"><label class="owner-header-search"><span class="visually-hidden">Search restaurant orders</span><input id="owner-global-search" type="search" placeholder="Search orders or customers" aria-label="Search orders or customers"></label><button type="button" id="owner-logout" hidden>Sign out</button></div>
 </div>
 
 <div class="mk-login-grid"><div class="mk-login-intro"><p class="eyebrow">Restaurant Login</p><h1>Manage Your Restaurant Anywhere</h1><p>Access your dashboard, orders and menu from one workspace.</p></div><section class="panel access-panel">
@@ -121,8 +122,8 @@
 <div id="owner-overview">
 <section id="analytics" class="cards kpi-cards" aria-label="Restaurant analytics" aria-live="polite">Loading analytics…</section>
 <div class="owner-insights">
-<section class="panel"><h2>Sales overview</h2><p class="muted">Completed order revenue over the last 30 days</p><div id="owner-sales"></div></section>
-<section class="panel"><h2>Order status summary</h2><div id="owner-status-summary"></div></section>
+<section class="panel owner-sales-panel"><div class="owner-panel-title"><h2>Sales Performance</h2><span class="owner-period">Last 30 days</span></div><p class="muted">Completed order revenue over the last 30 days</p><div id="owner-sales"></div></section>
+<section class="panel owner-activity-panel"><h2><span class="owner-live-dot" aria-hidden="true"></span> Order Activity (Live)</h2><div id="owner-order-activity" aria-live="polite"><p class="muted">Latest orders will appear here.</p></div><details class="owner-status-details"><summary>Order status summary</summary><div id="owner-status-summary"></div></details></section>
 </div>
 <section class="panel setup-summary" id="restaurant-setup" hidden>
 <h2>Plan &amp; setup</h2>
@@ -192,15 +193,16 @@
 </form>
 </dialog>
 <div class="dashboard-panels operational-grid">
-<section class="panel owner-top-items"><h2>Top-selling menu items</h2><div id="owner-top-items"></div></section>
+<section class="panel owner-top-items"><h2>Top Dishes</h2><p class="muted">Top-selling items from completed orders</p><div id="owner-top-items"></div></section>
 <section class="panel order-desk" id="order-desk">
 <h2><span class="order-indicator" aria-hidden="true"></span>Live Orders</h2>
 <div class="owner-order-controls">
 <label>Search orders <input id="owner-order-search" type="search" placeholder="Order ID or customer"></label>
 <label>Status <select id="owner-order-status"><option value="">All statuses</option><option>pending</option><option>accepted</option><option>preparing</option><option>ready</option><option>completed</option><option>cancelled</option></select></label>
 </div>
-<div id="orders" class="owner-order-table"></div>
+<div id="owner-order-cards" class="owner-order-cards"></div><details class="owner-orders-details"><summary>Manage orders, payments and preparation times</summary><div id="orders" class="owner-order-table"></div></details>
 </section>
+<section class="panel owner-quick-actions"><h2>Quick Actions</h2><div class="owner-action-grid"><a href="#menu-management" class="owner-action-tile"><span aria-hidden="true">＋</span>Add Menu Item</a><a href="#website" class="owner-action-tile"><span aria-hidden="true">✎</span>AI Website Builder</a><a href="#order-desk" class="owner-action-tile"><span aria-hidden="true">▣</span>Manage Orders</a><a href="#analytics" class="owner-action-tile"><span aria-hidden="true">▥</span>View Analytics</a></div></section>
 <section class="panel" id="menu-management">
 <h2>Menu &amp; Items</h2>
 <form id="add-item"><label for="item-name">Item name<input id="item-name" aria-label="Menu item name" placeholder="Item name" required maxlength="180"></label><label for="item-price">Price<input id="item-price" aria-label="Menu item price" type="number" min="0" step="0.01" placeholder="Price" required></label><label>Category<input id="item-category" maxlength="80" placeholder="e.g. Desserts"></label><label>Photo URL<input id="item-photo" type="url" maxlength="2048" placeholder="https://"></label><button id="save-menu-item">Add item</button><button type="button" id="cancel-menu-edit" hidden>Cancel edit</button>
@@ -228,9 +230,15 @@
 <div id="plan-orders" class="muted"></div>
 </section>
 <section class="panel owner-message-view" id="website" hidden>
-<h2 tabindex="-1">My Website</h2>
-<p class="muted">Describe your restaurant and the AI writes the text for your page. You can edit everything, then publish. The page is built from a fixed safe template.</p>
+<h2 tabindex="-1">AI Website Builder</h2>
+<p class="muted">Choose a professionally designed template, preview your real menu and let AI draft the text. Review the result before saving or publishing. Your current live page stays unchanged until you save.</p>
 <form id="site-form">
+<fieldset class="site-template-picker"><legend>Choose a website template</legend><p class="muted">Preview the layout before you publish. Existing sites keep their current design until you choose another.</p><div class="site-template-grid">
+<label class="site-template-option" data-template="classic"><input type="radio" name="site-template" value="classic" checked><span class="site-template-thumb"><i></i><b></b><em></em></span><strong>Classic Dark</strong><small>Original Mar-Khoor style</small></label>
+<label class="site-template-option" data-template="bistro"><input type="radio" name="site-template" value="bistro"><span class="site-template-thumb"><i></i><b></b><em></em></span><strong>Warm Bistro</strong><small>Elegant, warm and welcoming</small></label>
+<label class="site-template-option" data-template="minimal"><input type="radio" name="site-template" value="minimal"><span class="site-template-thumb"><i></i><b></b><em></em></span><strong>Clean Editorial</strong><small>Minimal typography and whitespace</small></label>
+<label class="site-template-option" data-template="midnight"><input type="radio" name="site-template" value="midnight"><span class="site-template-thumb"><i></i><b></b><em></em></span><strong>Midnight Modern</strong><small>Contemporary navy and gold</small></label>
+</div></fieldset>
 <div class="site-field site-description"><label for="site-description">Restaurant description</label><textarea id="site-description" rows="3" maxlength="500" aria-label="About your restaurant" placeholder="e.g. Family-run burger place in Lahore, known for crispy zinger burgers"></textarea></div>
 <div class="site-actions"><button type="button" id="site-generate">Write with AI</button></div>
 <div class="site-field site-headline"><label for="site-headline">Headline</label><input id="site-headline" maxlength="80" aria-label="Headline" placeholder="Headline"></div>
@@ -241,8 +249,9 @@
 <div class="site-field site-address"><label for="site-address">Address</label><input id="site-address" maxlength="200" aria-label="Address" placeholder="Address"></div>
 <div class="site-field"><label><input id="site-assistant-recording" type="checkbox"> Allow customers to record AI voice conversations on their device</label></div>
 <div class="site-field site-theme"><label for="site-theme">Colour theme</label><select id="site-theme" aria-label="Colour theme"><option value="green">Green</option><option value="gold">Gold</option><option value="red">Red</option><option value="blue">Blue</option><option value="dark">Dark</option></select></div>
-<div class="site-actions"><button>Save website</button><button type="button" id="site-publish">Publish</button></div>
+<div class="site-actions"><button type="button" id="site-preview-button">Preview draft</button><button type="submit">Save website</button><button type="button" id="site-publish">Publish</button></div>
 </form>
+<div class="site-preview-wrap" id="site-preview-wrap" hidden><div class="owner-panel-title"><strong>Unpublished preview · only you can see this</strong><button type="button" id="site-preview-close">Close preview</button></div><iframe id="site-preview-frame" title="Website draft preview" sandbox="" loading="lazy"></iframe></div>
 <p id="site-status" role="status" class="muted"></p>
 <p id="site-link" class="muted"></p>
 </section>
@@ -261,7 +270,7 @@
 </main>
 </div>
 <script src="/password-reset.js?v=20261119"></script>
-<script type="module" src="/restaurant.js?v=20261119b">
+<script type="module" src="/restaurant.js?v=20261120-cream">
 </script>
 <script>document.getElementById("login-show-password")?.addEventListener("change",function(){document.getElementById("password").type=this.checked?"text":"password"});</script></body>
 </html>
