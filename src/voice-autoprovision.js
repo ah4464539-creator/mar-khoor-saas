@@ -27,6 +27,8 @@ export function autoProvisionDeps(env = process.env) {
     vapiKey: env.VAPI_API_KEY,
     credentialId: env.VAPI_TELNYX_CREDENTIAL_ID,
     templateAssistantId: env.VAPI_TEMPLATE_ASSISTANT_ID,
+    // Fail closed: only an explicit opt-in may place a paid Telnyx order.
+    purchaseEnabled: env.AI_CALLER_AUTO_PURCHASE_ENABLED === 'true',
     maxMonthlyUsd: cap(env.TELNYX_MAX_MONTHLY_USD, 15),
     maxUpfrontUsd: cap(env.TELNYX_MAX_UPFRONT_USD, 15),
     requirementGroup: country => env['TELNYX_REQUIREMENT_GROUP_' + country],
@@ -88,6 +90,9 @@ async function withCredential(deps) {
 export function resetDiscoveredCredential() { discoveredCredential = null; }
 
 export async function provisionSubscriptionNumber(pool, restaurantId, baseDeps = autoProvisionDeps()) {
+  // Never touch a provider or create an assistant until a human has explicitly enabled purchases.
+  // Particularly important while the end-to-end staging test is not yet approved.
+  if (baseDeps.purchaseEnabled !== true) return result('disabled', 'Automatic AI Caller purchases are disabled. Verify staging first, then enable AI_CALLER_AUTO_PURCHASE_ENABLED explicitly.');
   const missing = missingConfig(baseDeps);
   if (missing.length) return result('not_configured', 'Automatic numbers are off until these server settings are added: ' + missing.join(', ') + '.');
   let deps;
