@@ -26,7 +26,7 @@ test('plan checkout and Stripe webhook over HTTP', async () => {
       if (/FROM stripe_events/.test(sql)) return [[]];
       if (/audit_logs/.test(sql)) return [{}];
       writes.push(sql);
-      if (/INSERT INTO restaurant_subscriptions/.test(sql) && /'active'/.test(sql)) status = 'active';
+      if (/INSERT INTO restaurant_subscriptions/.test(sql) && /VALUES \(\?,\?,\?,'active'/.test(sql)) status = 'active';
       return [{ affectedRows: 1 }];
     },
   };
