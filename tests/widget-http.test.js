@@ -41,7 +41,8 @@ test('embed widget: public config and chat frame for a widget-only restaurant', 
     assert.match(frame.headers.get('content-security-policy'), /frame-ancestors https:\/\/lahoregrill\.pk(;|$)/);
     const html = await frame.text();
     assert.match(html, /action="\/r\/grill\/assistant"/);
-    assert.match(html, /&lt;b&gt;Salaam&lt;\/b&gt;/);
+    assert.match(html, />bSalaam\/b</, "owner text is stripped of markup");
+    assert.ok(!html.includes("<b>"));
     assert.match(html, /\/embed-frame\.js/);
 
     // The website itself stays unpublished and unframeable.
