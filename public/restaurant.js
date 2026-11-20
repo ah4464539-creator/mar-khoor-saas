@@ -1,4 +1,4 @@
-import { uploadImage } from './image-upload.js?v=20261120-s4';
+import { uploadImage, prepareImage } from './image-upload.js?v=20261120-s5';
 const form=document.querySelector('#login'),status=document.querySelector('#status'),target=document.querySelector('#restaurants');
 let token='',restaurantId=null,restaurantCurrency='';
 let refreshing=false;
@@ -974,3 +974,68 @@ if (token && document.querySelector('#reset-view')?.hidden !== false) loadAccoun
  try { localStorage.removeItem(sessionKey); sessionStorage.removeItem(sessionKey); } catch {}
 });
 
+
+// AI menu import: draft → owner review → bulk add.
+const importBody=document.querySelector('#menu-import-body'),importToggle=document.querySelector('#menu-import-toggle');
+const importStatus=document.querySelector('#import-status'),importReview=document.querySelector('#import-review'),importRows=document.querySelector('#import-rows');
+let importItems=[],importRestaurant=null;
+importToggle.addEventListener('click',()=>{const open=importBody.hidden;importBody.hidden=!open;importToggle.setAttribute('aria-expanded',String(open));importToggle.textContent=open?'Close':'Start import';});
+for(const tab of document.querySelectorAll('[data-import-tab]'))tab.addEventListener('click',()=>{
+ for(const other of document.querySelectorAll('[data-import-tab]'))other.setAttribute('aria-selected',String(other===tab));
+ for(const pane of document.querySelectorAll('[data-import-pane]'))pane.hidden=pane.dataset.importPane!==tab.dataset.importTab;
+});
+function setImportBusy(busy){for(const control of importBody.querySelectorAll('button,input,textarea'))control.disabled=busy;}
+async function runImport(body,headers){
+ if(!restaurantId)return;
+ const id=restaurantId;setImportBusy(true);importReview.hidden=true;importStatus.textContent='Reading your menu with AI… this can take up to a minute.';
+ try{
+  const response=await fetch('/api/restaurants/'+id+'/menu/import',{method:'POST',headers:{Authorization:'Bearer '+token,...headers},body});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw Error(data.error||'Menu import failed');
+  if(id!==restaurantId)return;
+  importRestaurant=id;importItems=data.items.map(item=>({...item,selected:item.price_minor!=null}));renderImport();
+  importStatus.textContent='Found '+data.items.length+' items. Check names and prices, untick anything wrong, then add.';
+ }catch(error){importStatus.textContent=error.message;}
+ finally{setImportBusy(false);}
+}
+function renderImport(){
+ importRows.replaceChildren(...importItems.map((item,index)=>{
+  const row=document.createElement('tr');
+  const pick=document.createElement('input');pick.type='checkbox';pick.checked=item.selected;pick.setAttribute('aria-label','Add '+item.name);pick.addEventListener('change',()=>{item.selected=pick.checked;countImport();});
+  const field=(key,value,attrs={})=>{const input=Object.assign(document.createElement('input'),{value,className:'input',...attrs});input.addEventListener('input',()=>{item[key]=input.value;});return input;};
+  const name=field('name',item.name,{maxLength:180});name.setAttribute('aria-label','Item name');
+  const category=field('category',item.category,{maxLength:80});category.setAttribute('aria-label','Category');
+  const price=field('price',item.price_minor==null?'':(item.price_minor/100).toString(),{type:'number',min:'0',step:'0.01',placeholder:'Price'});price.setAttribute('aria-label','Price');
+  price.addEventListener('input',()=>{const value=Number(price.value);item.price_minor=price.value===''||!Number.isFinite(value)||value<0?null:Math.round(value*100);if(item.price_minor!=null&&!item.selected){item.selected=true;pick.checked=true;countImport();}});
+  for(const [cell,content] of [[document.createElement('td'),pick],[document.createElement('td'),name],[document.createElement('td'),category],[document.createElement('td'),price]]){cell.append(content);row.append(cell);}
+  if(item.description){const note=document.createElement('small');note.className='hint';note.textContent=item.description;row.children[1].append(note);}
+  return row;
+ }));
+ importReview.hidden=!importItems.length;countImport();
+}
+function countImport(){const selected=importItems.filter(item=>item.selected).length;document.querySelector('#import-count').textContent=selected+' of '+importItems.length+' selected';document.querySelector('#import-add').textContent='Add '+selected+' item'+(selected===1?'':'s');document.querySelector('#import-all').checked=selected===importItems.length;}
+document.querySelector('#import-all').addEventListener('change',event=>{for(const item of importItems)item.selected=event.target.checked;renderImport();});
+document.querySelector('#import-cancel').addEventListener('click',()=>{importItems=[];importReview.hidden=true;importStatus.textContent='Import discarded. Nothing was added.';});
+document.querySelector('#import-file').addEventListener('change',async event=>{
+ const file=event.target.files[0];event.target.value='';if(!file)return;
+ try{
+  if(file.type==='application/pdf'){if(file.size>8*1024*1024)throw Error('PDF must be 8 MB or smaller');await runImport(file,{'Content-Type':'application/pdf'});}
+  else{const blob=await prepareImage(file,{maxSide:2200,quality:0.9});await runImport(blob,{'Content-Type':blob.type});}
+ }catch(error){importStatus.textContent=error.message;}
+});
+document.querySelector('#import-url-go').addEventListener('click',()=>{const url=document.querySelector('#import-url').value.trim();if(!url){importStatus.textContent='Paste the link to your menu page.';return;}runImport(JSON.stringify({url}),{'Content-Type':'application/json'});});
+document.querySelector('#import-text-go').addEventListener('click',()=>{const text=document.querySelector('#import-text').value;if(!text.trim()){importStatus.textContent='Paste your menu text first.';return;}runImport(JSON.stringify({text}),{'Content-Type':'application/json'});});
+document.querySelector('#import-add').addEventListener('click',async event=>{
+ if(importRestaurant!==restaurantId){importStatus.textContent='This draft belongs to another restaurant. Import again.';return;}
+ const chosen=importItems.filter(item=>item.selected);
+ if(!chosen.length){importStatus.textContent='Select at least one item.';return;}
+ const missing=chosen.find(item=>!String(item.name).trim()||item.price_minor==null);
+ if(missing){importStatus.textContent='Add a name and price for “'+(missing.name||'item')+'” or untick it.';return;}
+ const button=event.currentTarget;button.disabled=true;
+ try{
+  const result=await api('/api/restaurants/'+restaurantId+'/menu/bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:chosen.map(({name,description,category,price_minor})=>({name:String(name).trim(),description:description||'',category:String(category||'').trim(),price_minor}))})});
+  importItems=[];importReview.hidden=true;importStatus.textContent=result.added+' items added to your menu. You can add photos with Edit.';
+  await refresh();
+ }catch(error){importStatus.textContent=error.message;}
+ finally{button.disabled=false;}
+});

@@ -308,3 +308,19 @@ body.mk{margin:0}
 .owner-app .analytics-bars span{flex:1;background:var(--ember-line);border-radius:3px 3px 0 0;min-height:3px}
 .owner-app .analytics-bars span:last-child{background:var(--ember)}
 @media(max-width:640px){.owner-app .analytics-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.owner-app .menu-import{margin-bottom:18px}
+.owner-app #menu-import-body{display:grid;gap:14px}
+.owner-app .import-tabs{width:fit-content;max-width:100%;overflow-x:auto;flex-wrap:nowrap}
+.owner-app .import-tabs button{border:0;background:transparent;padding:8px 14px;border-radius:9px;font:600 13px var(--font);color:var(--muted);cursor:pointer;white-space:nowrap}
+.owner-app .import-tabs button[aria-selected=true]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px #1c17141a}
+.owner-app .import-pane{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.owner-app .import-pane textarea{flex:1 1 100%}
+.owner-app .import-pane .describe-row{flex:1}
+.owner-app .import-review-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+.owner-app .import-table{min-width:560px}
+.owner-app .import-table td{padding:8px 10px;vertical-align:top}
+.owner-app .import-table .input{min-height:38px;padding:7px 10px;font-size:14px}
+.owner-app .import-table td:first-child{width:36px;padding-top:16px}
+.owner-app .import-table td:first-child input{width:18px;height:18px;accent-color:var(--ember)}
+.owner-app .import-table td:last-child{width:130px}
+.owner-app .import-table .hint{display:block;margin-top:4px}
