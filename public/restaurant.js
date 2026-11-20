@@ -56,7 +56,7 @@ async function refresh(){
   return card;
  }));
  const items=document.querySelector('#items');items.replaceChildren();
- for(const item of menu.items){const p=document.createElement('p'),button=document.createElement('button');p.textContent=item.name+' — '+(item.price_minor/100).toFixed(2)+' · '+(item.active?'Active':'Hidden')+' ';button.textContent=item.active?'Hide':'Show';button.addEventListener('click',async()=>{try{await api('/api/restaurants/'+restaurantId+'/menu/'+item.id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({...item,active:!item.active})});await refresh()}catch(e){status.textContent=e.message}});const edit=document.createElement('button');edit.type='button';edit.textContent='Edit';edit.addEventListener('click',()=>editMenuItem(item));p.append(button,edit);items.append(p)}
+ for(const item of menu.items){const p=document.createElement('p'),button=document.createElement('button');p.className='owner-menu-row';const text=ownerText('span','','owner-menu-text');text.append(ownerText('strong',item.name),ownerText('small',ownerMoney(item.price_minor)+' · '+(item.active?'Active':'Hidden')));button.type='button';button.textContent=item.active?'Hide':'Show';button.addEventListener('click',async()=>{try{await api('/api/restaurants/'+restaurantId+'/menu/'+item.id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({...item,active:!item.active})});await refresh()}catch(e){status.textContent=e.message}});const edit=document.createElement('button');edit.type='button';edit.textContent='Edit';edit.addEventListener('click',()=>editMenuItem(item));const actions=ownerText('span','','owner-menu-actions');actions.append(button,edit);p.append(text,actions);items.append(p)}
  renderOwnerInsights(analytics, menu.items);
  ownerOrders = orders.orders;
  renderOwnerOrderActivity(ownerOrders);
@@ -84,8 +84,24 @@ function ownerText(tag, value, className = '') {
  return node;
 }
 
+function ownerCompactMoney(minor) {
+ try { return new Intl.NumberFormat(undefined, {style:'currency',currency:restaurantCurrency,notation:'compact',maximumFractionDigits:1}).format(Number(minor)/100); }
+ catch { return ownerMoney(minor); }
+}
+
+// The chart is drawn at the container's real pixel width so its labels stay readable on phones.
+let lastInsights = null, lastChartWidth = 0;
+const salesResize = typeof ResizeObserver === 'function' ? new ResizeObserver(() => {
+ const width = document.querySelector('#owner-sales')?.clientWidth || 0;
+ if (lastInsights && width && Math.abs(width - lastChartWidth) > 24) renderOwnerInsights(...lastInsights);
+}) : null;
+if (salesResize) salesResize.observe(document.querySelector('#owner-sales'));
+
 function renderOwnerInsights(analytics, menuItems = []) {
+ lastInsights = [analytics, menuItems];
  const sales = document.querySelector('#owner-sales');
+ const chartWidth = Math.round(Math.min(700, Math.max(280, sales.clientWidth || 700)));
+ lastChartWidth = sales.clientWidth || chartWidth;
  const byDay = new Map((analytics.last_30_days ?? []).map(day => [String(day.day).slice(0, 10), Number(day.completed_revenue_minor) || 0]));
  const today = new Date();
  const series = [];
@@ -102,7 +118,7 @@ function renderOwnerInsights(analytics, menuItems = []) {
   if (content !== null) element.textContent = String(content);
   return element;
  };
- svg.setAttribute('viewBox', '0 0 700 228');
+ svg.setAttribute('viewBox', '0 0 ' + chartWidth + ' 228');
  svg.setAttribute('role', 'img');
  svg.setAttribute('class', 'owner-revenue-chart');
  svg.setAttribute('aria-label', 'Real completed revenue for each of the last 30 days');
@@ -110,18 +126,19 @@ function renderOwnerInsights(analytics, menuItems = []) {
  const gradient = svgNode('linearGradient', {id:'mk-owner-sales-area',x1:'0',y1:'0',x2:'0',y2:'1'});
  gradient.append(svgNode('stop', {offset:'0%', 'stop-color':'#fa9a31', 'stop-opacity':'.48'}),svgNode('stop',{offset:'100%','stop-color':'#ffddb4','stop-opacity':'.03'}));
  defs.append(gradient);svg.append(defs);
- const left=52,right=687,chartTop=20,bottom=190;
+ const narrow=chartWidth<480;
+ const left=narrow?62:72,right=chartWidth-(narrow?8:13),chartTop=20,bottom=190;
  const y=value=>bottom-(value/max)*(bottom-chartTop);
  for(let i=0;i<=4;i++){
   const yy=bottom-i*(bottom-chartTop)/4;
   svg.append(svgNode('line',{x1:left,y1:yy,x2:right,y2:yy,class:'axis'}));
-  svg.append(svgNode('text',{x:4,y:yy+4,class:'tick'},ownerMoney(Math.round(max*i/4))));
+  svg.append(svgNode('text',{x:left-8,y:yy+4,'text-anchor':'end',class:'tick'},ownerCompactMoney(Math.round(max*i/4))));
  }
  const points=series.map((day,i)=>({x:left+i*(right-left)/29,y:y(day.amount),day:day.day,amount:day.amount}));
  const path=points.map((p,i)=>(i?'L':'M')+p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ');
  svg.append(svgNode('path',{d:path+' L'+right+','+bottom+' L'+left+','+bottom+' Z',fill:'url(#mk-owner-sales-area)'}));
  svg.append(svgNode('path',{d:path,class:'revenue-line'}));
- for(const i of [0,7,14,21,29]){
+ for(const i of narrow?[0,14,29]:[0,7,14,21,29]){
   const p=points[i];
   svg.append(svgNode('circle',{cx:p.x,cy:p.y,r:'3.8',class:'revenue-dot'}));
   const label=new Date(p.day+'T00:00:00Z').toLocaleDateString(undefined,{month:'short',day:'numeric',timeZone:'UTC'});
@@ -225,6 +242,7 @@ function renderOwnerOrders() {
   for (const value of ['#' + order.id, order.customer_name || 'Customer', formatted, ownerMoney(order.total_minor)]) {
    row.append(ownerText('td', value));
   }
+  const labelCells = () => [...row.cells].forEach((cell, index) => { cell.dataset.label = ['Order ID','Customer','Date','Amount','Fulfilment','Payment','Status','Actions'][index]; });
   // Fulfilment and cash payment details (absent for legacy website orders).
   const fulfilment = row.insertCell();
   if (order.order_type === 'delivery' || order.order_type === 'pickup') {
@@ -285,6 +303,7 @@ function renderOwnerOrders() {
    eta.append(input,save,clear);
    actions.append(eta);
   }
+  labelCells();
  }
  root.replaceChildren(table);
 }
