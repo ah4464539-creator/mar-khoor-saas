@@ -47,8 +47,8 @@ async function loadMenu(slug) {
       });
       if (item.image_url) {
         try {
-          const url = new URL(item.image_url);
-          if (url.protocol === 'https:' && !url.username && !url.password) {
+          const url = new URL(item.image_url, location.origin);
+          if ((url.protocol === 'https:' || (url.origin === location.origin && url.pathname.startsWith('/media/'))) && !url.username && !url.password) {
             const photo = document.createElement('img');
             photo.src = url.href;
             photo.alt = '';

@@ -1,3 +1,4 @@
+import { uploadImage } from './image-upload.js';
 const form=document.querySelector('#login'),status=document.querySelector('#status'),target=document.querySelector('#restaurants');
 let token='',restaurantId=null,restaurantCurrency='';
 let refreshing=false;
@@ -176,8 +177,8 @@ function renderOwnerInsights(analytics, menuItems = []) {
   const matched=menuItems.find(menuItem=>menuItem.name===item.name && typeof menuItem.image_url==='string');
   let picture;
   try{
-   const url=new URL(matched?.image_url);
-   if(url.protocol!=='https:' || url.username || url.password)throw Error('Image URL not allowed');
+   const url=new URL(matched?.image_url,location.origin);
+   if((url.protocol!=='https:'&&!(url.origin===location.origin&&url.pathname.startsWith('/media/'))) || url.username || url.password)throw Error('Image URL not allowed');
    picture=document.createElement('img');picture.className='owner-dish-thumb';picture.alt='';picture.loading='lazy';picture.src=url.href;
   }catch{picture=ownerText('span','✦','owner-dish-thumb owner-dish-placeholder');}
   const details=ownerText('div','','owner-dish-details');
@@ -432,13 +433,36 @@ const itemCategory = document.querySelector('#item-category');
 const itemPhoto = document.querySelector('#item-photo');
 const saveMenuItem = document.querySelector('#save-menu-item');
 const cancelMenuEdit = document.querySelector('#cancel-menu-edit');
+const itemPhotoFile = document.querySelector('#item-photo-file');
+const itemPhotoPreview = document.querySelector('#item-photo-preview');
+const itemPhotoEmpty = document.querySelector('#item-photo-empty');
+const itemPhotoRemove = document.querySelector('#item-photo-remove');
+const itemPhotoStatus = document.querySelector('#item-photo-status');
+function showItemPhoto(url) {
+ itemPhoto.value = url || '';
+ itemPhotoPreview.hidden = !url; itemPhotoEmpty.hidden = Boolean(url); itemPhotoRemove.hidden = !url;
+ if (url) itemPhotoPreview.src = url; else itemPhotoPreview.removeAttribute('src');
+}
+itemPhotoRemove.addEventListener('click', () => { showItemPhoto(''); itemPhotoStatus.textContent = 'Photo removed. Save the item to apply.'; });
+itemPhotoFile.addEventListener('change', async () => {
+ const file = itemPhotoFile.files[0]; itemPhotoFile.value = '';
+ if (!file || !restaurantId) return;
+ const id = restaurantId; saveMenuItem.disabled = true; itemPhotoStatus.textContent = 'Uploading photo…';
+ try {
+  const result = await uploadImage({ restaurantId: id, token, kind: 'menu', file, options: { maxSide: 1400 } });
+  if (id !== restaurantId) return;
+  showItemPhoto(result.url); itemPhotoStatus.textContent = 'Photo uploaded. Save the item to apply.';
+ } catch (error) { itemPhotoStatus.textContent = error.message; }
+ finally { saveMenuItem.disabled = false; }
+});
 let editingMenuItem = null;
 function editMenuItem(item) {
  editingMenuItem = item ? {item, restaurantId} : null;
  itemName.value = item?.name ?? '';
  itemPrice.value = item ? Number(item.price_minor) / 100 : '';
  itemCategory.value = item?.category ?? '';
- itemPhoto.value = item?.image_url ?? '';
+ showItemPhoto(item?.image_url ?? '');
+ itemPhotoStatus.textContent = 'JPG, PNG or WebP. Large photos are resized automatically.';
  saveMenuItem.textContent = item ? 'Save item' : 'Add item';
  cancelMenuEdit.hidden = !item;
  if (item) itemName.focus();
@@ -517,10 +541,48 @@ planForm.addEventListener('submit',async e=>{
 const siteForm=document.querySelector('#site-form'),siteStatus=document.querySelector('#site-status'),siteLink=document.querySelector('#site-link'),sitePublish=document.querySelector('#site-publish');
 const siteField=name=>document.querySelector('#site-'+name);
 let sitePublished=false,siteSlug='',siteSections=['about','menu','hours','contact'],siteDirty=false;
+let siteImages={logo:'',cover:'',gallery:[]};
+const siteImageStatus=document.querySelector('#site-image-status');
+const galleryList=document.querySelector('#site-gallery');
+function renderSiteImages(){
+ for(const field of document.querySelectorAll('[data-site-image]')){
+  const key=field.dataset.siteImage,url=siteImages[key],img=field.querySelector('img'),empty=field.querySelector('.photo-empty');
+  img.hidden=!url;empty.hidden=Boolean(url);field.querySelector('.photo-remove').hidden=!url;
+  if(url)img.src=url;else img.removeAttribute('src');
+ }
+ galleryList.replaceChildren(...siteImages.gallery.map((url,index)=>{
+  const li=document.createElement('li'),img=document.createElement('img'),remove=document.createElement('button');
+  img.src=url;img.alt='Gallery photo '+(index+1);remove.type='button';remove.textContent='Remove';remove.setAttribute('aria-label','Remove gallery photo '+(index+1));
+  remove.addEventListener('click',()=>{siteImages.gallery=siteImages.gallery.filter((_,i)=>i!==index);siteDirty=true;renderSiteImages();});
+  li.append(img,remove);return li;
+ }));
+ document.querySelector('#site-gallery-add').hidden=siteImages.gallery.length>=8;
+}
+async function uploadSiteImages(kind,files){
+ if(!restaurantId)return;
+ const id=restaurantId;
+ for(const file of files){
+  if(kind==='gallery'&&siteImages.gallery.length>=8){siteImageStatus.textContent='The gallery holds up to 8 photos.';break;}
+  siteImageStatus.textContent='Uploading '+(kind==='gallery'?'photo':kind)+'…';
+  try{
+   const result=await uploadImage({restaurantId:id,token,kind,file,options:kind==='logo'?{maxSide:512,square:true}:{maxSide:kind==='cover'?2000:1400}});
+   if(id!==restaurantId)return;
+   if(kind==='gallery')siteImages.gallery=[...siteImages.gallery,result.url];else siteImages[kind]=result.url;
+   siteDirty=true;renderSiteImages();
+   siteImageStatus.textContent='Uploaded. Select Save website to keep it'+(sitePublished?' (your live site updates when you save).':'.');
+  }catch(error){siteImageStatus.textContent=error.message;return;}
+ }
+}
+for(const field of document.querySelectorAll('[data-site-image]')){
+ const input=field.querySelector('input[type=file]');
+ input.addEventListener('change',()=>{const files=[...input.files];input.value='';uploadSiteImages(field.dataset.siteImage,files.slice(0,1));});
+ field.querySelector('.photo-remove').addEventListener('click',()=>{siteImages[field.dataset.siteImage]='';siteDirty=true;renderSiteImages();siteImageStatus.textContent='Removed. Save to apply.';});
+}
+document.querySelector('#site-gallery-file').addEventListener('change',event=>{const files=[...event.target.files];event.target.value='';uploadSiteImages('gallery',files);});
 siteForm.addEventListener('input',()=>{siteDirty=true;});
 siteForm.addEventListener('change',()=>{siteDirty=true;});
 function resetSiteForm(){
- siteForm.reset();siteSlug='';sitePublished=false;siteSections=['about','menu','hours','contact'];
+ siteForm.reset();siteImages={logo:'',cover:'',gallery:[]};renderSiteImages();siteSlug='';sitePublished=false;siteSections=['about','menu','hours','contact'];
  sitePublish.textContent='Publish';siteLink.replaceChildren();siteStatus.textContent='';
 }
 function showSite(data){
@@ -530,6 +592,7 @@ function showSite(data){
  const chosenTemplate=siteForm.querySelector('input[name="site-template"][value="'+(data.config.template||'classic')+'"]');
  if(chosenTemplate)chosenTemplate.checked=true;
  siteField('assistant-recording').checked=data.config.assistantRecording===true;
+ siteImages={logo:data.config.logo||'',cover:data.config.cover||'',gallery:Array.isArray(data.config.gallery)?data.config.gallery.slice(0,8):[]};renderSiteImages();
  if(data.slug)siteSlug=data.slug;
  if(typeof data.published==='boolean')sitePublished=data.published;
  siteDirty=false;
@@ -538,7 +601,7 @@ function showSite(data){
  if(sitePublished&&siteSlug){const a=document.createElement('a');a.href='/r/'+siteSlug;a.textContent='mar-khoor.com/r/'+siteSlug;a.target='_blank';a.rel='noopener';siteLink.append('Live at ',a)}
 }
 async function loadSite({force=false}={}){if(!restaurantId||(siteDirty&&!force))return;const id=restaurantId;const data=await api('/api/restaurants/'+id+'/site');if(id===restaurantId)showSite(data)}
-const siteConfig=()=>({template:siteForm.querySelector('input[name="site-template"]:checked')?.value||'classic',headline:siteField('headline').value,tagline:siteField('tagline').value,about:siteField('about').value,hours:siteField('hours').value,phone:siteField('phone').value,address:siteField('address').value,theme:siteField('theme').value,assistantRecording:siteField('assistant-recording').checked,sections:siteSections});
+const siteConfig=()=>({template:siteForm.querySelector('input[name="site-template"]:checked')?.value||'classic',headline:siteField('headline').value,tagline:siteField('tagline').value,about:siteField('about').value,hours:siteField('hours').value,phone:siteField('phone').value,address:siteField('address').value,theme:siteField('theme').value,assistantRecording:siteField('assistant-recording').checked,sections:siteSections,...(siteImages.logo?{logo:siteImages.logo}:{}),...(siteImages.cover?{cover:siteImages.cover}:{}),...(siteImages.gallery.length?{gallery:siteImages.gallery}:{})});
 const siteJson={'Content-Type':'application/json'};
 document.querySelector('#site-generate').addEventListener('click',async e=>{
  if(!restaurantId){siteStatus.textContent='Select your restaurant first.';return}
@@ -549,7 +612,7 @@ document.querySelector('#site-generate').addEventListener('click',async e=>{
   const data=await api('/api/restaurants/'+id+'/site/generate',{method:'POST',headers:siteJson,body:JSON.stringify({description:siteField('description').value})});
   // Never put one restaurant's draft into another restaurant's form after a switch.
   if(id!==restaurantId)return;
-  data.config.template=template;showSite(data);siteDirty=true;
+  const images=siteImages;data.config.template=template;showSite(data);siteImages=images;renderSiteImages();siteDirty=true;
   siteStatus.textContent=data.source==='ai'?'AI draft ready. Review and preview it, then select Save website. Nothing has been published.':'AI writing is unavailable. You can still edit, preview and save this template manually. Nothing has been published.';
  }
  catch(error){siteStatus.textContent=error.message}finally{button.disabled=false}

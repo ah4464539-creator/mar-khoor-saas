@@ -9,7 +9,7 @@
 
 <link rel="stylesheet" href="/mar-khoor-design.css">
 <link rel="stylesheet" href="/restaurant-owner.css">
-<link rel="stylesheet" href="/restaurant-refresh.css?v=20261120-v3">
+<link rel="stylesheet" href="/restaurant-refresh.css?v=20261120-v4">
 
 <!-- Approved charcoal-orange UI overrides from PR 27 -->
 <style>
@@ -205,7 +205,7 @@
 <section class="panel owner-quick-actions"><h2>Quick Actions</h2><div class="owner-action-grid"><a href="#menu-management" class="owner-action-tile"><span aria-hidden="true">＋</span>Add Menu Item</a><a href="#website" class="owner-action-tile"><span aria-hidden="true">✎</span>AI Website Builder</a><a href="#order-desk" class="owner-action-tile"><span aria-hidden="true">▣</span>Manage Orders</a><a href="#analytics" class="owner-action-tile"><span aria-hidden="true">▥</span>View Analytics</a></div></section>
 <section class="panel" id="menu-management">
 <h2>Menu &amp; Items</h2>
-<form id="add-item"><label for="item-name">Item name<input id="item-name" aria-label="Menu item name" placeholder="Item name" required maxlength="180"></label><label for="item-price">Price<input id="item-price" aria-label="Menu item price" type="number" min="0" step="0.01" placeholder="Price" required></label><label>Category<input id="item-category" maxlength="80" placeholder="e.g. Desserts"></label><label>Photo URL<input id="item-photo" type="url" maxlength="2048" placeholder="https://"></label><button id="save-menu-item">Add item</button><button type="button" id="cancel-menu-edit" hidden>Cancel edit</button>
+<form id="add-item"><label for="item-name">Item name<input id="item-name" aria-label="Menu item name" placeholder="Item name" required maxlength="180"></label><label for="item-price">Price<input id="item-price" aria-label="Menu item price" type="number" min="0" step="0.01" placeholder="Price" required></label><label>Category<input id="item-category" maxlength="80" placeholder="e.g. Desserts"></label><div class="photo-field"><span class="photo-label">Dish photo</span><div class="photo-row"><img id="item-photo-preview" class="photo-preview" alt="" hidden><span id="item-photo-empty" class="photo-preview photo-empty" aria-hidden="true">No photo</span><div class="photo-actions"><label class="photo-button">Upload photo<input id="item-photo-file" type="file" accept="image/jpeg,image/png,image/webp" class="visually-hidden"></label><button type="button" id="item-photo-remove" class="photo-remove" hidden>Remove</button><small id="item-photo-status" role="status">JPG, PNG or WebP. Large photos are resized automatically.</small></div></div><input id="item-photo" type="hidden"></div><button id="save-menu-item">Add item</button><button type="button" id="cancel-menu-edit" hidden>Cancel edit</button>
 </form>
 <div id="items">
 </div>
@@ -239,6 +239,7 @@
 <label class="site-template-option" data-template="minimal"><input type="radio" name="site-template" value="minimal"><span class="site-template-thumb"><i></i><b></b><em></em></span><strong>Clean Editorial</strong><small>Minimal typography and whitespace</small></label>
 <label class="site-template-option" data-template="midnight"><input type="radio" name="site-template" value="midnight"><span class="site-template-thumb"><i></i><b></b><em></em></span><strong>Midnight Modern</strong><small>Contemporary navy and gold</small></label>
 </div></fieldset>
+<fieldset class="site-brand"><legend>Logo &amp; photos</legend><div class="site-brand-grid"><div class="photo-field" data-site-image="logo"><span class="photo-label">Logo</span><div class="photo-row"><img class="photo-preview photo-square" alt="" hidden><span class="photo-preview photo-square photo-empty" aria-hidden="true">No logo</span><div class="photo-actions"><label class="photo-button">Upload logo<input type="file" accept="image/jpeg,image/png,image/webp" class="visually-hidden"></label><button type="button" class="photo-remove" hidden>Remove</button></div></div></div><div class="photo-field" data-site-image="cover"><span class="photo-label">Cover photo</span><div class="photo-row"><img class="photo-preview photo-wide" alt="" hidden><span class="photo-preview photo-wide photo-empty" aria-hidden="true">No cover</span><div class="photo-actions"><label class="photo-button">Upload cover<input type="file" accept="image/jpeg,image/png,image/webp" class="visually-hidden"></label><button type="button" class="photo-remove" hidden>Remove</button></div></div></div><div class="photo-field site-gallery-field"><span class="photo-label">Gallery <small>(up to 8 photos)</small></span><ul id="site-gallery" class="site-gallery-list"></ul><label class="photo-button" id="site-gallery-add">Add photos<input id="site-gallery-file" type="file" accept="image/jpeg,image/png,image/webp" multiple class="visually-hidden"></label></div></div><p id="site-image-status" class="muted" role="status">Photos appear on your website after you Save (and Publish).</p></fieldset>
 <div class="site-field site-description"><label for="site-description">Restaurant description</label><textarea id="site-description" rows="3" maxlength="500" aria-label="About your restaurant" placeholder="e.g. Family-run burger place in Lahore, known for crispy zinger burgers"></textarea></div>
 <div class="site-actions"><button type="button" id="site-generate">Write with AI</button></div>
 <div class="site-field site-headline"><label for="site-headline">Headline</label><input id="site-headline" maxlength="80" aria-label="Headline" placeholder="Headline"></div>
@@ -270,7 +271,7 @@
 </main>
 </div>
 <script src="/password-reset.js?v=20261119"></script>
-<script type="module" src="/restaurant.js?v=20261120-mobile-v3">
+<script type="module" src="/restaurant.js?v=20261120-media-v4">
 </script>
 <script>document.getElementById("login-show-password")?.addEventListener("change",function(){document.getElementById("password").type=this.checked?"text":"password"});</script></body>
 </html>

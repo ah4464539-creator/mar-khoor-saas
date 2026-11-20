@@ -1,5 +1,7 @@
 // AI website builder core: no express import, fully testable.
 //
+import { isMediaPath, isAllowedImageRef } from './media-store.js';
+
 // Safety model: the AI (or the owner) only ever produces a small JSON config of plain text and
 // a choice from fixed lists. Pages are rendered by a fixed server-side template that escapes
 // every value; no AI-written HTML, URLs, scripts or CSS ever reach a page.
@@ -48,6 +50,10 @@ export function sanitizeSiteConfig(input, restaurant) {
     phone: /^[+0-9 ()-]*$/.test(phone) ? phone : '',
     address: clean(source.address, 200),
     ...(source.assistantRecording === true ? { assistantRecording: true } : {}),
+    // Uploaded brand images only (our own /media paths); never arbitrary URLs from AI output.
+    ...(isMediaPath(source.logo) ? { logo: source.logo } : {}),
+    ...(isMediaPath(source.cover) ? { cover: source.cover } : {}),
+    ...(Array.isArray(source.gallery) && source.gallery.some(isMediaPath) ? { gallery: [...new Set(source.gallery.filter(isMediaPath))].slice(0, 8) } : {}),
     sections: sections.length ? sections : base.sections,
   };
 }
@@ -106,17 +112,21 @@ export function renderSitePage({ restaurant, config, items }, { assistant = '' }
   const menuHref = '/menu.html?restaurant=' + slug;
   const ordersHref = '/orders.html?restaurant=' + slug;
   const menuVisible = c.sections.includes('menu');
-  const featured = menuVisible ? items.find(item => item.image_url) ?? items[0] : null;
+  const featured = menuVisible ? items.find(item => isAllowedImageRef(item.image_url)) ?? items[0] : null;
   const price = item => escapeHtml(formatPrice(item.price_minor, restaurant.currency));
   const paragraphs = c.about.split(/\n+/).filter(Boolean).map(p => '<p>' + escapeHtml(p) + '</p>').join('');
-  const picture = (item, className) => {
-    try {
-      const url = new URL(item.image_url);
-      if (url.protocol !== 'https:' || url.username || url.password) return '';
-      return '<img class="' + className + '" src="' + escapeHtml(url.href) + '" alt="" decoding="async" referrerpolicy="no-referrer"'
-        + (className === 'dish-photo' ? ' loading="lazy"' : '') + '>';
-    } catch { return ''; }
+  const imageSrc = value => {
+    if (!isAllowedImageRef(value)) return '';
+    return isMediaPath(value) ? value : new URL(value).href;
   };
+  const picture = (item, className) => {
+    const src = imageSrc(item.image_url);
+    if (!src) return '';
+    return '<img class="' + className + '" src="' + escapeHtml(src) + '" alt="" decoding="async" referrerpolicy="no-referrer"'
+      + (className === 'dish-photo' ? ' loading="lazy"' : '') + '>';
+  };
+  const logo = c.logo ? '<img class="site-logo" src="' + escapeHtml(c.logo) + '" alt="" width="40" height="40">' : '';
+  const gallery = (c.gallery ?? []).map(src => '<li><img src="' + escapeHtml(src) + '" alt="" loading="lazy" decoding="async"></li>').join('');
   const groups = new Map();
   if (menuVisible) for (const item of items.slice(0, 100)) {
     const category = clean(item.category, 80) || 'Other items';
@@ -147,7 +157,8 @@ export function renderSitePage({ restaurant, config, items }, { assistant = '' }
       + (c.address ? '<p>' + escapeHtml(c.address) + '</p>' : '')
       + (c.phone ? '<p><a href="tel:' + escapeHtml(c.phone.replace(/[^+0-9]/g, '')) + '">' + escapeHtml(c.phone) + '</a></p>' : '') + '</section>' : '',
   };
-  const body = c.sections.map(name => blocks[name]).join('');
+  const body = c.sections.map(name => blocks[name]).join('')
+    + (gallery ? '<section class="site-gallery" aria-label="Gallery"><h2>Gallery</h2><ul>' + gallery + '</ul></section>' : '');
   const lang = /^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8}){0,2}$/.test(restaurant.locale ?? '') ? restaurant.locale : 'en';
   const orderLinks = '<a href="' + ordersHref + '#orders">Track order</a><a href="' + ordersHref + '#orders">Order history</a><a href="' + ordersHref + '#refunds">Refunds</a>';
   const SITE_TEMPLATE_CSS = "\n/* Safe layout presets: preset names are always server-side allowlisted. */\nbody.site-template-bistro{background:#fff8ef;color:#30231d}\n.site-template-bistro .site-header{background:#fff2e4;border-bottom:1px solid #e8cdb9}\n.site-template-bistro .wordmark{color:#9c491e}\n.site-template-bistro .site-nav a{color:#553a2c}\n.site-template-bistro .hero{background:radial-gradient(ellipse at 82% 30%,#f6c5a2 0,transparent 57%),#fff0dc;border-color:#eccab2}\n.site-template-bistro .hero p,.site-template-bistro .info-card p,.site-template-bistro .dish p{color:#69534a}\n.site-template-bistro .btn{background:linear-gradient(130deg,#e89348,#c25c2e);color:#fff}\n.site-template-bistro .feature{background:linear-gradient(145deg,#f5d6bd,#fff4e8);border:1px solid #dbb08e;box-shadow:0 20px 40px #7f462120}\n.site-template-bistro .feature span,.site-template-bistro .feature strong,.site-template-bistro .dish-footer strong{color:#9d451f}\n.site-template-bistro .dish,.site-template-bistro .info-card{background:#fffdf9;border:1px solid #eddbcd;box-shadow:0 12px 30px #75471c12}\n.site-template-bistro .category-nav a{color:#7a3d23;border-color:#e5b88d}\n.site-template-bistro .site-footer{border-top:1px solid #e8d6c7}\nbody.site-template-minimal{background:#ffffff;color:#222222;font-family:Georgia,'Times New Roman',serif}\n.site-template-minimal .site-header{background:#fff;border-color:#e5e1dd}\n.site-template-minimal .wordmark{font-family:system-ui,sans-serif;color:#232323;letter-spacing:.02em}\n.site-template-minimal .site-nav a{color:#424242}\n.site-template-minimal .hero{background:#f6f4f0;border-color:#e1ddd8}\n.site-template-minimal .hero .wrap{grid-template-columns:1fr minmax(0,.65fr)}\n.site-template-minimal .hero h1{font-family:Georgia,serif;font-weight:600;letter-spacing:-.06em}\n.site-template-minimal .hero p,.site-template-minimal .info-card p,.site-template-minimal .dish p{color:#565656}\n.site-template-minimal .btn{background:#242424;color:#fff;border-radius:4px}\n.site-template-minimal .feature{background:#fff;border:1px solid #dadada;border-radius:4px;box-shadow:none}\n.site-template-minimal .feature span,.site-template-minimal .feature strong,.site-template-minimal .dish-footer strong{color:#242424}\n.site-template-minimal .dish,.site-template-minimal .info-card{background:#fff;border:1px solid #e6e2dc;border-radius:4px}\n.site-template-minimal .dish-photo,.site-template-minimal .feature-photo{border-radius:3px}\n.site-template-minimal .category-nav a{color:#303030;border-color:#d1ccc5}\nbody.site-template-midnight{background:#0b1020;color:#eef1ff}\n.site-template-midnight .site-header{background:#111931;border-color:#ffffff17}\n.site-template-midnight .wordmark{color:#ffd18a}\n.site-template-midnight .site-nav a{color:#dae4ff}\n.site-template-midnight .hero{background:radial-gradient(ellipse at 80% 30%,#34487f 0,transparent 60%),#0b1430}\n.site-template-midnight .hero p,.site-template-midnight .info-card p,.site-template-midnight .dish p{color:#bfc9e3}\n.site-template-midnight .btn{background:linear-gradient(120deg,#ffc568,#ff9840);color:#20180d}\n.site-template-midnight .feature{background:linear-gradient(155deg,#202f52,#101b38);border:1px solid #6482be63}\n.site-template-midnight .dish,.site-template-midnight .info-card{background:#151e38;border:1px solid #7386b13b}\n.site-template-midnight .feature span,.site-template-midnight .feature strong,.site-template-midnight .dish-footer strong{color:#ffc576}\n.site-template-midnight .category-nav a{border-color:#627cb6;color:#cbdafa}\n.site-template-bistro .info-card a{color:#9c491e}\n.site-template-minimal .info-card a{color:#242424}\n.site-template-minimal .section-heading em{color:#242424;font-style:italic}\n@media(max-width:720px){.site-template-minimal .hero .wrap{grid-template-columns:minmax(0,1fr)}}\n";
@@ -183,6 +194,9 @@ main section+section{margin-top:22px}
 .dish,.info-card{border:1px solid #ffffff24;background:linear-gradient(155deg,#201b1b,#141416);padding:22px;border-radius:24px}
 .dish{display:flex;flex-direction:column}.dish h3,.info-card h2{margin:0}.dish p,.info-card p{margin:.4em 0 0}
 .category-nav{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px}.category-nav a{padding:7px 13px;border:1px solid #ff952f55;border-radius:999px;text-decoration:none}.category-nav a:hover{background:#3b2419}.menu-group+.menu-group{margin-top:24px}.menu-group>h3{margin:0 0 12px}.dish-photo,.feature-photo{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;margin-bottom:14px;border-radius:16px}.feature-photo{aspect-ratio:16/10;border-radius:24px}.dish-footer{margin-top:auto;padding-top:14px}.dish-footer strong{color:#ffb263}
+.wordmark{display:inline-flex;align-items:center;gap:10px}.site-logo{width:40px;height:40px;border-radius:10px;object-fit:cover;background:#fff}
+.site-gallery{margin-top:28px}.site-gallery h2{margin:0 0 14px}.site-gallery ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.site-gallery img{display:block;width:100%;aspect-ratio:1;object-fit:cover;border-radius:16px}
+@media(max-width:720px){.site-gallery ul{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .site-footer{border-top:1px solid #ffffff1a}.site-footer .wrap{padding-block:24px 85px}
 @media(max-width:720px){.hero .wrap{grid-template-columns:minmax(0,1fr)}.feature{min-height:0}.menu-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:430px){.wrap{width:calc(100% - 32px)}.menu-grid{gap:10px}.dish{padding:14px;border-radius:18px}.site-nav{gap:8px 14px}.site-nav a{min-height:44px;display:inline-flex;align-items:center}}
@@ -231,11 +245,12 @@ main section+section{margin-top:22px}
 .restaurant-assistant .assistant-speak{min-height:28px;padding:4px;background:transparent;border:1px solid ${t.muted};font-size:15px}
 ` : '')
     + '</style></head><body class="site-template-' + c.template + '">'
-    + '<header class="site-header"><div class="wrap"><a class="wordmark" href="#top">' + restaurantName + '</a>'
+    + '<header class="site-header"><div class="wrap"><a class="wordmark" href="#top">' + logo + restaurantName + '</a>'
     + '<nav class="site-nav" aria-label="Customer navigation">' + (menuVisible ? '<a href="#menu">Menu</a>' : '') + orderLinks + '</nav></div></header>'
     + '<div class="hero" id="top"><div class="wrap"><div><h1>' + restaurantName + '</h1>' + introHeadline + '<p>' + escapeHtml(c.tagline) + '</p>'
     + (menuVisible ? '<a class="btn" href="#menu">Explore menu</a>' : '') + '</div>'
-    + (featured ? '<aside class="feature" aria-label="Featured dish">' + picture(featured, 'feature-photo') + '<span>Featured dish</span><h2>'
+    + (c.cover && !featured ? '<aside class="feature" aria-label="Restaurant photo"><img class="feature-photo" src="' + escapeHtml(c.cover) + '" alt="" decoding="async"></aside>' : '')
+    + (featured ? '<aside class="feature" aria-label="Featured dish">' + (c.cover ? '<img class="feature-photo" src="' + escapeHtml(c.cover) + '" alt="" decoding="async">' : picture(featured, 'feature-photo')) + '<span>Featured dish</span><h2>'
       + escapeHtml(clean(featured.name, 180)) + '</h2>'
       + (featured.description ? '<p>' + escapeHtml(clean(featured.description, 300)) + '</p>' : '')
       + '<strong>' + price(featured) + '</strong></aside>' : '') + '</div></div>'

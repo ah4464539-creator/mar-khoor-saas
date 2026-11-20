@@ -1,6 +1,7 @@
 import express from 'express';
 import { requireAuth } from './auth.js';
 import { isMissingFulfillmentSchema } from './order-fulfillment.js';
+import { isAllowedImageRef } from './media-store.js';
 export function operationsRouter(pool) {
  const router=express.Router();
  const access=async(req,res,next)=>{
@@ -40,14 +41,14 @@ export function operationsRouter(pool) {
  });
  router.post('/restaurants/:restaurantId/menu',async(req,res)=>{
   const {name,description='',price_minor,category='',image_url=''}=req.body||{};
-  if (!validStorefrontDetails(category, image_url)) return res.status(400).json({error:'Use a category of up to 80 characters and an HTTPS photo URL.'});
+  if (!validStorefrontDetails(category, image_url)) return res.status(400).json({error:'Use a category of up to 80 characters and an uploaded photo or HTTPS photo URL.'});
   if(typeof name!=='string'||!name.trim()||name.length>180||typeof description!=='string'||description.length>10000||!Number.isSafeInteger(price_minor)||price_minor<0)return res.status(400).json({error:'Invalid menu item'});
   try{const [result]=await pool.execute('INSERT INTO menu_items (restaurant_id,name,description,price_minor,category,image_url) VALUES (?,?,?,?,?,?)',[req.restaurantId,name.trim(),description,price_minor,category.trim(),image_url.trim()]);res.status(201).json({id:result.insertId});}
   catch{res.status(503).json({error:'Database unavailable'});}
  });
  router.patch('/restaurants/:restaurantId/menu/:itemId',async(req,res)=>{
   const id=Number(req.params.itemId),{name,description,price_minor,active,category,image_url}=req.body||{};
-  if (!validStorefrontDetails(category ?? '', image_url ?? '')) return res.status(400).json({error:'Use a category of up to 80 characters and an HTTPS photo URL.'});
+  if (!validStorefrontDetails(category ?? '', image_url ?? '')) return res.status(400).json({error:'Use a category of up to 80 characters and an uploaded photo or HTTPS photo URL.'});
   if(!Number.isSafeInteger(id)||id<1||typeof name!=='string'||!name.trim()||name.length>180||typeof description!=='string'||description.length>10000||!Number.isSafeInteger(price_minor)||price_minor<0||typeof active!=='boolean')return res.status(400).json({error:'Invalid item'});
   try{const [result]=await pool.execute('UPDATE menu_items SET name=?,description=?,price_minor=?,active=?,category=COALESCE(?,category),image_url=COALESCE(?,image_url) WHERE id=? AND restaurant_id=?',[name.trim(),description,price_minor,active,category?.trim() ?? null,image_url?.trim() ?? null,id,req.restaurantId]);if(!result.affectedRows)return res.status(404).json({error:'Item not found'});res.json({updated:true});}
   catch{res.status(503).json({error:'Database unavailable'});}
@@ -171,10 +172,5 @@ export function operationsRouter(pool) {
 function validStorefrontDetails(category, imageUrl) {
  if (typeof category !== 'string' || category.length > 80 || typeof imageUrl !== 'string' || imageUrl.length > 2048) return false;
  if (!imageUrl.trim()) return true;
- try {
-  const url = new URL(imageUrl);
-  return url.protocol === 'https:' && !url.username && !url.password;
- } catch {
-  return false;
- }
+ return isAllowedImageRef(imageUrl.trim());
 }

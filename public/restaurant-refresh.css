@@ -332,3 +332,32 @@
  .mk-owner:not(.signing-in) .owner-order-table .owner-order-estimate{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
 }
 .mk-owner:not(.signing-in) #owner-workspace #setup-dialog .eyebrow{color:#9a4c12;background:#ffe6c5;border:1px solid #f3c48f}
+/* Photo uploads: dish photos, logo, cover and gallery. */
+.mk-owner .photo-field{display:grid;gap:8px;min-width:0}
+.mk-owner .photo-label{font-size:.875rem;font-weight:650;color:#4b3a30}
+.mk-owner .photo-label small{font-weight:500;color:#7f6c5f}
+.mk-owner .photo-row{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.mk-owner .photo-preview{width:96px;height:72px;border-radius:12px;object-fit:cover;flex:none;background:#f5eee6;border:1px solid #eadace}
+.mk-owner .photo-preview.photo-square{width:72px;height:72px}
+.mk-owner .photo-preview.photo-wide{width:160px;height:90px}
+.mk-owner .photo-empty{display:grid;place-items:center;font-size:12px;color:#8c7e74;border-style:dashed}
+.mk-owner .photo-empty[hidden],.mk-owner .photo-preview[hidden]{display:none}
+.mk-owner .photo-actions{display:grid;gap:6px;justify-items:start;min-width:0}
+.mk-owner .photo-actions small{font-size:12px;color:#7f6c5f}
+.mk-owner .photo-button{display:inline-flex;align-items:center;min-height:40px;padding:0 14px;border-radius:10px;border:1px solid #dcc9b8;background:#fffdfb;color:#3a2a21;font-weight:650;font-size:14px;cursor:pointer}
+.mk-owner .photo-button:hover{background:#fff1e3}
+.mk-owner .photo-button:focus-within{outline:2px solid #e86d11;outline-offset:2px}
+.mk-owner .photo-button[hidden]{display:none}
+.mk-owner:not(.signing-in) #owner-workspace button.photo-remove{background:transparent;border:1px solid #f1c3c0;color:#a12f2e;min-height:34px;padding:0 12px;border-radius:9px;font-size:13px}
+.mk-owner #add-item .photo-field{grid-column:1/-1}
+.mk-owner:not(.signing-in) .site-brand{grid-column:1/-1;min-width:0;margin:0;padding:16px;border:1px solid #eadace;border-radius:16px;background:#fffaf6}
+.mk-owner:not(.signing-in) .site-brand legend{font-size:17px;font-weight:800;padding:0 6px}
+.mk-owner .site-brand-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.mk-owner .site-gallery-field{grid-column:1/-1}
+.mk-owner .site-gallery-list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:10px}
+.mk-owner .site-gallery-list li{display:grid;gap:6px;justify-items:center}
+.mk-owner .site-gallery-list img{width:96px;height:96px;object-fit:cover;border-radius:12px;border:1px solid #eadace}
+.mk-owner:not(.signing-in) #owner-workspace .site-gallery-list button{background:transparent;border:0;color:#a12f2e;font-size:12px;min-height:28px;padding:0 6px}
+.mk-owner .site-brand>p{margin:12px 0 0;font-size:13px}
+@media(max-width:670px){.mk-owner .site-brand-grid{grid-template-columns:minmax(0,1fr)}}
+.mk-owner #owner-workspace label.photo-button{display:inline-flex;align-items:center;justify-content:center;gap:0;width:auto;min-height:40px;padding:0 14px;line-height:1.2}

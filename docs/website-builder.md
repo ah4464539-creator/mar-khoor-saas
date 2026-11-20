@@ -28,4 +28,10 @@ Publishing needs an **active plan order that includes Website Builder** (the pla
 ## Still requires integration / separate rollout
 - A production `OPENAI_API_KEY` secret with suitable permissions and quota; without it, the builder visibly falls back to manual editing rather than claiming that AI succeeded.
 - Real-provider smoke test on an authorized test restaurant and monitoring of AI API failures.
-- Custom domain DNS verification, image/logo uploads, multilingual editor, website analytics and AI menu import from external URLs/PDF/photos are not included in this safe UI/template rollout.
+- Custom domain DNS verification, multilingual editor, website analytics and AI menu import from external URLs/PDF/photos are not included in this safe UI/template rollout.
+
+## Photos (logo, cover, gallery, dish photos)
+- Owners upload JPG, PNG or WebP. The browser fixes rotation, removes camera metadata and resizes before upload (logo 512 px square, cover 2000 px, dishes and gallery 1400 px).
+- `POST /api/restaurants/:id/media?kind=menu|logo|cover|gallery` (restaurant admin only, 5 MB, format checked by file signature, 60 uploads / 10 min per IP). Limits: 400 images and 250 MB per restaurant.
+- Images are stored in MariaDB table `restaurant_media` (created automatically on first use; additive only) and served at `/media/<id>-<token>.<ext>` with a one-year immutable cache and a sandbox CSP.
+- Website config accepts only uploaded `/media/…` paths for `logo`, `cover` and up to 8 `gallery` photos. Menu items accept an uploaded path or an HTTPS URL.

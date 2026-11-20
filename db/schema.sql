@@ -331,3 +331,19 @@ CREATE TABLE IF NOT EXISTS restaurant_integrations (
  PRIMARY KEY (restaurant_id,kind),
  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS restaurant_media (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ restaurant_id BIGINT UNSIGNED NOT NULL,
+ kind ENUM('menu','logo','cover','gallery') NOT NULL,
+ token CHAR(16) NOT NULL,
+ mime VARCHAR(20) NOT NULL,
+ byte_size INT UNSIGNED NOT NULL,
+ width SMALLINT UNSIGNED NULL,
+ height SMALLINT UNSIGNED NULL,
+ data MEDIUMBLOB NOT NULL,
+ created_by BIGINT UNSIGNED NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ KEY restaurant_media_restaurant (restaurant_id, kind),
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
