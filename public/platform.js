@@ -311,7 +311,7 @@ document.querySelector('#route-form').addEventListener('submit', async event => 
 });
 
 // Integration health and custom domains.
-const healthNames={whatsapp:'WhatsApp Business',ai:'OpenAI (AI replies, website text, menu import)',voice:'AI Call Assistant (Vapi)',numbers:'Dedicated numbers (Telnyx)',email:'Email (password reset)',payments:'Online payments (Stripe)',orders:'Orders'};
+const healthNames={whatsapp:'WhatsApp Business',ai:'OpenAI (AI replies, website text, menu import)',voice:'AI Call Assistant (Vapi)',numbers:'Dedicated numbers (Telnyx)',domains:'Custom domains (Hostinger API)',email:'Email (password reset)',payments:'Online payments (Stripe)',orders:'Orders'};
 const healthLabels={live:['Live','tag-ok'],configured:['Configured · needs live test','tag-info'],missing:['Settings missing','tag-bad'],deferred:['Off by design','tag-warn']};
 async function loadHealth(){
  const data=await platformApi('/api/platform/integrations/health');
@@ -335,16 +335,33 @@ document.querySelector('#test-openai').addEventListener('click',async event=>{
  catch(error){document.querySelector('#health-status').textContent=error.message;}finally{button.disabled=false;}
 });
 async function loadDomains(){
- const {domains}=await platformApi('/api/platform/domains');
+ const {domains,automatic}=await platformApi('/api/platform/domains');
  const root=document.querySelector('#domain-list');
- if(!domains.length){root.textContent='No restaurant has added a custom domain yet.';return;}
- root.replaceChildren(...domains.map(item=>{
+ if(!domains.length)root.textContent='No restaurant has added a custom domain yet.';
+ else root.replaceChildren(...domains.map(item=>{
   const row=document.createElement('p');
-  row.textContent=item.domain+' · '+item.name+' (#'+item.restaurant_id+') · '+item.status+(item.points_here?' · DNS points here':' · DNS not pointing here yet')+(item.last_error?' · '+item.last_error:'');
-  if(item.status==='verified'||item.status==='connected'){
+  row.textContent=item.domain+' · '+item.name+' (#'+item.restaurant_id+') · '+(item.stage?'automatic: '+item.stage:item.status)+(item.ssl_status?' · SSL '+item.ssl_status:'')+(item.setup_error||item.last_error?' · '+(item.setup_error||item.last_error):'');
+  if(automatic&&item.stage&&item.stage!=='live'){const check=document.createElement('button');check.type='button';check.textContent='Check now';check.addEventListener('click',async()=>{check.disabled=true;try{await platformApi('/api/platform/domains/'+item.restaurant_id+'/check',{method:'POST'});await loadDomains();}catch(error){row.append(' · '+error.message);check.disabled=false;}});row.append(check);}
+  if(!item.stage&&(item.status==='verified'||item.status==='connected')){
    const button=document.createElement('button');button.type='button';button.textContent=item.status==='connected'?'Mark not connected':'Mark connected';
    button.addEventListener('click',async()=>{button.disabled=true;try{await platformApi('/api/platform/domains/'+item.restaurant_id+'/status',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:item.status==='connected'?'verified':'connected'})});await loadDomains();}catch(error){row.append(' · '+error.message);button.disabled=false;}});
    row.append(button);
+  }
+  return row;
+ }));
+ const {requests,enabled}=await platformApi('/api/platform/domain-requests');
+ const list=document.querySelector('#domain-request-list');
+ if(!requests.length){list.textContent=enabled?'No domain requests.':'Buying domains needs HOSTINGER_API_TOKEN on the server.';return;}
+ list.replaceChildren(...requests.map(request=>{
+  const row=document.createElement('p');
+  const price=request.price_cents==null?'':' · '+new Intl.NumberFormat(undefined,{style:'currency',currency:request.currency||'USD'}).format(request.price_cents/100)+' first year';
+  row.textContent=request.domain+' · '+request.name+' (#'+request.restaurant_id+')'+price+' · '+request.status+(request.error?' · '+request.error:'');
+  if(['requested','failed'].includes(request.status)){
+   const buy=document.createElement('button');buy.type='button';buy.textContent='Buy now';
+   buy.addEventListener('click',async()=>{if(!confirm('Buy '+request.domain+price+' from your Hostinger account? This spends real money.'))return;buy.disabled=true;try{await platformApi('/api/platform/domain-requests/'+request.id+'/purchase',{method:'POST'});await loadDomains();}catch(error){row.append(' · '+error.message);buy.disabled=false;}});
+   const reject=document.createElement('button');reject.type='button';reject.textContent='Reject';
+   reject.addEventListener('click',async()=>{reject.disabled=true;try{await platformApi('/api/platform/domain-requests/'+request.id+'/reject',{method:'PUT'});await loadDomains();}catch(error){row.append(' · '+error.message);reject.disabled=false;}});
+   row.append(buy,reject);
   }
   return row;
  }));

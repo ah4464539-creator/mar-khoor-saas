@@ -50,3 +50,26 @@ export async function loadPublicSite(pool, slug) {
   const [items] = await pool.execute('SELECT id,name,description,price_minor,category,image_url FROM menu_items WHERE restaurant_id=? AND active=1 ORDER BY id LIMIT 100', [restaurant.id]);
   return { restaurant, config: parse(rows[0].config, restaurant), items };
 }
+
+// Restaurants that run the AI Assistant on their own website through the embed widget,
+// without publishing a Mar-Khoor website. Returns null unless the widget and its assistant are on.
+export async function loadWidgetSite(pool, slug) {
+  if (typeof slug !== 'string' || !/^[a-z0-9-]{1,160}$/.test(slug)) return null;
+  let rows;
+  try {
+    [rows] = await pool.execute(
+      'SELECT r.id,r.name,r.slug,r.country_code,r.currency,r.locale,r.website_assistant_provisioned,s.config,w.config AS widget FROM restaurants r JOIN restaurant_widget w ON w.restaurant_id=r.id LEFT JOIN restaurant_sites s ON s.restaurant_id=r.id WHERE r.slug=? LIMIT 1', [slug]);
+  } catch { return null; }
+  if (!rows.length) return null;
+  let widget;
+  try { widget = JSON.parse(rows[0].widget); } catch { return null; }
+  if (widget?.enabled !== true || widget?.assistant === false) return null;
+  const restaurant = { id: rows[0].id, name: rows[0].name, slug: rows[0].slug, country_code: rows[0].country_code, currency: rows[0].currency, locale: rows[0].locale, websiteAssistantProvisioned: Number(rows[0].website_assistant_provisioned) === 1 };
+  const [items] = await pool.execute('SELECT id,name,description,price_minor,category,image_url FROM menu_items WHERE restaurant_id=? AND active=1 ORDER BY id LIMIT 100', [restaurant.id]);
+  return { restaurant, config: rows[0].config ? parse(rows[0].config, restaurant) : defaultSiteConfig(restaurant), items };
+}
+
+/** Site used by the AI Assistant endpoints: the published website, or else the embed widget. */
+export async function loadAssistantSite(pool, slug) {
+  return (await loadPublicSite(pool, slug)) ?? (await loadWidgetSite(pool, slug));
+}

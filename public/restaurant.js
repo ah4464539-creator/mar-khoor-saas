@@ -6,7 +6,7 @@ setInterval(async()=>{if(!restaurantId||!token||document.hidden||refreshing)retu
 const api=async(path,options={})=>{const r=await fetch(path,{...options,headers:{...options.headers,Authorization:'Bearer '+token}});const data=await r.json();if(!r.ok)throw Error(data.error||'Request failed');return data};
 async function refresh(){
  loadSite().catch(error=>{siteStatus.textContent=error.message});
- if(location.hash==='#website'){loadSiteAnalytics().catch(()=>{});loadDomain().catch(()=>{});}
+ if(location.hash==='#website'){loadSiteAnalytics().catch(()=>{});loadDomain().catch(()=>{});loadWidget().catch(()=>{});}
  loadPlanOrders().catch(error=>{planOrders.textContent=error.message});
  const [menu,orders,analytics,inbox,outbound,aiSettings]=await Promise.all([api('/api/restaurants/'+restaurantId+'/menu'),api('/api/restaurants/'+restaurantId+'/orders'),api('/api/restaurants/'+restaurantId+'/analytics'),api('/api/restaurants/'+restaurantId+'/whatsapp/messages'),api('/api/restaurants/'+restaurantId+'/whatsapp/outbound'),api('/api/restaurants/'+restaurantId+'/whatsapp/ai-settings')]);
  document.querySelector('#whatsapp-ai-enabled').checked=aiSettings.enabled;
@@ -1040,25 +1040,83 @@ document.querySelector('#import-add').addEventListener('click',async event=>{
  finally{button.disabled=false;}
 });
 
-// Custom domain for the restaurant website.
+// Custom domain for the restaurant website (automatic through Hostinger when enabled).
 const domainInput=document.querySelector('#domain-input'),domainStatus=document.querySelector('#domain-status'),domainNote=document.querySelector('#domain-note');
-const domainLabels={pending:['Waiting for DNS','tag-warn'],verified:['Verified · being connected','tag-info'],connected:['Connected','tag-ok']};
+const domainLabels={pending:['Setting up','tag-warn'],verified:['Almost live','tag-info'],connected:['Live','tag-ok']};
+const stageNotes={ownership:'Add the TXT record below so we can confirm the domain is yours. We check automatically.',parking:'Connecting your domain to Mar-Khoor hosting…',dns:'Hosting is ready. Waiting for DNS to point to Mar-Khoor.',ssl:'DNS is correct. Installing the secure HTTPS certificate…',live:'Your website is live on this domain.',error:'Setup needs help from the Mar-Khoor team.'};
+function cellRow(values){const row=document.createElement('tr');values.forEach((value,i)=>{const cell=document.createElement('td');const el=document.createElement(i===1||i===2?'code':'span');el.textContent=value;cell.append(el);row.append(cell);});return row;}
 function showDomain(data){
  const has=Boolean(data.domain);
  if(document.activeElement!==domainInput)domainInput.value=data.domain||'';
- document.querySelector('#domain-steps').hidden=!has;document.querySelector('#domain-remove').hidden=!has;
- domainStatus.hidden=!has;if(has){const [label,cls]=domainLabels[data.status]||[data.status,''];domainStatus.textContent=label;domainStatus.className='tag '+cls;}
- document.querySelector('#domain-records').replaceChildren(...(data.records||[]).map(record=>{const row=document.createElement('tr');for(const value of [record.type,record.name,record.value,record.purpose]){const cell=document.createElement('td');const code=document.createElement(value===record.value||value===record.name?'code':'span');code.textContent=value;cell.append(code);row.append(cell);}return row;}));
- domainNote.textContent=!has?'':data.status==='connected'?'Your website is live on '+data.domain+'.':data.status==='verified'?(data.points_here?'Verified. The Mar-Khoor team is switching on HTTPS for your domain.':'Ownership verified. Make sure the A record points to Mar-Khoor.'):(data.last_error||'');
+ document.querySelector('#domain-remove').hidden=!has;
+ document.querySelector('#domain-buy').hidden=has||data.automatic===false;
+ domainStatus.hidden=!has;
+ if(has){const [label,cls]=data.stage==='live'?domainLabels.connected:domainLabels[data.status]||[data.status,''];domainStatus.textContent=label;domainStatus.className='tag '+cls;}
+ const progress=document.querySelector('#domain-progress');
+ progress.hidden=!(has&&data.steps);
+ progress.replaceChildren(...(data.steps||[]).map(step=>{const li=document.createElement('li');li.dataset.state=step.state;li.textContent=step.label;return li;}));
+ const records=data.records||[];
+ document.querySelector('#domain-steps').hidden=!has||!records.length;
+ document.querySelector('#domain-records').replaceChildren(...records.map(record=>cellRow([record.type,record.name,record.value,record.purpose])));
+ const ns=document.querySelector('#domain-ns');
+ ns.hidden=!(has&&data.automatic&&!data.managed&&data.stage==='dns');
+ if(!ns.hidden)ns.textContent='Easiest option: at your domain company, either add the records below, or change the nameservers to Hostinger’s (ask us for the exact pair) — then we manage all records for you automatically.';
+ document.querySelector('#domain-verify').hidden=!has||data.stage==='live';
+ domainNote.textContent=!has?'':data.automatic?(stageNotes[data.stage]||'')+(data.last_error&&data.stage!=='live'?' ('+data.last_error+')':''):data.status==='connected'?'Your website is live on '+data.domain+'.':data.status==='verified'?'Ownership verified. The Mar-Khoor team is switching on HTTPS.':(data.last_error||'');
 }
-async function loadDomain(){if(!restaurantId)return;const id=restaurantId;const data=await api('/api/restaurants/'+id+'/site/domain');if(id===restaurantId)showDomain(data);}
+async function loadDomain(){if(!restaurantId)return;const id=restaurantId;const data=await api('/api/restaurants/'+id+'/site/domain');if(id===restaurantId)showDomain(data);loadDomainRequests().catch(()=>{});}
+async function loadDomainRequests(){const id=restaurantId;const {requests}=await api('/api/restaurants/'+id+'/site/domain/requests');if(id!==restaurantId||!requests.length)return;const latest=requests[0];const labels={requested:'waiting for confirmation',purchasing:'being registered',purchased:'registered — connecting automatically',failed:'could not be registered',rejected:'not approved'};document.querySelector('#domain-request-status').textContent='Your request for '+latest.domain+' is '+(labels[latest.status]||latest.status)+'.';}
 document.querySelector('#domain-save').addEventListener('click',async event=>{
- const button=event.currentTarget;button.disabled=true;
- try{showDomain(await api('/api/restaurants/'+restaurantId+'/site/domain',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({domain:domainInput.value})}));domainNote.textContent='Saved. Now add the DNS records below.';}
- catch(error){domainNote.textContent=error.message;document.querySelector('#domain-steps').hidden=false;}
+ const button=event.currentTarget;button.disabled=true;domainNote.textContent='Saving and connecting…';
+ try{showDomain(await api('/api/restaurants/'+restaurantId+'/site/domain',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({domain:domainInput.value})}));}
+ catch(error){domainNote.textContent=error.message;}
  finally{button.disabled=false;}
 });
-document.querySelector('#domain-remove').addEventListener('click',async()=>{try{showDomain(await api('/api/restaurants/'+restaurantId+'/site/domain',{method:'DELETE'}));domainInput.value='';}catch(error){domainNote.textContent=error.message;}});
-document.querySelector('#domain-verify').addEventListener('click',async event=>{const button=event.currentTarget;button.disabled=true;domainNote.textContent='Checking DNS…';try{showDomain(await api('/api/restaurants/'+restaurantId+'/site/domain/verify',{method:'POST'}));}catch(error){domainNote.textContent=error.message;}finally{button.disabled=false;}});
+document.querySelector('#domain-remove').addEventListener('click',async()=>{if(!confirm('Remove this domain from your website?'))return;try{showDomain(await api('/api/restaurants/'+restaurantId+'/site/domain',{method:'DELETE'}));domainInput.value='';}catch(error){domainNote.textContent=error.message;}});
+document.querySelector('#domain-verify').addEventListener('click',async event=>{const button=event.currentTarget;button.disabled=true;domainNote.textContent='Checking…';try{showDomain(await api('/api/restaurants/'+restaurantId+'/site/domain/verify',{method:'POST'}));}catch(error){domainNote.textContent=error.message;}finally{button.disabled=false;}});
+document.querySelector('#domain-search-go').addEventListener('click',async event=>{
+ const button=event.currentTarget,list=document.querySelector('#domain-options'),statusLine=document.querySelector('#domain-request-status');
+ button.disabled=true;statusLine.textContent='Searching…';list.replaceChildren();
+ try{
+  const {options}=await api('/api/restaurants/'+restaurantId+'/site/domain/search?name='+encodeURIComponent(document.querySelector('#domain-search').value));
+  statusLine.textContent=options.length?'Available domains:':'Nothing available with that name. Try another.';
+  list.replaceChildren(...options.map(option=>{const li=document.createElement('li');const name=document.createElement('strong');name.textContent=option.domain;const price=document.createElement('span');price.className='small muted';price.textContent=new Intl.NumberFormat(undefined,{style:'currency',currency:option.currency||'USD'}).format(option.price_cents/100)+' first year';const pick=document.createElement('button');pick.type='button';pick.className='btn btn-primary btn-sm';pick.textContent='Request';
+   pick.addEventListener('click',async()=>{pick.disabled=true;try{await api('/api/restaurants/'+restaurantId+'/site/domain/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({domain:option.domain})});list.replaceChildren();statusLine.textContent='Requested '+option.domain+'. We will register and connect it for you.';}catch(error){statusLine.textContent=error.message;pick.disabled=false;}});
+   li.append(name,price,pick);return li;}));
+ }catch(error){statusLine.textContent=error.message;}
+ finally{button.disabled=false;}
+});
 window.addEventListener('hashchange',()=>{if(location.hash==='#website')loadDomain().catch(()=>{});});
 if(location.hash==='#website')setTimeout(()=>loadDomain().catch(()=>{}),1500);
+
+// Website widget: Mar-Khoor tools on the owner's existing website.
+const widgetEl=id=>document.getElementById(id);
+function showWidget(data){
+ const c=data.config,n=data.connected_numbers||{};
+ widgetEl('widget-enabled').checked=c.enabled;widgetEl('widget-assistant').checked=c.assistant;widgetEl('widget-whatsapp').checked=c.whatsapp;widgetEl('widget-call').checked=c.call;
+ widgetEl('widget-whatsapp-number').value=c.whatsapp_number;widgetEl('widget-whatsapp-number').placeholder=n.whatsapp?'Using your connected number '+n.whatsapp:'+923001234567';
+ widgetEl('widget-call-number').value=c.call_number;widgetEl('widget-call-number').placeholder=n.call?'Using your AI Caller number '+n.call:'+923001234567';
+ widgetEl('widget-label').value=c.label;widgetEl('widget-color').value=c.color;widgetEl('widget-position').value=c.position;widgetEl('widget-greeting').value=c.greeting;
+ widgetEl('widget-origins').value=c.origins.map(o=>o.replace(/^https:\/\//,'')).join(', ');
+ const note=widgetEl('widget-assistant-note');
+ note.hidden=data.assistant_available&&data.menu_items>0;
+ note.textContent=!data.assistant_available?'The AI Assistant is not included in your current plan yet. The chat button stays hidden until it is.':'Add menu items first so the AI Assistant can answer and take orders.';
+ const tag=widgetEl('widget-status');tag.hidden=false;tag.textContent=c.enabled?'On':'Off';tag.className='tag'+(c.enabled?' tag-ok':'');
+ widgetEl('widget-code').hidden=!c.enabled;widgetEl('widget-snippet').value=data.snippet;widgetEl('widget-preview').href=data.preview_url;
+ widgetEl('widget-preview').parentElement.hidden=!(c.assistant&&data.assistant_available);
+}
+async function loadWidget(){if(!restaurantId||!widgetEl('widget-form'))return;const id=restaurantId;const data=await api('/api/restaurants/'+id+'/widget');if(id===restaurantId)showWidget(data);}
+widgetEl('widget-form')?.addEventListener('submit',async event=>{
+ event.preventDefault();const note=widgetEl('widget-note');note.textContent='Saving…';
+ try{
+  const data=await api('/api/restaurants/'+restaurantId+'/widget',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+   enabled:widgetEl('widget-enabled').checked,assistant:widgetEl('widget-assistant').checked,whatsapp:widgetEl('widget-whatsapp').checked,call:widgetEl('widget-call').checked,
+   whatsapp_number:widgetEl('widget-whatsapp-number').value,call_number:widgetEl('widget-call-number').value,
+   label:widgetEl('widget-label').value,color:widgetEl('widget-color').value,position:widgetEl('widget-position').value,
+   greeting:widgetEl('widget-greeting').value,origins:widgetEl('widget-origins').value})});
+  showWidget(data);note.textContent=data.config.enabled?'Saved. Copy the code below into your website.':'Saved. The widget is off on your website.';
+ }catch(e){note.textContent=e.message}
+});
+widgetEl('widget-copy')?.addEventListener('click',async()=>{const input=widgetEl('widget-snippet');try{await navigator.clipboard.writeText(input.value);widgetEl('widget-copy').textContent='Copied';setTimeout(()=>widgetEl('widget-copy').textContent='Copy code',2000)}catch{input.select()}});
+window.addEventListener('hashchange',()=>{if(location.hash==='#website')loadWidget().catch(()=>{});});
+if(location.hash==='#website')setTimeout(()=>loadWidget().catch(()=>{}),1500);

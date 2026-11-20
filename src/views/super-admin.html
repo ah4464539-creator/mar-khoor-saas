@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="/summit.css?v=20261120-s3">
-<link rel="stylesheet" href="/platform.css?v=20261120-s6">
+<link rel="stylesheet" href="/platform.css?v=20261120-s7">
 </head>
 <body class="mk platform platform-app">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -84,8 +84,11 @@
  </section>
 
  <section class="card card-pad" id="custom-domains" tabindex="-1">
-  <div class="card-head"><div><h2>Custom domains</h2><p class="small muted">After a restaurant verifies its domain, add it to the website in Hostinger (Websites → Domains → add alias/parked domain, then install SSL), then press <b>Mark connected</b>.</p></div></div>
+  <div class="card-head"><div><h2>Custom domains</h2><p class="small muted" id="domains-help">With <code>HOSTINGER_API_TOKEN</code> set, domains are connected automatically: ownership check → added to the mar-khoor.com hosting → DNS → SSL. Without it, add the domain in Hostinger by hand and press <b>Mark connected</b>.</p></div></div>
   <div id="domain-list" class="row-list muted">Loading…</div>
+  <h3 class="sub-head">Domain purchase requests</h3>
+  <div class="notice notice-warn"><span><b>Buy now spends real money</b> from your Hostinger account (default payment method). Bill the restaurant for the price shown.</span></div>
+  <div id="domain-request-list" class="row-list muted">Loading…</div>
  </section>
 
  <section class="card card-pad" id="subscriptions" tabindex="-1">
@@ -147,6 +150,6 @@ document.addEventListener('click', event => {
  link.setAttribute('aria-current', 'page');
 });
 </script>
-<script type="module" src="/platform.js?v=20261120-s6"></script>
+<script type="module" src="/platform.js?v=20261120-s7"></script>
 </body>
 </html>

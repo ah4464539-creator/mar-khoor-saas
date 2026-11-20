@@ -115,7 +115,7 @@ async function connectWebsite(pool, restaurantId, entry, deps) {
   }
   if (entry.mode === 'domain')
     return { status: 'pending', detail: 'Domain ' + entry.value + ' saved. Domain verification and SSL are the next step; we will show the DNS record to add here.' };
-  return { status: 'pending', detail: 'Saved ' + entry.value + '. The embed code for your own website (AI Assistant, WhatsApp button and AI Caller number) will appear here.' };
+  return { status: 'pending', detail: 'Saved ' + entry.value + '. Turn on the widget in AI Website → "Use Mar-Khoor on your own website" and paste its one-line code into your site to add the AI Assistant, WhatsApp and AI Caller buttons.' };
 }
 
 const CONNECTORS = { whatsapp: connectWhatsApp, ai_caller: connectAiCaller, website: connectWebsite };

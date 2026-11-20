@@ -55,3 +55,5 @@ body.mk{margin:0}
 .platform-app .health-head{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
 .platform-app .health-card p{margin:0;font-size:13px;color:var(--ink-2)}
 .platform-app .health-missing{color:var(--bad)!important}
+.platform-app .sub-head{font-size:16px;margin:18px 0 8px}
+.platform-app #domains-help code{font-size:12px;background:var(--sunk);padding:1px 5px;border-radius:5px}

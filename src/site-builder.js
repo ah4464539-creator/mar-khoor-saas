@@ -222,7 +222,25 @@ main section+section{margin-top:22px}
 @media(max-width:720px){.hero .wrap{grid-template-columns:minmax(0,1fr)}.feature{min-height:0}.menu-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:430px){.wrap{width:calc(100% - 32px)}.menu-grid{gap:10px}.dish{padding:14px;border-radius:18px}.site-nav{gap:8px 14px}.site-nav a{min-height:44px;display:inline-flex;align-items:center}}
 ` + SITE_TEMPLATE_CSS + '</style><style>'
-    + (assistant ? `.restaurant-assistant{position:fixed;inset-inline-end:16px;bottom:max(16px,env(safe-area-inset-bottom));z-index:2;font-size:14px}
+    + (assistant ? assistantCss(t) : '')
+    + '</style></head><body class="site-template-' + c.template + '">'
+    + '<header class="site-header"><div class="wrap"><a class="wordmark" href="#top">' + logo + restaurantName + '</a>'
+    + '<nav class="site-nav" aria-label="Customer navigation">' + (menuVisible ? '<a href="#menu">' + escapeHtml(L.menu) + '</a>' : '') + orderLinks + '</nav></div></header>'
+    + '<div class="hero" id="top"><div class="wrap"><div><h1>' + restaurantName + '</h1>' + introHeadline + '<p>' + escapeHtml(c.tagline) + '</p>'
+    + (menuVisible ? '<a class="btn" href="#menu">' + escapeHtml(L.explore) + '</a>' : '') + '</div>'
+    + (c.cover && !featured ? '<aside class="feature" aria-label="Restaurant photo"><img class="feature-photo" src="' + escapeHtml(c.cover) + '" alt="" decoding="async"></aside>' : '')
+    + (featured ? '<aside class="feature" aria-label="' + escapeHtml(L.featured) + '">' + (c.cover ? '<img class="feature-photo" src="' + escapeHtml(c.cover) + '" alt="" decoding="async">' : picture(featured, 'feature-photo')) + '<span>' + escapeHtml(L.featured) + '</span><h2>'
+      + escapeHtml(clean(featured.name, 180)) + '</h2>'
+      + (featured.description ? '<p>' + escapeHtml(clean(featured.description, 300)) + '</p>' : '')
+      + '<strong>' + price(featured) + '</strong></aside>' : '') + '</div></div>'
+    + '<main class="wrap">' + body + '</main><footer class="site-footer"><div class="wrap"><span class="wordmark">'
+    + restaurantName + '</span></div></footer>' + assistant + '</body></html>';
+}
+
+
+// Styles for the AI Assistant chat panel, shared by the restaurant website and the embed widget.
+export function assistantCss(t) {
+  return `.restaurant-assistant{position:fixed;inset-inline-end:16px;bottom:max(16px,env(safe-area-inset-bottom));z-index:2;font-size:14px}
 .restaurant-assistant>summary{display:block;cursor:pointer;padding:9px 15px;border-radius:999px;background:${t.accent};color:${t.accentInk};font-weight:700;box-shadow:0 3px 16px #0003}
 .assistant-panel{position:absolute;inset-inline-end:0;bottom:calc(100% + 8px);width:min(340px,calc(100vw - 32px));height:min(420px,calc(100dvh - 88px),68dvh);display:flex;flex-direction:column;overflow:hidden;background:${t.card};color:${t.ink};border:1px solid ${t.muted};border-radius:15px;box-shadow:0 8px 32px #0003}
 .assistant-heading{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:${t.accent};color:${t.accentInk}}
@@ -264,17 +282,5 @@ main section+section{margin-top:22px}
 .assistant-order-card p{margin:4px 0}.assistant-order-card a{text-decoration:underline;color:${t.accent}}
 [data-assistant-messages] .assistant-reply{display:flex;align-items:flex-start;gap:5px}
 .restaurant-assistant .assistant-speak{min-height:28px;padding:4px;background:transparent;border:1px solid ${t.muted};font-size:15px}
-` : '')
-    + '</style></head><body class="site-template-' + c.template + '">'
-    + '<header class="site-header"><div class="wrap"><a class="wordmark" href="#top">' + logo + restaurantName + '</a>'
-    + '<nav class="site-nav" aria-label="Customer navigation">' + (menuVisible ? '<a href="#menu">' + escapeHtml(L.menu) + '</a>' : '') + orderLinks + '</nav></div></header>'
-    + '<div class="hero" id="top"><div class="wrap"><div><h1>' + restaurantName + '</h1>' + introHeadline + '<p>' + escapeHtml(c.tagline) + '</p>'
-    + (menuVisible ? '<a class="btn" href="#menu">' + escapeHtml(L.explore) + '</a>' : '') + '</div>'
-    + (c.cover && !featured ? '<aside class="feature" aria-label="Restaurant photo"><img class="feature-photo" src="' + escapeHtml(c.cover) + '" alt="" decoding="async"></aside>' : '')
-    + (featured ? '<aside class="feature" aria-label="' + escapeHtml(L.featured) + '">' + (c.cover ? '<img class="feature-photo" src="' + escapeHtml(c.cover) + '" alt="" decoding="async">' : picture(featured, 'feature-photo')) + '<span>' + escapeHtml(L.featured) + '</span><h2>'
-      + escapeHtml(clean(featured.name, 180)) + '</h2>'
-      + (featured.description ? '<p>' + escapeHtml(clean(featured.description, 300)) + '</p>' : '')
-      + '<strong>' + price(featured) + '</strong></aside>' : '') + '</div></div>'
-    + '<main class="wrap">' + body + '</main><footer class="site-footer"><div class="wrap"><span class="wordmark">'
-    + restaurantName + '</span></div></footer>' + assistant + '</body></html>';
+`;
 }

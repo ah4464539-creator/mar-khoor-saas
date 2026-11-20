@@ -370,3 +370,43 @@ CREATE TABLE IF NOT EXISTS restaurant_domains (
  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS restaurant_domain_setup (
+ restaurant_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+ domain VARCHAR(253) NOT NULL,
+ managed TINYINT(1) NOT NULL DEFAULT 0,
+ stage ENUM('ownership','parking','dns','ssl','live','error') NOT NULL DEFAULT 'ownership',
+ ownership_txt VARCHAR(255) NULL,
+ nameservers VARCHAR(255) NULL,
+ targets TEXT NULL,
+ ssl_status VARCHAR(32) NULL,
+ ssl_requested_at TIMESTAMP NULL DEFAULT NULL,
+ attempts INT UNSIGNED NOT NULL DEFAULT 0,
+ next_check_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ last_error VARCHAR(255) NULL,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ KEY restaurant_domain_setup_due (stage, next_check_at),
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS restaurant_domain_requests (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ restaurant_id BIGINT UNSIGNED NOT NULL,
+ domain VARCHAR(253) NOT NULL,
+ item_id VARCHAR(100) NULL,
+ price_cents INT UNSIGNED NULL,
+ currency CHAR(3) NULL,
+ status ENUM('requested','purchasing','purchased','failed','rejected') NOT NULL DEFAULT 'requested',
+ error VARCHAR(255) NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ KEY restaurant_domain_requests_restaurant (restaurant_id),
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS restaurant_widget (
+ restaurant_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+ config TEXT NOT NULL,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+) ENGINE=InnoDB;

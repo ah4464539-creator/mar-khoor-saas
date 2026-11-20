@@ -16,10 +16,14 @@ import { plansRouter } from './plans.js';
 import { startWhatsAppAIWorker } from './whatsapp-ai-worker.js';
 import { retryPendingSubscriptionNumbers } from './voice-autoprovision.js';
 import { sitesRouter } from './sites.js';
+import { widgetRouter } from './widget.js';
 import { mediaRouter } from './media.js';
 import { menuImportRouter } from './menu-import-routes.js';
 import { customDomainRouting, domainsRouter } from './domains.js';
 import { integrationHealthRouter } from './integration-health.js';
+import { createHostingerClient, hostingerConfig } from './hostinger-client.js';
+import { startDomainWorker } from './domain-automation.js';
+const hostinger = createHostingerClient(hostingerConfig());
 import { numbersRouter } from './numbers.js';
 import { loadCatalog } from './plan-orders.js';
 import { voiceToolsRouter } from './voice-tools.js';
@@ -87,8 +91,9 @@ app.use('/api', plansRouter(pool));
 app.use('/api', numbersRouter(pool));
 app.use(mediaRouter(pool));
 app.use(menuImportRouter(pool));
-app.use(domainsRouter(pool));
+app.use(domainsRouter(pool, { client: hostinger }));
 app.use(integrationHealthRouter(pool));
+app.use(widgetRouter(pool));
 app.use(sitesRouter(pool));
 app.use('/voice-tools', voiceToolsRouter(pool));
 app.use('/integrations/vapi', vapiToolAdapterRouter(pool));
@@ -106,6 +111,7 @@ const port = Number(process.env.PORT || 3001);
 app.listen(port, () => {
   console.log(`Mar-Khoor API listening on ${port}`);
   startWhatsAppAIWorker(pool);
+  startDomainWorker(pool, hostinger);
   // Finish AI Caller numbers that were waiting on the phone company (every 15 minutes; never buys).
   const voiceRetry = setInterval(() => {
     retryPendingSubscriptionNumbers(pool)
