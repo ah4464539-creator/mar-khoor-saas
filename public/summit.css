@@ -207,3 +207,4 @@
 .mk .or-line{display:flex;align-items:center;gap:12px;color:var(--faint);font-size:13px}
 .mk .or-line::before,.mk .or-line::after{content:"";flex:1;height:1px;background:var(--line)}
 @media(max-width:959px){.mk .auth-art{min-height:260px;padding:28px 22px}.mk .auth-art .channels{display:none}}
+.mk .auth-logo img{display:block;width:auto;max-width:100%;height:clamp(96px,14vw,150px)}
