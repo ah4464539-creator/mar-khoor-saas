@@ -2,6 +2,7 @@ import { trackSiteEvent } from './site-analytics.js';
 import express from 'express';
 import { requireAuth } from './auth.js';
 import { audit } from './security.js';
+import { deletePreview, deleteRestaurant } from './restaurant-delete.js';
 export function apiRouter(pool) {
  const router=express.Router();
  router.get('/platform/summary',requireAuth,async(req,res)=>{
@@ -29,6 +30,25 @@ export function apiRouter(pool) {
   if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});
   try{const [rows]=await pool.query('SELECT r.id,r.name,r.slug,r.country_code,r.currency,r.locale,COUNT(m.user_id) AS members FROM restaurants r LEFT JOIN restaurant_members m ON m.restaurant_id=r.id GROUP BY r.id ORDER BY r.id DESC LIMIT 100');res.json({restaurants:rows});}
   catch{res.status(503).json({error:'Database unavailable'});}
+ });
+ // Permanently delete a restaurant (demo accounts). Preview first; confirm by typing its name.
+ const protectedSlugs=()=>String(process.env.PROTECTED_RESTAURANT_SLUGS??'urban-cafe').split(',').map(s=>s.trim()).filter(Boolean);
+ router.get('/platform/restaurants/:id/delete-preview',requireAuth,async(req,res)=>{
+  if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});
+  const id=Number(req.params.id);if(!Number.isSafeInteger(id)||id<1)return res.status(400).json({error:'Invalid restaurant'});
+  try{const preview=await deletePreview(pool,id);if(!preview)return res.status(404).json({error:'Restaurant not found'});
+   if(protectedSlugs().includes(preview.restaurant.slug))preview.blockers.push('This restaurant is protected (demo website).');
+   res.set('Cache-Control','no-store').json(preview);}
+  catch{res.status(503).json({error:'Database unavailable'});}
+ });
+ router.delete('/platform/restaurants/:id',requireAuth,async(req,res)=>{
+  if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});
+  const id=Number(req.params.id);
+  try{
+   const result=await deleteRestaurant(pool,id,{confirmName:req.body?.confirm_name,protectedSlugs:protectedSlugs()});
+   if(result.status===200)await audit(pool,{actorUserId:req.user.id,restaurantId:null,action:'restaurant.delete:'+id+':'+String(result.body.deleted).slice(0,80)});
+   res.status(result.status).json(result.body);
+  }catch{res.status(503).json({error:'Database unavailable'});}
  });
  router.get('/platform/voice-assistants',requireAuth,async(req,res)=>{
   if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});

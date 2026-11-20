@@ -46,13 +46,37 @@ async function loadSummary() {
   }
 }
 
+async function confirmDeleteTenant(tenant, button) {
+  button.disabled = true;
+  try {
+    const preview = await platformApi('/api/platform/restaurants/' + tenant.id + '/delete-preview');
+    if (preview.blockers.length) { window.alert('Cannot delete ' + tenant.name + ':\n\n' + preview.blockers.join('\n')); return; }
+    const c = preview.counts;
+    const typed = window.prompt('PERMANENTLY delete "' + tenant.name + '" (' + tenant.slug + ')?\n\n'
+      + c.orders + ' orders, ' + c.menu_items + ' menu items, ' + c.customers + ' customers and all chats, calls, website and settings will be deleted.\n'
+      + (preview.logins_removed.length ? 'Logins removed: ' + preview.logins_removed.join(', ') + '\n' : '')
+      + '\nThis cannot be undone. Type the restaurant name to confirm:');
+    if (typed === null) return;
+    const result = await platformApi('/api/platform/restaurants/' + tenant.id, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ confirm_name: typed }) });
+    window.alert('Deleted ' + result.deleted + ' (' + result.rows + ' records).');
+    await loadTenants();
+  } catch (error) { window.alert(error.message); }
+  finally { button.disabled = false; }
+}
+
 async function loadTenants() {
   const { restaurants } = await platformApi('/api/platform/restaurants');
   const root = document.querySelector('#tenant-list');
   root.replaceChildren();
   for (const tenant of restaurants) {
     const row = document.createElement('p');
-    row.textContent = '#' + tenant.id + ' · ' + tenant.name + ' · ' + tenant.slug + ' · ' + tenant.country_code + ' · ' + tenant.members + ' members';
+    row.className = 'tenant-row';
+    const text = document.createElement('span');
+    text.textContent = '#' + tenant.id + ' · ' + tenant.name + ' · ' + tenant.slug + ' · ' + tenant.country_code + ' · ' + tenant.members + ' members';
+    const remove = document.createElement('button');
+    remove.type = 'button'; remove.className = 'btn btn-ghost btn-sm tenant-delete'; remove.textContent = 'Delete';
+    remove.addEventListener('click', () => confirmDeleteTenant(tenant, remove));
+    row.append(text, remove);
     root.append(row);
   }
   if (!restaurants.length) root.textContent = 'No restaurants yet.';
