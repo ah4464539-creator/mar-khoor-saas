@@ -1,41 +1,55 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <link rel="icon" href="data:,"><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Restaurant menu</title><link rel="stylesheet" href="/styles.css?v=customer-menu-2">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Restaurant menu</title>
+<link rel="icon" type="image/svg+xml" href="/assets/markhor-ink.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="/summit.css?v=20261120-s2">
+<link rel="stylesheet" href="/public-pages.css?v=20261120-s2">
 </head>
-<body class="storefront">
-<main class="workspace customer">
-<section class="storefront-banner" aria-label="Restaurant">
-<h1 id="store-name">Restaurant menu</h1>
-</section>
-<nav class="customer-actions" aria-label="Order activity">
-<a id="customer-track" href="/orders.html#orders">Track order</a>
-<a id="customer-orders" href="/orders.html#orders">Order history</a>
-<a id="customer-refunds" href="/orders.html#refunds">Refunds</a>
-</nav>
-<div class="storefront-content">
-<section class="menu-catalog" aria-label="Menu items">
-<label for="menu-search" id="search-label" hidden>Search this menu <input type="search" id="menu-search" placeholder="Search by item or description">
-</label>
-<p id="status" class="muted" role="status">
-</p>
-<div id="menu" class="menu-grid">
-</div>
-</section>
-<section class="panel cart-panel" id="checkout" hidden>
-<h2>Your order</h2>
-<div id="cart">
-</div>
-<p class="cart-total"><strong>Subtotal</strong><strong id="cart-subtotal"></strong>
-</p>
-<form id="order-form"><input id="customer-name" aria-label="Your name" placeholder="Your name" maxlength="160" required><button>Place order</button>
-</form>
-</section>
-</div>
-<p id="order-status" role="status">
-</p>
+<body class="mk menu-page">
+<header class="menu-header">
+ <div class="wrap menu-header-row">
+  <a class="brand" id="store-link" href="/"><span class="store-mark" id="store-mark" aria-hidden="true">R</span><b id="store-name">Restaurant menu</b></a>
+  <label for="menu-search" id="search-label" class="search" hidden><span class="visually-hidden">Search this menu</span><input type="search" id="menu-search" placeholder="Search this menu"></label>
+  <nav class="customer-actions" aria-label="Order activity">
+   <a id="customer-track" class="btn btn-ghost btn-sm" href="/orders.html#orders">Track order</a>
+   <a id="customer-orders" class="btn btn-quiet btn-sm" href="/orders.html#orders">Order history</a>
+   <a id="customer-refunds" class="btn btn-quiet btn-sm" href="/orders.html#refunds">Refunds</a>
+  </nav>
+ </div>
+ <div class="wrap"><nav id="category-nav" class="tabs category-tabs" aria-label="Menu categories" hidden></nav></div>
+</header>
+<main class="wrap menu-layout">
+ <section class="menu-catalog" aria-label="Menu items">
+  <p id="status" class="status-line" role="status"></p>
+  <div id="menu" class="menu-sections"></div>
+ </section>
+ <aside class="card card-pad cart-panel" id="checkout" aria-labelledby="cart-title" hidden>
+  <div class="card-head"><h2 id="cart-title">Your order</h2><span class="tag tag-ember" id="cart-count"></span></div>
+  <div id="cart" class="cart-lines"></div>
+  <form id="order-form" class="order-form">
+   <div class="tabs order-type" role="radiogroup" aria-label="Order type">
+    <label><input type="radio" name="order_type" value="delivery" checked><span>Delivery</span></label>
+    <label><input type="radio" name="order_type" value="pickup"><span>Pickup</span></label>
+   </div>
+   <div class="field"><label for="customer-name">Your name</label><input class="input" id="customer-name" maxlength="160" required autocomplete="name"></div>
+   <div class="field"><label for="customer-phone">Phone</label><input class="input" id="customer-phone" type="tel" inputmode="tel" maxlength="32" required autocomplete="tel" placeholder="+92 300 1234567"></div>
+   <div class="field delivery-only"><label for="delivery-address">Delivery address</label><textarea class="input" id="delivery-address" maxlength="500" rows="2" autocomplete="street-address" placeholder="House, street, area, city"></textarea></div>
+   <div class="field delivery-only"><label for="delivery-instructions">Instructions <span class="muted">(optional)</span></label><input class="input" id="delivery-instructions" maxlength="500" placeholder="e.g. Ring the bell twice"></div>
+   <div class="pay-method"><span class="label">Payment</span><p class="pay-chip"><span id="pay-label">Cash on delivery</span></p></div>
+   <p class="cart-total"><strong>Total</strong><strong id="cart-subtotal" class="num"></strong></p>
+   <button class="btn btn-primary btn-lg btn-block">Place order</button>
+   <p class="hint">You get a tracking link right after ordering.</p>
+  </form>
+  <div id="order-status" role="status" class="order-status"></div>
+ </aside>
 </main>
-<script type="module" src="/menu.js?v=customer-menu-3">
-</script>
+<div class="mobile-cart-bar" id="mobile-cart-bar" hidden><a href="#checkout" class="btn btn-primary btn-lg btn-block"><span id="mobile-cart-label">View order</span><span id="mobile-cart-total" class="num"></span></a></div>
+<script type="module" src="/menu.js?v=20261120-s2"></script>
 </body>
 </html>

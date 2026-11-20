@@ -5,7 +5,7 @@ Each restaurant can have a public page at `https://mar-khoor.com/r/<restaurant-s
 **Status: tenant-scoped website storage, preview, four safe template presets and AI-generated draft are implemented. Live AI generation still requires an authorized OpenAI API key and end-to-end verification.**
 
 ## How it works
-- The restaurant admin opens **My website** in the dashboard, describes the restaurant in a sentence or two and chooses **Classic Dark, Warm Bistro, Clean Editorial or Midnight Modern** before pressing **Write with AI**. The AI only returns a headline, tagline, about text, a colour theme and which sections to show. It is told to use only the facts it was given. Hours, phone and address are never taken from the AI; the owner types them.
+- The restaurant admin opens **My website** in the dashboard, describes the restaurant in a sentence or two and chooses **Classic Dark, Warm Bistro, Clean Editorial, Midnight Modern or Summit Light** before pressing **Write with AI**. The AI only returns a headline, tagline, about text, a colour theme and which sections to show. It is told to use only the facts it was given. Hours, phone and address are never taken from the AI; the owner types them.
 - Everything is stored as a small JSON config of plain text and fixed choices (`restaurant_sites.config`). It is sanitised on every save and on every read.
 - The public page is rendered by one fixed server-side template. Every value is HTML-escaped, colours come from a fixed table, there is no script on the page, and the response carries a strict Content-Security-Policy. The AI cannot add HTML, links, images or code.
 - The menu on the page is the restaurant's live active menu. The **Order online** button opens `/menu.html?restaurant=<slug>`.

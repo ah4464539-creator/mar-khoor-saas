@@ -1,427 +1,57 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <link rel="icon" type="image/svg+xml" href="/assets/approved-markhor.svg">
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Register your restaurant | MAR-KHOOR AI</title>
-  <link rel="stylesheet" href="/styles.css">
-  <style>
-.registration-shell{max-width:1260px;margin:30px auto;display:grid;grid-template-columns:minmax(270px,1fr) minmax(0,1.35fr);min-height:560px;border-radius:24px;overflow:hidden;box-shadow:0 22px 65px #062c2033;background:#fff}
-.registration-aside{padding:clamp(24px,4vw,52px);background:linear-gradient(145deg,#062c20f0,#092a20ee),url('/assets/chef.webp') center/cover;color:#fff;display:flex;flex-direction:column;justify-content:center}
-.registration-aside h2{font-size:clamp(30px,3.2vw,48px);line-height:1.12;margin:14px 0;color:#fff}
-.registration-aside h2 em{color:#efc96d;font-style:normal}
-.registration-aside p,.registration-aside li{color:#e3eee8}
-.registration-aside ul{padding-left:22px;line-height:2}
-.registration-panel{min-width:0;padding:clamp(24px,4vw,52px);background:#fff}
-.registration-panel h1{color:#103d2c;font-size:clamp(25px,2.5vw,38px);line-height:1.15;margin:16px 0 8px}
-.registration-panel p{color:#52645b}
-.step-label{color:#99732d!important;font-weight:750;letter-spacing:.08em;font-size:.8rem}
-.registration-panel #register{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 18px;align-items:start;width:100%;margin-top:22px}
-.registration-panel #register .field{display:flex;flex-direction:column;min-width:0;gap:8px;margin-bottom:18px}
-.registration-panel #register .field.full{grid-column:1/-1}
-.registration-panel #register label{position:static;float:none;display:block;margin:0;color:#123e2a;font-weight:700;font-size:.92rem}
-.registration-panel #register input,.registration-panel #register select{position:static;float:none;display:block;width:100%;min-width:0;max-width:100%;height:48px;padding:12px;border:1px solid #c8d8cd;border-radius:10px;background:#fff;color:#123e2a;box-sizing:border-box}
-/* Override inherited landing-page form sizing and grid stretching. */
-.registration-panel #register{grid-auto-rows:min-content!important;align-content:start!important;align-items:start!important}
-.registration-panel #register .field{height:auto!important;min-height:0!important;align-self:start!important;justify-content:flex-start!important;display:flex!important;flex-direction:column!important}
-.registration-panel #register input,.registration-panel #register select{height:48px!important;min-height:48px!important;max-height:48px!important;line-height:normal!important;flex:0 0 48px!important;padding:10px 12px!important;align-self:stretch!important}
-.registration-panel #register .field.full{grid-column:1/-1}
-@media(max-width:540px){.registration-panel #register{grid-template-columns:minmax(0,1fr)!important}}
-.registration-panel #register input:focus,.registration-panel #register select:focus{outline:2px solid #c9a456;outline-offset:1px}
-.registration-panel #register button{grid-column:1/-1;display:block;position:static;float:none;width:100%;padding:15px 20px;margin:8px 0 0;background:linear-gradient(90deg,#08673b,#064a2f);color:#fff;border:0;border-radius:11px;font-weight:750;cursor:pointer}
-.registration-panel #register button:disabled{opacity:.55;cursor:wait}
-.registration-panel #register .password-toggle{margin-bottom:4px}
-.registration-panel #register .password-toggle label{display:flex;align-items:center;gap:9px;font-weight:500;color:#52645b}
-.registration-panel #register .password-toggle input{width:16px!important;min-width:16px!important;height:16px!important;min-height:16px!important;max-height:16px!important;flex:0 0 16px!important;margin:0}
-.registration-aside ul{list-style:none;padding:0}
-.registration-aside li{position:relative;padding-left:28px}
-.registration-aside li:before{content:"✓";position:absolute;left:0;top:3px;color:#e8c46d;font-weight:800}
-#status:not(:empty){padding:12px;background:#fff1e7;color:#8d3218;border-radius:10px}
-#done{padding:20px;border-radius:14px;background:#eff8f1}
-@media(max-width:900px){.registration-shell{grid-template-columns:1fr}.registration-aside{min-height:210px}.registration-aside ul{columns:2}}
-@media(max-width:540px){.registration-shell{margin:12px auto;border-radius:16px}.registration-aside,.registration-panel{padding:24px}.registration-aside ul{columns:1}.registration-panel #register{grid-template-columns:1fr}.registration-panel #register .field{grid-column:1/-1}}
-</style>
-  <script src="/register.js?v=20261119b" defer></script>
-  <script defer>document.addEventListener("DOMContentLoaded",()=>{document.getElementById("show-passwords")?.addEventListener("change",e=>{for(const id of ["password","confirm-password"]){const input=document.getElementById(id);if(input)input.type=e.target.checked?"text":"password";}});});</script>
-<link rel="stylesheet" href="/mar-khoor-design.css">
-
-<style>
-/* Registration-only overrides; no shared stylesheet or application logic changes. */
-.mk-register { color-scheme: light; }
-.mk-register main { padding: clamp(20px,4vw,64px) 20px; }
-.mk-register .registration-shell {
-  display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
-  width: min(100%,1180px); max-width:1180px; margin: 0 auto;
-  gap: 20px; align-items: stretch; overflow: visible; background: transparent;
-}
-.mk-register .registration-aside {
-  display:flex; flex-direction:column; justify-content:center; min-width:0;
-  padding:clamp(24px,4vw,48px); border-radius:22px;
-  background:#fff; color:#18243a; overflow:visible;
-}
-.mk-register .registration-aside .eyebrow {
-  align-self:flex-start; color:#38205f!important; background:#e9ddff;
-  border:1px solid #b99ce8; font-weight:800;
-}
-.mk-register .registration-aside h2 {
-  max-width:none; overflow:visible; overflow-wrap:normal;
-  color:#152039; font-size:clamp(30px,3vw,46px); line-height:1.16;
-}
-.mk-register .registration-aside h2 em { color:#6941bc; }
-.mk-register .registration-aside p:not(.eyebrow) { color:#39445c!important; }
-.mk-register .registration-aside ul { margin:16px 0 0; padding:0; columns:1; }
-.mk-register .registration-aside li {
-  padding:9px 0 9px 30px; color:#26344d; line-height:1.5;
-}
-.mk-register .registration-aside li::before {
-  content:"✓"; display:block; position:absolute; left:0; top:9px; color:#6841b8;
-}
-.mk-register .registration-panel {
-  min-width:0; margin:0; background:#171c35; color:#f7f5ff;
-  border:1px solid #7860bf88; border-radius:22px;
-}
-.mk-register .registration-panel h1 { color:#f7f5ff; }
-.mk-register .registration-panel p:not(.step-label) { color:#d6d0e9!important; }
-.mk-register .registration-panel .step-label { color:#d5bfff!important; }
-.mk-register .register-steps {
-  display:grid; grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:8px; margin:22px 0 8px; padding:0; list-style:none; counter-reset:regstep;
-}
-.mk-register .register-steps li {
-  counter-increment:regstep; display:flex; align-items:center; gap:8px;
-  min-width:0; padding:10px; border:1px solid #51496d; border-radius:10px;
-  background:#222841; color:#d2cbe6; font-size:12px; line-height:1.3;
-}
-.mk-register .register-steps li::before {
-  content:counter(regstep); display:grid; place-items:center;
-  flex:0 0 24px; height:24px; border-radius:50%;
-  background:#3b3654; color:#fff; font-weight:800;
-}
-.mk-register .register-steps li[aria-current="step"] {
-  color:#fff; border-color:#b89bff; background:#3b2b62; font-weight:800;
-}
-.mk-register .register-steps li[aria-current="step"]::before { background:#b99aff; color:#1a1530; }
-.mk-register .registration-panel #register {
-  display:block!important; width:100%; margin-top:20px;
-}
-.mk-register .registration-panel #register fieldset:not([hidden]) {
-  display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:16px; min-width:0; padding:0; margin:0; border:0;
-}
-.mk-register .registration-panel #register fieldset[hidden] { display:none!important; }
-.mk-register .registration-panel #register legend { color:#f4efff; margin-bottom:14px; }
-.mk-register .registration-panel #register .field { min-width:0; margin:0; }
-.mk-register .registration-panel #register .field.full { grid-column:1/-1; }
-.mk-register .registration-panel #register label { color:#f1ecff!important; }
-.mk-register .registration-panel #register :is(input:not([type=checkbox]),select) {
-  box-sizing:border-box; width:100%; height:48px!important; min-height:48px!important;
-  max-height:48px!important; padding:10px 12px!important;
-  border:1px solid #8c80ab; border-radius:10px;
-  background:#101629; color:#fff; font-size:16px; line-height:normal;
-}
-.mk-register .registration-panel #register input::placeholder { color:#c3bcd3; opacity:1; }
-.mk-register .registration-panel #register select option { color:#fff; background:#101629; }
-.mk-register .registration-panel #register :is(input,select):focus-visible {
-  outline:3px solid #b99aff; outline-offset:2px;
-}
-.mk-register .registration-panel #register .register-actions {
-  display:flex; justify-content:flex-end; flex-wrap:wrap;
-  gap:12px; width:100%; margin-top:22px; clear:both;
-}
-.mk-register .registration-panel #register .register-actions button {
-  display:inline-flex; align-items:center; justify-content:center;
-  width:auto; min-width:150px; min-height:48px; margin:0;
-  padding:12px 20px; background:#7047df; color:#fff;
-}
-.mk-register .registration-panel #register .register-actions button[hidden] { display:none!important; }
-.mk-register .registration-panel #register .register-actions #previous-step { background:#34304e; }
-.mk-register .registration-panel a { color:#e3d3ff; text-decoration:underline; }
-.mk-register #status:not(:empty) {
-  color:#ffe1e8; background:#44263b; border:1px solid #ae7089;
-}
-.mk-register #done { color:#fff; background:#252c47; }
-.mk-register #done h2 { color:#fff; }
-@media(max-width:900px) {
-  .mk-register .registration-shell { grid-template-columns:minmax(0,1fr); }
-  .mk-register .registration-aside { min-height:0; }
-}
-@media(max-width:540px) {
-  .mk-register main { padding:16px; }
-  .mk-register .registration-shell { gap:14px; }
-  .mk-register .registration-aside,.mk-register .registration-panel { padding:22px 18px; }
-  .mk-register .registration-aside h2 { font-size:32px; }
-  .mk-register .register-steps { grid-template-columns:minmax(0,1fr); }
-  .mk-register .registration-panel #register fieldset:not([hidden]) { grid-template-columns:minmax(0,1fr); }
-  .mk-register .registration-panel #register .register-actions button { flex:1 1 100%; }
-}
-</style>
-<style>
-/* Registration-only mobile progress and tap-target refinements. */
-@media(max-width:540px) {
-  .mk-register .register-steps { grid-template-columns:repeat(3,minmax(0,1fr)); gap:5px; }
-  .mk-register .register-steps li { display:flex; flex-direction:column; align-items:center; text-align:center; justify-content:center; padding:8px 3px; font-size:11px; overflow-wrap:anywhere; }
-  .mk-register .register-steps li::before { flex:0 0 24px; width:24px; }
-  .mk-register .registration-panel #register .register-actions button { min-height:48px; }
-}
-@media(prefers-reduced-motion:reduce) {
-  .mk-register *, .mk-register *::before, .mk-register *::after { scroll-behavior:auto!important; transition:none!important; }
-}
-</style>
-<style>
-/* Registration polish: consistent homepage branding, calmer composition, readable steps. */
-.mk-register { background:#0d1327; }
-.mk-register main { position:relative; isolation:isolate; min-height:calc(100vh - 76px); background:linear-gradient(90deg,#10162be8 0%,#10162bcb 42%,#10162b55 75%),url('/assets/approved-mountain.webp') 74% 40%/cover no-repeat; }
-.mk-register .registration-shell { grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr); gap:18px; align-items:center; box-shadow:none; }
-.mk-register .registration-aside { padding:clamp(26px,3vw,40px); align-self:center; border:1px solid #e7e9f2; box-shadow:0 18px 48px #080d2440; }
-.mk-register .registration-aside h2 { font-size:clamp(30px,2.7vw,41px); margin:12px 0 14px; }
-.mk-register .registration-aside h2 em { color:#4932a3; }
-.mk-register .registration-aside ul { margin-top:12px; }
-.mk-register .registration-aside li { padding-block:7px; }
-.mk-register .registration-aside .eyebrow { color:#173c27!important; background:#e5fbe7; border-color:#93d69a; }
-.mk-register .registration-aside li::before { color:#258d42; }
-.mk-register .registration-panel { box-shadow:0 22px 54px #070c2560; border-color:#5b6b85; }
-.mk-register .registration-panel .step-label { color:#a5f3ae!important; }
-.mk-register .register-steps li { border-color:#646b8d; color:#e8e5f5; font-size:12px; }
-.mk-register .register-steps li[aria-current="step"] { background:#264634; border-color:#6cf17a; }
-.mk-register .register-steps li[aria-current="step"]::before { background:#65f36e; color:#0d1b17; }
-.mk-register .registration-panel #register label { font-size:.96rem; line-height:1.45; }
-.mk-register .registration-panel #register .register-actions button { min-width:190px; min-height:52px; background:#65f36e; color:#0a1926; font-size:1rem; font-weight:800; border-radius:12px; }
-.mk-register .registration-panel #register .register-actions #previous-step { background:#353a55; color:#fff; }
-.mk-register .registration-panel #register :is(input,select):focus-visible { outline-color:#65f36e; }
-@media(max-width:900px){.mk-register main { background-position:70% center; }.mk-register .registration-shell { grid-template-columns:minmax(0,1fr); max-width:650px; }.mk-register .registration-aside { width:100%; box-sizing:border-box; }}
-@media(max-width:540px){.mk-register main { padding:16px; }.mk-register .registration-aside { padding:22px 20px; }.mk-register .registration-aside h2 { font-size:30px; }.mk-register .registration-panel #register .register-actions button { min-width:0; width:100%; }}
-</style>
-
-<!-- Approved charcoal-orange UI overrides from PR 27 -->
-<style>
-.registration-shell{max-width:1260px;margin:30px auto;display:grid;grid-template-columns:minmax(270px,1fr) minmax(0,1.35fr);min-height:560px;border-radius:24px;overflow:hidden;box-shadow:0 22px 65px #062c2033;background:#fff7ec}
-.registration-aside{padding:clamp(24px,4vw,52px);background:linear-gradient(145deg,#062c20f0,#092a20ee),url('/assets/chef.webp') center/cover;color:#fff7ec;display:flex;flex-direction:column;justify-content:center}
-.registration-aside h2{font-size:clamp(30px,3.2vw,48px);line-height:1.12;margin:14px 0;color:#fff7ec}
-.registration-aside h2 em{color:#efc96d;font-style:normal}
-.registration-aside p,.registration-aside li{color:#e3eee8}
-.registration-aside ul{padding-left:22px;line-height:2}
-.registration-panel{min-width:0;padding:clamp(24px,4vw,52px);background:#fff7ec}
-.registration-panel h1{color:#103d2c;font-size:clamp(25px,2.5vw,38px);line-height:1.15;margin:16px 0 8px}
-.registration-panel p{color:#52645b}
-.step-label{color:#99732d!important;font-weight:750;letter-spacing:.08em;font-size:.8rem}
-.registration-panel #register{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 18px;align-items:start;width:100%;margin-top:22px}
-.registration-panel #register .field{display:flex;flex-direction:column;min-width:0;gap:8px;margin-bottom:18px}
-.registration-panel #register .field.full{grid-column:1/-1}
-.registration-panel #register label{position:static;float:none;display:block;margin:0;color:#123e2a;font-weight:700;font-size:.92rem}
-.registration-panel #register input,.registration-panel #register select{position:static;float:none;display:block;width:100%;min-width:0;max-width:100%;height:48px;padding:12px;border:1px solid #c8d8cd;border-radius:10px;background:#fff7ec;color:#123e2a;box-sizing:border-box}
-/* Override inherited landing-page form sizing and grid stretching. */
-.registration-panel #register{grid-auto-rows:min-content!important;align-content:start!important;align-items:start!important}
-.registration-panel #register .field{height:auto!important;min-height:0!important;align-self:start!important;justify-content:flex-start!important;display:flex!important;flex-direction:column!important}
-.registration-panel #register input,.registration-panel #register select{height:48px!important;min-height:48px!important;max-height:48px!important;line-height:normal!important;flex:0 0 48px!important;padding:10px 12px!important;align-self:stretch!important}
-.registration-panel #register .field.full{grid-column:1/-1}
-@media(max-width:540px){.registration-panel #register{grid-template-columns:minmax(0,1fr)!important}}
-.registration-panel #register input:focus,.registration-panel #register select:focus{outline:2px solid #c9a456;outline-offset:1px}
-.registration-panel #register button{grid-column:1/-1;display:block;position:static;float:none;width:100%;padding:15px 20px;margin:8px 0 0;background:linear-gradient(90deg,#08673b,#064a2f);color:#fff7ec;border:0;border-radius:11px;font-weight:750;cursor:pointer}
-.registration-panel #register button:disabled{opacity:.55;cursor:wait}
-.registration-panel #register .password-toggle{margin-bottom:4px}
-.registration-panel #register .password-toggle label{display:flex;align-items:center;gap:9px;font-weight:500;color:#52645b}
-.registration-panel #register .password-toggle input{width:16px!important;min-width:16px!important;height:16px!important;min-height:16px!important;max-height:16px!important;flex:0 0 16px!important;margin:0}
-.registration-aside ul{list-style:none;padding:0}
-.registration-aside li{position:relative;padding-left:28px}
-.registration-aside li:before{content:"✓";position:absolute;left:0;top:3px;color:#e8c46d;font-weight:800}
-#status:not(:empty){padding:12px;background:#fff1e7;color:#8d3218;border-radius:10px}
-#done{padding:20px;border-radius:14px;background:#eff8f1}
-@media(max-width:900px){.registration-shell{grid-template-columns:1fr}.registration-aside{min-height:210px}.registration-aside ul{columns:2}}
-@media(max-width:540px){.registration-shell{margin:12px auto;border-radius:16px}.registration-aside,.registration-panel{padding:24px}.registration-aside ul{columns:1}.registration-panel #register{grid-template-columns:1fr}.registration-panel #register .field{grid-column:1/-1}}
-</style>
-<style>
-/* Registration-only overrides; no shared stylesheet or application logic changes. */
-.mk-register { color-scheme: dark; }
-.mk-register main { padding: clamp(20px,4vw,64px) 20px; }
-.mk-register .registration-shell {
-  display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
-  width: min(100%,1180px); max-width:1180px; margin: 0 auto;
-  gap: 20px; align-items: stretch; overflow: visible; background: transparent;
-}
-.mk-register .registration-aside {
-  display:flex; flex-direction:column; justify-content:center; min-width:0;
-  padding:clamp(24px,4vw,48px); border-radius:22px;
-  background:linear-gradient(145deg,#2d211e,#161416 72%); color:#fff7ec; overflow:visible;
-}
-.mk-register .registration-aside .eyebrow {
-  align-self:flex-start; color:#ffbd7b!important; background:#342219;
-  border:1px solid #79543e; font-weight:800;
-}
-.mk-register .registration-aside h2 {
-  max-width:none; overflow:visible; overflow-wrap:normal;
-  color:#fff7ec; font-size:clamp(30px,3vw,46px); line-height:1.16;
-}
-.mk-register .registration-aside h2 em { color:#ffab52; }
-.mk-register .registration-aside p:not(.eyebrow) { color:#d4c0b1!important; }
-.mk-register .registration-aside ul { margin:16px 0 0; padding:0; columns:1; }
-.mk-register .registration-aside li {
-  padding:9px 0 9px 30px; color:#ead9cc; line-height:1.5;
-}
-.mk-register .registration-aside li::before {
-  content:"✓"; display:block; position:absolute; left:0; top:9px; color:#ffab52;
-}
-.mk-register .registration-panel {
-  min-width:0; margin:0; background:#1c1718; color:#fff7ec;
-  border:1px solid #5c4338; border-radius:22px;
-}
-.mk-register .registration-panel h1 { color:#fff7ec; }
-.mk-register .registration-panel p:not(.step-label) { color:#d4c0b1!important; }
-.mk-register .registration-panel .step-label { color:#ffbd7b!important; }
-.mk-register .register-steps {
-  display:grid; grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:8px; margin:22px 0 8px; padding:0; list-style:none; counter-reset:regstep;
-}
-.mk-register .register-steps li {
-  counter-increment:regstep; display:flex; align-items:center; gap:8px;
-  min-width:0; padding:10px; border:1px solid #564038; border-radius:10px;
-  background:#211a1a; color:#dbcabd; font-size:12px; line-height:1.3;
-}
-.mk-register .register-steps li::before {
-  content:counter(regstep); display:grid; place-items:center;
-  flex:0 0 24px; height:24px; border-radius:50%;
-  background:#49312a; color:#fff7ec; font-weight:800;
-}
-.mk-register .register-steps li[aria-current="step"] {
-  color:#fff7ec; border-color:#ffad65; background:#39261f; font-weight:800;
-}
-.mk-register .register-steps li[aria-current="step"]::before { background:#ffaf63; color:#241409; }
-.mk-register .registration-panel #register {
-  display:block!important; width:100%; margin-top:20px;
-}
-.mk-register .registration-panel #register fieldset:not([hidden]) {
-  display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:16px; min-width:0; padding:0; margin:0; border:0;
-}
-.mk-register .registration-panel #register fieldset[hidden] { display:none!important; }
-.mk-register .registration-panel #register legend { color:#fff7ec; margin-bottom:14px; }
-.mk-register .registration-panel #register .field { min-width:0; margin:0; }
-.mk-register .registration-panel #register .field.full { grid-column:1/-1; }
-.mk-register .registration-panel #register label { color:#f4e7dc!important; }
-.mk-register .registration-panel #register :is(input:not([type=checkbox]),select) {
-  box-sizing:border-box; width:100%; height:48px!important; min-height:48px!important;
-  max-height:48px!important; padding:10px 12px!important;
-  border:1px solid #725145; border-radius:10px;
-  background:#151214; color:#fff7ec; font-size:16px; line-height:normal;
-}
-.mk-register .registration-panel #register input::placeholder { color:#bfaea2; opacity:1; }
-.mk-register .registration-panel #register select option { color:#fff7ec; background:#151214; }
-.mk-register .registration-panel #register :is(input,select):focus-visible {
-  outline:3px solid #ffaf63; outline-offset:2px;
-}
-.mk-register .registration-panel #register .register-actions {
-  display:flex; justify-content:flex-end; flex-wrap:wrap;
-  gap:12px; width:100%; margin-top:22px; clear:both;
-}
-.mk-register .registration-panel #register .register-actions button {
-  display:inline-flex; align-items:center; justify-content:center;
-  width:auto; min-width:150px; min-height:48px; margin:0;
-  padding:12px 20px; background:#ffab52; color:#fff7ec;
-}
-.mk-register .registration-panel #register .register-actions button[hidden] { display:none!important; }
-.mk-register .registration-panel #register .register-actions #previous-step { background:#34231e; }
-.mk-register .registration-panel a { color:#ffbc80; text-decoration:underline; }
-.mk-register #status:not(:empty) {
-  color:#ffe1e8; background:#44263b; border:1px solid #ae7089;
-}
-.mk-register #done { color:#fff7ec; background:#2b211e; }
-.mk-register #done h2 { color:#fff7ec; }
-@media(max-width:900px) {
-  .mk-register .registration-shell { grid-template-columns:minmax(0,1fr); }
-  .mk-register .registration-aside { min-height:0; }
-}
-@media(max-width:540px) {
-  .mk-register main { padding:16px; }
-  .mk-register .registration-shell { gap:14px; }
-  .mk-register .registration-aside,.mk-register .registration-panel { padding:22px 18px; }
-  .mk-register .registration-aside h2 { font-size:32px; }
-  .mk-register .register-steps { grid-template-columns:minmax(0,1fr); }
-  .mk-register .registration-panel #register fieldset:not([hidden]) { grid-template-columns:minmax(0,1fr); }
-  .mk-register .registration-panel #register .register-actions button { flex:1 1 100%; }
-}
-</style>
-<style>
-/* Registration-only mobile progress and tap-target refinements. */
-@media(max-width:540px) {
-  .mk-register .register-steps { grid-template-columns:repeat(3,minmax(0,1fr)); gap:5px; }
-  .mk-register .register-steps li { display:flex; flex-direction:column; align-items:center; text-align:center; justify-content:center; padding:8px 3px; font-size:11px; overflow-wrap:anywhere; }
-  .mk-register .register-steps li::before { flex:0 0 24px; width:24px; }
-  .mk-register .registration-panel #register .register-actions button { min-height:48px; }
-}
-@media(prefers-reduced-motion:reduce) {
-  .mk-register *, .mk-register *::before, .mk-register *::after { scroll-behavior:auto!important; transition:none!important; }
-}
-</style>
-<style>
-/* Registration polish: consistent homepage branding, calmer composition, readable steps. */
-.mk-register { background:#0d0c0e; }
-.mk-register main { position:relative; isolation:isolate; min-height:calc(100vh - 76px); background:linear-gradient(90deg,#110e10f0 0%,#171112df 42%,#25171288 75%),url('/assets/approved-mountain.webp') 74% 40%/cover no-repeat; }
-.mk-register .registration-shell { grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr); gap:18px; align-items:center; box-shadow:none; }
-.mk-register .registration-aside { padding:clamp(26px,3vw,40px); align-self:center; border:1px solid #65483a; box-shadow:0 18px 48px #080d2440; }
-.mk-register .registration-aside h2 { font-size:clamp(30px,2.7vw,41px); margin:12px 0 14px; }
-.mk-register .registration-aside h2 em { color:#ffad63; }
-.mk-register .registration-aside ul { margin-top:12px; }
-.mk-register .registration-aside li { padding-block:7px; }
-.mk-register .registration-aside .eyebrow { color:#ffba79!important; background:#39261e; border-color:#74503b; }
-.mk-register .registration-aside li::before { color:#ffab52; }
-.mk-register .registration-panel { box-shadow:0 22px 54px #070c2560; border-color:#65483a; }
-.mk-register .registration-panel .step-label { color:#ffb477!important; }
-.mk-register .register-steps li { border-color:#61463c; color:#ead9cb; font-size:12px; }
-.mk-register .register-steps li[aria-current="step"] { background:#39261e; border-color:#ffac61; }
-.mk-register .register-steps li[aria-current="step"]::before { background:#ffab52; color:#211207; }
-.mk-register .registration-panel #register label { font-size:.96rem; line-height:1.45; }
-.mk-register .registration-panel #register .register-actions button { min-width:190px; min-height:52px; background:linear-gradient(125deg,#ffc16d,#ff8b3b); color:#211207; font-size:1rem; font-weight:800; border-radius:12px; }
-.mk-register .registration-panel #register .register-actions #previous-step { background:#382720; color:#fff7ec; }
-.mk-register .registration-panel #register :is(input,select):focus-visible { outline-color:#ffab52; }
-@media(max-width:900px){.mk-register main { background-position:70% center; }.mk-register .registration-shell { grid-template-columns:minmax(0,1fr); max-width:650px; }.mk-register .registration-aside { width:100%; box-sizing:border-box; }}
-@media(max-width:540px){.mk-register main { padding:16px; }.mk-register .registration-aside { padding:22px 20px; }.mk-register .registration-aside h2 { font-size:30px; }.mk-register .registration-panel #register .register-actions button { min-width:0; width:100%; }}
-</style>
-<style>
-:is(.mk-register,.mk-owner.signing-in) {color-scheme:dark;--accent:#ffab52;--ink:#fff7ec;--muted:#d0beb0}
-.mk-register .top,.mk-owner.signing-in .layout>aside {background:#100e10;border-color:#48342c}
-.mk-register .brand .wordmark,.mk-owner.signing-in .brand .wordmark {color:#ffb777}
-.mk-register #register button:not(:disabled),.mk-owner.signing-in #login button:not(:disabled),.mk-owner.signing-in .login-show {cursor:pointer}
-.mk-register #register .register-actions button:hover:not(:disabled),.mk-owner.signing-in #login button:hover:not(:disabled) {filter:brightness(1.1)}
-.mk-register #register input[type=checkbox],.mk-owner.signing-in #login input[type=checkbox] {accent-color:#ffab52}
-:is(.mk-register,.mk-owner.signing-in) :is(a,button,input,select):focus-visible {outline:2px solid #ffbc79;outline-offset:3px}
-</style>
-<style>.chosen-plan{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:16px 0 0;padding:12px 14px;border-radius:12px;border:1px solid #6d4c3a;background:#2a201c;color:#fff0e3;font-weight:600}.chosen-plan label{font-weight:800;color:#ffd8b0}.chosen-plan select{height:40px;padding:0 10px;border:1px solid #725145;border-radius:9px;background:#151214;color:#fff7ec;font-weight:700}.chosen-plan a{color:#ffbc80;font-weight:700}</style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Register your restaurant | Mar-Khoor AI</title>
+<link rel="icon" type="image/svg+xml" href="/assets/markhor-ink.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="/summit.css?v=20261120-s2">
+<link rel="stylesheet" href="/public-pages.css?v=20261120-s2">
+<script src="/register.js?v=20261120-s2" defer></script>
+<script defer>document.addEventListener("DOMContentLoaded",()=>{document.getElementById("show-passwords")?.addEventListener("change",e=>{for(const id of ["password","confirm-password"]){const input=document.getElementById(id);if(input)input.type=e.target.checked?"text":"password";}});});</script>
 </head>
-<body class="landing mk-register">
-  <header class="top"><a class="brand" href="/"><img src="/assets/approved-markhor.svg" width="34" height="34" alt=""><span class="wordmark">Mar-Khoor</span></a></header>
-  <main class="landing-section">
-    <div class="registration-shell">
-      <aside class="registration-aside">
-        <p class="eyebrow">MAR-KHOOR AI</p>
-        <h2>Grow your <em>restaurant with AI</em></h2>
-        <p>Your restaurant. Smarter operations.</p>
-        <ul><li>AI Phone Orders</li><li>WhatsApp Orders</li><li>Online Menu &amp; Offers</li><li>Multilingual Support</li></ul>
-      </aside>
-      <section class="registration-panel">
-        <p class="step-label">RESTAURANT PARTNER REGISTRATION</p>
-        <h1>Register your restaurant</h1>
-        <p>Start your AI-powered restaurant in minutes.</p>
-        <ol class="register-steps" aria-label="Registration progress">
-          <li aria-current="step">Restaurant Details</li><li>Owner Information</li><li>Account Setup</li>
-        </ol>
-        <div id="chosen-plan" class="chosen-plan">
-          <label for="chosen-plan-select">Your plan</label>
-          <select id="chosen-plan-select"><option value="">Decide after sign-in</option><option value="starter">Starter</option><option value="premium">Premium</option><option value="enterprise">Enterprise</option></select>
-          <select id="chosen-cycle-select" aria-label="Billing"><option value="monthly">Monthly</option><option value="yearly">Yearly (2 months free)</option></select>
-          <a href="/build-plan.html" id="compare-plans">Compare plans</a>
-        </div>
-        <form id="register">
-          <fieldset><legend>Restaurant Details</legend><div class="field"><label for="restaurant-name"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3v6a3 3 0 0 0 6 0V3M7 3v18m12 0V3c-3 2-4 5-4 9h4"/></svg>Restaurant name *</label><input id="restaurant-name" required maxlength="160" autocomplete="organization" placeholder="e.g. Cheema Cafe"></div><div class="field"><label for="country"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h18v13H3zM8 21h8m-4-4v4"/></svg>Country *</label><select id="country" required><option value="">Select country</option></select></div></fieldset>
-          <fieldset hidden disabled><legend>Owner Information</legend><div class="field full"><label for="email"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18v14H3zM3 6l9 7 9-7"/></svg>Owner Email *</label><input id="email" type="email" required maxlength="254" autocomplete="username" placeholder="owner@example.com"></div></fieldset>
-          <fieldset hidden disabled><legend>Account Setup</legend><div class="field"><label for="password"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 10h12v11H6zM8 10V7a4 4 0 0 1 8 0v3"/></svg>Password *</label><input id="password" type="password" required minlength="12" maxlength="1024" autocomplete="new-password"></div><div class="field"><label for="confirm-password"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 10h12v11H6zM8 10V7a4 4 0 0 1 8 0v3"/></svg>Confirm password *</label><input id="confirm-password" type="password" required minlength="12" maxlength="1024" autocomplete="new-password"></div><div class="field full password-toggle"><label for="show-passwords"><input id="show-passwords" type="checkbox"> Show passwords</label></div></fieldset>
-          <div class="register-actions"><button id="previous-step" type="button" hidden>Back</button><button id="next-step" type="button">Continue</button><button id="create-restaurant" type="submit" hidden>Create restaurant</button></div>
-        </form>
-        <p id="status" role="status" aria-live="polite"></p>
-        <div id="done" hidden><h2>Restaurant created</h2><p id="done-text"></p><p id="registration-voice"></p><a class="button" href="/restaurant.html">Sign in to your workspace</a></div>
-        <p style="margin-top:22px">Already registered? <a href="/restaurant.html" id="signin-link">Sign in</a></p>
-      </section>
-    </div>
-  </main>
+<body class="mk register-page">
+<div class="auth">
+ <div class="auth-art auth-chef">
+  <a class="brand" href="/"><img src="/assets/markhor-ember.svg" width="34" height="34" alt=""><b>Mar<span>-</span>Khoor</b></a>
+  <div class="auth-copy"><span class="eyebrow">Register your restaurant</span><h1 class="display">Your AI ordering desk, ready in minutes.</h1><p>Create your account, then choose a plan and connect WhatsApp, AI calls and your website. You can skip any channel and add it later.</p></div>
+  <ul class="auth-points"><li>AI phone orders</li><li>WhatsApp orders</li><li>AI website with your live menu</li><li>Urdu &amp; English</li></ul>
+ </div>
+ <div class="auth-form">
+  <section class="auth-card register-card">
+   <ol class="register-steps stepper" aria-label="Registration progress">
+    <li aria-current="step"><b>1</b>Restaurant</li><li><b>2</b>Owner</li><li><b>3</b>Account</li>
+   </ol>
+   <div class="auth-title"><h2>Register your restaurant</h2><p class="muted">Start taking AI-powered orders in minutes.</p></div>
+   <div id="chosen-plan" class="chosen-plan">
+    <label for="chosen-plan-select">Your plan</label>
+    <select id="chosen-plan-select" class="input"><option value="">Decide after sign-in</option><option value="starter">Starter</option><option value="premium">Premium</option><option value="enterprise">Enterprise</option></select>
+    <select id="chosen-cycle-select" class="input" aria-label="Billing"><option value="monthly">Monthly</option><option value="yearly">Yearly (2 months free)</option></select>
+    <a href="/build-plan.html" id="compare-plans" class="small">Compare plans</a>
+   </div>
+   <form id="register">
+    <fieldset><legend class="visually-hidden">Restaurant details</legend>
+     <div class="field"><label for="restaurant-name">Restaurant name</label><input class="input" id="restaurant-name" required maxlength="160" autocomplete="organization" placeholder="e.g. Cheema Cafe"></div>
+     <div class="field"><label for="country">Country</label><select class="input" id="country" required><option value="">Select country</option></select><span class="hint">Sets your currency and plan prices.</span></div>
+    </fieldset>
+    <fieldset hidden disabled><legend class="visually-hidden">Owner information</legend>
+     <div class="field"><label for="email">Owner email</label><input class="input" id="email" type="email" required maxlength="254" autocomplete="username" placeholder="owner@example.com"><span class="hint">You will sign in with this email.</span></div>
+    </fieldset>
+    <fieldset hidden disabled><legend class="visually-hidden">Account setup</legend>
+     <div class="field"><label for="password">Password</label><input class="input" id="password" type="password" required minlength="12" maxlength="1024" autocomplete="new-password" placeholder="At least 12 characters"></div>
+     <div class="field"><label for="confirm-password">Confirm password</label><input class="input" id="confirm-password" type="password" required minlength="12" maxlength="1024" autocomplete="new-password" placeholder="Repeat the password"></div>
+     <label class="check password-toggle"><input id="show-passwords" type="checkbox"> Show passwords</label>
+    </fieldset>
+    <div class="register-actions"><button id="previous-step" type="button" class="btn btn-ghost btn-lg" hidden>Back</button><button id="next-step" type="button" class="btn btn-primary btn-lg">Continue</button><button id="create-restaurant" type="submit" class="btn btn-primary btn-lg" hidden>Create restaurant</button></div>
+   </form>
+   <p id="status" role="status" aria-live="polite" class="status-line"></p>
+   <div id="done" class="notice notice-ok" hidden><div><h2>Restaurant created</h2><p id="done-text"></p><p id="registration-voice"></p><a class="button btn btn-primary" href="/restaurant.html">Sign in to your workspace</a></div></div>
+   <p class="small muted register-signin">Already registered? <a href="/restaurant.html" id="signin-link">Sign in</a></p>
+  </section>
+ </div>
+</div>
 </body>
 </html>
-

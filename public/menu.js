@@ -1,14 +1,71 @@
 import { rememberOrder, savedOrders, trackingLink } from './order-history.js';
-const status=document.querySelector('#status'),target=document.querySelector('#menu'),cart=new Map();
-let restaurant=null;
+
+const status = document.querySelector('#status');
+const target = document.querySelector('#menu');
+const cart = new Map();
 const storeName = document.querySelector('#store-name');
 const cartSubtotal = document.querySelector('#cart-subtotal');
-function renderCart(){const root=document.querySelector('#cart');root.replaceChildren();for(const item of cart.values()){const row=document.createElement('p'),remove=document.createElement('button');row.textContent=item.name+' × '+item.quantity+' ';remove.textContent='Remove';remove.addEventListener('click',()=>{cart.delete(item.id);renderCart()});row.append(remove);root.append(row)}document.querySelector('#checkout').hidden=!cart.size;
-  if (restaurant && cart.size) {
-    const subtotal = [...cart.values()].reduce((sum, item) => sum + item.price_minor * item.quantity, 0);
-    cartSubtotal.textContent = new Intl.NumberFormat(undefined, { style: 'currency', currency: restaurant.currency }).format(subtotal / 100);
+const checkout = document.querySelector('#checkout');
+const orderStatus = document.querySelector('#order-status');
+const orderForm = document.querySelector('#order-form');
+const categoryNav = document.querySelector('#category-nav');
+const mobileBar = document.querySelector('#mobile-cart-bar');
+let restaurant = null;
+let currency = null;
+
+const node = (tag, text, className) => {
+  const element = document.createElement(tag);
+  if (text != null) element.textContent = text;
+  if (className) element.className = className;
+  return element;
+};
+const money = minor => currency ? currency.format(minor / 100) : String(minor / 100);
+const subtotal = () => [...cart.values()].reduce((sum, item) => sum + item.price_minor * item.quantity, 0);
+const itemCount = () => [...cart.values()].reduce((sum, item) => sum + item.quantity, 0);
+
+function photoUrl(value) {
+  if (!value) return null;
+  try {
+    const url = new URL(value, location.origin);
+    if ((url.protocol === 'https:' || (url.origin === location.origin && url.pathname.startsWith('/media/'))) && !url.username && !url.password) return url.href;
+  } catch {}
+  return null;
+}
+
+function setQuantity(item, quantity) {
+  if (quantity <= 0) cart.delete(item.id);
+  else cart.set(item.id, { ...item, quantity: Math.min(99, quantity) });
+  renderCart();
+}
+
+function renderCart() {
+  const root = document.querySelector('#cart');
+  root.replaceChildren(...[...cart.values()].map(item => {
+    const row = node('div', null, 'cart-line');
+    const name = node('span', item.name, 'cart-name');
+    const stepper = node('div', null, 'qty');
+    const minus = node('button', '−'); minus.type = 'button'; minus.setAttribute('aria-label', 'Remove one ' + item.name);
+    const plus = node('button', '+'); plus.type = 'button'; plus.setAttribute('aria-label', 'Add one ' + item.name);
+    minus.addEventListener('click', () => setQuantity(item, item.quantity - 1));
+    plus.addEventListener('click', () => setQuantity(item, item.quantity + 1));
+    stepper.append(minus, node('strong', String(item.quantity)), plus);
+    row.append(name, stepper, node('span', money(item.price_minor * item.quantity), 'num'));
+    return row;
+  }));
+  const count = itemCount();
+  checkout.hidden = !cart.size && !orderStatus.childNodes.length;
+  orderForm.hidden = !cart.size;
+  document.querySelector('#cart-count').textContent = count ? count + (count === 1 ? ' item' : ' items') : '';
+  if (restaurant) cartSubtotal.textContent = money(subtotal());
+  mobileBar.hidden = !cart.size;
+  document.querySelector('#mobile-cart-label').textContent = 'View order · ' + count + (count === 1 ? ' item' : ' items');
+  document.querySelector('#mobile-cart-total').textContent = money(subtotal());
+  for (const card of target.querySelectorAll('[data-item-id]')) {
+    const quantity = cart.get(Number(card.dataset.itemId))?.quantity || 0;
+    card.querySelector('.in-cart').textContent = quantity ? quantity + ' in order' : '';
   }
 }
+
 function updateOrderLinks(slug) {
   const base = '/orders.html?restaurant=' + encodeURIComponent(slug);
   const latest = savedOrders().find(order => order.slug === slug);
@@ -17,74 +74,139 @@ function updateOrderLinks(slug) {
   document.querySelector('#customer-refunds').href = base + '#refunds';
 }
 
+function dishCard(item) {
+  const card = node('article', null, 'dish-card');
+  card.dataset.itemId = item.id;
+  const src = photoUrl(item.image_url);
+  if (src) {
+    const photo = document.createElement('img');
+    Object.assign(photo, { src, alt: '', loading: 'lazy', width: 320, height: 240, referrerPolicy: 'no-referrer' });
+    photo.className = 'dish-photo';
+    card.append(photo);
+  }
+  const body = node('div', null, 'dish-body');
+  const title = node('h3', item.name);
+  const description = node('p', item.description || '', 'dish-text');
+  const foot = node('div', null, 'dish-foot');
+  const add = node('button', 'Add', 'btn btn-ghost btn-sm');
+  add.type = 'button';
+  add.setAttribute('aria-label', 'Add ' + item.name + ' to order');
+  add.addEventListener('click', () => setQuantity(item, (cart.get(item.id)?.quantity || 0) + 1));
+  foot.append(node('strong', money(item.price_minor), 'dish-price num'), node('span', '', 'in-cart'), add);
+  body.append(title, description, foot);
+  card.append(body);
+  return card;
+}
+
 async function loadMenu(slug) {
-  const slugPath = encodeURIComponent(slug);
   updateOrderLinks(slug);
   status.textContent = 'Loading menu…';
   try {
-    const response = await fetch('/api/public/restaurants/' + slugPath + '/menu');
+    const response = await fetch('/api/public/restaurants/' + encodeURIComponent(slug) + '/menu');
     const data = await response.json();
     if (!response.ok) throw Error(data.error || 'Menu unavailable');
     restaurant = data.restaurant;
-    storeName.textContent = restaurant.name.toUpperCase();
-    document.title = storeName.textContent;
-    const currency = new Intl.NumberFormat(undefined, { style: 'currency', currency: restaurant.currency });
+    currency = new Intl.NumberFormat(undefined, { style: 'currency', currency: restaurant.currency });
+    storeName.textContent = restaurant.name;
+    document.title = restaurant.name + ' · Menu';
+    document.querySelector('#store-mark').textContent = restaurant.name.split(/\s+/).filter(Boolean).slice(0, 2).map(word => word[0]).join('').toUpperCase() || 'R';
+    document.querySelector('#store-link').href = '/r/' + encodeURIComponent(slug);
+    const groups = new Map();
     for (const item of data.items) {
-      const card = document.createElement('article');
-      const title = document.createElement('h3');
-      const description = document.createElement('p');
-      const price = document.createElement('strong');
-      const add = document.createElement('button');
-      title.textContent = item.name;
-      description.textContent = item.description || '';
-      price.textContent = currency.format(item.price_minor / 100);
-      add.textContent = 'Add to order';
-      add.addEventListener('click', () => {
-        const quantity = cart.get(item.id)?.quantity || 0;
-        if (quantity >= 99) return;
-        cart.set(item.id, { ...item, quantity: quantity + 1 });
-        renderCart();
-      });
-      if (item.image_url) {
-        try {
-          const url = new URL(item.image_url, location.origin);
-          if ((url.protocol === 'https:' || (url.origin === location.origin && url.pathname.startsWith('/media/'))) && !url.username && !url.password) {
-            const photo = document.createElement('img');
-            photo.src = url.href;
-            photo.alt = '';
-            photo.loading = 'lazy';
-            photo.referrerPolicy = 'no-referrer';
-            photo.width = 320;
-            photo.height = 240;
-            photo.style.cssText = 'width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;border-radius:12px';
-            card.append(photo);
-          }
-        } catch {}
-      }
-      card.append(title, description, price, add);
-      target.append(card);
+      const category = (item.category || '').trim() || 'Menu';
+      if (!groups.has(category)) groups.set(category, []);
+      groups.get(category).push(item);
     }
-    menuSearchLabel.hidden = !data.items.length;
-    status.textContent = data.items.length
-      ? data.items.length + (data.items.length === 1 ? ' available item' : ' available items')
-      : 'No menu items yet.';
+    let index = 0;
+    for (const [category, items] of groups) {
+      const section = node('section', null, 'menu-section');
+      section.id = 'category-' + index++;
+      section.append(node('h2', category));
+      const grid = node('div', null, 'dish-grid');
+      grid.append(...items.map(dishCard));
+      section.append(grid);
+      target.append(section);
+      if (groups.size > 1) {
+        const link = node('a', category);
+        link.href = '#' + section.id;
+        categoryNav.append(link);
+      }
+    }
+    categoryNav.hidden = groups.size < 2;
+    document.querySelector('#search-label').hidden = !data.items.length;
+    status.textContent = data.items.length ? '' : 'No menu items yet.';
   } catch (error) {
     status.textContent = error.message;
   }
 }
-document.querySelector('#order-form').addEventListener('submit',async e=>{e.preventDefault();const output=document.querySelector('#order-status');if(!restaurant||!cart.size)return;const orderedFrom=restaurant;const submit=e.currentTarget.querySelector('button');submit.disabled=true;output.textContent='Placing order…';try{const r=await fetch('/api/public/restaurants/'+encodeURIComponent(orderedFrom.slug)+'/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({customer_name:document.querySelector('#customer-name').value,items:[...cart.values()].map(i=>({menu_item_id:i.id,quantity:i.quantity}))})});const data=await r.json();if(!r.ok)throw Error(data.error||'Order failed');output.textContent='Order #'+data.order_id+' received. Status: '+data.status+'. ';if(data.tracking_token){const link=document.createElement('a');const saved={id:data.order_id,token:data.tracking_token,restaurant:orderedFrom.name,slug:orderedFrom.slug,currency:orderedFrom.currency,totalMinor:data.total_minor,placedAt:new Date().toISOString()};rememberOrder(saved);updateOrderLinks(orderedFrom.slug);link.href=trackingLink(saved);link.textContent='Track your order';output.append(link)}cart.clear();renderCart();}catch(err){output.textContent=err.message}finally{submit.disabled=false}});
+
+function syncOrderType() {
+  const delivery = orderForm.elements.order_type.value === 'delivery';
+  for (const field of orderForm.querySelectorAll('.delivery-only')) field.hidden = !delivery;
+  document.querySelector('#delivery-address').required = delivery;
+  document.querySelector('#pay-label').textContent = delivery ? 'Cash on delivery' : 'Cash on pickup';
+}
+orderForm.addEventListener('change', syncOrderType);
+syncOrderType();
+
+orderForm.addEventListener('submit', async event => {
+  event.preventDefault();
+  if (!restaurant || !cart.size) return;
+  const orderedFrom = restaurant;
+  const submit = orderForm.querySelector('button:not([type=button])');
+  const orderType = orderForm.elements.order_type.value;
+  submit.disabled = true;
+  orderStatus.replaceChildren(node('p', 'Placing order…', 'muted'));
+  try {
+    const response = await fetch('/api/public/restaurants/' + encodeURIComponent(orderedFrom.slug) + '/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customer_name: document.querySelector('#customer-name').value,
+        items: [...cart.values()].map(item => ({ menu_item_id: item.id, quantity: item.quantity })),
+        order_type: orderType,
+        payment_method: orderType === 'delivery' ? 'cod' : 'cash_pickup',
+        customer_phone: document.querySelector('#customer-phone').value,
+        delivery_address: orderType === 'delivery' ? document.querySelector('#delivery-address').value : '',
+        delivery_instructions: orderType === 'delivery' ? document.querySelector('#delivery-instructions').value : '',
+        client_request_id: crypto.randomUUID?.() ?? null,
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw Error(data.error || 'Order failed');
+    const done = node('div', null, 'notice notice-ok');
+    const text = node('div');
+    text.append(node('strong', 'Order #' + data.order_id + ' received'), node('p', 'The restaurant will confirm it shortly. Pay in cash on ' + (orderType === 'delivery' ? 'delivery.' : 'pickup.')));
+    if (data.tracking_token) {
+      const saved = { id: data.order_id, token: data.tracking_token, restaurant: orderedFrom.name, slug: orderedFrom.slug, currency: orderedFrom.currency, totalMinor: data.total_minor, placedAt: new Date().toISOString() };
+      rememberOrder(saved);
+      updateOrderLinks(orderedFrom.slug);
+      const link = node('a', 'Track your order', 'btn btn-primary btn-sm');
+      link.href = trackingLink(saved);
+      text.append(link);
+    }
+    done.append(text);
+    orderStatus.replaceChildren(done);
+    cart.clear();
+    renderCart();
+  } catch (error) {
+    orderStatus.replaceChildren(node('p', error.message, 'notice notice-bad'));
+  } finally {
+    submit.disabled = false;
+  }
+});
 
 const menuSearch = document.querySelector('#menu-search');
-const menuSearchLabel = document.querySelector('#search-label');
 menuSearch.addEventListener('input', () => {
   const query = menuSearch.value.trim().toLocaleLowerCase();
   let matches = 0;
   for (const card of target.querySelectorAll('article')) {
-    const text = [...card.querySelectorAll('h3, p')].map(node => node.textContent).join(' ');
+    const text = [...card.querySelectorAll('h3, p')].map(item => item.textContent).join(' ');
     card.hidden = !text.toLocaleLowerCase().includes(query);
     if (!card.hidden) matches++;
   }
-  status.textContent = matches ? matches + ' matching items' : 'No items match your search.';
+  for (const section of target.querySelectorAll('.menu-section')) section.hidden = !section.querySelector('article:not([hidden])');
+  status.textContent = query ? (matches ? matches + ' matching items' : 'No items match your search.') : '';
 });
 
 const preset = new URLSearchParams(location.search).get('restaurant');
