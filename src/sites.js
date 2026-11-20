@@ -8,6 +8,7 @@ import { restaurantAssistantInstructions } from './restaurant-assistant-policy.j
 import { recordUsage } from './subscriptions.js';
 import { buildRestaurantChatInput, normalizeAssistantHistory } from './restaurant-chat-context.js';
 import { classifyAssistantProviderFailure } from './ai-provider-diagnostics.js';
+import { trackSiteEvent, loadSiteAnalytics } from './site-analytics.js';
 
 const notFound = '<!doctype html><meta charset="utf-8"><title>Not found</title><p>This restaurant website is not available.</p>';
 
@@ -302,6 +303,7 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
       '</div></div></details><script src="/restaurant-assistant-panel.js" defer></script>' + (voiceEnabled() ? voiceScript : '')
     : '';
    res.type('html').send(renderSitePage(site, { assistant }));
+   trackSiteEvent(pool, site.restaurant.id, 'page_views', req);
   } catch { res.status(503).type('html').send(notFound); }
  });
 
@@ -310,6 +312,11 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
   catch { res.status(503).json({ error: 'Website unavailable' }); }
  });
  // Preview does not write settings or publish a website. It is scoped to the signed-in tenant.
+ router.get('/api/restaurants/:restaurantId/site/analytics', requireAuth, restaurantAdmin, async (req, res) => {
+  res.set('Cache-Control', 'no-store, private');
+  try { res.json(await loadSiteAnalytics(pool, req.restaurant.id)); }
+  catch { res.status(503).json({ error: 'Website analytics unavailable' }); }
+ });
  router.get('/api/restaurants/:restaurantId/site/templates', requireAuth, restaurantAdmin, (_req, res) => {
   res.json({ templates: Object.entries(SITE_TEMPLATES).map(([id, label]) => ({ id, label })) });
  });

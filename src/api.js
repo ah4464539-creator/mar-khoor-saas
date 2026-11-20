@@ -1,3 +1,4 @@
+import { trackSiteEvent } from './site-analytics.js';
 import express from 'express';
 import { requireAuth } from './auth.js';
 import { audit } from './security.js';
@@ -79,6 +80,7 @@ export function apiRouter(pool) {
    const restaurant=restaurants[0];
    const [items]=await pool.execute('SELECT id,name,description,price_minor,category,image_url FROM menu_items WHERE restaurant_id=? AND active=1 ORDER BY id',[restaurant.id]);
    res.json({restaurant,items});
+   trackSiteEvent(pool,restaurant.id,'menu_views',req);
   } catch {res.status(503).json({error:'Database unavailable'});}
  });
  return router;

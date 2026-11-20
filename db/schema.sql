@@ -347,3 +347,26 @@ CREATE TABLE IF NOT EXISTS restaurant_media (
  KEY restaurant_media_restaurant (restaurant_id, kind),
  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS restaurant_site_daily (
+ restaurant_id BIGINT UNSIGNED NOT NULL,
+ day DATE NOT NULL,
+ page_views INT UNSIGNED NOT NULL DEFAULT 0,
+ menu_views INT UNSIGNED NOT NULL DEFAULT 0,
+ PRIMARY KEY (restaurant_id, day),
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS restaurant_domains (
+ restaurant_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+ domain VARCHAR(253) NOT NULL UNIQUE,
+ token CHAR(32) NOT NULL,
+ status ENUM('pending','verified','connected') NOT NULL DEFAULT 'pending',
+ points_here TINYINT(1) NOT NULL DEFAULT 0,
+ last_error VARCHAR(255) NULL,
+ checked_at TIMESTAMP NULL DEFAULT NULL,
+ verified_at TIMESTAMP NULL DEFAULT NULL,
+ connected_at TIMESTAMP NULL DEFAULT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+) ENGINE=InnoDB;

@@ -17,6 +17,9 @@ import { startWhatsAppAIWorker } from './whatsapp-ai-worker.js';
 import { retryPendingSubscriptionNumbers } from './voice-autoprovision.js';
 import { sitesRouter } from './sites.js';
 import { mediaRouter } from './media.js';
+import { menuImportRouter } from './menu-import-routes.js';
+import { customDomainRouting, domainsRouter } from './domains.js';
+import { integrationHealthRouter } from './integration-health.js';
 import { numbersRouter } from './numbers.js';
 import { loadCatalog } from './plan-orders.js';
 import { voiceToolsRouter } from './voice-tools.js';
@@ -50,6 +53,8 @@ app.use('/api/public/restaurants/:slug/orders', rateLimit({ windowMs: 10 * 60 * 
 app.use('/api/restaurants/:restaurantId/site/generate', rateLimit({ windowMs: 60 * 60 * 1000, max: 10, methods: ['POST'], name: 'site-generate' }));
 app.use('/api', rateLimit({ windowMs: 10 * 60 * 1000, max: 1500, name: 'api' }));
 app.use(express.json({ limit: '1mb' }));
+// Verified restaurant domains (e.g. myrestaurant.pk) show that restaurant's website at "/".
+app.use(customDomainRouting(pool));
 const publicDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
 app.get('/super-admin', (_req, res) => {
   res.set('X-Robots-Tag', 'noindex, nofollow');
@@ -81,6 +86,9 @@ app.use('/api', onboardingRouter(pool));
 app.use('/api', plansRouter(pool));
 app.use('/api', numbersRouter(pool));
 app.use(mediaRouter(pool));
+app.use(menuImportRouter(pool));
+app.use(domainsRouter(pool));
+app.use(integrationHealthRouter(pool));
 app.use(sitesRouter(pool));
 app.use('/voice-tools', voiceToolsRouter(pool));
 app.use('/integrations/vapi', vapiToolAdapterRouter(pool));

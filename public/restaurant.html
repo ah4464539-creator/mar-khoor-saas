@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="/summit.css?v=20261120-s1">
-<link rel="stylesheet" href="/owner.css?v=20261120-s1">
+<link rel="stylesheet" href="/owner.css?v=20261120-s6">
 </head>
 <body class="mk owner-app signing-in">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -126,6 +126,21 @@
 
 <section class="owner-view owner-message-view" id="menu-management" data-title="Menu &amp; items" hidden>
  <h2 tabindex="-1" class="visually-hidden">Menu and items</h2>
+ <section class="card card-pad menu-import" aria-labelledby="menu-import-title">
+  <div class="card-head"><div><h2 id="menu-import-title">Import menu with AI</h2><p class="small muted">Upload a photo or PDF of your menu, paste a link to your old menu page, or paste the text. You review everything before it is added.</p></div><button type="button" class="btn btn-dark" id="menu-import-toggle" aria-expanded="false" aria-controls="menu-import-body">Start import</button></div>
+  <div id="menu-import-body" hidden>
+   <div class="tabs import-tabs" role="tablist" aria-label="Import source"><button type="button" role="tab" aria-selected="true" data-import-tab="file">Photo or PDF</button><button type="button" role="tab" aria-selected="false" data-import-tab="url">Website link</button><button type="button" role="tab" aria-selected="false" data-import-tab="text">Paste text</button></div>
+   <div class="import-pane" data-import-pane="file"><label class="photo-button">Choose photo or PDF<input id="import-file" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" class="visually-hidden"></label><span class="hint">One page per photo works best. PDF up to 8 MB.</span></div>
+   <div class="import-pane" data-import-pane="url" hidden><div class="describe-row"><input class="input" id="import-url" type="url" placeholder="https://myrestaurant.com/menu"><button type="button" class="btn btn-ghost" id="import-url-go">Read menu</button></div></div>
+   <div class="import-pane" data-import-pane="text" hidden><textarea class="input" id="import-text" rows="5" placeholder="Chicken Karahi – 1600&#10;Seekh Kebab – 1200"></textarea><button type="button" class="btn btn-ghost" id="import-text-go">Read menu</button></div>
+   <p id="import-status" class="status-line" role="status"></p>
+   <div id="import-review" hidden>
+    <div class="import-review-head"><label class="check"><input type="checkbox" id="import-all" checked> Select all</label><span class="small muted" id="import-count"></span></div>
+    <div class="table-wrap"><table class="t import-table"><thead><tr><th><span class="visually-hidden">Add</span></th><th>Name</th><th>Category</th><th>Price</th></tr></thead><tbody id="import-rows"></tbody></table></div>
+    <div class="form-actions"><button type="button" class="btn btn-primary" id="import-add">Add selected items</button><button type="button" class="btn btn-ghost" id="import-cancel">Discard</button></div>
+   </div>
+  </div>
+ </section>
  <div class="split">
   <section class="grow card card-pad"><div class="card-head"><div><h2>Your menu</h2><p class="small muted">Changes show on your website and AI assistants immediately.</p></div></div><div id="items" class="menu-list"></div></section>
   <aside class="rail card card-pad menu-editor">
@@ -164,6 +179,11 @@
  <h2 tabindex="-1" class="visually-hidden">AI Website Builder</h2>
  <div class="notice notice-info"><svg aria-hidden="true" width="18" height="18"><use href="#i-eye"/></svg><span>Choose a template, add photos and let AI draft the words. Your live page stays unchanged until you save.</span></div>
  <p id="site-link" class="site-link small"></p>
+ <section class="card card-pad site-analytics" aria-labelledby="site-analytics-title">
+  <div class="card-head"><div><h2 id="site-analytics-title">Website visitors</h2><p class="small muted">Last 30 days · counted without cookies, bots excluded</p></div></div>
+  <div class="analytics-stats"><div><span class="small muted">Page views</span><strong id="sa-views" class="num">—</strong></div><div><span class="small muted">Menu opened</span><strong id="sa-menu" class="num">—</strong></div><div><span class="small muted">Orders (all channels)</span><strong id="sa-orders" class="num">—</strong></div><div><span class="small muted">Visitors who opened the menu</span><strong id="sa-rate" class="num">—</strong></div></div>
+  <div id="sa-chart" class="analytics-bars" aria-hidden="true"></div>
+ </section>
  <form id="site-form" class="site-form">
   <section class="card card-pad"><fieldset class="site-template-picker"><legend>1. Template</legend><p class="small muted">Existing sites keep their current design until you choose another.</p><div class="site-template-grid">
    <label class="site-template-option" data-template="classic"><input type="radio" name="site-template" value="classic" checked><span class="site-template-thumb"><i></i><b></b><em></em></span><strong>Classic Dark</strong><small>Original Mar-Khoor style</small></label>
@@ -179,6 +199,7 @@
   </div><p id="site-image-status" class="hint" role="status">Photos appear on your website after you Save (and Publish).</p></fieldset></section>
   <section class="card card-pad site-words"><div class="card-head"><h2>3. Words</h2></div>
    <div class="field site-description"><label for="site-description">Describe your restaurant</label><div class="describe-row"><textarea class="input" id="site-description" rows="3" maxlength="500" placeholder="e.g. Family-run burger place in Lahore, known for crispy zinger burgers"></textarea><button type="button" id="site-generate" class="btn btn-dark"><svg aria-hidden="true" width="18" height="18"><use href="#i-sparkle"/></svg>Write with AI</button></div></div>
+   <div class="field site-language"><label for="site-language">Website language</label><select class="input" id="site-language"><option value="en">English</option><option value="ur">اردو (Urdu)</option><option value="roman">Roman Urdu</option><option value="ar">العربية (Arabic)</option></select><span class="hint">Buttons and headings switch to this language. Press “Write with AI” to write your text in it too.</span></div>
    <div class="field site-headline"><label for="site-headline">Headline</label><input class="input" id="site-headline" maxlength="80" placeholder="Headline"></div>
    <div class="field site-tagline"><label for="site-tagline">Tagline</label><input class="input" id="site-tagline" maxlength="160" placeholder="Tagline"></div>
    <div class="field site-about"><label for="site-about">About us</label><textarea class="input" id="site-about" rows="4" maxlength="800" placeholder="About us"></textarea></div>
@@ -186,6 +207,15 @@
    <div class="field site-address"><label for="site-address">Address</label><input class="input" id="site-address" maxlength="200" placeholder="Address"></div>
    <label class="check"><input id="site-assistant-recording" type="checkbox"> Allow customers to record AI voice conversations on their device</label>
    <div class="field site-theme" hidden><label for="site-theme">Legacy colour setting</label><select class="input" id="site-theme"><option value="green">Green</option><option value="gold">Gold</option><option value="red">Red</option><option value="blue">Blue</option><option value="dark">Dark</option></select></div>
+  </section>
+  <section class="card card-pad site-domain" aria-labelledby="site-domain-title">
+   <div class="card-head"><div><h2 id="site-domain-title">4. Your own domain <span class="muted small">(optional)</span></h2><p class="small muted">Use your own address, like myrestaurant.pk, instead of mar-khoor.com/r/…</p></div><span id="domain-status" class="tag" hidden></span></div>
+   <div class="describe-row"><input class="input" id="domain-input" placeholder="myrestaurant.pk" autocomplete="off" aria-label="Your domain"><button type="button" class="btn btn-ghost" id="domain-save">Save domain</button><button type="button" class="btn btn-quiet" id="domain-remove" hidden>Remove</button></div>
+   <div id="domain-steps" hidden>
+    <p class="small">Add these records at the company where you bought the domain (DNS settings), then press <strong>Check DNS</strong>. Changes can take up to a few hours.</p>
+    <div class="table-wrap"><table class="t dns-table"><thead><tr><th>Type</th><th>Name / Host</th><th>Value</th><th>Why</th></tr></thead><tbody id="domain-records"></tbody></table></div>
+    <div class="form-actions"><button type="button" class="btn btn-dark" id="domain-verify">Check DNS</button><span id="domain-note" class="small muted" role="status"></span></div>
+   </div>
   </section>
   <div class="site-actions"><button type="button" id="site-preview-button" class="btn btn-ghost"><svg aria-hidden="true" width="18" height="18"><use href="#i-eye"/></svg>Preview draft</button><button type="submit" class="btn btn-ghost">Save website</button><button type="button" id="site-publish" class="btn btn-primary">Publish</button><span id="site-status" role="status" class="small muted"></span></div>
  </form>
@@ -267,7 +297,7 @@
 </main>
 </div>
 <script src="/password-reset.js?v=20261119"></script>
-<script type="module" src="/restaurant.js?v=20261120-summit-s1"></script>
+<script type="module" src="/restaurant.js?v=20261120-s6"></script>
 <script>document.getElementById("login-show-password")?.addEventListener("change",function(){document.getElementById("password").type=this.checked?"text":"password"});</script>
 </body>
 </html>

@@ -35,3 +35,18 @@ Publishing needs an **active plan order that includes Website Builder** (the pla
 - `POST /api/restaurants/:id/media?kind=menu|logo|cover|gallery` (restaurant admin only, 5 MB, format checked by file signature, 60 uploads / 10 min per IP). Limits: 400 images and 250 MB per restaurant.
 - Images are stored in MariaDB table `restaurant_media` (created automatically on first use; additive only) and served at `/media/<id>-<token>.<ext>` with a one-year immutable cache and a sandbox CSP.
 - Website config accepts only uploaded `/media/…` paths for `logo`, `cover` and up to 8 `gallery` photos. Menu items accept an uploaded path or an HTTPS URL.
+
+## Website languages
+Owners pick English, Urdu (اردو, right-to-left), Roman Urdu or Arabic (right-to-left). Buttons and headings on the public page switch to that language, the page gets the right `lang`/`dir`, and **Write with AI** writes the headline, tagline and about text in it. Existing sites without a language stay English.
+
+## Website analytics
+`restaurant_site_daily` (auto-created) counts page views of `/r/<slug>` and menu opens (`/api/public/restaurants/<slug>/menu`) per day. No cookies, IPs or user agents are stored; bots, link previews (WhatsApp, Facebook…) and HEAD requests are skipped. Owners see the last 30 days in AI Website, next to orders from all channels.
+
+## Custom domains
+1. Owner enters a domain in AI Website → 4. Your own domain. The app shows a TXT record (`_mar-khoor.<domain>` = `mar-khoor-verify=<token>`), an A record to the Mar-Khoor server and a `www` CNAME.
+2. Owner adds the records at their registrar and presses **Check DNS**. A matching TXT record marks the domain *verified*.
+3. Platform owner adds the domain to the website in Hostinger (alias/parked domain + SSL) and presses **Mark connected** in super admin → Custom domains.
+4. Requests to a verified domain's home page are served that restaurant's site; other paths (menu, tracking, media) work on the same domain. Optional env: `PRIMARY_HOSTS` (comma-separated extra platform hostnames).
+
+## AI menu import
+Menu & items → Import menu with AI: photo (JPG/PNG/WebP), PDF (≤ 8 MB), a link to an existing menu page, or pasted text. The AI (`MENU_IMPORT_MODEL`, default `gpt-4.1-mini`, needs `OPENAI_API_KEY`) returns a draft; nothing is saved until the owner reviews it and presses **Add**. Links are fetched with SSRF protection (public addresses only, redirects re-checked, 2 MB / 10 s limits). 15 imports per hour per IP.

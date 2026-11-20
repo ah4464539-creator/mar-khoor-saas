@@ -1,4 +1,4 @@
-import { uploadImage } from './image-upload.js';
+import { uploadImage, prepareImage } from './image-upload.js?v=20261120-s5';
 const form=document.querySelector('#login'),status=document.querySelector('#status'),target=document.querySelector('#restaurants');
 let token='',restaurantId=null,restaurantCurrency='';
 let refreshing=false;
@@ -6,6 +6,7 @@ setInterval(async()=>{if(!restaurantId||!token||document.hidden||refreshing)retu
 const api=async(path,options={})=>{const r=await fetch(path,{...options,headers:{...options.headers,Authorization:'Bearer '+token}});const data=await r.json();if(!r.ok)throw Error(data.error||'Request failed');return data};
 async function refresh(){
  loadSite().catch(error=>{siteStatus.textContent=error.message});
+ if(location.hash==='#website'){loadSiteAnalytics().catch(()=>{});loadDomain().catch(()=>{});}
  loadPlanOrders().catch(error=>{planOrders.textContent=error.message});
  const [menu,orders,analytics,inbox,outbound,aiSettings]=await Promise.all([api('/api/restaurants/'+restaurantId+'/menu'),api('/api/restaurants/'+restaurantId+'/orders'),api('/api/restaurants/'+restaurantId+'/analytics'),api('/api/restaurants/'+restaurantId+'/whatsapp/messages'),api('/api/restaurants/'+restaurantId+'/whatsapp/outbound'),api('/api/restaurants/'+restaurantId+'/whatsapp/ai-settings')]);
  document.querySelector('#whatsapp-ai-enabled').checked=aiSettings.enabled;
@@ -350,7 +351,7 @@ function updateWorkspaceView(focusHeading = false) {
  }
 }
 
-window.addEventListener('hashchange', () => updateWorkspaceView(true));
+window.addEventListener('hashchange', () => { updateWorkspaceView(true); if (location.hash === '#website') loadSiteAnalytics().catch(() => {}); });
 
 async function openRestaurant(restaurant) {
  siteDirty=false;
@@ -595,6 +596,7 @@ function showSite(data){
  const chosenTemplate=siteForm.querySelector('input[name="site-template"][value="'+(data.config.template||'classic')+'"]');
  if(chosenTemplate)chosenTemplate.checked=true;
  siteField('assistant-recording').checked=data.config.assistantRecording===true;
+ siteField('language').value=data.config.language||'en';
  siteImages={logo:data.config.logo||'',cover:data.config.cover||'',gallery:Array.isArray(data.config.gallery)?data.config.gallery.slice(0,8):[]};renderSiteImages();
  if(data.slug)siteSlug=data.slug;
  if(typeof data.published==='boolean')sitePublished=data.published;
@@ -603,8 +605,20 @@ function showSite(data){
  siteLink.replaceChildren();
  if(sitePublished&&siteSlug){const a=document.createElement('a');a.href='/r/'+siteSlug;a.textContent='mar-khoor.com/r/'+siteSlug;a.target='_blank';a.rel='noopener';siteLink.append('Live at ',a)}
 }
+async function loadSiteAnalytics(){
+ if(!restaurantId)return;
+ const id=restaurantId,data=await api('/api/restaurants/'+id+'/site/analytics');
+ if(id!==restaurantId)return;
+ const fmt=n=>Number(n||0).toLocaleString();
+ document.querySelector('#sa-views').textContent=fmt(data.totals.page_views);
+ document.querySelector('#sa-menu').textContent=fmt(data.totals.menu_views);
+ document.querySelector('#sa-orders').textContent=fmt(data.totals.orders);
+ document.querySelector('#sa-rate').textContent=data.menu_open_rate==null?'—':data.menu_open_rate+'%';
+ const max=Math.max(1,...data.days.map(day=>day.page_views));
+ document.querySelector('#sa-chart').replaceChildren(...data.days.map(day=>{const bar=document.createElement('span');bar.style.height=Math.max(3,Math.round(day.page_views/max*100))+'%';bar.title=day.day+': '+day.page_views+' views';return bar;}));
+}
 async function loadSite({force=false}={}){if(!restaurantId||(siteDirty&&!force))return;const id=restaurantId;const data=await api('/api/restaurants/'+id+'/site');if(id===restaurantId)showSite(data)}
-const siteConfig=()=>({template:siteForm.querySelector('input[name="site-template"]:checked')?.value||'classic',headline:siteField('headline').value,tagline:siteField('tagline').value,about:siteField('about').value,hours:siteField('hours').value,phone:siteField('phone').value,address:siteField('address').value,theme:siteField('theme').value,assistantRecording:siteField('assistant-recording').checked,sections:siteSections,...(siteImages.logo?{logo:siteImages.logo}:{}),...(siteImages.cover?{cover:siteImages.cover}:{}),...(siteImages.gallery.length?{gallery:siteImages.gallery}:{})});
+const siteConfig=()=>({template:siteForm.querySelector('input[name="site-template"]:checked')?.value||'classic',headline:siteField('headline').value,tagline:siteField('tagline').value,about:siteField('about').value,hours:siteField('hours').value,phone:siteField('phone').value,address:siteField('address').value,theme:siteField('theme').value,assistantRecording:siteField('assistant-recording').checked,sections:siteSections,language:siteField('language').value,...(siteImages.logo?{logo:siteImages.logo}:{}),...(siteImages.cover?{cover:siteImages.cover}:{}),...(siteImages.gallery.length?{gallery:siteImages.gallery}:{})});
 const siteJson={'Content-Type':'application/json'};
 document.querySelector('#site-generate').addEventListener('click',async e=>{
  if(!restaurantId){siteStatus.textContent='Select your restaurant first.';return}
@@ -960,3 +974,91 @@ if (token && document.querySelector('#reset-view')?.hidden !== false) loadAccoun
  try { localStorage.removeItem(sessionKey); sessionStorage.removeItem(sessionKey); } catch {}
 });
 
+
+// AI menu import: draft → owner review → bulk add.
+const importBody=document.querySelector('#menu-import-body'),importToggle=document.querySelector('#menu-import-toggle');
+const importStatus=document.querySelector('#import-status'),importReview=document.querySelector('#import-review'),importRows=document.querySelector('#import-rows');
+let importItems=[],importRestaurant=null;
+importToggle.addEventListener('click',()=>{const open=importBody.hidden;importBody.hidden=!open;importToggle.setAttribute('aria-expanded',String(open));importToggle.textContent=open?'Close':'Start import';});
+for(const tab of document.querySelectorAll('[data-import-tab]'))tab.addEventListener('click',()=>{
+ for(const other of document.querySelectorAll('[data-import-tab]'))other.setAttribute('aria-selected',String(other===tab));
+ for(const pane of document.querySelectorAll('[data-import-pane]'))pane.hidden=pane.dataset.importPane!==tab.dataset.importTab;
+});
+function setImportBusy(busy){for(const control of importBody.querySelectorAll('button,input,textarea'))control.disabled=busy;}
+async function runImport(body,headers){
+ if(!restaurantId)return;
+ const id=restaurantId;setImportBusy(true);importReview.hidden=true;importStatus.textContent='Reading your menu with AI… this can take up to a minute.';
+ try{
+  const response=await fetch('/api/restaurants/'+id+'/menu/import',{method:'POST',headers:{Authorization:'Bearer '+token,...headers},body});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw Error(data.error||'Menu import failed');
+  if(id!==restaurantId)return;
+  importRestaurant=id;importItems=data.items.map(item=>({...item,selected:item.price_minor!=null}));renderImport();
+  importStatus.textContent='Found '+data.items.length+' items. Check names and prices, untick anything wrong, then add.';
+ }catch(error){importStatus.textContent=error.message;}
+ finally{setImportBusy(false);}
+}
+function renderImport(){
+ importRows.replaceChildren(...importItems.map((item,index)=>{
+  const row=document.createElement('tr');
+  const pick=document.createElement('input');pick.type='checkbox';pick.checked=item.selected;pick.setAttribute('aria-label','Add '+item.name);pick.addEventListener('change',()=>{item.selected=pick.checked;countImport();});
+  const field=(key,value,attrs={})=>{const input=Object.assign(document.createElement('input'),{value,className:'input',...attrs});input.addEventListener('input',()=>{item[key]=input.value;});return input;};
+  const name=field('name',item.name,{maxLength:180});name.setAttribute('aria-label','Item name');
+  const category=field('category',item.category,{maxLength:80});category.setAttribute('aria-label','Category');
+  const price=field('price',item.price_minor==null?'':(item.price_minor/100).toString(),{type:'number',min:'0',step:'0.01',placeholder:'Price'});price.setAttribute('aria-label','Price');
+  price.addEventListener('input',()=>{const value=Number(price.value);item.price_minor=price.value===''||!Number.isFinite(value)||value<0?null:Math.round(value*100);if(item.price_minor!=null&&!item.selected){item.selected=true;pick.checked=true;countImport();}});
+  for(const [cell,content] of [[document.createElement('td'),pick],[document.createElement('td'),name],[document.createElement('td'),category],[document.createElement('td'),price]]){cell.append(content);row.append(cell);}
+  if(item.description){const note=document.createElement('small');note.className='hint';note.textContent=item.description;row.children[1].append(note);}
+  return row;
+ }));
+ importReview.hidden=!importItems.length;countImport();
+}
+function countImport(){const selected=importItems.filter(item=>item.selected).length;document.querySelector('#import-count').textContent=selected+' of '+importItems.length+' selected';document.querySelector('#import-add').textContent='Add '+selected+' item'+(selected===1?'':'s');document.querySelector('#import-all').checked=selected===importItems.length;}
+document.querySelector('#import-all').addEventListener('change',event=>{for(const item of importItems)item.selected=event.target.checked;renderImport();});
+document.querySelector('#import-cancel').addEventListener('click',()=>{importItems=[];importReview.hidden=true;importStatus.textContent='Import discarded. Nothing was added.';});
+document.querySelector('#import-file').addEventListener('change',async event=>{
+ const file=event.target.files[0];event.target.value='';if(!file)return;
+ try{
+  if(file.type==='application/pdf'){if(file.size>8*1024*1024)throw Error('PDF must be 8 MB or smaller');await runImport(file,{'Content-Type':'application/pdf'});}
+  else{const blob=await prepareImage(file,{maxSide:2200,quality:0.9});await runImport(blob,{'Content-Type':blob.type});}
+ }catch(error){importStatus.textContent=error.message;}
+});
+document.querySelector('#import-url-go').addEventListener('click',()=>{const url=document.querySelector('#import-url').value.trim();if(!url){importStatus.textContent='Paste the link to your menu page.';return;}runImport(JSON.stringify({url}),{'Content-Type':'application/json'});});
+document.querySelector('#import-text-go').addEventListener('click',()=>{const text=document.querySelector('#import-text').value;if(!text.trim()){importStatus.textContent='Paste your menu text first.';return;}runImport(JSON.stringify({text}),{'Content-Type':'application/json'});});
+document.querySelector('#import-add').addEventListener('click',async event=>{
+ if(importRestaurant!==restaurantId){importStatus.textContent='This draft belongs to another restaurant. Import again.';return;}
+ const chosen=importItems.filter(item=>item.selected);
+ if(!chosen.length){importStatus.textContent='Select at least one item.';return;}
+ const missing=chosen.find(item=>!String(item.name).trim()||item.price_minor==null);
+ if(missing){importStatus.textContent='Add a name and price for “'+(missing.name||'item')+'” or untick it.';return;}
+ const button=event.currentTarget;button.disabled=true;
+ try{
+  const result=await api('/api/restaurants/'+restaurantId+'/menu/bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:chosen.map(({name,description,category,price_minor})=>({name:String(name).trim(),description:description||'',category:String(category||'').trim(),price_minor}))})});
+  importItems=[];importReview.hidden=true;importStatus.textContent=result.added+' items added to your menu. You can add photos with Edit.';
+  await refresh();
+ }catch(error){importStatus.textContent=error.message;}
+ finally{button.disabled=false;}
+});
+
+// Custom domain for the restaurant website.
+const domainInput=document.querySelector('#domain-input'),domainStatus=document.querySelector('#domain-status'),domainNote=document.querySelector('#domain-note');
+const domainLabels={pending:['Waiting for DNS','tag-warn'],verified:['Verified · being connected','tag-info'],connected:['Connected','tag-ok']};
+function showDomain(data){
+ const has=Boolean(data.domain);
+ if(document.activeElement!==domainInput)domainInput.value=data.domain||'';
+ document.querySelector('#domain-steps').hidden=!has;document.querySelector('#domain-remove').hidden=!has;
+ domainStatus.hidden=!has;if(has){const [label,cls]=domainLabels[data.status]||[data.status,''];domainStatus.textContent=label;domainStatus.className='tag '+cls;}
+ document.querySelector('#domain-records').replaceChildren(...(data.records||[]).map(record=>{const row=document.createElement('tr');for(const value of [record.type,record.name,record.value,record.purpose]){const cell=document.createElement('td');const code=document.createElement(value===record.value||value===record.name?'code':'span');code.textContent=value;cell.append(code);row.append(cell);}return row;}));
+ domainNote.textContent=!has?'':data.status==='connected'?'Your website is live on '+data.domain+'.':data.status==='verified'?(data.points_here?'Verified. The Mar-Khoor team is switching on HTTPS for your domain.':'Ownership verified. Make sure the A record points to Mar-Khoor.'):(data.last_error||'');
+}
+async function loadDomain(){if(!restaurantId)return;const id=restaurantId;const data=await api('/api/restaurants/'+id+'/site/domain');if(id===restaurantId)showDomain(data);}
+document.querySelector('#domain-save').addEventListener('click',async event=>{
+ const button=event.currentTarget;button.disabled=true;
+ try{showDomain(await api('/api/restaurants/'+restaurantId+'/site/domain',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({domain:domainInput.value})}));domainNote.textContent='Saved. Now add the DNS records below.';}
+ catch(error){domainNote.textContent=error.message;document.querySelector('#domain-steps').hidden=false;}
+ finally{button.disabled=false;}
+});
+document.querySelector('#domain-remove').addEventListener('click',async()=>{try{showDomain(await api('/api/restaurants/'+restaurantId+'/site/domain',{method:'DELETE'}));domainInput.value='';}catch(error){domainNote.textContent=error.message;}});
+document.querySelector('#domain-verify').addEventListener('click',async event=>{const button=event.currentTarget;button.disabled=true;domainNote.textContent='Checking DNS…';try{showDomain(await api('/api/restaurants/'+restaurantId+'/site/domain/verify',{method:'POST'}));}catch(error){domainNote.textContent=error.message;}finally{button.disabled=false;}});
+window.addEventListener('hashchange',()=>{if(location.hash==='#website')loadDomain().catch(()=>{});});
+if(location.hash==='#website')setTimeout(()=>loadDomain().catch(()=>{}),1500);
