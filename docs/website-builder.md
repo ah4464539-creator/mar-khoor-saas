@@ -60,3 +60,13 @@ Owners who already have a website turn on AI Website → **Use Mar-Khoor on your
 
 ## AI menu import
 Menu & items → Import menu with AI: photo (JPG/PNG/WebP), PDF (≤ 8 MB), a link to an existing menu page, or pasted text. The AI (`MENU_IMPORT_MODEL`, default `gpt-4.1-mini`, needs `OPENAI_API_KEY`) returns a draft; nothing is saved until the owner reviews it and presses **Add**. Links are fetched with SSRF protection (public addresses only, redirects re-checked, 2 MB / 10 s limits). 15 imports per hour per IP.
+
+## Plan payments (Stripe)
+Restaurants pay their plan (Starter / Premium / Enterprise, monthly or yearly) by card in Plans & billing.
+- Set on the Node.js app: `STRIPE_SECRET_KEY` (`sk_live_…` or `sk_test_…`) and `STRIPE_WEBHOOK_SECRET` (`whsec_…`). `STRIPE_BILLING_ENABLED=0` switches card payment off again.
+- In Stripe → Developers → Webhooks add the endpoint `https://mar-khoor.com/webhooks/stripe` with events `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `invoice.paid`, `invoice.payment_failed`, `customer.subscription.updated`, `customer.subscription.deleted`.
+- In Stripe → Settings → Billing → Customer portal, turn the portal on (owners update cards, download invoices and cancel there).
+- The price comes from the server's plan catalog in the restaurant's currency; Stripe Checkout creates a recurring subscription. Only a signed webhook whose amount and currency match activates the plan (a redirect never does). Activation also starts the dedicated AI number for plans that include one, exactly like the super admin's manual confirmation.
+- Renewals keep the plan active; a failed renewal sets it to *past due*; cancelling in the portal sets it to *cancelled*. Changing plan starts a new subscription and cancels the old one with unused time credited.
+- Manual confirmation by the super admin keeps working for restaurants that pay another way. Card payment for food orders (`STRIPE_CHECKOUT_ENABLED`) is separate and still off.
+- Tables `restaurant_billing` and `stripe_events` are created automatically (additive).

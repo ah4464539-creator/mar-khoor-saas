@@ -410,3 +410,22 @@ CREATE TABLE IF NOT EXISTS restaurant_widget (
  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS restaurant_billing (
+ restaurant_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+ stripe_customer_id VARCHAR(64) NULL,
+ stripe_subscription_id VARCHAR(64) NULL,
+ stripe_status VARCHAR(32) NULL,
+ current_period_end TIMESTAMP NULL,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ UNIQUE KEY uq_billing_subscription (stripe_subscription_id),
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS stripe_events (
+ event_id VARCHAR(80) NOT NULL PRIMARY KEY,
+ type VARCHAR(80) NOT NULL,
+ restaurant_id BIGINT UNSIGNED NULL,
+ result VARCHAR(40) NOT NULL,
+ received_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;

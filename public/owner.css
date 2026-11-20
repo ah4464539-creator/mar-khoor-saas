@@ -355,3 +355,14 @@ body.mk{margin:0}
 .mk .widget-code{margin-top:16px;padding:14px;border-radius:12px;background:var(--ember-soft,#fff3e6)}
 .mk .widget-code .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
 @media(max-width:640px){.mk .widget-look{grid-template-columns:1fr}}
+
+/* Plan payment */
+.mk .billing-card{margin-bottom:18px}
+.mk .billing-cycle{display:flex;gap:18px;margin-bottom:12px}
+.mk .billing-plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:14px}
+.mk .billing-plan{position:relative;display:grid;gap:6px;padding:14px 14px 14px 40px;border:1px solid var(--line,#e6e0d8);border-radius:14px;cursor:pointer;background:var(--surface,#fff)}
+.mk .billing-plan input{position:absolute;left:14px;top:16px;accent-color:var(--ember,#e8701a)}
+.mk .billing-plan:has(input:checked){border-color:var(--ember,#e8701a);box-shadow:0 0 0 3px var(--ember-soft,#fff3e6)}
+.mk .billing-plan .billing-price{font-size:18px;font-weight:700}
+.mk .billing-plan .tag{justify-self:start}
+.mk .billing-card .notice{margin-bottom:12px}

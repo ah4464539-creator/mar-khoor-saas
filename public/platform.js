@@ -311,7 +311,7 @@ document.querySelector('#route-form').addEventListener('submit', async event => 
 });
 
 // Integration health and custom domains.
-const healthNames={whatsapp:'WhatsApp Business',ai:'OpenAI (AI replies, website text, menu import)',voice:'AI Call Assistant (Vapi)',numbers:'Dedicated numbers (Telnyx)',domains:'Custom domains (Hostinger API)',email:'Email (password reset)',payments:'Online payments (Stripe)',orders:'Orders'};
+const healthNames={whatsapp:'WhatsApp Business',ai:'OpenAI (AI replies, website text, menu import)',voice:'AI Call Assistant (Vapi)',numbers:'Dedicated numbers (Telnyx)',domains:'Custom domains (Hostinger API)',billing:'Plan payments (Stripe)',email:'Email (password reset)',payments:'Online payments (Stripe)',orders:'Orders'};
 const healthLabels={live:['Live','tag-ok'],configured:['Configured · needs live test','tag-info'],missing:['Settings missing','tag-bad'],deferred:['Off by design','tag-warn']};
 async function loadHealth(){
  const data=await platformApi('/api/platform/integrations/health');
