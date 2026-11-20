@@ -255,11 +255,32 @@ function orderCard(order, labels, methods, payments) {
  for (const detail of [order.customer_phone, order.delivery_address, order.delivery_instructions && 'Note: ' + order.delivery_instructions]) if (detail) meta.append(ownerText('span', detail));
  const money = ownerText('div', '', 'money');
  money.append(ownerText('strong', ownerMoney(order.total_minor)));
- if (methods[order.payment_method]) {
+ let payBox = null;
+ if (order.payment_type) {
+  const states = {awaiting:'Not paid yet',submitted:'Check payment',confirmed:'Paid',rejected:'Not received'};
+  money.append(ownerText('span', order.payment_label + ' · ' + (states[order.payment_state] || order.payment_state), 'tag ' + (order.payment_state === 'confirmed' ? 'tag-ok' : 'tag-warn')));
+  if (order.payment_state !== 'confirmed') {
+   payBox = ownerText('div', '', 'owner-payment-check');
+   if (order.payment_reference) payBox.append(ownerText('span', 'Transaction ID: ' + order.payment_reference, 'small'));
+   else if (order.payment_type !== 'card_on_delivery') payBox.append(ownerText('span', 'Customer has not sent a transaction ID yet', 'small muted'));
+   for (const [action, text, cls] of [['confirm', order.payment_type === 'card_on_delivery' ? 'Mark paid' : 'Payment received', 'btn-primary'], ['reject', 'Not received', 'btn-ghost']]) {
+    if (action === 'reject' && (order.payment_type === 'card_on_delivery' || !order.payment_reference)) continue;
+    const b = ownerText('button', text, 'btn btn-sm ' + cls); b.type = 'button';
+    b.addEventListener('click', async () => {
+     if (action === 'confirm' && order.payment_type !== 'card_on_delivery' && !window.confirm('Only confirm after you see ' + ownerMoney(order.total_minor) + ' in your ' + order.payment_label + ' account' + (order.payment_reference ? ' (transaction ' + order.payment_reference + ')' : '') + '.')) return;
+     b.disabled = true;
+     try { await api('/api/restaurants/' + restaurantId + '/orders/' + order.id + '/payment', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action})}); await refresh(); status.textContent = 'Order #' + order.id + ' payment updated'; }
+     catch (error) { status.textContent = error.message; b.disabled = false; }
+    });
+    payBox.append(b);
+   }
+  }
+ } else if (methods[order.payment_method]) {
   const pay = ownerText('span', methods[order.payment_method] + ' · ' + (payments[order.payment_status] || 'Unpaid'), 'tag ' + (order.payment_status === 'paid' ? 'tag-ok' : 'tag-warn'));
   money.append(pay);
  }
  card.append(head, meta, money);
+ if (payBox) card.append(payBox);
  const actions = ownerText('div', '', 'actions');
  for (const next of orderTransitions[order.status] ?? []) {
   const button = ownerText('button', labels[next], 'btn btn-sm ' + (next === 'cancelled' ? 'btn-ghost' : next === 'accepted' ? 'btn-primary' : 'btn-dark'));
@@ -1242,3 +1263,36 @@ billingEl('billing-manage')?.addEventListener('click',async()=>{const note=billi
 })();
 window.addEventListener('hashchange',()=>{if(location.hash==='#plan')loadBilling().catch(()=>{});});
 if(location.hash==='#plan')setTimeout(()=>loadBilling().catch(()=>{}),1500);
+
+// Payment methods customers can use (cash, card on delivery, bank / wallet transfers).
+const payEl = id => document.getElementById(id);
+var payLoadedFor = null;
+function payTransferRow(t = {}) {
+ const row = document.createElement('div'); row.className = 'pay-transfer-row';
+ row.dataset.id = t.id || '';
+ row.innerHTML = '<label class="field"><span>Type</span><select class="input" data-f="type"><option value="bank">Bank transfer</option><option value="jazzcash">JazzCash</option><option value="easypaisa">Easypaisa</option><option value="raast">Raast</option><option value="other">Other</option></select></label>'
+  + '<label class="field"><span>Name shown to customers</span><input class="input" data-f="label" maxlength="60" placeholder="e.g. Meezan Bank"></label>'
+  + '<label class="field"><span>Account title</span><input class="input" data-f="account_title" maxlength="80" required></label>'
+  + '<label class="field"><span>Account / IBAN / mobile number</span><input class="input" data-f="account_number" maxlength="40" required></label>'
+  + '<label class="field pay-wide"><span>Note for customers <span class="muted small">(optional)</span></span><input class="input" data-f="instructions" maxlength="200" placeholder="e.g. Write your order number in the payment note"></label>'
+  + '<button type="button" class="btn btn-ghost btn-sm" data-remove>Remove</button>';
+ for (const key of ['type','label','account_title','account_number','instructions']) if (t[key]) row.querySelector('[data-f="'+key+'"]').value = t[key];
+ row.querySelector('[data-remove]').addEventListener('click', () => row.remove());
+ return row;
+}
+function showPaySettings(data) {
+ const s = data.settings;
+ payEl('pay-cash').checked = s.cash; payEl('pay-card').checked = s.card_on_delivery;
+ const list = payEl('pay-transfers'); list.replaceChildren(...s.transfers.map(payTransferRow));
+ payEl('pay-preview').textContent = 'Customers see: ' + data.preview.map(o => o.label).join(' · ');
+}
+async function loadPaySettings() { if (!restaurantId || !payEl('pay-form')) return; const id = restaurantId; const data = await api('/api/restaurants/' + id + '/payment-settings'); if (id === restaurantId) showPaySettings(data); }
+payEl('pay-add')?.addEventListener('click', () => { if (payEl('pay-transfers').children.length < 5) payEl('pay-transfers').append(payTransferRow()); });
+payEl('pay-form')?.addEventListener('submit', async event => {
+ event.preventDefault(); const note = payEl('pay-note'); note.textContent = 'Saving…';
+ const transfers = [...payEl('pay-transfers').children].map(row => Object.fromEntries([['id', row.dataset.id], ...[...row.querySelectorAll('[data-f]')].map(el => [el.dataset.f, el.value])]));
+ try { const data = await api('/api/restaurants/' + restaurantId + '/payment-settings', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cash:payEl('pay-cash').checked, card_on_delivery:payEl('pay-card').checked, transfers})}); showPaySettings(data); note.textContent = 'Saved. Customers see these options at checkout now.'; }
+ catch (error) { note.textContent = error.message; }
+});
+window.addEventListener('hashchange', () => { if (location.hash === '#order-desk' && payLoadedFor !== restaurantId) { payLoadedFor = restaurantId; loadPaySettings().catch(() => {}); } });
+setTimeout(() => { if (location.hash === '#order-desk') { payLoadedFor = restaurantId; loadPaySettings().catch(() => {}); } }, 1500);

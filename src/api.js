@@ -3,6 +3,7 @@ import express from 'express';
 import { requireAuth } from './auth.js';
 import { audit } from './security.js';
 import { deletePreview, deleteRestaurant } from './restaurant-delete.js';
+import { loadPaymentSettings, publicPaymentOptions } from './payment-options.js';
 export function apiRouter(pool) {
  const router=express.Router();
  router.get('/platform/summary',requireAuth,async(req,res)=>{
@@ -99,7 +100,8 @@ export function apiRouter(pool) {
    if(!restaurants.length)return res.status(404).json({error:'Restaurant not found'});
    const restaurant=restaurants[0];
    const [items]=await pool.execute('SELECT id,name,description,price_minor,category,image_url FROM menu_items WHERE restaurant_id=? AND active=1 ORDER BY id',[restaurant.id]);
-   res.json({restaurant,items});
+   const payment_options=publicPaymentOptions(await loadPaymentSettings(pool,restaurant.id));
+   res.json({restaurant,items,payment_options});
    trackSiteEvent(pool,restaurant.id,'menu_views',req);
   } catch {res.status(503).json({error:'Database unavailable'});}
  });

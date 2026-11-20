@@ -222,3 +222,17 @@ body.mk{margin:0}
 .order-page .order-row strong,.order-page .receipt-row strong{white-space:nowrap}
 .order-page .order-foot{text-align:center}
 @media print{.order-page .site-nav,.order-page .order-tabs,.order-page button,.order-page .order-foot{display:none!important}.order-page .order-card{border:0;box-shadow:none}}
+.menu-page .pay-method{border:0;padding:0;margin:0}
+.menu-page .pay-method legend{padding:0;margin-bottom:6px;font-weight:600;font-size:14px}
+.menu-page .pay-options{display:grid;gap:8px}
+.menu-page .pay-option{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;border:1px solid var(--line,#e6e0d8);font-weight:600;font-size:14px;cursor:pointer}
+.menu-page .pay-option:has(input:checked){border-color:var(--ember);background:var(--ember-soft)}
+.menu-page .pay-option input{accent-color:var(--ember)}
+.menu-page .pay-transfer{margin-top:10px;padding:12px 14px;border-radius:12px;background:var(--surface-2,#f6f1ea);display:grid;gap:8px}
+.menu-page .pay-transfer p{margin:0}
+.menu-page .pay-account{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0;font-size:14px}
+.menu-page .pay-account dt{color:var(--muted,#7a6f66)}
+.menu-page .pay-account dd{margin:0;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pay-reference-form{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+.pay-reference-form .input{flex:1 1 180px}
+.pay-reference-form p{flex-basis:100%;margin:0}

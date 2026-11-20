@@ -381,3 +381,14 @@ body.mk{margin:0}
 .mk .billing-cart .btn[disabled]{opacity:.55;cursor:not-allowed}
 .mk .cart-secure{margin-top:10px}
 @media(max-width:960px){.mk .billing-cart{position:static}}
+
+/* Payment methods for customers */
+.mk .pay-settings{margin-top:18px}
+.mk .pay-settings summary{cursor:pointer;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.mk .pay-form{display:grid;gap:14px;margin-top:14px;max-width:900px}
+.mk .pay-transfers{display:grid;gap:12px}
+.mk .pay-transfer-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:end;padding:12px;border:1px solid var(--line,#e6e0d8);border-radius:12px}
+.mk .pay-transfer-row .field{display:grid;gap:4px;font-size:13px}
+.mk .pay-transfer-row .pay-wide{grid-column:1 / span 3}
+.mk .owner-payment-check{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 0 0;border-top:1px dashed var(--line,#e6e0d8);margin-top:8px}
+@media(max-width:760px){.mk .pay-transfer-row{grid-template-columns:1fr}.mk .pay-transfer-row .pay-wide{grid-column:auto}}

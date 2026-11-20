@@ -1,5 +1,6 @@
 // Customer order tracking. Each order made through the public checkout gets a random
 // tracking token; only its SHA-256 hash is stored. Knowing the order number alone is not enough.
+import { loadPaymentSettings, paymentView } from './payment-options.js';
 import crypto from 'node:crypto';
 import { isMissingFulfillmentSchema } from './order-fulfillment.js';
 
@@ -23,7 +24,7 @@ export async function getOrderTracking(pool, orderId, token) {
   }
   try {
     const [rows] = await pool.execute(
-      'SELECT o.id,o.status,o.total_minor,o.estimated_ready_epoch,o.created_at,r.name AS restaurant_name,r.slug AS restaurant_slug,r.currency FROM orders o JOIN order_tracking t ON t.order_id=o.id JOIN restaurants r ON r.id=o.restaurant_id WHERE o.id=? AND t.token_hash=? LIMIT 1',
+      'SELECT o.id,o.restaurant_id,o.status,o.total_minor,o.estimated_ready_epoch,o.created_at,r.name AS restaurant_name,r.slug AS restaurant_slug,r.currency FROM orders o JOIN order_tracking t ON t.order_id=o.id JOIN restaurants r ON r.id=o.restaurant_id WHERE o.id=? AND t.token_hash=? LIMIT 1',
       [orderId, hashTrackingToken(token)]
     );
     if (!rows.length) return { status: 404, body: { error: 'Order not found' } };
@@ -37,6 +38,11 @@ export async function getOrderTracking(pool, orderId, token) {
     } catch (error) {
       if (!isMissingFulfillmentSchema(error)) throw error;
     }
+    let payment = null;
+    try {
+      const [payRows] = await pool.execute('SELECT option_key,method_type,method_label,reference,status FROM order_payments WHERE order_id=? AND restaurant_id=? LIMIT 1', [orderId, order.restaurant_id]);
+      if (payRows.length) payment = paymentView(payRows[0], await loadPaymentSettings(pool, order.restaurant_id));
+    } catch { /* payments table not created yet */ }
     return {
       status: 200,
       body: {
@@ -51,6 +57,7 @@ export async function getOrderTracking(pool, orderId, token) {
         placed_at: order.created_at,
         items,
         ...(fulfillment ? { order_type: fulfillment.order_type, payment_method: fulfillment.payment_method, payment_status: fulfillment.payment_status } : {}),
+        ...(payment ? { payment } : {}),
       },
     };
   } catch {

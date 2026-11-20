@@ -68,7 +68,8 @@ function render() {
       });
       content.append(bar, progress);
     } else content.append(node('p', 'This order was cancelled by the restaurant. Contact them if you have questions.'));
-    if (order.payment_method) content.append(node('p', (order.payment_method === 'cod' ? 'Cash on delivery' : order.payment_method === 'cash_pickup' ? 'Cash on pickup' : 'Payment') + ' · ' + (order.payment_status === 'paid' ? 'paid' : 'unpaid')));
+    if (order.payment) content.append(paymentBox(order.payment, money));
+    else if (order.payment_method) content.append(node('p', (order.payment_method === 'cod' ? 'Cash on delivery' : order.payment_method === 'cash_pickup' ? 'Cash on pickup' : 'Payment') + ' · ' + (order.payment_status === 'paid' ? 'paid' : 'unpaid')));
     return;
   }
   if (view === 'refunds') {
@@ -104,6 +105,43 @@ function render() {
   }
 }
 
+const PAY_STATE = { awaiting: 'Waiting for your payment', submitted: 'Transaction ID sent · restaurant is checking', confirmed: 'Paid · confirmed by the restaurant', rejected: 'Payment not found · check the transaction ID' };
+function paymentBox(pay, money) {
+  const box = node('section', '');
+  box.className = 'notice ' + (pay.status === 'confirmed' ? 'notice-ok' : pay.status === 'rejected' ? 'notice-warn' : 'notice-info');
+  const card = pay.method_type === 'card_on_delivery';
+  box.append(node('strong', pay.method_label + ' · ' + (card ? (pay.status === 'confirmed' ? 'paid' : 'pay by card when you receive the order') : PAY_STATE[pay.status] || pay.status)));
+  if (!card && pay.account_number && pay.status !== 'confirmed') {
+    box.append(node('p', 'Send ' + money.format(order.total_minor / 100) + ' to ' + pay.account_title + ' · ' + pay.account_number + (pay.instructions ? ' (' + pay.instructions + ')' : '')));
+    if (pay.status === 'awaiting' || pay.status === 'rejected') {
+      const form = document.createElement('form');
+      form.className = 'pay-reference-form';
+      const label = node('label', 'Transaction ID');
+      label.htmlFor = 'track-reference';
+      const input = document.createElement('input');
+      input.id = 'track-reference'; input.className = 'input'; input.maxLength = 60; input.autocomplete = 'off'; input.required = true;
+      const button = node('button', 'Send to restaurant');
+      button.className = 'btn btn-primary btn-sm';
+      const note = node('p', '');
+      note.setAttribute('role', 'status');
+      form.append(label, input, button, note);
+      form.addEventListener('submit', async event => {
+        event.preventDefault();
+        button.disabled = true;
+        try {
+          const response = await fetch('/api/public/orders/' + id + '/payment-reference', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Tracking-Token': token }, body: JSON.stringify({ reference: input.value }) });
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok) throw Error(data.error || 'Could not send. Try again.');
+          order.payment.status = 'submitted';
+          render();
+        } catch (error) { note.textContent = error.message; button.disabled = false; }
+      });
+      box.append(form);
+    }
+  }
+  return box;
+}
+
 async function load() {
   try {
     if (!Number.isSafeInteger(id) || id < 1 || !/^[a-f0-9]{48}$/.test(token)) throw Error('Open the tracking link from your order confirmation.');
@@ -111,7 +149,7 @@ async function load() {
     if (!response.ok) throw Error(response.status === 404 ? 'Order not found. Check your tracking link.' : 'Tracking is unavailable. Please try again.');
     order = await response.json();
     if (!order.restaurant_slug && !order.restaurant_name) throw Error('Tracking is unavailable. Please try again.');
-    render();
+    if (document.activeElement?.id !== 'track-reference') render();
     if (!['completed', 'cancelled'].includes(order.status)) timer = setTimeout(load, 15000);
   } catch (error) {
     if (!order) content.textContent = error.message;
