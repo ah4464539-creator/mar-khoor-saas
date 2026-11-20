@@ -1,0 +1,50 @@
+/* Super admin (platform console) — Summit design, platform accent. Builds on /summit.css. */
+body.mk{margin:0}
+.platform-app svg[width],.platform-app .nav svg{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.platform-app .nav a[aria-current]{background:#E8EEF2;color:#0F1418;font-weight:650}
+.platform-app .side .nav-label{color:#9FB3BF}
+.platform-app .side-tenant small{color:#9FB3BF}
+.platform-app .side-foot .btn{color:#E8EEF2}
+.platform-app .side-foot .btn:hover{background:#ffffff12}
+.platform-app .main>section,.platform-app .main>.split{scroll-margin-top:16px}
+.platform-app .split{margin:0}
+
+/* Login */
+.platform-login-screen{min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:32px 16px;background:radial-gradient(ellipse at 20% 0%,#1c3a3a 0,transparent 55%),radial-gradient(ellipse at 90% 100%,#3a2414 0,transparent 50%),#0F1418}
+.platform-login-screen[hidden]{display:none}
+.platform-app .login-card{width:min(460px,100%);padding:clamp(24px,5vw,36px);display:grid;gap:18px}
+.platform-app .login-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.platform-app .platform-tag{background:#0F1418;color:#7FD3C5}
+.platform-app .login-title{display:grid;gap:6px}
+.platform-app .login-title h1{font-size:28px;font-weight:800}
+.platform-app .login-status{margin:0;padding:10px 12px;border-radius:12px;background:var(--sunk);font-size:14px;color:var(--ink-2)}
+.platform-app .login-status:empty{display:none}
+.platform-app .center{text-align:center}
+
+/* KPI */
+.platform-app .kpi-row .k-icon{background:#E1F2F1;color:var(--teal)}
+
+/* Lists rendered by platform.js as <p> rows with optional buttons/forms */
+.platform-app .row-list{display:grid}
+.platform-app .row-list>p,.platform-app .row-list>div,.platform-app .row-list>article{margin:0;padding:12px 0;border-bottom:1px solid var(--line);color:var(--ink);font-size:14px;display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;overflow-wrap:anywhere}
+.platform-app .row-list>:last-child{border-bottom:0}
+.platform-app .row-list button{min-height:36px;padding:0 12px;border-radius:10px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);font:600 13px var(--font);cursor:pointer}
+.platform-app .row-list button:hover{background:var(--sunk)}
+.platform-app .row-list button:first-of-type{margin-left:auto}
+.platform-app .row-list input,.platform-app .row-list select{min-height:36px;padding:6px 10px;border:1px solid var(--line-strong);border-radius:9px;font:14px var(--font)}
+.platform-app .row-list form{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.platform-app .row-list.muted:not(:has(p,div,article)){color:var(--muted)}
+
+/* Worker metrics */
+.platform-app .worker-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0 0}
+.platform-app .worker-metrics dt{font-size:12px;color:var(--muted);margin:0}
+.platform-app .worker-metrics dd{margin:0 0 6px;font:800 22px var(--display)}
+.platform-app .worker-metrics:empty{display:none}
+
+/* Forms */
+.platform-app .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:12px;align-items:end;margin:6px 0 4px}
+.platform-app .notice{margin:4px 0 12px}
+.platform-app .add-mapping{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.platform-app .add-mapping summary{cursor:pointer;font-weight:650;color:var(--ember-text)}
+.platform-app .add-mapping[open]{display:grid;gap:10px}
+@media(max-width:640px){.platform-app .main{padding:18px 14px 40px}.platform-app .row-list button:first-of-type{margin-left:0}}
