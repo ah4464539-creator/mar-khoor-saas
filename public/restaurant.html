@@ -100,6 +100,7 @@
   <span class="setup-icon" aria-hidden="true"><svg width="20" height="20"><use href="#i-sparkle"/></svg></span>
   <div class="setup-text"><strong>Plan &amp; setup</strong><p id="setup-summary">Loading setup…</p></div>
   <ul id="setup-progress" class="setup-progress" aria-label="Setup status" hidden></ul>
+  <button type="button" id="pay-now" class="btn btn-primary btn-sm" hidden>Pay now</button>
   <button type="button" id="open-setup" class="btn btn-primary btn-sm" disabled>Continue setup</button>
   <div id="usage-meter" class="usage-meter" aria-label="This month's usage" hidden></div>
  </section>
@@ -297,6 +298,7 @@
 <label><input type="radio" name="billing_cycle" value="yearly"> Yearly</label>
 </div>
 <div id="plan-options" class="setup-options plan-options"></div>
+<p class="hint">You choose tools and pay in your cart at the end of setup. Nothing is charged now.</p>
 <p id="plan-fx" class="plan-fx hint" hidden></p>
 </fieldset>
 <fieldset class="setup-step" data-step="connect" hidden>
@@ -350,7 +352,7 @@
 </main>
 </div>
 <script src="/password-reset.js?v=20261119"></script>
-<script type="module" src="/restaurant.js?v=20261120-s10"></script>
+<script type="module" src="/restaurant.js?v=20261120-s11"></script>
 <script>document.getElementById("login-show-password")?.addEventListener("change",function(){document.getElementById("password").type=this.checked?"text":"password"});</script>
 </body>
 </html>
