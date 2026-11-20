@@ -13,6 +13,7 @@ export function configStatus(env = process.env) {
     ai: { missing: readiness.groups.ai.missing },
     voice: { missing: [...need(['VAPI_API_KEY', 'VAPI_TOOL_SECRET']), ...(present(env, 'VAPI_WEBHOOK_SECRET') || present(env, 'VAPI_WEBHOOK_HMAC_SECRET') ? [] : ['VAPI_WEBHOOK_SECRET or VAPI_WEBHOOK_HMAC_SECRET'])] },
     numbers: { missing: need(['TELNYX_API_KEY']) },
+    domains: { missing: need(['HOSTINGER_API_TOKEN', 'HOSTINGER_USERNAME']) },
     email: { missing: present(env, 'MAIL_FROM') && (present(env, 'RESEND_API_KEY') || (present(env, 'SMTP_HOST') && present(env, 'SMTP_USER') && present(env, 'SMTP_PASSWORD'))) ? [] : ['MAIL_FROM with RESEND_API_KEY or SMTP_*'] },
     payments: { missing: stripeReady(env) ? [] : ['STRIPE_CHECKOUT_ENABLED=1, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET'], deferred: !stripeReady(env) },
   };
@@ -44,6 +45,7 @@ export function summarize(config, act) {
     ai: channel(config.ai.missing, false, 'Use “Test OpenAI” to confirm the key works.'),
     voice: channel(config.voice.missing, recent(act.calls?.last_at), act.calls ? `Calls in last 7 days: ${Number(act.calls.week) || 0}.` : 'Call table not available.'),
     numbers: channel(config.numbers.missing, false, 'Needed to buy dedicated AI numbers automatically.'),
+    domains: channel(config.domains.missing, false, 'Connects restaurant domains automatically (hosting, DNS, SSL) and lets you buy domains for restaurants.'),
     email: channel(config.email.missing, false, 'Needed for password-reset emails.'),
     payments: config.payments.deferred
       ? { status: 'deferred', missing: config.payments.missing, note: `Online card payments are intentionally off. Cash on delivery/pickup is live (${Number(act.cash?.week) || 0} cash orders in 7 days).` }
