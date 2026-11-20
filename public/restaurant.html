@@ -1,278 +1,272 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <link rel="icon" type="image/svg+xml" href="/assets/approved-markhor.svg">
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Restaurant | MAR-KHOOR AI</title>
-  <link rel="stylesheet" href="/styles.css">
-
-<link rel="stylesheet" href="/mar-khoor-design.css">
-<link rel="stylesheet" href="/restaurant-owner.css">
-<link rel="stylesheet" href="/restaurant-refresh.css?v=20261120-v4">
-
-<!-- Approved charcoal-orange UI overrides from PR 27 -->
-<style>
-:is(.mk-register,.mk-owner.signing-in) {color-scheme:dark;--accent:#ffab52;--ink:#fff7ec;--muted:#d0beb0}
-.mk-register .top,.mk-owner.signing-in .layout>aside {background:#100e10;border-color:#48342c}
-.mk-register .brand .wordmark,.mk-owner.signing-in .brand .wordmark {color:#ffb777}
-.mk-register #register button:not(:disabled),.mk-owner.signing-in #login button:not(:disabled),.mk-owner.signing-in .login-show {cursor:pointer}
-.mk-register #register .register-actions button:hover:not(:disabled),.mk-owner.signing-in #login button:hover:not(:disabled) {filter:brightness(1.1)}
-.mk-register #register input[type=checkbox],.mk-owner.signing-in #login input[type=checkbox] {accent-color:#ffab52}
-:is(.mk-register,.mk-owner.signing-in) :is(a,button,input,select):focus-visible {outline:2px solid #ffbc79;outline-offset:3px}
-</style>
-<style>
-.mk-owner.signing-in .workspace {background:linear-gradient(90deg,#110e10f5,#191214bc),url('/assets/approved-mountain.webp') center/cover no-repeat;color:#fff7ec}
-.mk-owner.signing-in .mk-login-intro :is(h1,p) {color:#fff7ec}
-.mk-owner.signing-in .mk-login-intro .eyebrow {color:#ffb777;background:#38271f;border-color:#694a3b}
-.mk-owner.signing-in .access-panel {background:linear-gradient(145deg,#271e1c,#161416);border:1px solid #604438;border-radius:24px;box-shadow:0 18px 48px #0006}
-.mk-owner.signing-in .access-panel :is(h2,label,.muted,.login-register) {color:#fff0e3}
-.mk-owner.signing-in .access-panel #login input:not([type=checkbox]) {min-height:48px;color:#fff7ec;background:#151214;border:1px solid #725145;border-radius:10px;font-size:16px}
-.mk-owner.signing-in .access-panel #login input::placeholder {color:#c5b2a4}
-.mk-owner.signing-in .access-panel #login button {min-height:48px;color:#211207;background:linear-gradient(125deg,#ffc16d,#ff8b3b);border:0;border-radius:12px;font-weight:800}
-.mk-owner.signing-in .access-panel .login-register a {color:#ffbc80}
-</style>
-<style>
-.mk-owner.signing-in {
- min-height:100vh;
- min-height:100dvh;
- background:#0d0c0e;
-}
-.mk-owner.signing-in .layout {
- min-height:100vh;
- min-height:100dvh;
- display:flex;
- flex-direction:column;
- background:#0d0c0e;
-}
-.mk-owner.signing-in #owner-workspace {
- flex:1;
- min-height:0;
- background-color:#0d0c0e;
-}
-</style>
-<style>
-/* Login, forgot and reset messages live inside the card, right above the action button. */
-.mk-owner .access-panel .auth-message{display:flex;gap:10px;align-items:flex-start;margin:4px 0 2px;padding:12px 14px;border-radius:10px;font-size:.95rem;line-height:1.4;border:1px solid transparent}
-.mk-owner .access-panel .auth-message[hidden]{display:none}
-.mk-owner .access-panel .auth-message::before{flex:0 0 auto;font-weight:800}
-.mk-owner .access-panel .auth-error{color:#ffd9cf;background:#3a1b18;border-color:#a8473b}
-.mk-owner .access-panel .auth-error::before{content:"!";display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#e2553f;color:#fff;font-size:.8rem}
-.mk-owner .access-panel .auth-success{color:#e8f7dc;background:#1d2b1a;border-color:#4f7a3c}
-.mk-owner .access-panel .auth-success::before{content:"\2713";color:#9fd77e}
-.mk-owner .access-panel .auth-info{color:#ffe9d2;background:#2c221c;border-color:#6d4c3a}
-.mk-owner .access-panel .login-options{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.mk-owner .access-panel .login-forgot{color:#ffbc80;font-weight:700;text-decoration:underline;text-underline-offset:.18em}
-.mk-owner.signing-in .access-panel :is(#forgot-form,#reset-form) input:not([type=checkbox]){width:100%;min-height:48px;color:#fff7ec;background:#151214;border:1px solid #725145;border-radius:10px;font-size:16px}
-.mk-owner.signing-in .access-panel :is(#forgot-form,#reset-form) button{min-height:48px;color:#211207;background:linear-gradient(125deg,#ffc16d,#ff8b3b);border:0;border-radius:12px;font-weight:800;cursor:pointer}
-.mk-owner.signing-in .access-panel :is(#forgot-form,#reset-form) button:disabled{opacity:.7;cursor:progress}
-.mk-owner.signing-in .access-panel :is(#forgot-form,#reset-form){display:grid;gap:16px}
-</style>
-<style>
-.mk-owner .website-options label{grid-template-columns:minmax(0,1fr) auto!important;cursor:pointer}
-.mk-owner .website-options label span{grid-area:auto!important}
-.mk-owner .website-options label input{grid-area:auto!important}
-.mk-owner .website-options small{display:block;margin-top:4px;line-height:1.4;opacity:.85}
-</style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Restaurant | Mar-Khoor AI</title>
+<link rel="icon" type="image/svg+xml" href="/assets/markhor-ink.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="/summit.css?v=20261120-s1">
+<link rel="stylesheet" href="/owner.css?v=20261120-s1">
 </head>
-<body class="dashboard restaurant-dashboard mk-owner signing-in">
-<div class="layout">
-<aside><a class="brand" href="/"><img src="/assets/approved-markhor.svg" width="34" height="34" alt=""><span class="wordmark">Mar-Khoor</span></a>
-<div class="owner-restaurant-switch" id="owner-restaurant-switch" hidden><div class="owner-switch-icon" aria-hidden="true">✦</div><div><strong id="owner-switch-name">Restaurant</strong><small>Restaurant Admin</small></div></div>
-<div class="navlabel">RESTAURANT</div><a class="selected" aria-current="page" href="#owner-overview"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-8 9 8v10H3z"/></svg>Restaurant Overview</a>
-<nav id="owner-navigation" aria-label="Restaurant workspace" hidden>
-<a href="#restaurant-setup"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14v18H5zM8 8h8m-8 4h8m-8 4h5"/></svg>Restaurant Setup</a><a href="#website"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h18v13H3zM8 21h8m-4-4v4"/></svg>My Website</a><a href="#menu-management"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3v6a3 3 0 0 0 6 0V3M7 3v18m12 0V3c-3 2-4 5-4 9h4"/></svg>Menu &amp; Items</a><a href="#order-desk"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3h14v18H5zM8 8h8m-8 4h8m-8 4h5"/></svg>Live Orders</a><a href="#analytics"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3v17h16M8 15l4-4 4 2 4-7"/></svg>Analytics</a>
-<a href="#plan"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18m-14 5h4"/></svg>My Plans</a>
-<span class="owner-nav-label">WhatsApp</span>
-<a href="#whatsapp-inbox-view"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16l2 10v5H2v-5zM2 14h6l2 3h4l2-3h6"/></svg><span>Inbox</span></a>
-<a href="#whatsapp-outgoing-view"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4zM22 2 11 13"/></svg><span>Outgoing messages</span></a>
-</nav>
+<body class="mk owner-app signing-in">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+ <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v10h-6v-6H9v6H3z"/></symbol>
+ <symbol id="i-orders" viewBox="0 0 24 24"><path d="M5 3h14v18H5zM9 8h6M9 12h6M9 16h4"/></symbol>
+ <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 3v6a3 3 0 0 0 6 0V3M7 3v18M19 21V3c-3 2-4 5-4 9h4"/></symbol>
+ <symbol id="i-web" viewBox="0 0 24 24"><path d="M3 4h18v13H3zM8 21h8M12 17v4"/></symbol>
+ <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol>
+ <symbol id="i-send" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></symbol>
+ <symbol id="i-card" viewBox="0 0 24 24"><path d="M3 5h18v14H3zM3 10h18M7 15h4"/></symbol>
+ <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5V3h4M16 17l5-5-5-5M21 12H9"/></symbol>
+ <symbol id="i-search" viewBox="0 0 24 24"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-5-5"/></symbol>
+ <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+ <symbol id="i-globe" viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
+ <symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 3h4l2 5-2.5 1.5a11 11 0 0 0 6 6L16 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 5a2 2 0 0 1 2-2z"/></symbol>
+ <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></symbol>
+ <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></symbol>
+</svg>
+<div class="shell">
+<aside class="side" aria-label="Restaurant navigation">
+ <a class="brand" href="/"><img src="/assets/markhor-ember.svg" width="34" height="34" alt=""><b>Mar<span>-</span>Khoor</b></a>
+ <div class="side-tenant" id="owner-restaurant-switch" hidden><div class="avatar" id="owner-tenant-initials" aria-hidden="true">R</div><div><strong id="owner-switch-name">Restaurant</strong><small>Restaurant admin</small></div></div>
+ <nav class="nav" aria-label="Workspace">
+  <span class="nav-label">Restaurant</span>
+  <a class="selected" aria-current="page" href="#owner-overview"><svg aria-hidden="true"><use href="#i-home"/></svg><span>Dashboard</span></a>
+  <div id="owner-navigation" class="nav-group" hidden>
+   <a href="#order-desk"><svg aria-hidden="true"><use href="#i-orders"/></svg><span>Live orders</span><span class="count" id="nav-pending-count" hidden></span></a>
+   <a href="#menu-management"><svg aria-hidden="true"><use href="#i-menu"/></svg><span>Menu &amp; items</span></a>
+   <a href="#website"><svg aria-hidden="true"><use href="#i-web"/></svg><span>AI Website</span></a>
+   <span class="nav-label">Channels</span>
+   <a href="#whatsapp-inbox-view"><svg aria-hidden="true"><use href="#i-chat"/></svg><span>WhatsApp inbox</span></a>
+   <a href="#whatsapp-outgoing-view"><svg aria-hidden="true"><use href="#i-send"/></svg><span>Outgoing messages</span></a>
+   <span class="nav-label">Account</span>
+   <a href="#plan"><svg aria-hidden="true"><use href="#i-card"/></svg><span>Plans &amp; billing</span></a>
+  </div>
+ </nav>
+ <div class="side-foot"><button type="button" id="owner-logout" class="btn btn-sm btn-quiet" hidden><svg aria-hidden="true" width="18" height="18"><use href="#i-logout"/></svg>Sign out</button></div>
 </aside>
-<main class="workspace" id="owner-workspace">
-<div class="page-heading owner-dashboard-heading">
-<div class="owner-heading-text"><p class="owner-greeting">Good to see you, <strong id="owner-restaurant-label">Restaurant</strong></p><h1 id="owner-heading">Restaurant Dashboard</h1><p class="owner-heading-subtitle">Manage orders, menu, customers and your restaurant in one place.</p></div>
-<div class="owner-header-actions"><label class="owner-header-search"><span class="visually-hidden">Search restaurant orders</span><input id="owner-global-search" type="search" placeholder="Search orders or customers" aria-label="Search orders or customers"></label><button type="button" id="owner-logout" hidden>Sign out</button></div>
+
+<main class="main" id="owner-workspace">
+<header class="topbar owner-topbar">
+ <div><p class="small muted owner-greeting">Good to see you, <strong id="owner-restaurant-label">Restaurant</strong></p><h1 id="owner-heading">Dashboard</h1></div>
+ <div class="top-actions"><label class="search"><svg aria-hidden="true" width="16" height="16"><use href="#i-search"/></svg><span class="visually-hidden">Search orders or customers</span><input id="owner-global-search" type="search" placeholder="Search orders or customers"></label><a class="btn btn-primary" href="#menu-management"><svg aria-hidden="true" width="18" height="18"><use href="#i-plus"/></svg>Add menu item</a></div>
+</header>
+
+<div class="auth mk-login-grid">
+ <div class="auth-art auth-bg">
+  <a class="brand" href="/"><img src="/assets/markhor-ember.svg" width="34" height="34" alt=""><b>Mar<span>-</span>Khoor</b></a>
+  <div class="auth-copy"><span class="eyebrow">Restaurant login</span><h1 class="display">Run your restaurant from anywhere.</h1><p>Orders, menu, website and WhatsApp in one workspace, on your phone or laptop.</p></div>
+  <div class="channels"><span><svg aria-hidden="true" width="16" height="16"><use href="#i-globe"/></svg>Website</span><span><svg aria-hidden="true" width="16" height="16"><use href="#i-chat"/></svg>WhatsApp</span><span><svg aria-hidden="true" width="16" height="16"><use href="#i-phone"/></svg>AI calls</span><span><svg aria-hidden="true" width="16" height="16"><use href="#i-orders"/></svg>Live orders</span></div>
+ </div>
+ <div class="auth-form"><section class="auth-card access-panel">
+  <div id="login-view">
+   <div class="auth-title"><h2>Welcome back</h2><p class="muted">Sign in to manage your restaurant.</p></div>
+   <p id="login-notice" class="auth-message auth-success" role="status" hidden></p>
+   <form id="login">
+    <div class="field"><label for="email">Owner email</label><input class="input" id="email" type="email" placeholder="owner@example.com" required autocomplete="username"></div>
+    <div class="field"><div class="label-row"><label for="password">Password</label><a href="#forgot-password" id="forgot-link" class="small">Forgot password?</a></div><input class="input" id="password" type="password" placeholder="Enter your password" required autocomplete="current-password"></div>
+    <div class="login-options"><label class="check"><input id="login-show-password" type="checkbox"> Show password</label><label class="check"><input id="remember-login" type="checkbox" checked> Keep me signed in</label></div>
+    <p id="login-error" class="auth-message auth-error" role="alert" hidden></p>
+    <button type="submit" class="btn btn-primary btn-lg btn-block">Sign in</button>
+   </form>
+   <p class="or-line">New to Mar-Khoor?</p>
+   <a class="btn btn-ghost btn-block login-register" href="/register.html">Register your restaurant</a>
+  </div>
+  <div id="forgot-view" hidden>
+   <a href="#" class="back-to-login small">← Back to sign in</a>
+   <div class="auth-title"><h2>Forgot your password?</h2><p class="muted">Enter your account email and we will send you a link to choose a new password.</p></div>
+   <form id="forgot-form"><div class="field"><label for="forgot-email">Owner email</label><input class="input" id="forgot-email" type="email" placeholder="owner@example.com" required autocomplete="username" maxlength="254"></div><p id="forgot-message" class="auth-message" role="alert" hidden></p><button type="submit" class="btn btn-primary btn-lg btn-block">Send reset link</button></form>
+  </div>
+  <div id="reset-view" hidden>
+   <div class="auth-title"><h2>Choose a new password</h2><p class="muted">Use at least 12 characters. All devices will be signed out after the change.</p></div>
+   <form id="reset-form"><div class="field"><label for="reset-password">New password</label><input class="input" id="reset-password" type="password" placeholder="At least 12 characters" required minlength="12" maxlength="1024" autocomplete="new-password"></div><div class="field"><label for="reset-confirm">Confirm new password</label><input class="input" id="reset-confirm" type="password" placeholder="Repeat the new password" required minlength="12" maxlength="1024" autocomplete="new-password"></div><label class="check"><input id="reset-show-password" type="checkbox"> Show password</label><p id="reset-message" class="auth-message" role="alert" hidden></p><button type="submit" class="btn btn-dark btn-lg btn-block">Update password</button></form>
+   <p class="auth-back"><a href="#" class="back-to-login small">← Back to sign in</a></p>
+  </div>
+ </section></div>
 </div>
 
-<div class="mk-login-grid"><div class="mk-login-intro"><p class="eyebrow">Restaurant Login</p><h1>Manage Your Restaurant Anywhere</h1><p>Access your dashboard, orders and menu from one workspace.</p></div><section class="panel access-panel">
-<div id="login-view">
-<h2>Welcome back</h2><p class="muted">Sign in to manage your restaurant.</p>
-<p id="login-notice" class="auth-message auth-success" role="status" hidden></p>
-<form id="login"><div class="login-field"><label for="email"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18v14H3zM3 6l9 7 9-7"/></svg>Owner email *</label><input id="email" aria-label="Email address" type="email" placeholder="owner@example.com" required autocomplete="username"></div><div class="login-field"><label for="password"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 10h12v11H6zM8 10V7a4 4 0 0 1 8 0v3"/></svg>Password *</label><input id="password" aria-label="Password" type="password" placeholder="Enter your password" required autocomplete="current-password"></div><div class="login-options"><label class="login-show"><input id="login-show-password" type="checkbox"> Show password</label><a href="#forgot-password" id="forgot-link" class="login-forgot">Forgot password?</a></div><label class="login-show"><input id="remember-login" type="checkbox" checked> Keep me signed in</label><p id="login-error" class="auth-message auth-error" role="alert" hidden></p><button type="submit">Sign in</button>
-</form>
-<p class="login-register">New restaurant owner? <a href="/register.html">Register your restaurant</a></p>
-</div>
-<div id="forgot-view" hidden>
-<h2>Forgot your password?</h2><p class="muted">Enter your account email and we will send you a link to choose a new password.</p>
-<form id="forgot-form"><div class="login-field"><label for="forgot-email"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h18v14H3zM3 6l9 7 9-7"/></svg>Owner email *</label><input id="forgot-email" type="email" placeholder="owner@example.com" required autocomplete="username" maxlength="254"></div><p id="forgot-message" class="auth-message" role="alert" hidden></p><button type="submit">Send reset link</button></form>
-<p class="login-register"><a href="#" class="back-to-login">Back to sign in</a></p>
-</div>
-<div id="reset-view" hidden>
-<h2>Choose a new password</h2><p class="muted">Use at least 12 characters. All devices will be signed out after the change.</p>
-<form id="reset-form"><div class="login-field"><label for="reset-password"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 10h12v11H6zM8 10V7a4 4 0 0 1 8 0v3"/></svg>New password *</label><input id="reset-password" type="password" placeholder="At least 12 characters" required minlength="12" maxlength="1024" autocomplete="new-password"></div><div class="login-field"><label for="reset-confirm"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 10h12v11H6zM8 10V7a4 4 0 0 1 8 0v3"/></svg>Confirm new password *</label><input id="reset-confirm" type="password" placeholder="Repeat the new password" required minlength="12" maxlength="1024" autocomplete="new-password"></div><label class="login-show"><input id="reset-show-password" type="checkbox"> Show password</label><p id="reset-message" class="auth-message" role="alert" hidden></p><button type="submit">Update password</button></form>
-<p class="login-register"><a href="#" class="back-to-login">Back to sign in</a></p>
-</div>
-</section></div>
-<p id="status" role="status" class="muted"></p>
-<section class="panel mk-restaurant-list">
-<h2>Switch restaurant</h2>
-<div id="restaurants" class="muted">Sign in to load your restaurants.</div>
+<p id="status" role="status" class="status-line"></p>
+<section class="card card-pad mk-restaurant-list" hidden>
+ <div class="card-head"><h2>Choose a restaurant</h2></div>
+ <div id="restaurants" class="restaurant-picker muted">Sign in to load your restaurants.</div>
 </section>
+
 <div id="management" hidden>
-<div id="owner-overview">
-<section id="analytics" class="cards kpi-cards" aria-label="Restaurant analytics" aria-live="polite">Loading analytics…</section>
-<div class="owner-insights">
-<section class="panel owner-sales-panel"><div class="owner-panel-title"><h2>Sales Performance</h2><span class="owner-period">Last 30 days</span></div><p class="muted">Completed order revenue over the last 30 days</p><div id="owner-sales"></div></section>
-<section class="panel owner-activity-panel"><h2><span class="owner-live-dot" aria-hidden="true"></span> Order Activity (Live)</h2><div id="owner-order-activity" aria-live="polite"><p class="muted">Latest orders will appear here.</p></div><details class="owner-status-details"><summary>Order status summary</summary><div id="owner-status-summary"></div></details></section>
+<div id="owner-overview" class="owner-view" data-title="Dashboard">
+ <section class="setup-banner" id="restaurant-setup" hidden>
+  <span class="setup-icon" aria-hidden="true"><svg width="20" height="20"><use href="#i-sparkle"/></svg></span>
+  <div class="setup-text"><strong>Plan &amp; setup</strong><p id="setup-summary">Loading setup…</p></div>
+  <ul id="setup-progress" class="setup-progress" aria-label="Setup status" hidden></ul>
+  <button type="button" id="open-setup" class="btn btn-primary btn-sm" disabled>Continue setup</button>
+  <div id="usage-meter" class="usage-meter" aria-label="This month's usage" hidden></div>
+ </section>
+ <section id="analytics" class="grid-4 kpi-cards" aria-label="Restaurant analytics" aria-live="polite">Loading analytics…</section>
+ <div class="split">
+  <section class="card card-pad grow owner-sales-panel"><div class="card-head"><div><h2>Sales</h2><p class="small muted">Completed order revenue</p></div><span class="tag">Last 30 days</span></div><div id="owner-sales"></div></section>
+  <section class="card card-pad rail"><div class="card-head"><h2><span class="live-dot" aria-hidden="true"></span>Order activity</h2><a class="btn btn-ghost btn-sm" href="#order-desk">Order desk</a></div><div id="owner-order-activity" aria-live="polite"><p class="muted">Latest orders will appear here.</p></div><details class="owner-status-details"><summary>Order status summary</summary><div id="owner-status-summary"></div></details></section>
+ </div>
+ <div class="split">
+  <section class="card card-pad grow"><div class="card-head"><div><h2>Top dishes</h2><p class="small muted">Best sellers from completed orders</p></div></div><div id="owner-top-items"></div></section>
+  <section class="card card-pad rail"><div class="card-head"><h2>Quick actions</h2></div><div class="quick-actions"><a href="#menu-management" class="quick"><svg aria-hidden="true" width="22" height="22"><use href="#i-plus"/></svg>Add menu item</a><a href="#website" class="quick"><svg aria-hidden="true" width="22" height="22"><use href="#i-sparkle"/></svg>AI Website</a><a href="#order-desk" class="quick"><svg aria-hidden="true" width="22" height="22"><use href="#i-orders"/></svg>Live orders</a><a href="#whatsapp-inbox-view" class="quick"><svg aria-hidden="true" width="22" height="22"><use href="#i-chat"/></svg>WhatsApp inbox</a></div></section>
+ </div>
 </div>
-<section class="panel setup-summary" id="restaurant-setup" hidden>
-<h2>Plan &amp; setup</h2>
-<p id="setup-summary">Loading setup…</p>
-<div id="usage-meter" class="usage-meter" aria-label="This month's usage" hidden></div>
-<ul id="setup-progress" class="setup-progress" aria-label="Setup status" hidden></ul>
-<button type="button" id="open-setup" disabled>Continue setup</button>
+
+<section class="owner-view owner-message-view" id="order-desk" data-title="Live orders" hidden>
+ <h2 tabindex="-1" class="visually-hidden">Live orders</h2>
+ <div class="order-toolbar">
+  <p class="muted">New orders appear here automatically from your website, WhatsApp and AI calls.</p>
+  <label class="search"><svg aria-hidden="true" width="16" height="16"><use href="#i-search"/></svg><span class="visually-hidden">Search orders</span><input id="owner-order-search" type="search" placeholder="Order ID, customer or phone"></label>
+  <label class="order-filter"><span class="visually-hidden">Status</span><select id="owner-order-status" class="input"><option value="">All statuses</option><option>pending</option><option>accepted</option><option>preparing</option><option>ready</option><option>completed</option><option>cancelled</option></select></label>
+ </div>
+ <div id="orders" class="order-board" aria-live="polite"></div>
 </section>
+
+<section class="owner-view owner-message-view" id="menu-management" data-title="Menu &amp; items" hidden>
+ <h2 tabindex="-1" class="visually-hidden">Menu and items</h2>
+ <div class="split">
+  <section class="grow card card-pad"><div class="card-head"><div><h2>Your menu</h2><p class="small muted">Changes show on your website and AI assistants immediately.</p></div></div><div id="items" class="menu-list"></div></section>
+  <aside class="rail card card-pad menu-editor">
+   <div class="card-head"><h2 id="menu-editor-title">Add item</h2></div>
+   <form id="add-item">
+    <div class="photo-field"><span class="photo-label">Dish photo</span><div class="photo-row"><img id="item-photo-preview" class="photo-preview" alt="" hidden><span id="item-photo-empty" class="photo-preview photo-empty" aria-hidden="true">No photo</span><div class="photo-actions"><label class="photo-button">Upload photo<input id="item-photo-file" type="file" accept="image/jpeg,image/png,image/webp" class="visually-hidden"></label><button type="button" id="item-photo-remove" class="photo-remove" hidden>Remove</button></div></div><small id="item-photo-status" class="hint" role="status">JPG, PNG or WebP. Large photos are resized automatically.</small><input id="item-photo" type="hidden"></div>
+    <div class="field"><label for="item-name">Item name</label><input class="input" id="item-name" placeholder="e.g. Chicken Karahi" required maxlength="180"></div>
+    <div class="field-pair"><div class="field"><label for="item-price">Price</label><input class="input" id="item-price" type="number" min="0" step="0.01" placeholder="0.00" required></div><div class="field"><label for="item-category">Category</label><input class="input" id="item-category" maxlength="80" placeholder="e.g. Desserts"></div></div>
+    <div class="form-actions"><button id="save-menu-item" class="btn btn-primary">Add item</button><button type="button" id="cancel-menu-edit" class="btn btn-ghost" hidden>Cancel edit</button></div>
+   </form>
+  </aside>
+ </div>
+</section>
+
+<section class="owner-view owner-message-view" id="plan" data-title="Plans &amp; billing" hidden>
+ <h2 tabindex="-1" class="visually-hidden">Plans and billing</h2>
+ <div class="split">
+  <section class="grow card card-pad"><div class="card-head"><div><h2>Order services</h2><p class="small muted">Prices depend on your country. Your order becomes active after the platform confirms your payment.</p></div></div>
+   <form id="plan-form">
+    <fieldset class="service-grid"><legend class="visually-hidden">Services</legend>
+     <label class="service"><input type="checkbox" name="service" value="website"><span><strong>Website Builder</strong><small>AI website with your live menu</small></span></label>
+     <label class="service"><input type="checkbox" name="service" value="webAi"><span><strong>Web AI Assistant</strong><small>Chat assistant on your website</small></span></label>
+     <label class="service"><input type="checkbox" name="service" value="whatsapp"><span><strong>WhatsApp Business</strong><small>Orders and questions on WhatsApp</small></span></label>
+     <label class="service"><input type="checkbox" name="service" value="voice"><span><strong>AI Call Assistant</strong><small>Answers calls and takes orders</small></span></label>
+    </fieldset>
+    <p id="plan-number" hidden><label class="check"><input type="checkbox" id="plan-new-number"> Add a dedicated local phone number</label></p>
+    <button class="btn btn-primary">Place order</button>
+   </form>
+   <p id="plan-status" role="status" class="status-line"></p>
+  </section>
+  <section class="rail card card-pad"><div class="card-head"><h2>Your plan orders</h2></div><div id="plan-orders" class="plan-orders muted"></div></section>
+ </div>
+</section>
+
+<section class="owner-view owner-message-view" id="website" data-title="AI Website" hidden>
+ <h2 tabindex="-1" class="visually-hidden">AI Website Builder</h2>
+ <div class="notice notice-info"><svg aria-hidden="true" width="18" height="18"><use href="#i-eye"/></svg><span>Choose a template, add photos and let AI draft the words. Your live page stays unchanged until you save.</span></div>
+ <p id="site-link" class="site-link small"></p>
+ <form id="site-form" class="site-form">
+  <section class="card card-pad"><fieldset class="site-template-picker"><legend>1. Template</legend><p class="small muted">Existing sites keep their current design until you choose another.</p><div class="site-template-grid">
+   <label class="site-template-option" data-template="classic"><input type="radio" name="site-template" value="classic" checked><span class="site-template-thumb"><i></i><b></b><em></em></span><strong>Classic Dark</strong><small>Original Mar-Khoor style</small></label>
+   <label class="site-template-option" data-template="bistro"><input type="radio" name="site-template" value="bistro"><span class="site-template-thumb"><i></i><b></b><em></em></span><strong>Warm Bistro</strong><small>Elegant, warm and welcoming</small></label>
+   <label class="site-template-option" data-template="minimal"><input type="radio" name="site-template" value="minimal"><span class="site-template-thumb"><i></i><b></b><em></em></span><strong>Clean Editorial</strong><small>Minimal typography and whitespace</small></label>
+   <label class="site-template-option" data-template="midnight"><input type="radio" name="site-template" value="midnight"><span class="site-template-thumb"><i></i><b></b><em></em></span><strong>Midnight Modern</strong><small>Contemporary navy and gold</small></label>
+  </div></fieldset></section>
+  <section class="card card-pad"><fieldset class="site-brand"><legend>2. Logo &amp; photos</legend><div class="site-brand-grid">
+   <div class="photo-field" data-site-image="logo"><span class="photo-label">Logo</span><div class="photo-row"><img class="photo-preview photo-square" alt="" hidden><span class="photo-preview photo-square photo-empty" aria-hidden="true">No logo</span><div class="photo-actions"><label class="photo-button">Upload logo<input type="file" accept="image/jpeg,image/png,image/webp" class="visually-hidden"></label><button type="button" class="photo-remove" hidden>Remove</button></div></div></div>
+   <div class="photo-field" data-site-image="cover"><span class="photo-label">Cover photo</span><div class="photo-row"><img class="photo-preview photo-wide" alt="" hidden><span class="photo-preview photo-wide photo-empty" aria-hidden="true">No cover</span><div class="photo-actions"><label class="photo-button">Upload cover<input type="file" accept="image/jpeg,image/png,image/webp" class="visually-hidden"></label><button type="button" class="photo-remove" hidden>Remove</button></div></div></div>
+   <div class="photo-field site-gallery-field"><span class="photo-label">Gallery <small>(up to 8 photos)</small></span><ul id="site-gallery" class="site-gallery-list"></ul><label class="photo-button" id="site-gallery-add">Add photos<input id="site-gallery-file" type="file" accept="image/jpeg,image/png,image/webp" multiple class="visually-hidden"></label></div>
+  </div><p id="site-image-status" class="hint" role="status">Photos appear on your website after you Save (and Publish).</p></fieldset></section>
+  <section class="card card-pad site-words"><div class="card-head"><h2>3. Words</h2></div>
+   <div class="field site-description"><label for="site-description">Describe your restaurant</label><div class="describe-row"><textarea class="input" id="site-description" rows="3" maxlength="500" placeholder="e.g. Family-run burger place in Lahore, known for crispy zinger burgers"></textarea><button type="button" id="site-generate" class="btn btn-dark"><svg aria-hidden="true" width="18" height="18"><use href="#i-sparkle"/></svg>Write with AI</button></div></div>
+   <div class="field site-headline"><label for="site-headline">Headline</label><input class="input" id="site-headline" maxlength="80" placeholder="Headline"></div>
+   <div class="field site-tagline"><label for="site-tagline">Tagline</label><input class="input" id="site-tagline" maxlength="160" placeholder="Tagline"></div>
+   <div class="field site-about"><label for="site-about">About us</label><textarea class="input" id="site-about" rows="4" maxlength="800" placeholder="About us"></textarea></div>
+   <div class="field-pair"><div class="field site-hours"><label for="site-hours">Opening hours</label><input class="input" id="site-hours" maxlength="200" placeholder="e.g. Mon–Sun 11am–11pm"></div><div class="field site-phone"><label for="site-phone">Phone</label><input class="input" id="site-phone" maxlength="30" placeholder="+92 300 1234567"></div></div>
+   <div class="field site-address"><label for="site-address">Address</label><input class="input" id="site-address" maxlength="200" placeholder="Address"></div>
+   <label class="check"><input id="site-assistant-recording" type="checkbox"> Allow customers to record AI voice conversations on their device</label>
+   <div class="field site-theme" hidden><label for="site-theme">Legacy colour setting</label><select class="input" id="site-theme"><option value="green">Green</option><option value="gold">Gold</option><option value="red">Red</option><option value="blue">Blue</option><option value="dark">Dark</option></select></div>
+  </section>
+  <div class="site-actions"><button type="button" id="site-preview-button" class="btn btn-ghost"><svg aria-hidden="true" width="18" height="18"><use href="#i-eye"/></svg>Preview draft</button><button type="submit" class="btn btn-ghost">Save website</button><button type="button" id="site-publish" class="btn btn-primary">Publish</button><span id="site-status" role="status" class="small muted"></span></div>
+ </form>
+ <div class="site-preview-wrap card" id="site-preview-wrap" hidden><div class="card-head"><strong>Unpublished preview · only you can see this</strong><button type="button" id="site-preview-close" class="btn btn-ghost btn-sm">Close preview</button></div><iframe id="site-preview-frame" title="Website draft preview" sandbox="" loading="lazy"></iframe></div>
+</section>
+
+<section class="owner-view owner-message-view" id="whatsapp-inbox-view" data-title="WhatsApp inbox" hidden>
+ <h2 tabindex="-1" class="visually-hidden">WhatsApp inbox</h2>
+ <div class="card card-pad"><div class="card-head"><p class="small muted">Customer messages to your WhatsApp Business number.</p><label class="check ai-toggle"><input id="whatsapp-ai-enabled" type="checkbox"> AI auto-replies</label></div><div id="whatsapp-inbox" class="message-list muted"></div></div>
+</section>
+<section class="owner-view owner-message-view" id="whatsapp-outgoing-view" data-title="Outgoing messages" hidden>
+ <h2 tabindex="-1" class="visually-hidden">Outgoing WhatsApp messages</h2>
+ <div class="card card-pad"><div id="whatsapp-outbound" class="message-list muted"></div></div>
+</section>
+
 <dialog id="setup-dialog" aria-labelledby="setup-title">
 <form id="setup-form" novalidate>
-<p class="eyebrow" id="setup-step-label">Step 1 of 4</p>
+<div class="setup-head"><p class="tag tag-ember" id="setup-step-label">Step 1 of 4</p><button type="button" id="defer-setup" class="btn btn-quiet btn-sm">Skip for now</button></div>
+<div class="bar setup-bar"><i id="setup-bar-fill" style="width:25%"></i></div>
 <h2 id="setup-title">Choose your plan</h2>
 <fieldset class="setup-step" data-step="plan">
 <legend class="visually-hidden">Plan</legend>
-<p>Every plan includes the AI Assistant, Business WhatsApp, AI Caller and your website. Plans differ only in monthly usage. Service never stops at the limit; you get warnings at 75%, 90% and 100%.</p>
-<div class="billing-toggle" role="radiogroup" aria-label="Billing">
+<p class="muted">Every plan includes the AI Assistant, Business WhatsApp, AI Caller and your website. Plans differ only in monthly usage. Service never stops at the limit; you get warnings at 75%, 90% and 100%.</p>
+<div class="billing-toggle tabs" role="radiogroup" aria-label="Billing">
 <label><input type="radio" name="billing_cycle" value="monthly" checked> Monthly</label>
 <label><input type="radio" name="billing_cycle" value="yearly"> Yearly</label>
 </div>
 <div id="plan-options" class="setup-options plan-options"></div>
-<p id="plan-fx" class="plan-fx" hidden></p>
+<p id="plan-fx" class="plan-fx hint" hidden></p>
 </fieldset>
 <fieldset class="setup-step" data-step="connect" hidden>
 <legend class="visually-hidden">Connect</legend>
-<p>Add the numbers your restaurant uses. Both are optional: skip one and come back any time.</p>
+<p class="muted">Add the numbers your restaurant uses. Both are optional: skip one and come back any time.</p>
+<div class="setup-grid">
 <div class="setup-item" data-kind="whatsapp">
 <h3>Business WhatsApp</h3>
-<label>WhatsApp number used by your restaurant<input name="whatsapp_value" type="tel" inputmode="tel" autocomplete="tel" maxlength="32" placeholder="+92 300 1234567"></label>
+<div class="field"><label for="setup-wa">WhatsApp number used by your restaurant</label><input class="input" id="setup-wa" name="whatsapp_value" type="tel" inputmode="tel" autocomplete="tel" maxlength="32" placeholder="+92 300 1234567"></div>
 <input type="hidden" name="whatsapp_mode" value="meta_signup">
-<label class="setup-skip"><input type="checkbox" name="whatsapp_skip"> Skip WhatsApp for now</label>
+<label class="check setup-skip"><input type="checkbox" name="whatsapp_skip"> Skip WhatsApp for now</label>
 </div>
 <div class="setup-item" data-kind="ai_caller">
 <h3>AI Caller number</h3>
-<label>Number customers call today<input name="ai_caller_value" type="tel" inputmode="tel" autocomplete="tel" maxlength="32" placeholder="+92 42 1234567"></label>
-<label>How to connect<select name="ai_caller_mode">
+<div class="field"><label for="setup-call">Number customers call today</label><input class="input" id="setup-call" name="ai_caller_value" type="tel" inputmode="tel" autocomplete="tel" maxlength="32" placeholder="+92 42 1234567"></div>
+<div class="field"><label for="setup-call-mode">How to connect</label><select class="input" id="setup-call-mode" name="ai_caller_mode">
 <option value="forward">Forward my calls (easiest)</option>
 <option value="import">Connect my own number</option>
 <option value="new">Get a new local number</option>
-</select></label>
-<label class="setup-skip"><input type="checkbox" name="ai_caller_skip"> Skip AI Caller for now</label>
+</select></div>
+<label class="check setup-skip"><input type="checkbox" name="ai_caller_skip"> Skip AI Caller for now</label>
+</div>
 </div>
 </fieldset>
 <fieldset class="setup-step" data-step="website" hidden>
 <legend class="visually-hidden">Website</legend>
 <div class="setup-item" data-kind="website">
-<p>Do you already have a website for your restaurant?</p>
+<p class="muted">Do you already have a website for your restaurant?</p>
 <div class="setup-options website-options" role="radiogroup" aria-label="Website">
 <label><span><strong>No, build my website with AI</strong><small>The AI Website Builder opens next. Describe your restaurant and it writes your page, with your menu, AI Assistant, WhatsApp and AI Caller built in.</small></span><input type="radio" name="website_mode" value="builder" checked></label>
 <label><span><strong>Yes, use my own domain</strong><small>Connect your domain (for example myrestaurant.com) to a new AI-built Mar-Khoor website.</small></span><input type="radio" name="website_mode" value="domain"></label>
 <label><span><strong>Yes, keep my current website</strong><small>Keep your site as it is and add the Mar-Khoor AI Assistant, WhatsApp button and AI Caller to it.</small></span><input type="radio" name="website_mode" value="embed"></label>
 </div>
-<label class="setup-domain" hidden>Your domain<input name="website_value" inputmode="url" autocomplete="url" maxlength="253" placeholder="myrestaurant.com"></label>
-<label class="setup-skip"><input type="checkbox" name="website_skip"> Skip website for now</label>
+<div class="field setup-domain" hidden><label for="setup-domain">Your domain</label><input class="input" id="setup-domain" name="website_value" inputmode="url" autocomplete="url" maxlength="253" placeholder="myrestaurant.com"></div>
+<label class="check setup-skip"><input type="checkbox" name="website_skip"> Skip website for now</label>
 </div>
 </fieldset>
 <fieldset class="setup-step" data-step="done" hidden>
 <legend class="visually-hidden">Status</legend>
-<p>Here is what is connected and what needs one more step.</p>
+<p class="muted">Here is what is connected and what needs one more step.</p>
 <ul id="setup-results" class="setup-progress"></ul>
 </fieldset>
-<p id="setup-status" role="status"></p>
+<p id="setup-status" role="status" class="status-line"></p>
 <div class="setup-actions">
-<button type="button" id="defer-setup">Skip for now</button>
-<button type="button" id="back-setup" hidden>Back</button>
-<button type="submit" id="next-setup">Next</button>
+<button type="button" id="back-setup" class="btn btn-ghost" hidden>Back</button>
+<button type="submit" id="next-setup" class="btn btn-primary">Next</button>
 </div>
 </form>
 </dialog>
-<div class="dashboard-panels operational-grid">
-<section class="panel owner-top-items"><h2>Top Dishes</h2><p class="muted">Top-selling items from completed orders</p><div id="owner-top-items"></div></section>
-<section class="panel order-desk" id="order-desk">
-<h2><span class="order-indicator" aria-hidden="true"></span>Live Orders</h2>
-<div class="owner-order-controls">
-<label>Search orders <input id="owner-order-search" type="search" placeholder="Order ID or customer"></label>
-<label>Status <select id="owner-order-status"><option value="">All statuses</option><option>pending</option><option>accepted</option><option>preparing</option><option>ready</option><option>completed</option><option>cancelled</option></select></label>
-</div>
-<div id="owner-order-cards" class="owner-order-cards"></div><details class="owner-orders-details"><summary>Manage orders, payments and preparation times</summary><div id="orders" class="owner-order-table"></div></details>
-</section>
-<section class="panel owner-quick-actions"><h2>Quick Actions</h2><div class="owner-action-grid"><a href="#menu-management" class="owner-action-tile"><span aria-hidden="true">＋</span>Add Menu Item</a><a href="#website" class="owner-action-tile"><span aria-hidden="true">✎</span>AI Website Builder</a><a href="#order-desk" class="owner-action-tile"><span aria-hidden="true">▣</span>Manage Orders</a><a href="#analytics" class="owner-action-tile"><span aria-hidden="true">▥</span>View Analytics</a></div></section>
-<section class="panel" id="menu-management">
-<h2>Menu &amp; Items</h2>
-<form id="add-item"><label for="item-name">Item name<input id="item-name" aria-label="Menu item name" placeholder="Item name" required maxlength="180"></label><label for="item-price">Price<input id="item-price" aria-label="Menu item price" type="number" min="0" step="0.01" placeholder="Price" required></label><label>Category<input id="item-category" maxlength="80" placeholder="e.g. Desserts"></label><div class="photo-field"><span class="photo-label">Dish photo</span><div class="photo-row"><img id="item-photo-preview" class="photo-preview" alt="" hidden><span id="item-photo-empty" class="photo-preview photo-empty" aria-hidden="true">No photo</span><div class="photo-actions"><label class="photo-button">Upload photo<input id="item-photo-file" type="file" accept="image/jpeg,image/png,image/webp" class="visually-hidden"></label><button type="button" id="item-photo-remove" class="photo-remove" hidden>Remove</button><small id="item-photo-status" role="status">JPG, PNG or WebP. Large photos are resized automatically.</small></div></div><input id="item-photo" type="hidden"></div><button id="save-menu-item">Add item</button><button type="button" id="cancel-menu-edit" hidden>Cancel edit</button>
-</form>
-<div id="items">
-</div>
-</section>
-</div>
-</div>
-<section class="panel owner-message-view" id="plan" hidden>
-<h2 tabindex="-1">My Plans</h2>
-<p class="muted">Choose services. Prices depend on your country. Your order becomes active after the platform owner confirms your payment.</p>
-<form id="plan-form">
-<fieldset class="plan-services">
-<legend>Services</legend>
-<p><label><input type="checkbox" name="service" value="website"> Website Builder</label></p>
-<p><label><input type="checkbox" name="service" value="webAi"> Web AI Assistant</label></p>
-<p><label><input type="checkbox" name="service" value="whatsapp"> WhatsApp Business</label></p>
-<p><label><input type="checkbox" name="service" value="voice"> AI Call Assistant</label></p>
-<p id="plan-number" hidden><label><input type="checkbox" id="plan-new-number"> Add a dedicated local phone number</label></p>
-</fieldset>
-<button>Place order</button>
-</form>
-<p id="plan-status" role="status" class="muted"></p>
-<div id="plan-orders" class="muted"></div>
-</section>
-<section class="panel owner-message-view" id="website" hidden>
-<h2 tabindex="-1">AI Website Builder</h2>
-<p class="muted">Choose a professionally designed template, preview your real menu and let AI draft the text. Review the result before saving or publishing. Your current live page stays unchanged until you save.</p>
-<form id="site-form">
-<fieldset class="site-template-picker"><legend>Choose a website template</legend><p class="muted">Preview the layout before you publish. Existing sites keep their current design until you choose another.</p><div class="site-template-grid">
-<label class="site-template-option" data-template="classic"><input type="radio" name="site-template" value="classic" checked><span class="site-template-thumb"><i></i><b></b><em></em></span><strong>Classic Dark</strong><small>Original Mar-Khoor style</small></label>
-<label class="site-template-option" data-template="bistro"><input type="radio" name="site-template" value="bistro"><span class="site-template-thumb"><i></i><b></b><em></em></span><strong>Warm Bistro</strong><small>Elegant, warm and welcoming</small></label>
-<label class="site-template-option" data-template="minimal"><input type="radio" name="site-template" value="minimal"><span class="site-template-thumb"><i></i><b></b><em></em></span><strong>Clean Editorial</strong><small>Minimal typography and whitespace</small></label>
-<label class="site-template-option" data-template="midnight"><input type="radio" name="site-template" value="midnight"><span class="site-template-thumb"><i></i><b></b><em></em></span><strong>Midnight Modern</strong><small>Contemporary navy and gold</small></label>
-</div></fieldset>
-<fieldset class="site-brand"><legend>Logo &amp; photos</legend><div class="site-brand-grid"><div class="photo-field" data-site-image="logo"><span class="photo-label">Logo</span><div class="photo-row"><img class="photo-preview photo-square" alt="" hidden><span class="photo-preview photo-square photo-empty" aria-hidden="true">No logo</span><div class="photo-actions"><label class="photo-button">Upload logo<input type="file" accept="image/jpeg,image/png,image/webp" class="visually-hidden"></label><button type="button" class="photo-remove" hidden>Remove</button></div></div></div><div class="photo-field" data-site-image="cover"><span class="photo-label">Cover photo</span><div class="photo-row"><img class="photo-preview photo-wide" alt="" hidden><span class="photo-preview photo-wide photo-empty" aria-hidden="true">No cover</span><div class="photo-actions"><label class="photo-button">Upload cover<input type="file" accept="image/jpeg,image/png,image/webp" class="visually-hidden"></label><button type="button" class="photo-remove" hidden>Remove</button></div></div></div><div class="photo-field site-gallery-field"><span class="photo-label">Gallery <small>(up to 8 photos)</small></span><ul id="site-gallery" class="site-gallery-list"></ul><label class="photo-button" id="site-gallery-add">Add photos<input id="site-gallery-file" type="file" accept="image/jpeg,image/png,image/webp" multiple class="visually-hidden"></label></div></div><p id="site-image-status" class="muted" role="status">Photos appear on your website after you Save (and Publish).</p></fieldset>
-<div class="site-field site-description"><label for="site-description">Restaurant description</label><textarea id="site-description" rows="3" maxlength="500" aria-label="About your restaurant" placeholder="e.g. Family-run burger place in Lahore, known for crispy zinger burgers"></textarea></div>
-<div class="site-actions"><button type="button" id="site-generate">Write with AI</button></div>
-<div class="site-field site-headline"><label for="site-headline">Headline</label><input id="site-headline" maxlength="80" aria-label="Headline" placeholder="Headline"></div>
-<div class="site-field site-tagline"><label for="site-tagline">Tagline</label><input id="site-tagline" maxlength="160" aria-label="Tagline" placeholder="Tagline"></div>
-<div class="site-field site-about"><label for="site-about">About us</label><textarea id="site-about" rows="4" maxlength="800" aria-label="About us" placeholder="About us"></textarea></div>
-<div class="site-field site-hours"><label for="site-hours">Opening hours</label><input id="site-hours" maxlength="200" aria-label="Opening hours" placeholder="Opening hours (e.g. Mon-Sun 11am-11pm)"></div>
-<div class="site-field site-phone"><label for="site-phone">Phone</label><input id="site-phone" maxlength="30" aria-label="Phone" placeholder="Phone (e.g. +92 300 1234567)"></div>
-<div class="site-field site-address"><label for="site-address">Address</label><input id="site-address" maxlength="200" aria-label="Address" placeholder="Address"></div>
-<div class="site-field"><label><input id="site-assistant-recording" type="checkbox"> Allow customers to record AI voice conversations on their device</label></div>
-<div class="site-field site-theme" hidden><label for="site-theme">Legacy colour setting (template controls design)</label><select id="site-theme" aria-label="Colour theme"><option value="green">Green</option><option value="gold">Gold</option><option value="red">Red</option><option value="blue">Blue</option><option value="dark">Dark</option></select></div>
-<div class="site-actions"><button type="button" id="site-preview-button">Preview draft</button><button type="submit">Save website</button><button type="button" id="site-publish">Publish</button></div>
-</form>
-<div class="site-preview-wrap" id="site-preview-wrap" hidden><div class="owner-panel-title"><strong>Unpublished preview · only you can see this</strong><button type="button" id="site-preview-close">Close preview</button></div><iframe id="site-preview-frame" title="Website draft preview" sandbox="" loading="lazy"></iframe></div>
-<p id="site-status" role="status" class="muted"></p>
-<p id="site-link" class="muted"></p>
-</section>
-<section class="panel owner-message-view" id="whatsapp-inbox-view" hidden>
-<h2 tabindex="-1">WhatsApp Inbox</h2>
-<label><input id="whatsapp-ai-enabled" type="checkbox"> AI auto-replies (opt-in)</label>
-<div id="whatsapp-inbox" class="muted">
-</div>
-</section>
-<section class="panel owner-message-view" id="whatsapp-outgoing-view" hidden>
-<h2 tabindex="-1">Outgoing WhatsApp Messages</h2>
-<div id="whatsapp-outbound" class="muted">
-</div>
-</section>
 </div>
 </main>
 </div>
 <script src="/password-reset.js?v=20261119"></script>
-<script type="module" src="/restaurant.js?v=20261120-media-v4">
-</script>
-<script>document.getElementById("login-show-password")?.addEventListener("change",function(){document.getElementById("password").type=this.checked?"text":"password"});</script></body>
+<script type="module" src="/restaurant.js?v=20261120-summit-s1"></script>
+<script>document.getElementById("login-show-password")?.addEventListener("change",function(){document.getElementById("password").type=this.checked?"text":"password"});</script>
+</body>
 </html>
-

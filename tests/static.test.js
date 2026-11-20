@@ -49,10 +49,15 @@ test('website builder never applies one restaurant draft to another and resets t
  assert.ok(!js.includes("data.description||siteField('description').value"),'description must not carry over between restaurants');
  assert.match(js,/Your draft was saved, but it is not live yet/);
 });
-test('dashboard is usable on phones: order table labels, readable chart and safe template radios',()=>{
- const js=read('public/restaurant.js'),css=read('public/restaurant-refresh.css');
- assert.match(js,/cell\.dataset\.label/);
+test('dashboard uses the Summit design: order board, readable chart and safe template radios',()=>{
+ const js=read('public/restaurant.js'),html=read('public/restaurant.html'),css=read('public/owner.css');
+ assert.match(html,/href="\/summit\.css\?v=/);
+ assert.match(html,/href="\/owner\.css\?v=/);
+ assert.ok(!html.includes('restaurant-refresh.css'),'legacy dashboard styles are no longer loaded');
+ assert.match(js,/function orderCard/);
  assert.match(js,/ResizeObserver/);
- assert.match(css,/owner-order-table td::before\{content:attr\(data-label\)/);
- assert.match(css,/site-template-option input\[type=radio\]\{width:18px/);
+ assert.match(css,/\.order-board\{display:flex/);
+ assert.match(css,/site-template-option input\{position:absolute;right:16px;top:16px;width:18px/);
+ for(const view of ['order-desk','menu-management','website','plan','whatsapp-inbox-view','whatsapp-outgoing-view'])
+  assert.match(html,new RegExp('class="owner-view owner-message-view" id="'+view+'"'),view);
 });

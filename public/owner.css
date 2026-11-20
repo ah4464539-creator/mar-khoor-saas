@@ -1,0 +1,299 @@
+/* Restaurant admin (owner) app — Summit design. Builds on /summit.css. */
+body.mk{margin:0}
+.owner-app .shell{min-height:100vh}
+.owner-app .side .nav a{position:relative}
+.owner-app .side .nav a[aria-current]{background:var(--ember);color:var(--ember-ink);font-weight:650}
+.owner-app .side .nav svg{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.owner-app .nav-group{display:grid;gap:2px}
+.owner-app svg use{fill:none}
+.owner-app svg[width]{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.owner-app .side-foot{justify-content:flex-start}
+.owner-app .side-foot .btn{color:var(--night-text)}
+.owner-app .side-foot .btn:hover{background:#ffffff12}
+
+/* Signed-out: full-screen login, no sidebar or topbar */
+.owner-app.signing-in .side,.owner-app.signing-in .owner-topbar,.owner-app.signing-in #status:empty{display:none}
+.owner-app.signing-in .main{padding:0;gap:0}
+.owner-app:not(.signing-in) .mk-login-grid{display:none}
+.owner-app .auth{min-height:100vh}
+.owner-app .auth-copy{display:grid;gap:16px;max-width:520px}
+.owner-app .auth-copy .eyebrow{color:#FFC48A}
+.owner-app .auth-title{display:grid;gap:6px;margin:14px 0 18px}
+.owner-app #login-view .auth-title{margin-top:0}
+.owner-app .label-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.owner-app .login-options{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.owner-app .or-line{margin:22px 0 14px}
+.owner-app .auth-back{margin-top:16px}
+.owner-app .back-to-login{text-decoration:none}
+
+/* Topbar */
+.owner-app .owner-greeting strong{color:var(--ember-text)}
+.owner-app .topbar h1{margin-top:2px}
+
+/* Restaurant picker (multi-restaurant owners) */
+.owner-app .restaurant-picker{display:flex;flex-wrap:wrap;gap:10px}
+.owner-app .restaurant-picker button{min-height:44px;padding:0 16px;border-radius:12px;border:1px solid var(--line-strong);background:var(--surface);font:600 14px var(--font);cursor:pointer;color:var(--ink)}
+.owner-app .restaurant-picker button:hover{background:var(--sunk)}
+
+/* Setup banner */
+.owner-app .setup-banner{display:flex;flex-wrap:wrap;align-items:center;gap:14px 18px;padding:16px 20px;border-radius:var(--r-lg);background:var(--ink);color:#fff;margin-bottom:22px}
+.owner-app .setup-icon{width:40px;height:40px;border-radius:12px;background:var(--ember);color:var(--ember-ink);display:grid;place-items:center;flex:none}
+.owner-app .setup-text{flex:1 1 260px;display:grid;gap:2px}
+.owner-app .setup-text p{color:#D9CBBE;font-size:14px}
+.owner-app .setup-banner .setup-progress{flex-basis:100%;order:5}
+.owner-app .setup-banner .usage-meter{flex-basis:100%;order:6}
+.owner-app .setup-progress{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.owner-app .setup-progress li{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:#2A221D;font-size:13px}
+.owner-app .setup-progress li strong{font-weight:600}
+.owner-app .setup-badge{font-size:12px;padding:2px 8px;border-radius:999px;background:#3A2F28;color:#FFC48A}
+.owner-app .setup-progress li[data-status=connected] .setup-badge{background:#1F6B4F;color:#E3F3EB}
+.owner-app .setup-progress li[data-status=failed] .setup-badge{background:#A12F2E;color:#fff}
+.owner-app .setup-progress li small{color:#B7A79A}
+.owner-app .usage-meter{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.owner-app .usage-row{display:grid;gap:6px;font-size:13px;color:#D9CBBE}
+.owner-app .usage-row meter{width:100%;height:8px}
+.owner-app .usage-row[data-warning="100"]{color:#FFB4A9}
+
+/* KPI cards (rendered by restaurant.js) */
+.owner-app .kpi-cards{margin-bottom:22px}
+.owner-app .kpi-cards article{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:18px 20px;display:flex;flex-direction:row-reverse;justify-content:space-between;align-items:flex-start;gap:12px;min-width:0}
+.owner-app .kpi-cards .metric-icon{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--ember-soft);color:var(--ember-text);flex:none}
+.owner-app .kpi-cards .metric-icon svg{width:20px;height:20px}
+.owner-app .kpi-cards article div{display:grid;gap:4px;min-width:0;overflow-wrap:anywhere}
+.owner-app .kpi-cards article div span{font-size:13px;font-weight:600;color:var(--muted)}
+.owner-app .kpi-cards article strong{font:800 clamp(22px,2.2vw,28px)/1.1 var(--display);letter-spacing:-.03em}
+.owner-app .split{margin-bottom:18px}
+
+/* Sales chart */
+.owner-app #owner-sales{min-height:228px}
+.owner-app .owner-revenue-chart{width:100%;height:228px;display:block;overflow:visible}
+.owner-app .owner-revenue-chart .axis{stroke:var(--line);stroke-width:1}
+.owner-app .owner-revenue-chart .revenue-line{fill:none;stroke:var(--ember);stroke-width:3;stroke-linejoin:round;stroke-linecap:round}
+.owner-app .owner-revenue-chart .revenue-dot{fill:var(--ember);stroke:#fff;stroke-width:2}
+.owner-app .owner-revenue-chart .tick{font:12px var(--font);fill:var(--faint)}
+.owner-app #owner-sales small{display:block;margin-top:6px;color:var(--muted);font-size:13px}
+
+/* Activity + status summary */
+.owner-app .live-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--ember);box-shadow:0 0 0 4px var(--ember-soft);margin-right:10px;vertical-align:middle}
+.owner-app .owner-activity-list{list-style:none;margin:0;padding:0}
+.owner-app .owner-activity-list li{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);align-items:start}
+.owner-app .owner-activity-list li:last-child{border-bottom:0}
+.owner-app .owner-activity-icon{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--ember-soft);color:var(--ember-text);font-weight:800;font-size:13px}
+.owner-app .owner-activity-list strong{display:block;font-size:14px}
+.owner-app .owner-activity-list small{color:var(--muted);font-size:13px}
+.owner-app .owner-activity-list time{font-size:12px;color:var(--faint);white-space:nowrap}
+.owner-app .owner-status-details{margin-top:10px;padding-top:12px;border-top:1px solid var(--line)}
+.owner-app details>summary{cursor:pointer;color:var(--ember-text);font-size:13px;font-weight:650}
+.owner-app .owner-status-details[open] #owner-status-summary{display:grid;justify-items:center;gap:12px;margin-top:12px}
+.owner-app .owner-status-ring{width:110px;aspect-ratio:1;border-radius:50%;background:var(--sunk);display:grid;place-items:center;position:relative}
+.owner-app .owner-status-ring::after{content:"";position:absolute;inset:16px;border-radius:50%;background:var(--surface)}
+.owner-app .owner-status-ring strong{position:relative;z-index:1;font:800 20px var(--display)}
+.owner-app .owner-status-legend{list-style:none;margin:0;padding:0;display:grid;gap:6px;width:100%}
+.owner-app .owner-status-legend li{display:flex;align-items:center;gap:8px;font-size:13px;text-transform:capitalize}
+.owner-app .owner-status-legend li strong{margin-left:auto}
+.owner-app .owner-status-dot{width:10px;height:10px;border-radius:50%}
+
+/* Top dishes */
+.owner-app .owner-top-list{list-style:none;margin:0;padding:0}
+.owner-app .owner-top-list li{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.owner-app .owner-top-list li:last-child{border-bottom:0}
+.owner-app .owner-dish-thumb{width:46px;height:46px;border-radius:10px;object-fit:cover;flex:none;background:var(--sunk)}
+.owner-app .owner-dish-placeholder{display:grid;place-items:center;color:var(--faint);font-size:18px}
+.owner-app .owner-dish-details{flex:1;min-width:0;display:grid}
+.owner-app .owner-dish-details small{color:var(--muted)}
+.owner-app .owner-dish-bar{flex:0 0 32%;height:8px;border-radius:999px;background:var(--sunk);overflow:hidden}
+.owner-app .owner-dish-bar i{display:block;height:100%;border-radius:999px;background:var(--ember)}
+
+/* Quick actions */
+.owner-app .quick-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.owner-app .quick{display:grid;justify-items:center;gap:8px;padding:18px 10px;border-radius:14px;border:1px solid var(--line);background:var(--sunk);text-decoration:none;color:var(--ink);font-weight:600;font-size:14px;text-align:center}
+.owner-app .quick svg{color:var(--ember-text)}
+.owner-app .quick:hover{background:var(--ember-soft);border-color:var(--ember-line)}
+
+/* Order desk board */
+.owner-app .order-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+.owner-app .order-toolbar>p{flex:1 1 320px}
+.owner-app .order-filter select{min-height:44px;width:auto}
+.owner-app .order-board{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start}
+.owner-app .order-column{flex:1 1 250px;min-width:0;background:var(--sunk);border-radius:var(--r-lg);padding:12px;display:grid;gap:10px;align-content:start}
+.owner-app .order-column>header{display:flex;justify-content:space-between;align-items:center;padding:2px 4px}
+.owner-app .order-column>header h3{font-size:16px}
+.owner-app .order-column .empty{font-size:13px;color:var(--faint);padding:10px 4px}
+.owner-app .order-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:10px}
+.owner-app .order-card .head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.owner-app .order-card .head time{font-size:12px;color:var(--faint)}
+.owner-app .order-card .meta{font-size:13px;color:var(--ink-2);display:grid;gap:2px;overflow-wrap:anywhere}
+.owner-app .order-card .meta span{color:var(--muted)}
+.owner-app .order-card .money{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.owner-app .order-card .actions{display:flex;flex-wrap:wrap;gap:8px}
+.owner-app .order-card .actions .btn{flex:1 1 auto}
+.owner-app .owner-order-estimate{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.owner-app .owner-order-estimate input{width:76px;min-height:36px;padding:6px 10px;border:1px solid var(--line-strong);border-radius:9px;font:14px var(--font)}
+.owner-app .order-column.done .order-card{opacity:.9}
+.owner-app .order-more{font-size:13px;text-align:center;color:var(--muted)}
+
+/* Status tags shared by cards */
+.owner-app .owner-order-badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 9px;border-radius:999px;font-size:12px;font-weight:600;text-transform:capitalize;background:var(--sunk);color:var(--ink-2)}
+.owner-app .owner-order-badge[data-status=pending]{background:var(--warn-bg);color:var(--warn)}
+.owner-app .owner-order-badge[data-status=accepted]{background:var(--ember-soft);color:var(--ember-text)}
+.owner-app .owner-order-badge[data-status=preparing]{background:var(--info-bg);color:var(--info)}
+.owner-app .owner-order-badge[data-status=ready]{background:var(--teal-bg);color:var(--teal)}
+.owner-app .owner-order-badge[data-status=completed]{background:var(--ok-bg);color:var(--ok)}
+.owner-app .owner-order-badge[data-status=cancelled]{background:var(--bad-bg);color:var(--bad)}
+
+/* Menu */
+.owner-app .menu-list{display:grid}
+.owner-app .owner-menu-row{display:flex;align-items:center;gap:14px;padding:12px 0;margin:0;border-bottom:1px solid var(--line)}
+.owner-app .owner-menu-row:last-child{border-bottom:0}
+.owner-app .owner-menu-thumb{width:52px;height:52px;border-radius:12px;object-fit:cover;flex:none;background:var(--sunk);display:grid;place-items:center;color:var(--faint);font-size:11px;border:1.5px dashed var(--line-strong)}
+.owner-app img.owner-menu-thumb{border:0}
+.owner-app .owner-menu-text{flex:1 1 160px;min-width:0;display:grid;gap:2px;overflow-wrap:anywhere}
+.owner-app .owner-menu-text small{color:var(--muted);font-size:13px}
+.owner-app .owner-menu-actions{display:flex;gap:8px;margin-left:auto}
+.owner-app .owner-menu-row.hidden-item .owner-menu-text strong{color:var(--muted)}
+.owner-app .menu-editor form{display:grid;gap:16px}
+.owner-app .field-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.owner-app .form-actions{display:flex;gap:10px;flex-wrap:wrap}
+.owner-app .form-actions .btn-primary{flex:1}
+@media(min-width:960px){.owner-app .menu-editor{position:sticky;top:20px}}
+
+/* Photo fields */
+.owner-app .photo-field{display:grid;gap:8px;min-width:0}
+.owner-app .photo-label{font-size:13px;font-weight:600;color:var(--ink-2)}
+.owner-app .photo-label small{font-weight:500;color:var(--muted)}
+.owner-app .photo-row{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.owner-app .photo-preview{width:100px;height:76px;border-radius:12px;object-fit:cover;flex:none;background:var(--sunk);border:1px solid var(--line)}
+.owner-app .photo-preview.photo-square{width:76px;height:76px}
+.owner-app .photo-preview.photo-wide{width:168px;height:94px}
+.owner-app .photo-empty{display:grid;place-items:center;font-size:12px;color:var(--faint);border:1.5px dashed var(--line-strong)}
+.owner-app .photo-actions{display:grid;gap:6px;justify-items:start}
+.owner-app .photo-button{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 14px;border-radius:10px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);font-weight:600;font-size:14px;cursor:pointer}
+.owner-app .photo-button:hover{background:var(--sunk)}
+.owner-app .photo-button:focus-within{outline:2px solid var(--ember);outline-offset:2px}
+.owner-app .photo-remove{background:transparent;border:1px solid #f1c3c0;color:var(--bad);min-height:34px;padding:0 12px;border-radius:9px;font-size:13px;cursor:pointer}
+
+/* Website builder */
+.owner-app #website>.notice{margin-bottom:12px}
+.owner-app .site-link:empty{display:none}
+.owner-app .site-link{margin:0 0 12px}
+.owner-app .site-form{display:grid;gap:16px}
+.owner-app .site-form fieldset{border:0;margin:0;padding:0;min-width:0}
+.owner-app .site-form legend{font:700 18px var(--display);letter-spacing:-.02em;padding:0;margin-bottom:6px}
+.owner-app .site-template-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:14px}
+.owner-app .site-template-option{position:relative;display:grid;gap:6px;align-content:start;padding:10px;border:1px solid var(--line);border-radius:14px;background:var(--surface);cursor:pointer}
+.owner-app .site-template-option:has(input:checked){border:2px solid var(--ember);box-shadow:0 0 0 4px var(--ember-soft);padding:9px}
+.owner-app .site-template-option input{position:absolute;right:16px;top:16px;width:18px;height:18px;margin:0;accent-color:var(--ember);z-index:1}
+.owner-app .site-template-option strong{font-size:14px}
+.owner-app .site-template-option small{font-size:12px;color:var(--muted)}
+.owner-app .site-template-thumb{position:relative;display:block;aspect-ratio:16/10;overflow:hidden;border-radius:10px;background:#141315;border:1px solid var(--line)}
+.owner-app .site-template-thumb i{position:absolute;inset:0 0 auto;height:18%;background:#222}
+.owner-app .site-template-thumb b{position:absolute;top:32%;left:12%;width:50%;height:13%;border-radius:4px;background:#fa9747}
+.owner-app .site-template-thumb em{position:absolute;bottom:12%;left:12%;right:12%;height:27%;border-radius:5px;background:#373035}
+.owner-app [data-template=bistro] .site-template-thumb{background:#fff1df}.owner-app [data-template=bistro] .site-template-thumb i{background:#f3d8bc}.owner-app [data-template=bistro] .site-template-thumb b{background:#ce7139}.owner-app [data-template=bistro] .site-template-thumb em{background:#fffaf2}
+.owner-app [data-template=minimal] .site-template-thumb{background:#f7f6f3}.owner-app [data-template=minimal] .site-template-thumb i{background:#fff}.owner-app [data-template=minimal] .site-template-thumb b{background:#282828}.owner-app [data-template=minimal] .site-template-thumb em{background:#e3e0da}
+.owner-app [data-template=midnight] .site-template-thumb{background:#101b36}.owner-app [data-template=midnight] .site-template-thumb i{background:#192b52}.owner-app [data-template=midnight] .site-template-thumb b{background:#ffcf84}.owner-app [data-template=midnight] .site-template-thumb em{background:#293a5b}
+.owner-app .site-brand-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:10px}
+.owner-app .site-gallery-field{grid-column:1/-1}
+.owner-app .site-gallery-list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:10px}
+.owner-app .site-gallery-list:empty{display:none}
+.owner-app .site-gallery-list li{display:grid;gap:4px;justify-items:center}
+.owner-app .site-gallery-list img{width:96px;height:96px;object-fit:cover;border-radius:12px;border:1px solid var(--line)}
+.owner-app .site-gallery-list button{background:transparent;border:0;color:var(--bad);font-size:12px;min-height:28px;cursor:pointer}
+.owner-app .site-brand .hint{margin-top:12px}
+.owner-app .site-words{display:grid;gap:14px}
+.owner-app .site-words .card-head{margin-bottom:0}
+.owner-app .describe-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start}
+.owner-app .describe-row textarea{flex:1 1 300px;min-height:72px}
+.owner-app .site-actions{position:sticky;bottom:0;z-index:2;display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:14px 16px;background:#fffffff2;border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:0 -6px 24px #1c171414;backdrop-filter:blur(6px)}
+.owner-app .site-actions #site-status{flex:1 1 220px}
+.owner-app .site-preview-wrap{margin-top:16px;padding:14px}
+.owner-app .site-preview-wrap .card-head{margin-bottom:12px}
+.owner-app .site-preview-wrap iframe{width:100%;min-height:520px;height:70vh;border:1px solid var(--line);border-radius:12px;background:#fff}
+
+/* Plans */
+.owner-app #plan-form{display:grid;gap:16px}
+.owner-app .service-grid{border:0;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.owner-app .service{display:flex;gap:12px;align-items:flex-start;padding:14px;border:1px solid var(--line);border-radius:14px;cursor:pointer;background:var(--surface)}
+.owner-app .service:has(input:checked){border-color:var(--ember);background:#FFF8F0}
+.owner-app .service input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--ember)}
+.owner-app .service span{display:grid;gap:2px}
+.owner-app .service small{color:var(--muted);font-size:13px}
+.owner-app #plan-form>.btn{justify-self:start}
+.owner-app .plan-orders{display:grid;gap:10px}
+.owner-app .plan-orders p{margin:0;padding:12px;border:1px solid var(--line);border-radius:12px;font-size:14px;color:var(--ink-2);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.owner-app .plan-orders p button{min-height:34px;padding:0 12px;border-radius:9px;border:1px solid var(--line-strong);background:var(--surface);cursor:pointer;margin-left:auto}
+
+/* WhatsApp */
+.owner-app .ai-toggle{padding:8px 12px;border:1px solid var(--line);border-radius:12px}
+.owner-app .message-list{display:grid;gap:10px}
+.owner-app .message-list>p{margin:0;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);font-size:14px;overflow-wrap:anywhere}
+.owner-app .message-list form{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.owner-app .message-list form input{flex:1 1 220px;min-height:42px;padding:9px 12px;border:1px solid var(--line-strong);border-radius:10px;font:14px var(--font)}
+.owner-app .message-list form button{min-height:42px;padding:0 16px;border-radius:10px;border:0;background:var(--ember);color:var(--ember-ink);font-weight:600;cursor:pointer}
+
+/* Setup dialog */
+.owner-app #setup-dialog{width:min(820px,calc(100% - 24px));max-height:calc(100dvh - 24px);overflow:auto;border:1px solid var(--line);border-radius:var(--r-xl);padding:clamp(18px,3vw,32px);background:var(--surface);color:var(--ink);box-shadow:0 30px 90px #1c171455}
+.owner-app #setup-dialog::backdrop{background:#16120fd0}
+.owner-app #setup-form{display:grid;gap:16px}
+.owner-app .setup-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.owner-app .setup-head .tag{margin:0}
+.owner-app #setup-title{font-size:26px;font-weight:800}
+.owner-app .setup-step{border:0;margin:0;padding:0;display:grid;gap:14px;min-width:0}
+.owner-app .billing-toggle{width:fit-content}
+.owner-app .billing-toggle label{display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:9px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer}
+.owner-app .billing-toggle label:has(input:checked){background:var(--surface);color:var(--ink);box-shadow:0 1px 3px #1c17141a}
+.owner-app .billing-toggle input{accent-color:var(--ember);margin:0}
+.owner-app .setup-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.owner-app .setup-options label{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:start;padding:16px;border:1px solid var(--line);border-radius:14px;cursor:pointer;background:var(--surface)}
+.owner-app .setup-options label:has(input:checked){border:2px solid var(--ink);padding:15px}
+.owner-app .setup-options input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--ink)}
+.owner-app .setup-options label span{display:grid;gap:4px}
+.owner-app .setup-options label strong{font-size:16px}
+.owner-app .setup-options label small{font-size:13px;color:var(--muted)}
+.owner-app .website-options{grid-template-columns:minmax(0,1fr)}
+.owner-app .website-options label{grid-template-columns:minmax(0,1fr) auto}
+.owner-app .setup-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.owner-app .setup-item{display:grid;gap:12px;padding:16px;border:1px solid var(--line);border-radius:14px}
+.owner-app .setup-step[data-step=website] .setup-item{border:0;padding:0}
+.owner-app .setup-item h3{font-size:17px}
+.owner-app #setup-dialog .setup-progress li{background:var(--sunk);color:var(--ink)}
+.owner-app #setup-dialog .setup-progress li small{color:var(--muted)}
+.owner-app .setup-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+
+@media(max-width:1100px){.owner-app .site-template-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:640px){
+ .owner-app .main{padding:18px 14px 40px}
+ .owner-app .topbar .top-actions{width:100%}
+ .owner-app .topbar .search{flex:1;min-width:0}
+ .owner-app .topbar .top-actions .btn{display:none}
+ .owner-app .grid-4{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .owner-app .kpi-cards article{padding:14px;flex-direction:column-reverse}
+ .owner-app .kpi-cards article strong{font-size:20px}
+ .owner-app .card-pad{padding:16px}
+ .owner-app .site-brand-grid,.owner-app .field-pair{grid-template-columns:minmax(0,1fr)}
+ .owner-app .owner-menu-row{flex-wrap:wrap}
+ .owner-app .owner-activity-list li{grid-template-columns:28px minmax(0,1fr)}
+ .owner-app .owner-activity-list time{grid-column:2}
+ .owner-app .order-column{flex-basis:100%}
+}
+@media(max-width:339px){.owner-app .grid-4{grid-template-columns:minmax(0,1fr)}}
+/* Refinements */
+.owner-app .owner-topbar .top-actions{flex-wrap:nowrap}
+.owner-app .kpi-cards article div,.owner-app .kpi-cards article strong{overflow-wrap:normal;word-break:normal}
+.owner-app .kpi-cards article strong{font-size:clamp(20px,1.7vw,26px)}
+.owner-app .owner-activity-list li{grid-template-columns:28px minmax(0,1fr)}
+.owner-app .owner-activity-list time{grid-column:2}
+.owner-app .owner-order-estimate .btn{min-height:32px;padding:0 10px}
+.owner-app span.owner-menu-thumb{font-size:10px;text-align:center;line-height:1.2;padding:4px}
+@media(max-width:959px){
+ .owner-app .nav-group{display:contents}
+ .owner-app .nav-group .nav-label{display:none}
+ .owner-app .menu-editor{order:-1}
+}
+@media(max-width:640px){
+ .owner-app .site-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:10px;border-radius:14px}
+ .owner-app .site-actions .btn{padding:0 6px;font-size:13px;min-height:42px}
+ .owner-app .site-actions .btn svg{display:none}
+ .owner-app .site-actions #site-status{grid-column:1/-1}
+ .owner-app .site-actions #site-status:empty{display:none}
+}
