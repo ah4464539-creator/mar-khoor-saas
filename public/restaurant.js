@@ -1,4 +1,4 @@
-import { uploadImage } from './image-upload.js';
+import { uploadImage } from './image-upload.js?v=20261120-s4';
 const form=document.querySelector('#login'),status=document.querySelector('#status'),target=document.querySelector('#restaurants');
 let token='',restaurantId=null,restaurantCurrency='';
 let refreshing=false;
@@ -6,6 +6,7 @@ setInterval(async()=>{if(!restaurantId||!token||document.hidden||refreshing)retu
 const api=async(path,options={})=>{const r=await fetch(path,{...options,headers:{...options.headers,Authorization:'Bearer '+token}});const data=await r.json();if(!r.ok)throw Error(data.error||'Request failed');return data};
 async function refresh(){
  loadSite().catch(error=>{siteStatus.textContent=error.message});
+ if(location.hash==='#website')loadSiteAnalytics().catch(()=>{});
  loadPlanOrders().catch(error=>{planOrders.textContent=error.message});
  const [menu,orders,analytics,inbox,outbound,aiSettings]=await Promise.all([api('/api/restaurants/'+restaurantId+'/menu'),api('/api/restaurants/'+restaurantId+'/orders'),api('/api/restaurants/'+restaurantId+'/analytics'),api('/api/restaurants/'+restaurantId+'/whatsapp/messages'),api('/api/restaurants/'+restaurantId+'/whatsapp/outbound'),api('/api/restaurants/'+restaurantId+'/whatsapp/ai-settings')]);
  document.querySelector('#whatsapp-ai-enabled').checked=aiSettings.enabled;
@@ -350,7 +351,7 @@ function updateWorkspaceView(focusHeading = false) {
  }
 }
 
-window.addEventListener('hashchange', () => updateWorkspaceView(true));
+window.addEventListener('hashchange', () => { updateWorkspaceView(true); if (location.hash === '#website') loadSiteAnalytics().catch(() => {}); });
 
 async function openRestaurant(restaurant) {
  siteDirty=false;
@@ -595,6 +596,7 @@ function showSite(data){
  const chosenTemplate=siteForm.querySelector('input[name="site-template"][value="'+(data.config.template||'classic')+'"]');
  if(chosenTemplate)chosenTemplate.checked=true;
  siteField('assistant-recording').checked=data.config.assistantRecording===true;
+ siteField('language').value=data.config.language||'en';
  siteImages={logo:data.config.logo||'',cover:data.config.cover||'',gallery:Array.isArray(data.config.gallery)?data.config.gallery.slice(0,8):[]};renderSiteImages();
  if(data.slug)siteSlug=data.slug;
  if(typeof data.published==='boolean')sitePublished=data.published;
@@ -603,8 +605,20 @@ function showSite(data){
  siteLink.replaceChildren();
  if(sitePublished&&siteSlug){const a=document.createElement('a');a.href='/r/'+siteSlug;a.textContent='mar-khoor.com/r/'+siteSlug;a.target='_blank';a.rel='noopener';siteLink.append('Live at ',a)}
 }
+async function loadSiteAnalytics(){
+ if(!restaurantId)return;
+ const id=restaurantId,data=await api('/api/restaurants/'+id+'/site/analytics');
+ if(id!==restaurantId)return;
+ const fmt=n=>Number(n||0).toLocaleString();
+ document.querySelector('#sa-views').textContent=fmt(data.totals.page_views);
+ document.querySelector('#sa-menu').textContent=fmt(data.totals.menu_views);
+ document.querySelector('#sa-orders').textContent=fmt(data.totals.orders);
+ document.querySelector('#sa-rate').textContent=data.menu_open_rate==null?'—':data.menu_open_rate+'%';
+ const max=Math.max(1,...data.days.map(day=>day.page_views));
+ document.querySelector('#sa-chart').replaceChildren(...data.days.map(day=>{const bar=document.createElement('span');bar.style.height=Math.max(3,Math.round(day.page_views/max*100))+'%';bar.title=day.day+': '+day.page_views+' views';return bar;}));
+}
 async function loadSite({force=false}={}){if(!restaurantId||(siteDirty&&!force))return;const id=restaurantId;const data=await api('/api/restaurants/'+id+'/site');if(id===restaurantId)showSite(data)}
-const siteConfig=()=>({template:siteForm.querySelector('input[name="site-template"]:checked')?.value||'classic',headline:siteField('headline').value,tagline:siteField('tagline').value,about:siteField('about').value,hours:siteField('hours').value,phone:siteField('phone').value,address:siteField('address').value,theme:siteField('theme').value,assistantRecording:siteField('assistant-recording').checked,sections:siteSections,...(siteImages.logo?{logo:siteImages.logo}:{}),...(siteImages.cover?{cover:siteImages.cover}:{}),...(siteImages.gallery.length?{gallery:siteImages.gallery}:{})});
+const siteConfig=()=>({template:siteForm.querySelector('input[name="site-template"]:checked')?.value||'classic',headline:siteField('headline').value,tagline:siteField('tagline').value,about:siteField('about').value,hours:siteField('hours').value,phone:siteField('phone').value,address:siteField('address').value,theme:siteField('theme').value,assistantRecording:siteField('assistant-recording').checked,sections:siteSections,language:siteField('language').value,...(siteImages.logo?{logo:siteImages.logo}:{}),...(siteImages.cover?{cover:siteImages.cover}:{}),...(siteImages.gallery.length?{gallery:siteImages.gallery}:{})});
 const siteJson={'Content-Type':'application/json'};
 document.querySelector('#site-generate').addEventListener('click',async e=>{
  if(!restaurantId){siteStatus.textContent='Select your restaurant first.';return}
