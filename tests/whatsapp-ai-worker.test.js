@@ -56,25 +56,35 @@ test('AI worker refuses to send after restaurant disables auto-reply',async()=>{
  }
 });
 
-test('continuous worker requires an explicit restaurant ID and scopes its selection', async t => {
- const {startWhatsAppAIWorker} = await import('../src/whatsapp-ai-worker.js');
+test('continuous worker answers for every paid restaurant plus listed pilot restaurants', async t => {
+ const {startWhatsAppAIWorker,workerScope} = await import('../src/whatsapp-ai-worker.js');
  const keys = ['WHATSAPP_AI_WORKER_ENABLED','WHATSAPP_AI_WORKER_RESTAURANT_ID','OPENAI_API_KEY','WHATSAPP_ACCESS_TOKEN'];
  const previous = keys.map(key => process.env[key]);
  t.after(() => keys.forEach((key, i) => {
   if (previous[i] === undefined) delete process.env[key];
   else process.env[key] = previous[i];
  }));
+ assert.deepEqual(workerScope({WHATSAPP_AI_WORKER_RESTAURANT_ID:'37, 5,x,37'}).alwaysAllowed,[37,5]);
+ assert.deepEqual(workerScope({}).alwaysAllowed,[]);
  process.env.WHATSAPP_AI_WORKER_ENABLED='1';
  process.env.OPENAI_API_KEY='test';
  process.env.WHATSAPP_ACCESS_TOKEN='test';
- delete process.env.WHATSAPP_AI_WORKER_RESTAURANT_ID;
- let calls=0;
- const pool={async execute(sql,args){calls++;assert.ok(sql.includes('AND j.restaurant_id=?'));assert.deepEqual(args,[37]);return [[]];}};
- startWhatsAppAIWorker(pool);
- assert.equal(calls,0);
  process.env.WHATSAPP_AI_WORKER_RESTAURANT_ID='37';
+ const seen=[];
+ const pool={async execute(sql,args){seen.push([sql,args]);return [[]];}};
  startWhatsAppAIWorker(pool);
- assert.equal(calls,1);
+ await new Promise(resolve=>setTimeout(resolve,20));
+ assert.equal(seen.length,1);
+ const [sql,args]=seen[0];
+ assert.match(sql,/sub\.status='active'/,'paid restaurants only');
+ assert.match(sql,/OR j\.restaurant_id IN \(\?\)/,'plus the pilot list');
+ assert.match(sql,/JOIN whatsapp_ai_settings s ON s\.restaurant_id=j\.restaurant_id AND s\.enabled=1/,'owner opt-in still required');
+ assert.match(sql,/whatsapp_numbers w ON .* AND w\.active=1/,'linked number still required');
+ assert.deepEqual(args,[37]);
+ process.env.WHATSAPP_AI_WORKER_ENABLED='0';
+ startWhatsAppAIWorker(pool);
+ await new Promise(resolve=>setTimeout(resolve,20));
+ assert.equal(seen.length,1,'off switch still works');
 });
 
 test('Hostinger can load the WhatsApp worker synchronously', () => {
