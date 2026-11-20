@@ -25,7 +25,30 @@ export const BILLING_SQL = [
  result VARCHAR(40) NOT NULL,
  received_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB`,
+  `CREATE TABLE IF NOT EXISTS restaurant_addons (
+ restaurant_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+ dedicated_number TINYINT(1) NOT NULL DEFAULT 0,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+) ENGINE=InnoDB`,
 ];
+
+export const TOOL_KEYS = Object.freeze(['website', 'ai_assistant', 'whatsapp', 'ai_caller']);
+
+/** Price of the dedicated-number add-on for one billing period (yearly = 12 months), or null. */
+export function addonPeriodMinor(plan, cycle) {
+  const monthly = plan?.dedicated_number?.included ? null : plan?.dedicated_number?.addon_price_minor;
+  if (!Number.isSafeInteger(monthly) || monthly < 1) return null;
+  return cycle === 'yearly' ? monthly * 12 : monthly;
+}
+
+/** True when the restaurant paid for the dedicated-number add-on (Starter). Never throws. */
+export async function hasNumberAddon(pool, restaurantId) {
+  try {
+    const [rows] = await pool.execute('SELECT dedicated_number FROM restaurant_addons WHERE restaurant_id=? LIMIT 1', [restaurantId]);
+    return Number(rows[0]?.dedicated_number) === 1;
+  } catch { return false; }
+}
 
 const ensured = new WeakMap();
 export function ensureBillingTables(pool) {
@@ -84,12 +107,16 @@ export function createStripeClient(config, { fetcher = fetch } = {}) {
 }
 
 /** Checkout parameters for a plan, built only from server data. */
-export function checkoutParams({ restaurant, subscription, plan, email, customerId, baseUrl }) {
+export function checkoutParams({ restaurant, subscription, plan, email, customerId, baseUrl, addonMinor = null, tools = TOOL_KEYS }) {
   const amount = stripeAmount(subscription.price_minor, subscription.currency);
-  if (!amount) return null;
+  const addonAmount = addonMinor == null ? 0 : stripeAmount(addonMinor, subscription.currency);
+  if (!amount || addonAmount === null) return null;
+  const interval = subscription.billing_cycle === 'yearly' ? 'year' : 'month';
   const meta = {
     restaurant_id: String(restaurant.id), plan: subscription.plan, cycle: subscription.billing_cycle,
     price_minor: String(subscription.price_minor), currency: subscription.currency,
+    number_addon: addonMinor == null ? '0' : '1', addon_minor: String(addonMinor ?? 0),
+    tools: tools.join(','),
   };
   const params = {
     mode: 'subscription',
@@ -99,11 +126,18 @@ export function checkoutParams({ restaurant, subscription, plan, email, customer
     'line_items[0][quantity]': '1',
     'line_items[0][price_data][currency]': subscription.currency.toLowerCase(),
     'line_items[0][price_data][unit_amount]': String(amount),
-    'line_items[0][price_data][recurring][interval]': subscription.billing_cycle === 'yearly' ? 'year' : 'month',
+    'line_items[0][price_data][recurring][interval]': interval,
     'line_items[0][price_data][product_data][name]': 'Mar-Khoor ' + plan.name + ' plan (' + subscription.billing_cycle + ')',
     'line_items[0][price_data][product_data][description]': restaurant.name.slice(0, 200),
     allow_promotion_codes: 'true',
   };
+  if (addonMinor != null) {
+    params['line_items[1][quantity]'] = '1';
+    params['line_items[1][price_data][currency]'] = subscription.currency.toLowerCase();
+    params['line_items[1][price_data][unit_amount]'] = String(addonAmount);
+    params['line_items[1][price_data][recurring][interval]'] = interval;
+    params['line_items[1][price_data][product_data][name]'] = 'Dedicated AI phone number';
+  }
   for (const [key, value] of Object.entries(meta)) {
     params['metadata[' + key + ']'] = value;
     params['subscription_data[metadata][' + key + ']'] = value;
@@ -135,8 +169,13 @@ export async function applyBillingEvent(pool, event, { stripe = null } = {}) {
     const price = Number(meta.price_minor);
     const currency = String(meta.currency || '');
     // Never trust metadata alone: the paid amount and currency must be what we asked for.
-    const expected = stripeAmount(price, currency);
-    if (!expected || object.amount_total !== expected || String(object.currency).toUpperCase() !== currency)
+    const addon = meta.number_addon === '1' ? Number(meta.addon_minor) : 0;
+    const addonAmount = addon ? stripeAmount(addon, currency) : 0;
+    const planAmount = stripeAmount(price, currency);
+    const expected = planAmount && addonAmount !== null ? planAmount + addonAmount : null;
+    // Promotion codes lower amount_total, so compare the pre-discount subtotal.
+    const paid = Number.isSafeInteger(object.amount_subtotal) ? object.amount_subtotal : object.amount_total;
+    if (!expected || paid !== expected || String(object.currency).toUpperCase() !== currency)
       return record(pool, event, { ...outcome, result: 'amount_mismatch' });
     if (object.payment_status !== 'paid' && object.payment_status !== 'no_payment_required')
       return record(pool, event, { ...outcome, result: 'not_paid' });
@@ -155,6 +194,8 @@ export async function applyBillingEvent(pool, event, { stripe = null } = {}) {
       "INSERT INTO restaurant_subscriptions(restaurant_id,plan_key,billing_cycle,status,limits,currency,price_minor) VALUES (?,?,?,'active',?,?,?) "
       + "ON DUPLICATE KEY UPDATE plan_key=VALUES(plan_key),billing_cycle=VALUES(billing_cycle),status='active',limits=VALUES(limits),currency=VALUES(currency),price_minor=VALUES(price_minor)",
       [outcome.restaurantId, plan.key, meta.cycle, JSON.stringify(plan.limits), currency, price]);
+    const wantsAddon = Boolean(addon) && !plan.dedicated_number.included;
+    await pool.execute('INSERT INTO restaurant_addons(restaurant_id,dedicated_number) VALUES (?,?) ON DUPLICATE KEY UPDATE dedicated_number=VALUES(dedicated_number)', [outcome.restaurantId, wantsAddon ? 1 : 0]);
     // A plan change creates a new Stripe subscription; end the old one (unused time is credited).
     if (previous && previous !== object.subscription && stripe) await stripe.cancel(previous).catch(() => {});
     outcome = { ...outcome, result: 'activated', activated: current[0]?.status !== 'active' || Boolean(previous && previous !== object.subscription) };

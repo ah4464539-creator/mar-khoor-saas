@@ -507,40 +507,27 @@ menuItemForm.addEventListener('submit', async event => {
 
 document.querySelector('#whatsapp-ai-enabled').addEventListener('change',async e=>{if(!restaurantId)return;const enabled=e.target.checked;e.target.disabled=true;try{await api('/api/restaurants/'+restaurantId+'/whatsapp/ai-settings',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled})});status.textContent='WhatsApp AI '+(enabled?'enabled':'disabled')}catch(err){e.target.checked=!enabled;status.textContent=err.message}finally{e.target.disabled=false}});
 
-// My plan: services, optional dedicated number, and the restaurant's own orders.
+// Earlier service orders (old per-service ordering) and owned numbers, shown only when there are any.
 const usd=cents=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(cents/100);
-const planForm=document.querySelector('#plan-form'),planStatus=document.querySelector('#plan-status'),planOrders=document.querySelector('#plan-orders'),planNumber=document.querySelector('#plan-number');
-planForm.addEventListener('change',()=>{planNumber.hidden=!planForm.querySelector('input[value="voice"]').checked});
+const planStatus=document.querySelector('#plan-status'),planOrders=document.querySelector('#plan-orders');
 async function loadPlanOrders(){
  if(!restaurantId)return;
  const data=await api('/api/restaurants/'+restaurantId+'/plan-orders');
  planOrders.replaceChildren();
- try{const owned=await api('/api/restaurants/'+restaurantId+'/numbers');for(const n of owned.numbers){const p=document.createElement('p');p.textContent='Your dedicated phone number: '+n.phone_number;planOrders.append(p)}}catch{}
- if(!data.orders.length){planOrders.textContent='No plan orders yet.';return}
+ let shown=0;
+ try{const owned=await api('/api/restaurants/'+restaurantId+'/numbers');for(const n of owned.numbers){const p=document.createElement('p');p.textContent='Your dedicated phone number: '+n.phone_number;planOrders.append(p);shown++}}catch{}
  for(const order of data.orders){
-  const p=document.createElement('p');
-  p.textContent='#'+order.id+' · '+order.features.join(', ')+(order.number_mode==='new'?' + dedicated number':'')+' · '+usd(order.monthly_minor)+' / month · first payment '+usd(order.first_payment_minor)+' · '+order.status.replace('_',' ')+' ';
+  const p=document.createElement('p');shown++;
+  p.textContent='#'+order.id+' · '+order.features.join(', ')+(order.number_mode==='new'?' + dedicated number':'')+' · '+usd(order.monthly_minor)+' / month · '+order.status.replace('_',' ')+' ';
   if(order.status==='pending_payment'){
-   const cancel=document.createElement('button');cancel.textContent='Cancel';
+   const cancel=document.createElement('button');cancel.className='btn btn-ghost btn-sm';cancel.textContent='Cancel';
    cancel.addEventListener('click',async()=>{try{await api('/api/restaurants/'+restaurantId+'/plan-orders/'+order.id+'/cancel',{method:'POST'});await loadPlanOrders()}catch(error){planStatus.textContent=error.message}});
    p.append(cancel);
   }
   planOrders.append(p);
  }
+ document.querySelector('#plan-orders-card').hidden=!shown;
 }
-planForm.addEventListener('submit',async e=>{
- e.preventDefault();
- if(!restaurantId){planStatus.textContent='Select your restaurant first.';return}
- const features=[...planForm.querySelectorAll('input[name="service"]:checked')].map(input=>input.value);
- if(!features.length){planStatus.textContent='Select at least one service.';return}
- const numberMode=features.includes('voice')&&document.querySelector('#plan-new-number').checked?'new':'existing';
- const button=planForm.querySelector('button');button.disabled=true;
- try{
-  const result=await api('/api/restaurants/'+restaurantId+'/plan-orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({features,numberMode})});
-  planStatus.textContent='Order #'+result.order_id+' created: '+usd(result.monthly_minor)+' per month, first payment '+usd(result.first_payment_minor)+'. It becomes active after the platform owner confirms your payment.';
-  await loadPlanOrders();
- }catch(error){planStatus.textContent=error.message}finally{button.disabled=false}
-});
 
 // My website: AI-written copy, owner edits, publish toggle.
 const siteForm=document.querySelector('#site-form'),siteStatus=document.querySelector('#site-status'),siteLink=document.querySelector('#site-link'),sitePublish=document.querySelector('#site-publish');
@@ -1122,34 +1109,68 @@ widgetEl('widget-copy')?.addEventListener('click',async()=>{const input=widgetEl
 window.addEventListener('hashchange',()=>{if(location.hash==='#website')loadWidget().catch(()=>{});});
 if(location.hash==='#website')setTimeout(()=>loadWidget().catch(()=>{}),1500);
 
-// Plan payment by card (Stripe Checkout). Activation happens only through Stripe's webhook.
+// Plans & billing: plan + tools go into a cart, then card payment (Stripe Checkout).
+// Activation happens only through Stripe's webhook.
 const billingEl=id=>document.getElementById(id);
 var billingLoadedFor=null;let billingData=null,billingPlans=[];
+const TOOL_NAMES={website:'Website Builder',ai_assistant:'Web AI Assistant',whatsapp:'WhatsApp Business',ai_caller:'AI Call Assistant'};
 const billingMoney=(minor,currency)=>{try{return new Intl.NumberFormat(undefined,{style:'currency',currency,maximumFractionDigits:minor%100?2:0}).format(minor/100)}catch{return currency+' '+(minor/100)}};
+const billingForm=billingEl('billing-form');
+const billingCycle=()=>billingForm.elements.billing_cycle.value;
+const billingPlan=()=>billingPlans.find(p=>p.key===billingForm.querySelector('input[name="plan"]:checked')?.value);
+const addonFor=(plan,cycle)=>{const m=plan?.dedicated_number?.included?null:plan?.dedicated_number?.addon_price_minor;return Number.isSafeInteger(m)&&m>0?(cycle==='yearly'?m*12:m):null};
 function renderBillingPlans(){
- const box=billingEl('billing-plans');if(!box)return;box.replaceChildren();
- const cycle=billingEl('billing-form').elements.billing_cycle.value;const sub=billingData?.subscription;
+ const box=billingEl('billing-plans');if(!box)return;
+ const chosen=billingForm.querySelector('input[name="plan"]:checked')?.value||billingData?.subscription?.plan||'starter';
+ box.replaceChildren();
+ const cycle=billingCycle(),sub=billingData?.subscription;
  for(const plan of billingPlans){
   const label=document.createElement('label');label.className='billing-plan';
-  const input=document.createElement('input');input.type='radio';input.name='plan';input.value=plan.key;input.checked=(sub?.plan||'starter')===plan.key;
+  const input=document.createElement('input');input.type='radio';input.name='plan';input.value=plan.key;input.checked=chosen===plan.key;
   const name=document.createElement('strong');name.textContent=plan.name;
   const price=document.createElement('span');price.className='billing-price';const amount=plan.price_minor?.[cycle];price.textContent=amount==null?'Price on request':billingMoney(amount,plan.currency)+(cycle==='yearly'?' / year':' / month');
-  const limits=document.createElement('small');limits.className='muted';limits.textContent=plan.limits.ai_chats.toLocaleString()+' AI chats · '+plan.limits.whatsapp_messages.toLocaleString()+' WhatsApp · '+plan.limits.ai_call_minutes.toLocaleString()+' call min'+(plan.dedicated_number?.included?' · own AI number':'');
+  const limits=document.createElement('small');limits.className='muted';limits.textContent=plan.limits.ai_chats.toLocaleString()+' AI chats · '+plan.limits.whatsapp_messages.toLocaleString()+' WhatsApp · '+plan.limits.ai_call_minutes.toLocaleString()+' call min'+(plan.dedicated_number?.included?' · own AI number included':'');
   label.append(input,name,price,limits);
   if(sub?.status==='active'&&sub.plan===plan.key&&sub.billing_cycle===cycle){const tag=document.createElement('span');tag.className='tag tag-ok';tag.textContent='Current';label.append(tag)}
   box.append(label);
  }
+ renderCart();
+}
+function renderCart(){
+ const plan=billingPlan(),cycle=billingCycle(),lines=billingEl('cart-lines');if(!lines)return;
+ const number=billingEl('billing-number'),numberPrice=billingEl('billing-number-price');
+ const addon=addonFor(plan,cycle);
+ if(plan?.dedicated_number?.included){number.checked=true;number.disabled=true;numberPrice.textContent='· included in '+plan.name}
+ else{number.disabled=addon==null;if(addon==null)number.checked=false;numberPrice.textContent=addon==null?'· not available yet':'· +'+billingMoney(addon,plan.currency)+(cycle==='yearly'?' / year':' / month')}
+ lines.replaceChildren();
+ const line=(name,value,cls)=>{const li=document.createElement('li');if(cls)li.className=cls;const a=document.createElement('span');a.textContent=name;const b=document.createElement('span');b.textContent=value;li.append(a,b);lines.append(li)};
+ if(!plan){billingEl('cart-total').textContent='—';return}
+ const price=plan.price_minor?.[cycle];
+ line(plan.name+' plan ('+cycle+')',price==null?'Price on request':billingMoney(price,plan.currency),'cart-plan');
+ const tools=[...billingForm.querySelectorAll('input[name="tool"]:checked')].map(i=>i.value);
+ for(const t of tools)line(TOOL_NAMES[t],'Included','cart-tool');
+ if(!tools.length)line('No tools selected','—','cart-tool cart-empty');
+ const wantsNumber=number.checked;
+ if(wantsNumber)line('Dedicated AI phone number',plan.dedicated_number?.included?'Included':billingMoney(addon,plan.currency),'cart-tool');
+ const total=price==null?null:price+(wantsNumber&&!plan.dedicated_number?.included?addon:0);
+ billingEl('cart-total').textContent=total==null?'—':billingMoney(total,plan.currency);
+ billingEl('cart-renews').textContent=total==null?'':(cycle==='yearly'?'Billed every year':'Billed every month')+'. Price in '+plan.currency+(plan.converted?' (converted from USD at today’s rate)':'')+'.';
+ const pay=billingEl('billing-pay');
+ const sub=billingData?.subscription;
+ const same=sub?.status==='active'&&billingData?.stripe?.has_customer&&sub.plan===plan.key&&sub.billing_cycle===cycle&&(plan.dedicated_number?.included||Boolean(billingData.number_addon)===wantsNumber);
+ pay.disabled=!billingData?.enabled||total==null||!tools.length||same;
+ pay.textContent=same?'This is your current plan':sub?.status==='active'&&billingData?.stripe?.has_customer?'Change plan & pay':'Checkout & pay '+(total==null?'':billingMoney(total,plan.currency));
 }
 function showBilling(data,plans){
  billingData=data;billingPlans=plans||billingPlans;
- const sub=data.subscription,form=billingEl('billing-form'),status=billingEl('billing-status');
+ const sub=data.subscription,status=billingEl('billing-status');
  const labels={active:'Active',pending_payment:'Payment pending',past_due:'Payment failed',cancelled:'Cancelled'};
  status.hidden=!sub;status.textContent=sub?labels[sub.status]||sub.status:'';status.className='tag'+(sub?.status==='active'?' tag-ok':sub?.status==='past_due'?' tag-ember':'');
  const plan=sub&&billingPlans.find(p=>p.key===sub.plan);
  const renews=data.stripe?.renews_at?' · renews '+new Date(data.stripe.renews_at).toLocaleDateString():'';
- billingEl('billing-summary').textContent=sub?(plan?.name||sub.plan)+' · '+sub.billing_cycle+(sub.price_minor!=null?' · '+billingMoney(sub.price_minor,sub.currency):'')+renews:'No plan chosen yet.';
- form.hidden=!data.enabled;
- if(sub?.billing_cycle)form.elements.billing_cycle.value=sub.billing_cycle;
+ billingEl('billing-summary').textContent=sub?'Current: '+(plan?.name||sub.plan)+' · '+sub.billing_cycle+(sub.price_minor!=null?' · '+billingMoney(sub.price_minor,sub.currency):'')+renews:'Pick a plan, tick your tools, then pay from your cart.';
+ if(sub?.billing_cycle&&!billingForm.dataset.touched)billingForm.elements.billing_cycle.value=sub.billing_cycle;
+ if(data.number_addon&&!billingForm.dataset.touched)billingEl('billing-number').checked=true;
  billingEl('billing-manage').hidden=!data.stripe?.has_customer;
  const notice=billingEl('billing-notice');
  if(!data.enabled){notice.hidden=false;notice.className='notice notice-info';notice.textContent='Card payment is not switched on yet. The platform confirms your payment manually.'}
@@ -1164,13 +1185,17 @@ async function loadBilling(){
  if(id===restaurantId)showBilling(data,plans.plans);
  return data;
 }
-billingEl('billing-form')?.addEventListener('change',event=>{if(event.target.name==='billing_cycle')renderBillingPlans()});
-billingEl('billing-form')?.addEventListener('submit',async event=>{
- event.preventDefault();const form=event.currentTarget,note=billingEl('billing-note'),button=billingEl('billing-pay');
- const plan=form.querySelector('input[name="plan"]:checked')?.value;if(!plan){note.textContent='Choose a plan.';return}
+billingForm?.addEventListener('change',event=>{billingForm.dataset.touched='1';if(event.target.name==='billing_cycle')renderBillingPlans();else renderCart()});
+billingForm?.addEventListener('submit',async event=>{
+ event.preventDefault();const note=billingEl('billing-note'),button=billingEl('billing-pay');
+ const plan=billingPlan();if(!plan){note.textContent='Choose a plan.';return}
+ const tools=[...billingForm.querySelectorAll('input[name="tool"]:checked')].map(i=>i.value);
+ if(!tools.length){note.textContent='Choose at least one tool.';return}
  button.disabled=true;note.textContent='Opening secure payment…';
- try{const data=await api('/api/restaurants/'+restaurantId+'/billing/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({plan,billing_cycle:form.elements.billing_cycle.value})});location.assign(data.url)}
- catch(e){note.textContent=e.message;button.disabled=false}
+ try{
+  const data=await api('/api/restaurants/'+restaurantId+'/billing/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({plan:plan.key,billing_cycle:billingCycle(),tools,dedicated_number:billingEl('billing-number').checked&&!plan.dedicated_number?.included})});
+  note.textContent='Redirecting to Stripe…';location.assign(data.url);
+ }catch(e){note.textContent=e.message;button.disabled=false}
 });
 billingEl('billing-manage')?.addEventListener('click',async()=>{const note=billingEl('billing-note');note.textContent='Opening billing…';try{const data=await api('/api/restaurants/'+restaurantId+'/billing/portal',{method:'POST'});location.assign(data.url)}catch(e){note.textContent=e.message}});
 (function billingReturn(){

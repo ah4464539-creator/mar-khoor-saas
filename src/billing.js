@@ -5,7 +5,7 @@ import { audit, rateLimit } from './security.js';
 import { chooseSubscription, getSubscription, planCatalog, validateSubscriptionChoice } from './subscriptions.js';
 import { getUsdRates } from './fx-rates.js';
 import { provisionSubscriptionNumber } from './voice-autoprovision.js';
-import { billingConfig, createStripeClient, ensureBillingTables, checkoutParams, verifyStripeSignature, applyBillingEvent } from './stripe-billing.js';
+import { billingConfig, createStripeClient, ensureBillingTables, checkoutParams, verifyStripeSignature, applyBillingEvent, addonPeriodMinor, hasNumberAddon, TOOL_KEYS } from './stripe-billing.js';
 
 /** Stripe webhook. Mount BEFORE express.json(): the signature is over the raw body. */
 export function billingWebhookRouter(pool, { config = billingConfig(), stripe = createStripeClient(config), provision = provisionSubscriptionNumber } = {}) {
@@ -60,6 +60,7 @@ export function billingRouter(pool, { config = billingConfig(), stripe = createS
         enabled: Boolean(config), test_mode: Boolean(config && !config.live),
         subscription: await getSubscription(pool, req.restaurant.id),
         stripe: row ? { has_customer: Boolean(row.stripe_customer_id), status: row.stripe_status, renews_at: row.current_period_end } : null,
+        number_addon: config ? await hasNumberAddon(pool, req.restaurant.id) : false,
       });
     } catch { res.status(503).json({ error: 'Billing unavailable' }); }
   });
@@ -70,21 +71,28 @@ export function billingRouter(pool, { config = billingConfig(), stripe = createS
       try {
         const current = await getSubscription(pool, req.restaurant.id);
         const row = await billingRow(req.restaurant.id);
-        if (current?.status === 'active' && current.plan === req.body?.plan && current.billing_cycle === req.body?.billing_cycle && row?.stripe_subscription_id)
-          return res.status(409).json({ error: 'This plan is already active. Use "Manage billing" to change your card or cancel.' });
         // Snapshot the plan and price on the server; the client never sends an amount. An active
         // plan stays active while the owner pays for a change; the webhook switches it.
         const choice = validateSubscriptionChoice(req.body);
         if (choice.error) return res.status(400).json({ error: choice.error });
-        const plan = planCatalog(req.restaurant.currency, { fx: await loadRates() }).find(entry => entry.key === choice.value.plan);
+        const tools = Array.isArray(req.body?.tools) ? TOOL_KEYS.filter(key => req.body.tools.includes(key)) : [...TOOL_KEYS];
+        if (!tools.length) return res.status(400).json({ error: 'Choose at least one tool' });
+        const fx = await loadRates();
+        const plan = planCatalog(req.restaurant.currency, { fx }).find(entry => entry.key === choice.value.plan);
         const subscription = { plan: plan.key, billing_cycle: choice.value.cycle, currency: plan.currency, price_minor: plan.price_minor[choice.value.cycle] };
+        const wantsNumber = req.body?.dedicated_number === true && !plan.dedicated_number.included;
+        const addonMinor = wantsNumber ? addonPeriodMinor(plan, choice.value.cycle) : null;
+        if (wantsNumber && addonMinor == null) return res.status(409).json({ error: 'The dedicated number add-on has no price in your currency yet' });
+        const paidAddon = await hasNumberAddon(pool, req.restaurant.id);
+        if (current?.status === 'active' && row?.stripe_subscription_id && current.plan === plan.key && current.billing_cycle === choice.value.cycle && (plan.dedicated_number.included || paidAddon === wantsNumber))
+          return res.status(409).json({ error: 'This plan is already active. Use "Manage billing" to change your card or cancel.' });
         if (current?.status !== 'active') {
-          const chosen = await chooseSubscription(pool, req.restaurant.id, req.body, { fx: await loadRates() });
+          const chosen = await chooseSubscription(pool, req.restaurant.id, req.body, { fx });
           if (chosen.status !== 200) return res.status(chosen.status).json(chosen.body);
         }
-        const params = checkoutParams({ restaurant: req.restaurant, subscription, plan, email: req.user.email, customerId: row?.stripe_customer_id, baseUrl });
+        const params = checkoutParams({ restaurant: req.restaurant, subscription, plan, email: req.user.email, customerId: row?.stripe_customer_id, baseUrl, addonMinor, tools });
         if (!params) return res.status(409).json({ error: 'This plan has no confirmed price in your currency yet' });
-        const key = ['plan', req.restaurant.id, subscription.plan, subscription.billing_cycle, subscription.currency, subscription.price_minor, Math.floor(Date.now() / 600000)].join('-');
+        const key = ['plan', req.restaurant.id, subscription.plan, subscription.billing_cycle, subscription.currency, subscription.price_minor, addonMinor ?? 0, tools.join('.'), Math.floor(Date.now() / 600000)].join('-');
         const session = await stripe.checkout(params, key);
         if (!/^https:\/\/checkout\.stripe\.com\//.test(session?.url || '')) throw new Error('Invalid payment session');
         await audit(pool, { actorUserId: req.user.id, restaurantId: req.restaurant.id, action: 'billing.checkout:' + subscription.plan + ':' + subscription.billing_cycle });

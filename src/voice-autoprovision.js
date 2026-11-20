@@ -9,6 +9,7 @@
 //      key), order it from Telnyx, and import it into Vapi bound to the assistant.
 // Countries that need documents leave the number "pending provider"; the retry job finishes it.
 // This spends real money: it only runs for an active, paid subscription, never twice per restaurant.
+import { hasNumberAddon } from './stripe-billing.js';
 import { randomUUID } from 'node:crypto';
 import { searchNumbers, orderNumber, E164 } from './providers/telnyx.js';
 import { importTelnyxNumber, findTelnyxCredential } from './providers/vapi-numbers.js';
@@ -97,7 +98,7 @@ export async function provisionSubscriptionNumber(pool, restaurantId, baseDeps =
   const [subs] = await pool.execute('SELECT plan_key,status FROM restaurant_subscriptions WHERE restaurant_id=? LIMIT 1', [restaurantId]);
   const sub = subs[0];
   if (!sub || sub.status !== 'active') return result('skipped', 'The subscription is not active (payment not confirmed).');
-  if (!includesNumber(sub.plan_key)) return result('skipped', 'This plan does not include a dedicated AI number.');
+  if (!includesNumber(sub.plan_key) && !(await hasNumberAddon(pool, restaurantId))) return result('skipped', 'This plan does not include a dedicated AI number.');
 
   const [restaurants] = await pool.execute('SELECT id,name,country_code FROM restaurants WHERE id=? LIMIT 1', [restaurantId]);
   const restaurant = restaurants[0];

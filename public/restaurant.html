@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="/summit.css?v=20261120-s1">
-<link rel="stylesheet" href="/owner.css?v=20261120-s9">
+<link rel="stylesheet" href="/owner.css?v=20261120-s10">
 </head>
 <body class="mk owner-app signing-in">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -157,32 +157,39 @@
 
 <section class="owner-view owner-message-view" id="plan" data-title="Plans &amp; billing" hidden>
  <h2 tabindex="-1" class="visually-hidden">Plans and billing</h2>
- <section class="card card-pad billing-card" id="billing" aria-labelledby="billing-title">
-  <div class="card-head"><div><h2 id="billing-title">Your Mar-Khoor plan</h2><p class="small muted" id="billing-summary">Loading…</p></div><span id="billing-status" class="tag" hidden></span></div>
-  <div id="billing-notice" class="notice" role="status" hidden></div>
-  <form id="billing-form" hidden>
-   <div class="billing-cycle" role="radiogroup" aria-label="Billing period"><label class="check"><input type="radio" name="billing_cycle" value="monthly" checked> Monthly</label><label class="check"><input type="radio" name="billing_cycle" value="yearly"> Yearly</label></div>
-   <div class="billing-plans" id="billing-plans"></div>
-   <div class="form-actions"><button type="submit" class="btn btn-primary" id="billing-pay">Pay with card</button><button type="button" class="btn btn-ghost" id="billing-manage" hidden>Manage billing (card, invoices, cancel)</button><span id="billing-note" class="small muted" role="status"></span></div>
-   <p class="small muted">Secure payment by Stripe. Your plan renews automatically; cancel any time in “Manage billing”.</p>
-  </form>
- </section>
- <div class="split">
-  <section class="grow card card-pad"><div class="card-head"><div><h2>Order services</h2><p class="small muted">Prices depend on your country. Your order becomes active after the platform confirms your payment.</p></div></div>
-   <form id="plan-form">
-    <fieldset class="service-grid"><legend class="visually-hidden">Services</legend>
-     <label class="service"><input type="checkbox" name="service" value="website"><span><strong>Website Builder</strong><small>AI website with your live menu</small></span></label>
-     <label class="service"><input type="checkbox" name="service" value="webAi"><span><strong>Web AI Assistant</strong><small>Chat assistant on your website</small></span></label>
-     <label class="service"><input type="checkbox" name="service" value="whatsapp"><span><strong>WhatsApp Business</strong><small>Orders and questions on WhatsApp</small></span></label>
-     <label class="service"><input type="checkbox" name="service" value="voice"><span><strong>AI Call Assistant</strong><small>Answers calls and takes orders</small></span></label>
+ <div class="split billing-layout">
+  <section class="grow card card-pad billing-card" id="billing" aria-labelledby="billing-title">
+   <div class="card-head"><div><h2 id="billing-title">Choose your plan and tools</h2><p class="small muted" id="billing-summary">Loading…</p></div><span id="billing-status" class="tag" hidden></span></div>
+   <div id="billing-notice" class="notice" role="status" hidden></div>
+   <form id="billing-form">
+    <fieldset class="billing-step"><legend><span class="step-no">1</span> Billing period</legend>
+     <div class="billing-cycle"><label class="check"><input type="radio" name="billing_cycle" value="monthly" checked> Monthly</label><label class="check"><input type="radio" name="billing_cycle" value="yearly"> Yearly <span class="tag tag-ok">2 months free</span></label></div>
     </fieldset>
-    <p id="plan-number" hidden><label class="check"><input type="checkbox" id="plan-new-number"> Add a dedicated local phone number</label></p>
-    <button class="btn btn-primary">Place order</button>
+    <fieldset class="billing-step"><legend><span class="step-no">2</span> Plan</legend><div class="billing-plans" id="billing-plans"></div></fieldset>
+    <fieldset class="billing-step"><legend><span class="step-no">3</span> Tools</legend>
+     <p class="small muted">Every plan includes all four tools. Tick the ones you want to use; they are added to your cart.</p>
+     <div class="service-grid">
+      <label class="service"><input type="checkbox" name="tool" value="website" checked><span><strong>Website Builder</strong><small>AI website with your live menu</small></span></label>
+      <label class="service"><input type="checkbox" name="tool" value="ai_assistant" checked><span><strong>Web AI Assistant</strong><small>Chat assistant on your website</small></span></label>
+      <label class="service"><input type="checkbox" name="tool" value="whatsapp" checked><span><strong>WhatsApp Business</strong><small>Orders and questions on WhatsApp</small></span></label>
+      <label class="service"><input type="checkbox" name="tool" value="ai_caller" checked><span><strong>AI Call Assistant</strong><small>Answers calls and takes orders</small></span></label>
+     </div>
+     <label class="check billing-number"><input type="checkbox" id="billing-number"> <span>Dedicated local AI phone number <small class="muted" id="billing-number-price"></small></span></label>
+    </fieldset>
    </form>
-   <p id="plan-status" role="status" class="status-line"></p>
   </section>
-  <section class="rail card card-pad"><div class="card-head"><h2>Your plan orders</h2></div><div id="plan-orders" class="plan-orders muted"></div></section>
+  <aside class="rail card card-pad billing-cart" id="billing-cart" aria-labelledby="cart-title">
+   <div class="card-head"><h2 id="cart-title">Your cart</h2></div>
+   <ul class="cart-lines" id="cart-lines"></ul>
+   <div class="cart-total"><span>Total</span><strong id="cart-total" class="num">—</strong></div>
+   <p class="small muted" id="cart-renews"></p>
+   <button type="submit" form="billing-form" class="btn btn-primary btn-block" id="billing-pay">Checkout &amp; pay</button>
+   <button type="button" class="btn btn-ghost btn-block" id="billing-manage" hidden>Manage billing (card, invoices, cancel)</button>
+   <p id="billing-note" class="small muted" role="status"></p>
+   <p class="small muted cart-secure">Secure card payment by Stripe. Renews automatically; cancel any time in “Manage billing”.</p>
+  </aside>
  </div>
+ <section class="card card-pad" id="plan-orders-card" hidden><div class="card-head"><h2>Earlier service orders &amp; numbers</h2></div><div id="plan-orders" class="plan-orders muted"></div><p id="plan-status" role="status" class="status-line"></p></section>
 </section>
 
 <section class="owner-view owner-message-view" id="website" data-title="AI Website" hidden>
@@ -343,7 +350,7 @@
 </main>
 </div>
 <script src="/password-reset.js?v=20261119"></script>
-<script type="module" src="/restaurant.js?v=20261120-s9"></script>
+<script type="module" src="/restaurant.js?v=20261120-s10"></script>
 <script>document.getElementById("login-show-password")?.addEventListener("change",function(){document.getElementById("password").type=this.checked?"text":"password"});</script>
 </body>
 </html>
