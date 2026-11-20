@@ -17,6 +17,7 @@ import { startWhatsAppAIWorker } from './whatsapp-ai-worker.js';
 import { retryPendingSubscriptionNumbers } from './voice-autoprovision.js';
 import { sitesRouter } from './sites.js';
 import { widgetRouter } from './widget.js';
+import { billingRouter, billingWebhookRouter } from './billing.js';
 import { mediaRouter } from './media.js';
 import { menuImportRouter } from './menu-import-routes.js';
 import { customDomainRouting, domainsRouter } from './domains.js';
@@ -49,6 +50,7 @@ const pool = mysql.createPool({
 });
 useSessionStore(createDbSessionStore(pool));
 app.use('/integrations', integrationRouter(pool));
+app.use(billingWebhookRouter(pool)); // raw body for Stripe signatures, before express.json
 app.use('/auth/password', rateLimit({ windowMs: 15 * 60 * 1000, max: 10, methods: ['POST'], name: 'password-reset' }));
 app.use(['/auth/login', '/auth/platform-login'], rateLimit({ windowMs: 15 * 60 * 1000, max: 30, methods: ['POST'], name: 'login' }));
 app.use('/api/public', rateLimit({ windowMs: 60 * 1000, max: 120, name: 'public' }));
@@ -94,6 +96,7 @@ app.use(menuImportRouter(pool));
 app.use(domainsRouter(pool, { client: hostinger }));
 app.use(integrationHealthRouter(pool));
 app.use(widgetRouter(pool));
+app.use(billingRouter(pool));
 app.use(sitesRouter(pool));
 app.use('/voice-tools', voiceToolsRouter(pool));
 app.use('/integrations/vapi', vapiToolAdapterRouter(pool));

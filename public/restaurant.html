@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="/summit.css?v=20261120-s1">
-<link rel="stylesheet" href="/owner.css?v=20261120-s8">
+<link rel="stylesheet" href="/owner.css?v=20261120-s9">
 </head>
 <body class="mk owner-app signing-in">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -157,6 +157,16 @@
 
 <section class="owner-view owner-message-view" id="plan" data-title="Plans &amp; billing" hidden>
  <h2 tabindex="-1" class="visually-hidden">Plans and billing</h2>
+ <section class="card card-pad billing-card" id="billing" aria-labelledby="billing-title">
+  <div class="card-head"><div><h2 id="billing-title">Your Mar-Khoor plan</h2><p class="small muted" id="billing-summary">Loading…</p></div><span id="billing-status" class="tag" hidden></span></div>
+  <div id="billing-notice" class="notice" role="status" hidden></div>
+  <form id="billing-form" hidden>
+   <div class="billing-cycle" role="radiogroup" aria-label="Billing period"><label class="check"><input type="radio" name="billing_cycle" value="monthly" checked> Monthly</label><label class="check"><input type="radio" name="billing_cycle" value="yearly"> Yearly</label></div>
+   <div class="billing-plans" id="billing-plans"></div>
+   <div class="form-actions"><button type="submit" class="btn btn-primary" id="billing-pay">Pay with card</button><button type="button" class="btn btn-ghost" id="billing-manage" hidden>Manage billing (card, invoices, cancel)</button><span id="billing-note" class="small muted" role="status"></span></div>
+   <p class="small muted">Secure payment by Stripe. Your plan renews automatically; cancel any time in “Manage billing”.</p>
+  </form>
+ </section>
  <div class="split">
   <section class="grow card card-pad"><div class="card-head"><div><h2>Order services</h2><p class="small muted">Prices depend on your country. Your order becomes active after the platform confirms your payment.</p></div></div>
    <form id="plan-form">
@@ -333,7 +343,7 @@
 </main>
 </div>
 <script src="/password-reset.js?v=20261119"></script>
-<script type="module" src="/restaurant.js?v=20261120-s8"></script>
+<script type="module" src="/restaurant.js?v=20261120-s9"></script>
 <script>document.getElementById("login-show-password")?.addEventListener("change",function(){document.getElementById("password").type=this.checked?"text":"password"});</script>
 </body>
 </html>

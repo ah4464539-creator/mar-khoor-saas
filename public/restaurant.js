@@ -8,6 +8,7 @@ async function refresh(){
  loadSite().catch(error=>{siteStatus.textContent=error.message});
  if(location.hash==='#website'){loadSiteAnalytics().catch(()=>{});loadDomain().catch(()=>{});loadWidget().catch(()=>{});}
  loadPlanOrders().catch(error=>{planOrders.textContent=error.message});
+ if(billingLoadedFor!==restaurantId){billingLoadedFor=restaurantId;loadBilling().catch(()=>{});}
  const [menu,orders,analytics,inbox,outbound,aiSettings]=await Promise.all([api('/api/restaurants/'+restaurantId+'/menu'),api('/api/restaurants/'+restaurantId+'/orders'),api('/api/restaurants/'+restaurantId+'/analytics'),api('/api/restaurants/'+restaurantId+'/whatsapp/messages'),api('/api/restaurants/'+restaurantId+'/whatsapp/outbound'),api('/api/restaurants/'+restaurantId+'/whatsapp/ai-settings')]);
  document.querySelector('#whatsapp-ai-enabled').checked=aiSettings.enabled;
  const sentEl=document.querySelector('#whatsapp-outbound');sentEl.replaceChildren();if(!outbound.messages.length)sentEl.textContent='No outgoing messages yet.';
@@ -858,7 +859,7 @@ function summarise() {
  const plan = sub && setupData.plans.find(entry => entry.key === sub.plan);
  const connected = setupData.integrations.filter(item => item.status === 'connected').length;
  setupSummary.textContent = sub
-  ? (plan?.name || sub.plan) + ' plan (' + sub.billing_cycle + ', ' + (sub.status === 'active' ? 'active' : 'payment pending') + '). ' + connected + ' of 3 channels connected.'
+  ? (plan?.name || sub.plan) + ' plan (' + sub.billing_cycle + ', ' + (sub.status === 'active' ? 'active' : 'payment pending — pay in Plans & billing') + '). ' + connected + ' of 3 channels connected.'
   : 'Choose a plan and connect WhatsApp, AI Caller and your website.';
  statusList(setupProgress, setupData.integrations.filter(item => item.status !== 'not_started'));
 }
@@ -1120,3 +1121,71 @@ widgetEl('widget-form')?.addEventListener('submit',async event=>{
 widgetEl('widget-copy')?.addEventListener('click',async()=>{const input=widgetEl('widget-snippet');try{await navigator.clipboard.writeText(input.value);widgetEl('widget-copy').textContent='Copied';setTimeout(()=>widgetEl('widget-copy').textContent='Copy code',2000)}catch{input.select()}});
 window.addEventListener('hashchange',()=>{if(location.hash==='#website')loadWidget().catch(()=>{});});
 if(location.hash==='#website')setTimeout(()=>loadWidget().catch(()=>{}),1500);
+
+// Plan payment by card (Stripe Checkout). Activation happens only through Stripe's webhook.
+const billingEl=id=>document.getElementById(id);
+var billingLoadedFor=null;let billingData=null,billingPlans=[];
+const billingMoney=(minor,currency)=>{try{return new Intl.NumberFormat(undefined,{style:'currency',currency,maximumFractionDigits:minor%100?2:0}).format(minor/100)}catch{return currency+' '+(minor/100)}};
+function renderBillingPlans(){
+ const box=billingEl('billing-plans');if(!box)return;box.replaceChildren();
+ const cycle=billingEl('billing-form').elements.billing_cycle.value;const sub=billingData?.subscription;
+ for(const plan of billingPlans){
+  const label=document.createElement('label');label.className='billing-plan';
+  const input=document.createElement('input');input.type='radio';input.name='plan';input.value=plan.key;input.checked=(sub?.plan||'starter')===plan.key;
+  const name=document.createElement('strong');name.textContent=plan.name;
+  const price=document.createElement('span');price.className='billing-price';const amount=plan.price_minor?.[cycle];price.textContent=amount==null?'Price on request':billingMoney(amount,plan.currency)+(cycle==='yearly'?' / year':' / month');
+  const limits=document.createElement('small');limits.className='muted';limits.textContent=plan.limits.ai_chats.toLocaleString()+' AI chats · '+plan.limits.whatsapp_messages.toLocaleString()+' WhatsApp · '+plan.limits.ai_call_minutes.toLocaleString()+' call min'+(plan.dedicated_number?.included?' · own AI number':'');
+  label.append(input,name,price,limits);
+  if(sub?.status==='active'&&sub.plan===plan.key&&sub.billing_cycle===cycle){const tag=document.createElement('span');tag.className='tag tag-ok';tag.textContent='Current';label.append(tag)}
+  box.append(label);
+ }
+}
+function showBilling(data,plans){
+ billingData=data;billingPlans=plans||billingPlans;
+ const sub=data.subscription,form=billingEl('billing-form'),status=billingEl('billing-status');
+ const labels={active:'Active',pending_payment:'Payment pending',past_due:'Payment failed',cancelled:'Cancelled'};
+ status.hidden=!sub;status.textContent=sub?labels[sub.status]||sub.status:'';status.className='tag'+(sub?.status==='active'?' tag-ok':sub?.status==='past_due'?' tag-ember':'');
+ const plan=sub&&billingPlans.find(p=>p.key===sub.plan);
+ const renews=data.stripe?.renews_at?' · renews '+new Date(data.stripe.renews_at).toLocaleDateString():'';
+ billingEl('billing-summary').textContent=sub?(plan?.name||sub.plan)+' · '+sub.billing_cycle+(sub.price_minor!=null?' · '+billingMoney(sub.price_minor,sub.currency):'')+renews:'No plan chosen yet.';
+ form.hidden=!data.enabled;
+ if(sub?.billing_cycle)form.elements.billing_cycle.value=sub.billing_cycle;
+ billingEl('billing-manage').hidden=!data.stripe?.has_customer;
+ const notice=billingEl('billing-notice');
+ if(!data.enabled){notice.hidden=false;notice.className='notice notice-info';notice.textContent='Card payment is not switched on yet. The platform confirms your payment manually.'}
+ else if(sub?.status==='past_due'){notice.hidden=false;notice.className='notice notice-warn';notice.textContent='Your last payment failed. Update your card in “Manage billing” to keep your plan.'}
+ else if(data.test_mode){notice.hidden=false;notice.className='notice notice-info';notice.textContent='Test mode: use card 4242 4242 4242 4242, any future date and any CVC.'}
+ else notice.hidden=true;
+ renderBillingPlans();
+}
+async function loadBilling(){
+ if(!restaurantId||!billingEl('billing'))return;const id=restaurantId;
+ const [data,plans]=await Promise.all([api('/api/restaurants/'+id+'/billing'),api('/api/restaurants/'+id+'/subscription').catch(()=>({plans:[]}))]);
+ if(id===restaurantId)showBilling(data,plans.plans);
+ return data;
+}
+billingEl('billing-form')?.addEventListener('change',event=>{if(event.target.name==='billing_cycle')renderBillingPlans()});
+billingEl('billing-form')?.addEventListener('submit',async event=>{
+ event.preventDefault();const form=event.currentTarget,note=billingEl('billing-note'),button=billingEl('billing-pay');
+ const plan=form.querySelector('input[name="plan"]:checked')?.value;if(!plan){note.textContent='Choose a plan.';return}
+ button.disabled=true;note.textContent='Opening secure payment…';
+ try{const data=await api('/api/restaurants/'+restaurantId+'/billing/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({plan,billing_cycle:form.elements.billing_cycle.value})});location.assign(data.url)}
+ catch(e){note.textContent=e.message;button.disabled=false}
+});
+billingEl('billing-manage')?.addEventListener('click',async()=>{const note=billingEl('billing-note');note.textContent='Opening billing…';try{const data=await api('/api/restaurants/'+restaurantId+'/billing/portal',{method:'POST'});location.assign(data.url)}catch(e){note.textContent=e.message}});
+(function billingReturn(){
+ const result=new URLSearchParams(location.search).get('billing');if(!result)return;
+ history.replaceState(null,'',location.pathname+location.hash);
+ const wait=async tries=>{
+  if(!restaurantId){if(tries<20)setTimeout(()=>wait(tries+1),500);return}
+  const notice=billingEl('billing-notice');
+  if(result==='cancelled'){await loadBilling().catch(()=>{});notice.hidden=false;notice.className='notice notice-info';notice.textContent='Payment cancelled. Nothing was charged.';return}
+  const data=await loadBilling().catch(()=>null);
+  if(data?.subscription?.status==='active'&&data.stripe?.has_customer){notice.hidden=false;notice.className='notice notice-ok';notice.textContent='Payment received. Your plan is active.';return}
+  notice.hidden=false;notice.className='notice notice-info';notice.textContent='Payment received. Activating your plan…';
+  if(tries<40)setTimeout(()=>wait(tries+1),3000);
+ };
+ setTimeout(()=>wait(0),800);
+})();
+window.addEventListener('hashchange',()=>{if(location.hash==='#plan')loadBilling().catch(()=>{});});
+if(location.hash==='#plan')setTimeout(()=>loadBilling().catch(()=>{}),1500);
