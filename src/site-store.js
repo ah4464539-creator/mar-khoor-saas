@@ -25,10 +25,15 @@ export async function saveSite(pool, restaurant, { config, description }) {
   return { config: clean, description: text };
 }
 
-// Publishing needs an active plan order that includes the website service, unless the platform
-// owner is acting or SITE_PUBLISH_FREE=1 is set (for pilots). Unpublishing is always allowed.
+// Publishing needs a paid plan: an active subscription (every plan includes the website), or an
+// older active plan order that includes the website service. The platform owner, or
+// SITE_PUBLISH_FREE=1 (for pilots), can always publish. Unpublishing is always allowed.
 export async function canPublish(pool, restaurantId, { superAdmin = false, free = process.env.SITE_PUBLISH_FREE === '1' } = {}) {
   if (superAdmin || free) return true;
+  try {
+    const [subs] = await pool.execute("SELECT restaurant_id FROM restaurant_subscriptions WHERE restaurant_id=? AND status='active' LIMIT 1", [restaurantId]);
+    if (subs.length) return true;
+  } catch { /* older database without subscriptions */ }
   const [rows] = await pool.execute("SELECT id FROM plan_orders WHERE restaurant_id=? AND status='active' AND FIND_IN_SET('website',features) LIMIT 1", [restaurantId]);
   return rows.length > 0;
 }
