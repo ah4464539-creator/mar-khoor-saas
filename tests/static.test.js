@@ -40,3 +40,19 @@ test('number provisioning UI is explicit and renders text safely',()=>{
  assert.ok(js.includes('confirm('));assert.ok(js.includes('/number-candidates'));assert.ok(!js.includes('innerHTML'));
  assert.match(read('src/views/super-admin.html'),/id="number-candidates"/);
 });
+test('website builder never applies one restaurant draft to another and resets the form on switch',()=>{
+ const js=read('public/restaurant.js');
+ const generate=js.slice(js.indexOf("'#site-generate'"),js.indexOf('siteForm.addEventListener(\'submit\''));
+ assert.match(generate,/if\(id!==restaurantId\)return;/);
+ const open=js.slice(js.indexOf('async function openRestaurant'),js.indexOf('const loginError'));
+ assert.match(open,/resetSiteForm\(\)/);
+ assert.ok(!js.includes("data.description||siteField('description').value"),'description must not carry over between restaurants');
+ assert.match(js,/Your draft was saved, but it is not live yet/);
+});
+test('dashboard is usable on phones: order table labels, readable chart and safe template radios',()=>{
+ const js=read('public/restaurant.js'),css=read('public/restaurant-refresh.css');
+ assert.match(js,/cell\.dataset\.label/);
+ assert.match(js,/ResizeObserver/);
+ assert.match(css,/owner-order-table td::before\{content:attr\(data-label\)/);
+ assert.match(css,/site-template-option input\[type=radio\]\{width:18px/);
+});

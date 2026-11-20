@@ -295,3 +295,40 @@
  .mk-owner:not(.signing-in) #owner-workspace #setup-dialog{width:calc(100% - 16px);max-height:calc(100dvh - 16px);padding:17px}
  .mk-owner:not(.signing-in) #owner-workspace #setup-dialog .setup-options{grid-template-columns:minmax(0,1fr)}
 }
+
+/* Mobile and template-picker fixes (Nov 2026). */
+.mk-owner:not(.signing-in) #site-form :is(input[type=radio],input[type=checkbox]){width:auto}
+.mk-owner:not(.signing-in) #site-form .site-template-option input[type=radio]{width:18px;height:18px;min-height:0;margin:0;padding:0;right:9px;top:9px}
+.mk-owner:not(.signing-in) #site-form .site-field label:has(input[type=checkbox]){display:flex;align-items:flex-start;gap:10px;line-height:1.4}
+.mk-owner:not(.signing-in) #site-form .site-field label input[type=checkbox]{flex:none;width:18px;height:18px;margin:2px 0 0;accent-color:#e86d11}
+.mk-owner:not(.signing-in) #items>p.owner-menu-row{display:flex;align-items:center;flex-wrap:wrap;gap:10px 14px}
+.mk-owner:not(.signing-in) .owner-menu-text{display:grid;gap:2px;flex:1 1 180px;min-width:0;overflow-wrap:anywhere}
+.mk-owner:not(.signing-in) .owner-menu-text small{color:#7f6c5f;font-size:13px}
+.mk-owner:not(.signing-in) .owner-menu-actions{display:flex;gap:8px;margin-left:auto}
+.mk-owner:not(.signing-in) #items>p.owner-menu-row button{margin:0;min-height:40px;min-width:64px}
+.mk-owner:not(.signing-in) .owner-revenue-chart{height:228px}
+@media(max-width:670px){
+ .mk-owner:not(.signing-in) .owner-sales-panel{min-height:0}
+ .mk-owner:not(.signing-in) #owner-sales{min-height:0}
+ .mk-owner:not(.signing-in) .kpi-cards article{flex-direction:column;align-items:flex-start}
+ .mk-owner:not(.signing-in) .kpi-cards strong{font-size:19px}
+ .mk-owner:not(.signing-in) .owner-activity-list li{grid-template-columns:28px minmax(0,1fr)}
+ .mk-owner:not(.signing-in) .owner-activity-list time{grid-column:2;font-size:12px}
+}
+@media(max-width:390px){.mk-owner:not(.signing-in) .kpi-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:339px){.mk-owner:not(.signing-in) .kpi-cards{grid-template-columns:minmax(0,1fr)}}
+/* Order management table becomes stacked cards on phones so amounts and actions stay readable. */
+@media(max-width:670px){
+ .mk-owner:not(.signing-in) .owner-order-table table,.mk-owner:not(.signing-in) .owner-order-table tbody{display:block;width:100%;min-width:0}
+ .mk-owner:not(.signing-in) .owner-order-table{overflow:visible}
+ .mk-owner:not(.signing-in) .owner-order-table .owner-order-estimate input{flex:0 0 100px;width:100px!important;min-height:40px}
+ .mk-owner:not(.signing-in) .owner-order-table .owner-order-estimate button{margin:0}
+ .mk-owner:not(.signing-in) .owner-order-table thead{display:none}
+ .mk-owner:not(.signing-in) .owner-order-table tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px 12px;padding:14px 0;border-bottom:1px solid #f0e2d7}
+ .mk-owner:not(.signing-in) .owner-order-table td{display:block;padding:0;border:0;min-width:0;overflow-wrap:anywhere;font-size:14px}
+ .mk-owner:not(.signing-in) .owner-order-table td::before{content:attr(data-label);display:block;margin-bottom:2px;color:#8f7c70;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+ .mk-owner:not(.signing-in) .owner-order-table td:is([data-label="Fulfilment"],[data-label="Actions"]){grid-column:1/-1}
+ .mk-owner:not(.signing-in) .owner-order-table td[data-label="Actions"] button{min-height:40px;margin:4px 6px 0 0}
+ .mk-owner:not(.signing-in) .owner-order-table .owner-order-estimate{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}
+}
+.mk-owner:not(.signing-in) #owner-workspace #setup-dialog .eyebrow{color:#9a4c12;background:#ffe6c5;border:1px solid #f3c48f}
