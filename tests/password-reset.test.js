@@ -226,7 +226,7 @@ test('login card shows errors inside the card and offers forgot password', () =>
   const html = fs.readFileSync(new URL('../public/restaurant.html', import.meta.url), 'utf8');
   const js = fs.readFileSync(new URL('../public/restaurant.js', import.meta.url), 'utf8');
   const form = html.slice(html.indexOf('<form id="login">'), html.indexOf('</form>', html.indexOf('<form id="login">')));
-  assert.ok(form.indexOf('id="login-error"') > 0 && form.indexOf('id="login-error"') < form.indexOf('<button type="submit">Sign in'), 'error sits above the Sign in button');
+  assert.ok(form.indexOf('id="login-error"') > 0 && form.indexOf('id="login-error"') < form.indexOf('>Sign in</button>'), 'error sits above the Sign in button');
   assert.ok(form.includes('id="forgot-link"'));
   for (const id of ['forgot-view', 'forgot-form', 'forgot-email', 'forgot-message', 'reset-view', 'reset-form', 'reset-password', 'reset-confirm', 'reset-message', 'login-notice'])
     assert.ok(html.includes('id="' + id + '"'), id);

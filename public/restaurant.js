@@ -57,7 +57,7 @@ async function refresh(){
   return card;
  }));
  const items=document.querySelector('#items');items.replaceChildren();
- for(const item of menu.items){const p=document.createElement('p'),button=document.createElement('button');p.className='owner-menu-row';const text=ownerText('span','','owner-menu-text');text.append(ownerText('strong',item.name),ownerText('small',ownerMoney(item.price_minor)+' · '+(item.active?'Active':'Hidden')));button.type='button';button.textContent=item.active?'Hide':'Show';button.addEventListener('click',async()=>{try{await api('/api/restaurants/'+restaurantId+'/menu/'+item.id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({...item,active:!item.active})});await refresh()}catch(e){status.textContent=e.message}});const edit=document.createElement('button');edit.type='button';edit.textContent='Edit';edit.addEventListener('click',()=>editMenuItem(item));const actions=ownerText('span','','owner-menu-actions');actions.append(button,edit);p.append(text,actions);items.append(p)}
+ for(const item of menu.items){const p=document.createElement('p'),button=document.createElement('button');p.className='owner-menu-row'+(item.active?'':' hidden-item');let thumb;try{const u=new URL(item.image_url,location.origin);if(!item.image_url||(u.protocol!=='https:'&&!(u.origin===location.origin&&u.pathname.startsWith('/media/'))))throw 0;thumb=document.createElement('img');thumb.src=u.href;thumb.alt='';thumb.loading='lazy';thumb.className='owner-menu-thumb';}catch{thumb=ownerText('span','No photo','owner-menu-thumb');}const text=ownerText('span','','owner-menu-text');text.append(ownerText('strong',item.name),ownerText('small',ownerMoney(item.price_minor)+' · '+(item.active?'Active':'Hidden')));button.type='button';button.className='btn btn-ghost btn-sm';button.textContent=item.active?'Hide':'Show';button.addEventListener('click',async()=>{try{await api('/api/restaurants/'+restaurantId+'/menu/'+item.id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({...item,active:!item.active})});await refresh()}catch(e){status.textContent=e.message}});const edit=document.createElement('button');edit.type='button';edit.className='btn btn-ghost btn-sm';edit.textContent='Edit';edit.addEventListener('click',()=>editMenuItem(item));const actions=ownerText('span','','owner-menu-actions');actions.append(button,edit);p.append(thumb,text,actions);items.append(p)}
  renderOwnerInsights(analytics, menu.items);
  ownerOrders = orders.orders;
  renderOwnerOrderActivity(ownerOrders);
@@ -72,7 +72,7 @@ orderSearch.addEventListener('input', renderOwnerOrders);
 orderFilter.addEventListener('change', renderOwnerOrders);
 const ownerGlobalSearch=document.querySelector('#owner-global-search');
 ownerGlobalSearch?.addEventListener('input',()=>{orderSearch.value=ownerGlobalSearch.value;renderOwnerOrders();});
-ownerGlobalSearch?.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();document.querySelector('#order-desk')?.scrollIntoView({behavior:'smooth',block:'start'});}});
+ownerGlobalSearch?.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();location.hash='#order-desk';}});
 
 function ownerMoney(minor) {
  return new Intl.NumberFormat(undefined, {style:'currency',currency:restaurantCurrency}).format(Number(minor)/100);
@@ -212,101 +212,100 @@ function renderOwnerOrders() {
   (!orderFilter.value || order.status === orderFilter.value) &&
   (String(order.id).includes(query) || (order.customer_name ?? '').toLowerCase().includes(query) || (order.customer_phone ?? '').includes(query))
  );
- const cards=document.querySelector('#owner-order-cards');
- const recent=ownerText('div','','owner-order-list');
- for(const order of visible.slice(0,4)){
-  const entry=ownerText('div','','owner-order-card');
-  const meta=ownerText('div','','owner-order-meta');
-  meta.append(ownerText('strong','#'+order.id+' · '+(order.customer_name||'Customer')),ownerText('small',ownerMoney(order.total_minor)+' · '+new Date(order.created_at).toLocaleDateString()));
-  const badge=ownerText('span',String(order.status||'pending').replace(/_/g,' '),'owner-order-badge');
-  badge.dataset.status=order.status||'pending';
-  entry.append(meta,badge);recent.append(entry);
- }
- cards.replaceChildren(visible.length?recent:ownerText('p',ownerOrders.length?'No matching orders.':'No orders yet.','muted'));
+ const pendingCount = ownerOrders.filter(order => order.status === 'pending').length;
+ const navCount = document.querySelector('#nav-pending-count');
+ if (navCount) { navCount.textContent = pendingCount; navCount.hidden = !pendingCount; }
  if (!visible.length) {
-  root.replaceChildren(ownerText('p', ownerOrders.length ? 'No orders match these filters.' : 'No orders yet.'));
+  root.replaceChildren(ownerText('p', ownerOrders.length ? 'No orders match these filters.' : 'No orders yet. New orders appear here automatically.', 'muted'));
   return;
  }
- const table = document.createElement('table');
- table.setAttribute('aria-label','Recent restaurant orders');
- const header = table.createTHead().insertRow();
- for (const heading of ['Order ID','Customer','Date','Amount','Fulfilment','Payment','Status','Actions']) {
-  const cell = ownerText('th', heading);
-  cell.scope = 'col';
-  header.append(cell);
+ const columns = orderFilter.value ? [[orderFilter.value, orderFilter.value]] :
+  [['pending', 'New'], ['accepted', 'Accepted'], ['preparing', 'Preparing'], ['ready', 'Ready'], ['completed', 'Completed'], ['cancelled', 'Cancelled']];
+ const labels = {accepted:'Accept',preparing:'Start preparing',ready:'Mark ready',completed:'Complete',cancelled:'Cancel'};
+ const methods = {cod:'Cash on delivery',cash_pickup:'Cash on pickup',stripe:'Online'};
+ const payments = {unpaid:'Unpaid',pending:'Pending',paid:'Paid',failed:'Failed',refunded:'Refunded'};
+ const board = columns.map(([statusKey, title]) => {
+  const list = visible.filter(order => (order.status || 'pending') === statusKey);
+  if (!list.length && ['completed', 'cancelled'].includes(statusKey) && !orderFilter.value) return null;
+  const column = ownerText('section', '', 'order-column' + (['completed', 'cancelled'].includes(statusKey) ? ' done' : ''));
+  column.setAttribute('aria-label', title + ' orders');
+  const head = ownerText('header', '');
+  const badge = ownerText('span', String(list.length), 'owner-order-badge'); badge.dataset.status = statusKey;
+  head.append(ownerText('h3', title.charAt(0).toUpperCase() + title.slice(1)), badge);
+  column.append(head);
+  if (!list.length) column.append(ownerText('p', 'Nothing here right now.', 'empty'));
+  const limit = ['completed', 'cancelled'].includes(statusKey) && !orderFilter.value ? 6 : 50;
+  for (const order of list.slice(0, limit)) column.append(orderCard(order, labels, methods, payments));
+  if (list.length > limit) column.append(ownerText('p', '+' + (list.length - limit) + ' more · filter by status to see all', 'order-more'));
+  return column;
+ }).filter(Boolean);
+ root.replaceChildren(...board);
+}
+
+function orderCard(order, labels, methods, payments) {
+ const card = ownerText('article', '', 'order-card');
+ const head = ownerText('div', '', 'head');
+ const date = new Date(order.created_at);
+ head.append(ownerText('strong', '#' + order.id), ownerText('time', Number.isNaN(date.valueOf()) ? '' : date.toLocaleString(undefined, {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'})));
+ const meta = ownerText('div', '', 'meta');
+ meta.append(ownerText('strong', order.customer_name || 'Customer'));
+ if (order.order_type === 'delivery' || order.order_type === 'pickup') meta.append(ownerText('span', order.order_type === 'delivery' ? 'Delivery' : 'Pickup'));
+ for (const detail of [order.customer_phone, order.delivery_address, order.delivery_instructions && 'Note: ' + order.delivery_instructions]) if (detail) meta.append(ownerText('span', detail));
+ const money = ownerText('div', '', 'money');
+ money.append(ownerText('strong', ownerMoney(order.total_minor)));
+ if (methods[order.payment_method]) {
+  const pay = ownerText('span', methods[order.payment_method] + ' · ' + (payments[order.payment_status] || 'Unpaid'), 'tag ' + (order.payment_status === 'paid' ? 'tag-ok' : 'tag-warn'));
+  money.append(pay);
  }
- const body = table.createTBody();
- for (const order of visible) {
-  const row = body.insertRow();
-  const date = new Date(order.created_at);
-  const formatted = Number.isNaN(date.valueOf()) ? '—' : date.toLocaleDateString();
-  for (const value of ['#' + order.id, order.customer_name || 'Customer', formatted, ownerMoney(order.total_minor)]) {
-   row.append(ownerText('td', value));
-  }
-  const labelCells = () => [...row.cells].forEach((cell, index) => { cell.dataset.label = ['Order ID','Customer','Date','Amount','Fulfilment','Payment','Status','Actions'][index]; });
-  // Fulfilment and cash payment details (absent for legacy website orders).
-  const fulfilment = row.insertCell();
-  if (order.order_type === 'delivery' || order.order_type === 'pickup') {
-   fulfilment.append(ownerText('strong', order.order_type === 'delivery' ? 'Delivery' : 'Pickup'));
-   for (const detail of [order.customer_phone, order.delivery_address, order.delivery_instructions && 'Note: ' + order.delivery_instructions]) {
-    if (detail) fulfilment.append(document.createElement('br'), ownerText('span', detail));
+ card.append(head, meta, money);
+ const actions = ownerText('div', '', 'actions');
+ for (const next of orderTransitions[order.status] ?? []) {
+  const button = ownerText('button', labels[next], 'btn btn-sm ' + (next === 'cancelled' ? 'btn-ghost' : next === 'accepted' ? 'btn-primary' : 'btn-dark'));
+  button.type = 'button';
+  button.addEventListener('click', async () => {
+   const buttons = [...card.querySelectorAll('button')];
+   buttons.forEach(control => control.disabled = true);
+   try {
+    await api('/api/restaurants/' + restaurantId + '/orders/' + order.id + '/status', {
+     method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:next})
+    });
+    await refresh();
+    status.textContent = 'Order #' + order.id + ' updated';
+   } catch (error) {
+    status.textContent = error.message;
+   } finally {
+    buttons.forEach(control => control.disabled = false);
    }
-  } else fulfilment.textContent = '—';
-  const payment = row.insertCell();
-  const methods = {cod:'Cash on Delivery',cash_pickup:'Cash on Pickup',stripe:'Online'};
-  payment.textContent = methods[order.payment_method] ? methods[order.payment_method] + ' · ' + ({unpaid:'Unpaid',pending:'Pending',paid:'Paid',failed:'Failed',refunded:'Refunded'}[order.payment_status] || 'Unpaid') : '—';
-  row.insertCell().append(ownerText('span', order.status, 'owner-order-badge'));
-  const actions = row.insertCell();
-  for (const next of orderTransitions[order.status] ?? []) {
-   const button = ownerText('button', {accepted:'Accept',preparing:'Prepare',ready:'Mark ready',completed:'Complete',cancelled:'Cancel'}[next]);
-   button.type = 'button';
-   button.addEventListener('click', async () => {
-    const buttons = [...actions.querySelectorAll('button')];
-    buttons.forEach(control => control.disabled = true);
-    try {
-     await api('/api/restaurants/' + restaurantId + '/orders/' + order.id + '/status', {
-      method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status:next})
-     });
-     await refresh();
-     status.textContent = 'Order #' + order.id + ' updated';
-    } catch (error) {
-     status.textContent = error.message;
-    } finally {
-     buttons.forEach(control => control.disabled = false);
-    }
-   });
-   actions.append(button);
-  }
-  if (['pending','accepted','preparing'].includes(order.status)) {
-   const eta = document.createElement('div');
-   eta.className = 'owner-order-estimate';
-   const input = document.createElement('input');
-   input.type = 'number'; input.min='1'; input.max='240'; input.step='1';
-   input.style.width = '75px'; input.setAttribute('aria-label','Minutes to order ready');
-   input.placeholder='Minutes';
-   const remaining = order.estimated_ready_epoch == null ? null : Math.max(1,Math.ceil((Number(order.estimated_ready_epoch)*1000-Date.now())/60000));
-   if (remaining !== null) input.value = remaining;
-   const save = ownerText('button','Save ETA');
-   save.type = 'button';
-   const clear = ownerText('button','Clear ETA'); clear.type = 'button';
-   const updateEstimate = async minutes => {
-    save.disabled = true; clear.disabled = true;
-    try {
-     await api('/api/restaurants/'+restaurantId+'/orders/'+order.id+'/estimate',{
-      method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({minutes})
-     });
-     await refresh();
-     status.textContent = 'Order #'+order.id+' estimated time updated';
-    }catch(error){status.textContent=error.message;save.disabled=false;clear.disabled=false;}
-   };
-   save.addEventListener('click',()=>{if(!input.reportValidity()||!input.value)return;updateEstimate(Number(input.value));});
-   clear.addEventListener('click',()=>updateEstimate(null));
-   eta.append(input,save,clear);
-   actions.append(eta);
-  }
-  labelCells();
+  });
+  actions.append(button);
  }
- root.replaceChildren(table);
+ if (['pending','accepted','preparing'].includes(order.status)) {
+  const eta = ownerText('div', '', 'owner-order-estimate');
+  const input = document.createElement('input');
+  input.type = 'number'; input.min='1'; input.max='240'; input.step='1';
+  input.setAttribute('aria-label','Minutes until order #' + order.id + ' is ready');
+  input.placeholder='min';
+  const remaining = order.estimated_ready_epoch == null ? null : Math.max(1,Math.ceil((Number(order.estimated_ready_epoch)*1000-Date.now())/60000));
+  if (remaining !== null) input.value = remaining;
+  const save = ownerText('button','Save ETA','btn btn-ghost btn-sm'); save.type = 'button';
+  const clear = ownerText('button','Clear','btn btn-quiet btn-sm'); clear.type = 'button';
+  const updateEstimate = async minutes => {
+   save.disabled = true; clear.disabled = true;
+   try {
+    await api('/api/restaurants/'+restaurantId+'/orders/'+order.id+'/estimate',{
+     method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({minutes})
+    });
+    await refresh();
+    status.textContent = 'Order #'+order.id+' estimated time updated';
+   }catch(error){status.textContent=error.message;save.disabled=false;clear.disabled=false;}
+  };
+  save.addEventListener('click',()=>{if(!input.reportValidity()||!input.value)return;updateEstimate(Number(input.value));});
+  clear.addEventListener('click',()=>updateEstimate(null));
+  eta.append(ownerText('span','Ready in'), input, ownerText('span','min'), save, clear);
+  card.append(eta);
+ }
+ if (actions.childNodes.length) card.append(actions);
+ return card;
 }
 
 const sessionKey = 'mar-khoor.owner-session';
@@ -338,6 +337,7 @@ function updateWorkspaceView(focusHeading = false) {
  if (!restaurantId) return;
  const activeView = messageViews.find(view => '#' + view.id === location.hash);
  ownerOverview.hidden = Boolean(activeView);
+ document.querySelector('#owner-heading').textContent = (activeView || ownerOverview).dataset.title || 'Dashboard';
  messageViews.forEach(view => { view.hidden = view !== activeView; });
  for (const link of [overviewLink, ...ownerNavigation.querySelectorAll('a')]) {
   const current = link === overviewLink ? !location.hash || location.hash === overviewLink.hash : link.hash === location.hash;
@@ -359,7 +359,7 @@ async function openRestaurant(restaurant) {
  document.querySelector('#site-preview-frame').removeAttribute('srcdoc');
  restaurantId = restaurant.id;
  restaurantCurrency = restaurant.currency;
- document.querySelector('#owner-heading').textContent = 'Restaurant Dashboard';
+ document.querySelector('#owner-tenant-initials').textContent = String(restaurant.name || 'R').split(/\s+/).filter(Boolean).slice(0, 2).map(word => word[0]).join('').toUpperCase() || 'R';
  document.querySelector('#owner-restaurant-label').textContent = restaurant.name;
  document.querySelector('#owner-switch-name').textContent = restaurant.name;
  document.querySelector('#owner-restaurant-switch').hidden = false;
@@ -464,6 +464,9 @@ function editMenuItem(item) {
  showItemPhoto(item?.image_url ?? '');
  itemPhotoStatus.textContent = 'JPG, PNG or WebP. Large photos are resized automatically.';
  saveMenuItem.textContent = item ? 'Save item' : 'Add item';
+ document.querySelector('#menu-editor-title').textContent = item ? 'Edit item' : 'Add item';
+ if (item && location.hash !== '#menu-management') location.hash = '#menu-management';
+ if (item && matchMedia('(max-width: 959px)').matches) document.querySelector('.menu-editor').scrollIntoView({behavior:'smooth', block:'start'});
  cancelMenuEdit.hidden = !item;
  if (item) itemName.focus();
 }
@@ -812,6 +815,7 @@ function showSetupStep(index) {
  setupSteps.forEach((step, i) => { step.hidden = i !== index; });
  document.querySelector('#setup-step-label').textContent = 'Step ' + (index + 1) + ' of ' + (LAST_SETUP_STEP + 1);
  document.querySelector('#setup-title').textContent = setupTitles[index];
+ document.querySelector('#setup-bar-fill').style.width = ((index + 1) / (LAST_SETUP_STEP + 1) * 100) + '%';
  backSetup.hidden = index === 0 || index === LAST_SETUP_STEP;
  deferSetup.hidden = index === LAST_SETUP_STEP;
  nextSetup.textContent = index === 0 || index === 1 ? 'Continue'
