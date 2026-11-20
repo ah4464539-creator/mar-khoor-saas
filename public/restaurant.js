@@ -1270,12 +1270,14 @@ var payLoadedFor = null;
 function payTransferRow(t = {}) {
  const row = document.createElement('div'); row.className = 'pay-transfer-row';
  row.dataset.id = t.id || '';
- row.innerHTML = '<label class="field"><span>Type</span><select class="input" data-f="type"><option value="bank">Bank transfer</option><option value="jazzcash">JazzCash</option><option value="easypaisa">Easypaisa</option><option value="raast">Raast</option><option value="other">Other</option></select></label>'
-  + '<label class="field"><span>Name shown to customers</span><input class="input" data-f="label" maxlength="60" placeholder="e.g. Meezan Bank"></label>'
-  + '<label class="field"><span>Account title</span><input class="input" data-f="account_title" maxlength="80" required></label>'
-  + '<label class="field"><span>Account / IBAN / mobile number</span><input class="input" data-f="account_number" maxlength="40" required></label>'
-  + '<label class="field pay-wide"><span>Note for customers <span class="muted small">(optional)</span></span><input class="input" data-f="instructions" maxlength="200" placeholder="e.g. Write your order number in the payment note"></label>'
-  + '<button type="button" class="btn btn-ghost btn-sm" data-remove>Remove</button>';
+ const field = (labelText, el, wide) => { const l = document.createElement('label'); l.className = 'field' + (wide ? ' pay-wide' : ''); const span = document.createElement('span'); span.textContent = labelText; l.append(span, el); return l; };
+ const input = (key, max, placeholder) => { const el = document.createElement('input'); el.className = 'input'; el.dataset.f = key; el.maxLength = max; if (placeholder) el.placeholder = placeholder; return el; };
+ const select = document.createElement('select'); select.className = 'input'; select.dataset.f = 'type';
+ for (const [value, text] of [['bank','Bank transfer'],['jazzcash','JazzCash'],['easypaisa','Easypaisa'],['raast','Raast'],['other','Other']]) { const o = document.createElement('option'); o.value = value; o.textContent = text; select.append(o); }
+ const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'btn btn-ghost btn-sm'; remove.dataset.remove = ''; remove.textContent = 'Remove';
+ const title = input('account_title', 80); title.required = true;
+ const number = input('account_number', 40); number.required = true;
+ row.append(field('Type', select), field('Name shown to customers', input('label', 60, 'e.g. Meezan Bank')), field('Account title', title), field('Account / IBAN / mobile number', number), field('Note for customers (optional)', input('instructions', 200, 'e.g. Write your order number in the payment note'), true), remove);
  for (const key of ['type','label','account_title','account_number','instructions']) if (t[key]) row.querySelector('[data-f="'+key+'"]').value = t[key];
  row.querySelector('[data-remove]').addEventListener('click', () => row.remove());
  return row;
