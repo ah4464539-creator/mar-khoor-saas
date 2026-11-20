@@ -332,6 +332,7 @@
 <option value="import">Connect my own number</option>
 <option value="new">Get a new local number</option>
 </select></div>
+<p class="hint" id="setup-call-hint" hidden></p>
 <label class="check setup-skip"><input type="checkbox" name="ai_caller_skip"> Skip AI Caller for now</label>
 </div>
 </div>
@@ -341,7 +342,7 @@
 <div class="setup-item" data-kind="website">
 <p class="muted">Do you already have a website for your restaurant?</p>
 <div class="setup-options website-options" role="radiogroup" aria-label="Website">
-<label><span><strong>No, build my website with AI</strong><small>The AI Website Builder opens next. Describe your restaurant and it writes your page, with your menu, AI Assistant, WhatsApp and AI Caller built in.</small></span><input type="radio" name="website_mode" value="builder" checked></label>
+<label><span><strong>No, build my website with AI</strong><small>The AI Website Builder opens as soon as your plan is paid. Describe your restaurant and it writes your page, with your menu, AI Assistant, WhatsApp and AI Caller built in.</small></span><input type="radio" name="website_mode" value="builder" checked></label>
 <label><span><strong>Yes, use my own domain</strong><small>Connect your domain (for example myrestaurant.com) to a new AI-built Mar-Khoor website.</small></span><input type="radio" name="website_mode" value="domain"></label>
 <label><span><strong>Yes, keep my current website</strong><small>Keep your site as it is and add the Mar-Khoor AI Assistant, WhatsApp button and AI Caller to it.</small></span><input type="radio" name="website_mode" value="embed"></label>
 </div>
@@ -365,7 +366,7 @@
 </main>
 </div>
 <script src="/password-reset.js?v=20261119"></script>
-<script type="module" src="/restaurant.js?v=20261120-s12"></script>
+<script type="module" src="/restaurant.js?v=20261121-s13"></script>
 <script>document.getElementById("login-show-password")?.addEventListener("change",function(){document.getElementById("password").type=this.checked?"text":"password"});</script>
 </body>
 </html>

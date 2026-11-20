@@ -89,7 +89,7 @@ export function apiRouter(pool) {
  });
  router.get('/my/restaurants',requireAuth,async(req,res)=>{
   try {
-   const [rows]=await pool.execute('SELECT r.id,r.name,r.slug,r.currency,r.locale,m.role FROM restaurant_members m JOIN restaurants r ON r.id=m.restaurant_id WHERE m.user_id=? ORDER BY r.name',[req.user.id]);
+   const [rows]=await pool.execute('SELECT r.id,r.name,r.slug,r.country_code,r.currency,r.locale,m.role FROM restaurant_members m JOIN restaurants r ON r.id=m.restaurant_id WHERE m.user_id=? ORDER BY r.name',[req.user.id]);
    res.json({restaurants:rows});
   } catch {res.status(503).json({error:'Database unavailable'});}
  });
