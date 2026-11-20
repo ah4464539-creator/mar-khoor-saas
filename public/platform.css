@@ -57,3 +57,4 @@ body.mk{margin:0}
 .platform-app .health-missing{color:var(--bad)!important}
 .platform-app .sub-head{font-size:16px;margin:18px 0 8px}
 .platform-app #domains-help code{font-size:12px;background:var(--sunk);padding:1px 5px;border-radius:5px}
+.mk .tenant-row{display:flex;justify-content:space-between;align-items:center;gap:12px}.mk .tenant-delete{color:var(--danger,#b42318)}
