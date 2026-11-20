@@ -6,11 +6,13 @@ import { useSessionStore } from '../src/auth.js';
 import { createMemorySessionStore, hashToken } from '../src/sessions.js';
 import { billingRouter, billingWebhookRouter } from '../src/billing.js';
 
+const OWNER = 'a'.repeat(64), STRANGER = 'b'.repeat(64);
+
 test('plan checkout and Stripe webhook over HTTP', async () => {
   const store = createMemorySessionStore();
   useSessionStore(store);
-  await store.create(hashToken('owner-token'), { id: 5, email: 'owner@x.pk', platformRole: 'user' }, 3600);
-  await store.create(hashToken('stranger-token'), { id: 6, email: 's@x.pk', platformRole: 'user' }, 3600);
+  await store.create(hashToken(OWNER), { id: 5, email: 'owner@x.pk', platformRole: 'user' }, 3600);
+  await store.create(hashToken(STRANGER), { id: 6, email: 's@x.pk', platformRole: 'user' }, 3600);
   const writes = [];
   let status = 'pending_payment';
   const pool = {
@@ -40,9 +42,9 @@ test('plan checkout and Stripe webhook over HTTP', async () => {
   const base = 'http://127.0.0.1:' + server.address().port;
   const post = (path, token, body) => fetch(base + path, { method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   try {
-    assert.equal((await post('/api/restaurants/7/billing/checkout', 'stranger-token', { plan: 'starter', billing_cycle: 'monthly' })).status, 403);
-    assert.equal((await post('/api/restaurants/7/billing/checkout', 'owner-token', { plan: 'gold', billing_cycle: 'monthly' })).status, 400);
-    const ok = await post('/api/restaurants/7/billing/checkout', 'owner-token', { plan: 'starter', billing_cycle: 'monthly', price_minor: 1 });
+    assert.equal((await post('/api/restaurants/7/billing/checkout', STRANGER, { plan: 'starter', billing_cycle: 'monthly' })).status, 403);
+    assert.equal((await post('/api/restaurants/7/billing/checkout', OWNER, { plan: 'gold', billing_cycle: 'monthly' })).status, 400);
+    const ok = await post('/api/restaurants/7/billing/checkout', OWNER, { plan: 'starter', billing_cycle: 'monthly', price_minor: 1 });
     assert.equal(ok.status, 200);
     assert.equal((await ok.json()).url, 'https://checkout.stripe.com/c/pay/cs_test_1');
     assert.equal(sessions[0].params['line_items[0][price_data][unit_amount]'], '3900', 'client price is ignored');
