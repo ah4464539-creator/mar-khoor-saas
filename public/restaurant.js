@@ -810,7 +810,19 @@ function renderUsage(data) {
  usageMeter.hidden = false;
 }
 
+const CALL_MODE_TEXT = { forward:'Forward my calls (easiest)', import:'Connect my own number', new:'Get a new local number' };
+function adaptCallOptions() {
+ const select = setupForm.elements.ai_caller_mode, hint = document.querySelector('#setup-call-hint');
+ if (!select || !hint) return;
+ const pk = setupCountry === 'PK';
+ for (const option of select.options) option.textContent = CALL_MODE_TEXT[option.value] + (pk && option.value === 'import' ? ' (recommended, cheaper)' : pk && option.value === 'new' ? ' (costs more in Pakistan)' : '');
+ hint.hidden = !pk;
+ hint.textContent = 'In Pakistan a new number from us costs much more each month. Put a spare SIM or number on the AI Caller instead: we give you the call minutes, you pay no number fee.';
+}
 function fillConnectStep() {
+ adaptCallOptions();
+ const callMode = setupForm.elements.ai_caller_mode;
+ if (setupCountry === 'PK' && callMode && !setupData.integrations.some(item => item.kind === 'ai_caller' && item.mode)) callMode.value = 'import';
  for (const item of setupData.integrations) {
   const value = setupForm.elements[item.kind + '_value'];
   const mode = setupForm.elements[item.kind + '_mode'];
@@ -843,7 +855,7 @@ function showSetupStep(index) {
  backSetup.hidden = index === 0 || index === LAST_SETUP_STEP;
  deferSetup.hidden = index === LAST_SETUP_STEP;
  nextSetup.textContent = index === 0 || index === 1 ? 'Continue'
-  : index === 2 ? (websiteNeedsBuilder() ? 'Finish and open AI Website Builder' : 'Finish setup')
+  : index === 2 ? (setupPlanChoice || (setupData?.subscription && setupData.subscription.status !== 'active') ? 'Finish and go to cart' : websiteNeedsBuilder() ? 'Finish and open AI Website Builder' : 'Finish setup')
   : (setupPlanChoice || (setupData?.subscription && setupData.subscription.status !== 'active') ? 'Go to cart & pay' : 'Done');
  setupStatus.textContent = '';
 }
@@ -875,7 +887,9 @@ function summarise() {
  statusList(setupProgress, setupData.integrations.filter(item => item.status !== 'not_started'));
 }
 
+var setupCountry = '';
 async function loadSetup(restaurant) {
+ setupCountry = restaurant.country_code || '';
  const selection = ++setupSelection;
  setupPanel.hidden = restaurant.role !== 'admin';
  openSetup.disabled = true;
@@ -963,7 +977,20 @@ async function advanceSetup() {
    if (selection !== setupSelection) return;
    setupData.integrations = result.integrations;
    statusList(setupResults, result.integrations);
-   if (websiteNeedsBuilder()) { summarise(); await openWebsiteBuilder(result.integrations); return; }
+   if (websiteNeedsBuilder()) {
+    const sub = setupData.subscription;
+    if (setupPlanChoice || (sub && sub.status !== 'active')) {
+     // Pay first: the cart opens now, and the AI Website Builder opens by itself once the plan is active.
+     try { localStorage.setItem('mar-khoor.after-pay.' + restaurantId, 'website'); } catch {}
+     setupDialog.close();
+     const plan = setupPlanChoice?.plan || sub?.plan, cycle = setupPlanChoice?.cycle || sub?.billing_cycle;
+     setupPlanChoice = null;
+     summarise();
+     goToCart(plan, cycle, 'Setup saved. Check your cart and pay: your plan starts right away and the AI Website Builder opens after payment.');
+     return;
+    }
+    summarise(); await openWebsiteBuilder(result.integrations); return;
+   }
    showSetupStep(LAST_SETUP_STEP);
   } else {
    setupDialog.close();
@@ -1178,7 +1205,7 @@ function renderCart(){
  const number=billingEl('billing-number'),numberPrice=billingEl('billing-number-price');
  const addon=addonFor(plan,cycle);
  if(plan?.dedicated_number?.included){number.checked=true;number.disabled=true;numberPrice.textContent='· included in '+plan.name}
- else{number.disabled=addon==null;if(addon==null)number.checked=false;numberPrice.textContent=addon==null?'· not available yet':'· +'+billingMoney(addon,plan.currency)+(cycle==='yearly'?' / year':' / month')}
+ else{number.disabled=addon==null;if(addon==null)number.checked=false;numberPrice.textContent=addon==null?'· not available yet':'· +'+billingMoney(addon,plan.currency)+(cycle==='yearly'?' / year':' / month')+(setupCountry==='PK'?' · tip: a spare SIM of your own costs nothing extra; your plan already includes the call minutes':'')}
  lines.replaceChildren();
  const line=(name,value,cls)=>{const li=document.createElement('li');if(cls)li.className=cls;const a=document.createElement('span');a.textContent=name;const b=document.createElement('span');b.textContent=value;li.append(a,b);lines.append(li)};
  if(!plan){billingEl('cart-total').textContent='—';return}
@@ -1255,7 +1282,11 @@ billingEl('billing-manage')?.addEventListener('click',async()=>{const note=billi
   const notice=billingEl('billing-notice');
   if(result==='cancelled'){await loadBilling().catch(()=>{});notice.hidden=false;notice.className='notice notice-info';notice.textContent='Payment cancelled. Nothing was charged.';return}
   const data=await loadBilling().catch(()=>null);
-  if(data?.subscription?.status==='active'&&data.stripe?.has_customer){notice.hidden=false;notice.className='notice notice-ok';notice.textContent='Payment received. Your plan is active.';return}
+  if(data?.subscription?.status==='active'&&data.stripe?.has_customer){
+   notice.hidden=false;notice.className='notice notice-ok';notice.textContent='Payment received. Your plan is active.';
+   let next=null;try{next=localStorage.getItem('mar-khoor.after-pay.'+restaurantId);localStorage.removeItem('mar-khoor.after-pay.'+restaurantId)}catch{}
+   if(next==='website'){notice.textContent+=' Opening your AI Website Builder…';setTimeout(()=>{location.hash='#website';loadSite().catch(()=>{});siteStatus.textContent='Your plan is active. Describe your restaurant and press “Write with AI”, then Save and Publish.';document.querySelector('#site-description')?.focus()},2500)}
+   return}
   notice.hidden=false;notice.className='notice notice-info';notice.textContent='Payment received. Activating your plan…';
   if(tries<40)setTimeout(()=>wait(tries+1),3000);
  };
