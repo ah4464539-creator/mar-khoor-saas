@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="/summit.css?v=20261120-s1">
-<link rel="stylesheet" href="/owner.css?v=20261120-s7">
+<link rel="stylesheet" href="/owner.css?v=20261120-s8">
 </head>
 <body class="mk owner-app signing-in">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -228,6 +228,33 @@
   </section>
   <div class="site-actions"><button type="button" id="site-preview-button" class="btn btn-ghost"><svg aria-hidden="true" width="18" height="18"><use href="#i-eye"/></svg>Preview draft</button><button type="submit" class="btn btn-ghost">Save website</button><button type="button" id="site-publish" class="btn btn-primary">Publish</button><span id="site-status" role="status" class="small muted"></span></div>
  </form>
+ <section class="card card-pad site-widget" id="site-widget" aria-labelledby="site-widget-title">
+  <div class="card-head"><div><h2 id="site-widget-title">Use Mar-Khoor on your own website</h2><p class="small muted">Already have a website? Add the AI Assistant, a WhatsApp button and an AI Caller button to it with one line of code. Orders arrive here like any other order.</p></div><span id="widget-status" class="tag" hidden></span></div>
+  <form id="widget-form" class="widget-form">
+   <label class="check"><input type="checkbox" id="widget-enabled"> <strong>Turn on the widget</strong></label>
+   <fieldset class="widget-tools"><legend>Buttons to show</legend>
+    <label class="check"><input type="checkbox" id="widget-assistant"> AI Assistant chat (menu questions and orders)</label>
+    <p class="small muted" id="widget-assistant-note" hidden></p>
+    <label class="check"><input type="checkbox" id="widget-whatsapp"> WhatsApp button</label>
+    <input class="input" id="widget-whatsapp-number" inputmode="tel" autocomplete="off" aria-label="WhatsApp number" placeholder="+923001234567">
+    <label class="check"><input type="checkbox" id="widget-call"> AI Caller button (call to order)</label>
+    <input class="input" id="widget-call-number" inputmode="tel" autocomplete="off" aria-label="AI Caller number" placeholder="+923001234567">
+   </fieldset>
+   <div class="widget-look">
+    <label class="field"><span>Button text</span><input class="input" id="widget-label" maxlength="40" placeholder="Order with AI"></label>
+    <label class="field"><span>Colour</span><input type="color" id="widget-color" value="#ff952f"></label>
+    <label class="field"><span>Position</span><select class="input" id="widget-position"><option value="right">Bottom right</option><option value="left">Bottom left</option></select></label>
+   </div>
+   <label class="field"><span>Welcome message <span class="muted small">(optional)</span></span><input class="input" id="widget-greeting" maxlength="200" placeholder="Hi! What would you like to order today?"></label>
+   <label class="field"><span>Your website address <span class="muted small">(recommended)</span></span><input class="input" id="widget-origins" placeholder="myrestaurant.com" autocomplete="off"><small class="muted">Only these sites can show your AI chat. Separate several with commas. Leave empty to allow any https site.</small></label>
+   <div class="form-actions"><button type="submit" class="btn btn-primary">Save widget</button><span id="widget-note" class="small muted" role="status"></span></div>
+  </form>
+  <div id="widget-code" class="widget-code" hidden>
+   <p class="small"><strong>Paste this just before <code>&lt;/body&gt;</code> on every page of your website</strong> (WordPress: Appearance → Theme File Editor or a "header &amp; footer scripts" plugin; Wix/Shopify: custom code / theme.liquid).</p>
+   <div class="describe-row"><input class="input mono" id="widget-snippet" readonly aria-label="Embed code"><button type="button" class="btn btn-dark" id="widget-copy">Copy code</button></div>
+   <p class="small"><a id="widget-preview" target="_blank" rel="noopener">Open the AI chat on its own</a> to test it.</p>
+  </div>
+ </section>
  <div class="site-preview-wrap card" id="site-preview-wrap" hidden><div class="card-head"><strong>Unpublished preview · only you can see this</strong><button type="button" id="site-preview-close" class="btn btn-ghost btn-sm">Close preview</button></div><iframe id="site-preview-frame" title="Website draft preview" sandbox="" loading="lazy"></iframe></div>
 </section>
 
@@ -306,7 +333,7 @@
 </main>
 </div>
 <script src="/password-reset.js?v=20261119"></script>
-<script type="module" src="/restaurant.js?v=20261120-s7"></script>
+<script type="module" src="/restaurant.js?v=20261120-s8"></script>
 <script>document.getElementById("login-show-password")?.addEventListener("change",function(){document.getElementById("password").type=this.checked?"text":"password"});</script>
 </body>
 </html>

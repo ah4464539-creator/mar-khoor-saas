@@ -43,10 +43,20 @@ Owners pick English, Urdu (اردو, right-to-left), Roman Urdu or Arabic (right
 `restaurant_site_daily` (auto-created) counts page views of `/r/<slug>` and menu opens (`/api/public/restaurants/<slug>/menu`) per day. No cookies, IPs or user agents are stored; bots, link previews (WhatsApp, Facebook…) and HEAD requests are skipped. Owners see the last 30 days in AI Website, next to orders from all channels.
 
 ## Custom domains
-1. Owner enters a domain in AI Website → 4. Your own domain. The app shows a TXT record (`_mar-khoor.<domain>` = `mar-khoor-verify=<token>`), an A record to the Mar-Khoor server and a `www` CNAME.
-2. Owner adds the records at their registrar and presses **Check DNS**. A matching TXT record marks the domain *verified*.
-3. Platform owner adds the domain to the website in Hostinger (alias/parked domain + SSL) and presses **Mark connected** in super admin → Custom domains.
-4. Requests to a verified domain's home page are served that restaurant's site; other paths (menu, tracking, media) work on the same domain. Optional env: `PRIMARY_HOSTS` (comma-separated extra platform hostnames).
+Automatic when the Hostinger API is configured (env on the Node.js app: `HOSTINGER_API_TOKEN`, `HOSTINGER_USERNAME`, optional `HOSTINGER_WEBSITE_DOMAIN` (default `mar-khoor.com`) and `HOSTINGER_SERVER_IP`). A background job advances every domain every 3 minutes:
+1. **Ownership** – domains outside the platform's Hostinger account must prove ownership: the owner adds the TXT record Hostinger returns. Domains in the platform account skip this step.
+2. **Hosting** – the domain is parked on the mar-khoor.com website (the platform owner's hosting), so no separate hosting is needed.
+3. **DNS** – for domains whose DNS is at Hostinger in the platform account, missing `@` A and `www` CNAME records are added with `overwrite:false` (email/MX/TXT records are never touched). For other domains the owner sees the exact records to add at their DNS provider.
+4. **SSL** – requested once DNS points at Hostinger, then polled; a failed request is retried after 24 h. Routing starts as soon as DNS is right; the domain shows *connected* when SSL is active.
+Owners can also search a new domain and send a purchase request. Buying spends real money from the platform's Hostinger account, so only the super admin can approve it (Super admin → Custom domains → Domain purchase requests). Without the Hostinger env vars the older manual flow is used (TXT `_mar-khoor.<domain>` check, then **Mark connected** in super admin). Optional env: `PRIMARY_HOSTS` (comma-separated extra platform hostnames).
+
+## Widget for an existing website
+Owners who already have a website turn on AI Website → **Use Mar-Khoor on your own website** and paste one line before `</body>`:
+`<script src="https://mar-khoor.com/embed.js" data-restaurant="<slug>" async></script>`
+- Buttons: AI Assistant chat (same assistant, ordering and tracking as the Mar-Khoor website), WhatsApp (`wa.me` link) and AI Caller (`tel:` link to the AI Caller number). Numbers default to the ones connected in setup.
+- The widget lives in a Shadow DOM, so it cannot break the owner's styles. The chat runs in an iframe from mar-khoor.com; only `/embed/<slug>/chat` may be framed, and only by the website addresses the owner lists (any https site if none).
+- Works without publishing a Mar-Khoor website. The AI Assistant still follows the plan's assistant entitlement.
+- Settings are stored in `restaurant_widget` (created automatically; additive).
 
 ## AI menu import
 Menu & items → Import menu with AI: photo (JPG/PNG/WebP), PDF (≤ 8 MB), a link to an existing menu page, or pasted text. The AI (`MENU_IMPORT_MODEL`, default `gpt-4.1-mini`, needs `OPENAI_API_KEY`) returns a draft; nothing is saved until the owner reviews it and presses **Add**. Links are fetched with SSRF protection (public addresses only, redirects re-checked, 2 MB / 10 s limits). 15 imports per hour per IP.

@@ -6,7 +6,7 @@ setInterval(async()=>{if(!restaurantId||!token||document.hidden||refreshing)retu
 const api=async(path,options={})=>{const r=await fetch(path,{...options,headers:{...options.headers,Authorization:'Bearer '+token}});const data=await r.json();if(!r.ok)throw Error(data.error||'Request failed');return data};
 async function refresh(){
  loadSite().catch(error=>{siteStatus.textContent=error.message});
- if(location.hash==='#website'){loadSiteAnalytics().catch(()=>{});loadDomain().catch(()=>{});}
+ if(location.hash==='#website'){loadSiteAnalytics().catch(()=>{});loadDomain().catch(()=>{});loadWidget().catch(()=>{});}
  loadPlanOrders().catch(error=>{planOrders.textContent=error.message});
  const [menu,orders,analytics,inbox,outbound,aiSettings]=await Promise.all([api('/api/restaurants/'+restaurantId+'/menu'),api('/api/restaurants/'+restaurantId+'/orders'),api('/api/restaurants/'+restaurantId+'/analytics'),api('/api/restaurants/'+restaurantId+'/whatsapp/messages'),api('/api/restaurants/'+restaurantId+'/whatsapp/outbound'),api('/api/restaurants/'+restaurantId+'/whatsapp/ai-settings')]);
  document.querySelector('#whatsapp-ai-enabled').checked=aiSettings.enabled;
@@ -1088,3 +1088,35 @@ document.querySelector('#domain-search-go').addEventListener('click',async event
 });
 window.addEventListener('hashchange',()=>{if(location.hash==='#website')loadDomain().catch(()=>{});});
 if(location.hash==='#website')setTimeout(()=>loadDomain().catch(()=>{}),1500);
+
+// Website widget: Mar-Khoor tools on the owner's existing website.
+const widgetEl=id=>document.getElementById(id);
+function showWidget(data){
+ const c=data.config,n=data.connected_numbers||{};
+ widgetEl('widget-enabled').checked=c.enabled;widgetEl('widget-assistant').checked=c.assistant;widgetEl('widget-whatsapp').checked=c.whatsapp;widgetEl('widget-call').checked=c.call;
+ widgetEl('widget-whatsapp-number').value=c.whatsapp_number;widgetEl('widget-whatsapp-number').placeholder=n.whatsapp?'Using your connected number '+n.whatsapp:'+923001234567';
+ widgetEl('widget-call-number').value=c.call_number;widgetEl('widget-call-number').placeholder=n.call?'Using your AI Caller number '+n.call:'+923001234567';
+ widgetEl('widget-label').value=c.label;widgetEl('widget-color').value=c.color;widgetEl('widget-position').value=c.position;widgetEl('widget-greeting').value=c.greeting;
+ widgetEl('widget-origins').value=c.origins.map(o=>o.replace(/^https:\/\//,'')).join(', ');
+ const note=widgetEl('widget-assistant-note');
+ note.hidden=data.assistant_available&&data.menu_items>0;
+ note.textContent=!data.assistant_available?'The AI Assistant is not included in your current plan yet. The chat button stays hidden until it is.':'Add menu items first so the AI Assistant can answer and take orders.';
+ const tag=widgetEl('widget-status');tag.hidden=false;tag.textContent=c.enabled?'On':'Off';tag.className='tag'+(c.enabled?' tag-ok':'');
+ widgetEl('widget-code').hidden=!c.enabled;widgetEl('widget-snippet').value=data.snippet;widgetEl('widget-preview').href=data.preview_url;
+ widgetEl('widget-preview').parentElement.hidden=!(c.assistant&&data.assistant_available);
+}
+async function loadWidget(){if(!restaurantId||!widgetEl('widget-form'))return;const id=restaurantId;const data=await api('/api/restaurants/'+id+'/widget');if(id===restaurantId)showWidget(data);}
+widgetEl('widget-form')?.addEventListener('submit',async event=>{
+ event.preventDefault();const note=widgetEl('widget-note');note.textContent='Saving…';
+ try{
+  const data=await api('/api/restaurants/'+restaurantId+'/widget',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+   enabled:widgetEl('widget-enabled').checked,assistant:widgetEl('widget-assistant').checked,whatsapp:widgetEl('widget-whatsapp').checked,call:widgetEl('widget-call').checked,
+   whatsapp_number:widgetEl('widget-whatsapp-number').value,call_number:widgetEl('widget-call-number').value,
+   label:widgetEl('widget-label').value,color:widgetEl('widget-color').value,position:widgetEl('widget-position').value,
+   greeting:widgetEl('widget-greeting').value,origins:widgetEl('widget-origins').value})});
+  showWidget(data);note.textContent=data.config.enabled?'Saved. Copy the code below into your website.':'Saved. The widget is off on your website.';
+ }catch(e){note.textContent=e.message}
+});
+widgetEl('widget-copy')?.addEventListener('click',async()=>{const input=widgetEl('widget-snippet');try{await navigator.clipboard.writeText(input.value);widgetEl('widget-copy').textContent='Copied';setTimeout(()=>widgetEl('widget-copy').textContent='Copy code',2000)}catch{input.select()}});
+window.addEventListener('hashchange',()=>{if(location.hash==='#website')loadWidget().catch(()=>{});});
+if(location.hash==='#website')setTimeout(()=>loadWidget().catch(()=>{}),1500);

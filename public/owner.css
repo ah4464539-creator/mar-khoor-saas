@@ -343,3 +343,15 @@ body.mk{margin:0}
 .owner-app .domain-options{list-style:none;margin:0;padding:0;display:grid}
 .owner-app .domain-options li{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
 .owner-app .domain-options li span{margin-right:auto}
+
+/* Website widget settings */
+.mk .widget-form{display:grid;gap:14px;max-width:720px}
+.mk .widget-tools{display:grid;gap:8px;border:1px solid var(--line,#e6e0d8);border-radius:12px;padding:12px 14px;margin:0}
+.mk .widget-tools legend{font-weight:600;padding:0 4px}
+.mk .widget-tools .input{max-width:320px;margin-inline-start:26px}
+.mk .widget-look{display:grid;grid-template-columns:2fr auto 1fr;gap:12px;align-items:end}
+.mk .widget-look input[type=color]{width:56px;height:40px;padding:2px;border:1px solid var(--line,#e6e0d8);border-radius:10px;background:none}
+.mk .widget-form .field{display:grid;gap:6px}
+.mk .widget-code{margin-top:16px;padding:14px;border-radius:12px;background:var(--ember-soft,#fff3e6)}
+.mk .widget-code .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+@media(max-width:640px){.mk .widget-look{grid-template-columns:1fr}}

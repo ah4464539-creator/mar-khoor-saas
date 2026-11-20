@@ -403,3 +403,10 @@ CREATE TABLE IF NOT EXISTS restaurant_domain_requests (
  KEY restaurant_domain_requests_restaurant (restaurant_id),
  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS restaurant_widget (
+ restaurant_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+ config TEXT NOT NULL,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+) ENGINE=InnoDB;

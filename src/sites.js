@@ -1,14 +1,15 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import express from 'express';
 import { requireAuth } from './auth.js';
-import { generateSiteConfig, renderSitePage, SITE_CSP, SITE_TEMPLATES } from './site-builder.js';
-import { loadRestaurant, loadSite, saveSite, canPublish, setPublished, loadPublicSite } from './site-store.js';
+import { generateSiteConfig, renderSitePage, SITE_CSP, SITE_TEMPLATES, assistantCss } from './site-builder.js';
+import { loadRestaurant, loadSite, saveSite, canPublish, setPublished, loadPublicSite, loadAssistantSite } from './site-store.js';
 import { audit, rateLimit } from './security.js';
 import { restaurantAssistantInstructions } from './restaurant-assistant-policy.js';
 import { recordUsage } from './subscriptions.js';
 import { buildRestaurantChatInput, normalizeAssistantHistory } from './restaurant-chat-context.js';
 import { classifyAssistantProviderFailure } from './ai-provider-diagnostics.js';
 import { trackSiteEvent, loadSiteAnalytics } from './site-analytics.js';
+import { assistantAllowed, ensureWidgetTable, parseWidgetConfig, frameAncestors, inkOn } from './widget-core.js';
 
 const notFound = '<!doctype html><meta charset="utf-8"><title>Not found</title><p>This restaurant website is not available.</p>';
 
@@ -54,10 +55,7 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
  // published, the tenant-scoped assistant appears without manual platform setup.
  // An explicit 'false' remains an emergency switch for automatic provisioning;
  // the broad legacy enablement and demo flags are unchanged.
- const assistantEnabled = ({ restaurant }) =>
-  process.env.RESTAURANT_WEBSITE_ASSISTANT_ENABLED === 'true' ||
-  (process.env.REGISTRATION_WEBSITE_ASSISTANT_ENABLED !== 'false' && restaurant.websiteAssistantProvisioned) ||
-  (restaurant.slug === 'urban-cafe' && process.env.URBAN_CAFE_DEMO_ASSISTANT_ENABLED === 'true');
+ const assistantEnabled = ({ restaurant }) => assistantAllowed(restaurant);
  const voiceEnabled = () => process.env.RESTAURANT_WEBSITE_VOICE_ENABLED === 'true';
 
  const assistantCsp = SITE_CSP.replace("form-action 'none'", "form-action 'self'") +
@@ -114,7 +112,7 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
  router.get('/r/:slug/assistant/status', async (req, res) => {
   res.set('Cache-Control', 'no-store');
   try {
-   const site = await loadPublicSite(pool, req.params.slug);
+   const site = await loadAssistantSite(pool, req.params.slug);
    if (!site || !assistantEnabled(site)) return res.status(404).json({ error: 'Assistant unavailable' });
    return res.json({ enabled: true, provider_configured: Boolean(process.env.OPENAI_API_KEY), voice_enabled: voiceEnabled() });
   } catch {
@@ -143,7 +141,7 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
   async (req, res) => {
    const asJson = Boolean(req.is('application/json'));
    try {
-    const site = await loadPublicSite(pool, req.params.slug);
+    const site = await loadAssistantSite(pool, req.params.slug);
     if (!site || !assistantEnabled(site)) return asJson ? res.status(404).json({ error: 'Assistant unavailable' }) : res.status(404).type('html').send(notFound);
     const message = req.body?.message;
     const history = normalizeAssistantHistory(req.body?.history);
@@ -220,7 +218,7 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
   async(req,res)=>{
    res.set('Cache-Control','no-store');
    try {
-    const site=await loadPublicSite(pool,req.params.slug);
+    const site=await loadAssistantSite(pool,req.params.slug);
     if(!site||!assistantEnabled(site))return res.status(404).json({error:'Assistant unavailable'});
     if(!process.env.OPENAI_API_KEY)return res.status(503).json({error:'Transcription unavailable'});
     if(!Buffer.isBuffer(req.body)||req.body.length<100)return res.status(400).json({error:'Empty recording'});
@@ -247,7 +245,7 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
    res.set('Cache-Control', 'no-store');
    if (!voiceEnabled()) return res.sendStatus(404);
    try {
-    const site = await loadPublicSite(pool, req.params.slug);
+    const site = await loadAssistantSite(pool, req.params.slug);
     if (!site || !assistantEnabled(site)) return res.sendStatus(404);
     if (typeof req.body !== 'string' || !req.body.startsWith('v=0')) return res.sendStatus(400);
     const key = process.env.OPENAI_API_KEY;
@@ -284,6 +282,36 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
     return res.set('X-Voice-Error', 'connection_failed').sendStatus(503);
    }
   });
+
+
+ // Embed widget: the AI Assistant inside an iframe on the owner's own website. Framing is
+ // allowed only here, and only by the sites the owner listed (any https site if none).
+ router.get('/embed/:slug/chat', async (req, res) => {
+  try {
+   const site = await loadAssistantSite(pool, req.params.slug);
+   if (!site || !assistantEnabled(site)) return res.status(404).type('html').send(notFound);
+   await ensureWidgetTable(pool);
+   const [rows] = await pool.execute('SELECT config FROM restaurant_widget WHERE restaurant_id=? LIMIT 1', [site.restaurant.id]);
+   const widget = rows.length ? parseWidgetConfig(rows[0].config) : null;
+   if (!widget?.enabled || !widget.assistant) return res.status(404).type('html').send(notFound);
+   res.removeHeader('X-Frame-Options');
+   res.set('Content-Security-Policy', assistantCsp.replace("frame-ancestors 'none'", 'frame-ancestors ' + frameAncestors(widget)));
+   res.set('Cache-Control', 'no-store');
+   if (voiceEnabled()) res.set('Permissions-Policy', 'camera=(), microphone=(self), geolocation=(), payment=()');
+   const t = { bg: '#0b0b0d', ink: '#fff8ef', accent: widget.color, accentInk: inkOn(widget.color), card: '#181719', muted: '#bfb6ae' };
+   const esc = value => String(value).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+   const greeting = widget.greeting || 'Hi! Welcome to ' + site.restaurant.name + '. What would you like to know about the menu?';
+   res.type('html').send('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(site.restaurant.name) + ' · AI Assistant</title><style>'
+    + 'html,body{margin:0;height:100%;background:' + t.card + ';color:' + t.ink + ';font-family:system-ui,-apple-system,"Segoe UI",sans-serif}'
+    + assistantCss(t)
+    + '.restaurant-assistant>summary{display:none!important}.restaurant-assistant[open]>.assistant-panel{border-radius:0;border:0;box-shadow:none}'
+    + '.assistant-powered{margin:0;text-align:center;font-size:11px;color:' + t.muted + '}.assistant-powered a{color:inherit}'
+    + '</style></head><body><details id="assistant" class="restaurant-assistant" open><summary>AI Assistant</summary><div class="assistant-panel"><div class="assistant-heading"><strong>' + esc(site.restaurant.name) + '</strong><button type="button" data-close-assistant aria-label="Close assistant">×</button></div><div class="assistant-body"><div data-assistant-messages role="log" aria-live="polite"><p class="assistant-reply">' + esc(greeting) + '</p></div><section id="assistant-order-card" class="assistant-order-card" aria-label="Order details and live tracking" hidden><strong>Order details &amp; live tracking</strong><div id="assistant-order-details"></div><p id="assistant-order-status" role="status"></p><a id="assistant-order-link" target="_blank" rel="noopener">Full order tracking</a></section>'
+    + assistantControls(req.params.slug, false)
+    + '<p class="assistant-powered">Powered by <a href="https://mar-khoor.com" target="_blank" rel="noopener">Mar-Khoor</a></p></div></div></details>'
+    + '<script src="/embed-frame.js" defer></script><script src="/restaurant-assistant-panel.js" defer></script>' + (voiceEnabled() ? voiceScript : '') + '</body></html>');
+  } catch { res.status(503).type('html').send(notFound); }
+ });
 
  // Public website. Assistant assets load only when enabled for this restaurant.
  router.get('/r/:slug', async (req, res) => {
