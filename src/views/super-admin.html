@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="/summit.css?v=20261120-s3">
-<link rel="stylesheet" href="/platform.css?v=20261120-s3">
+<link rel="stylesheet" href="/platform.css?v=20261120-s6">
 </head>
 <body class="mk platform platform-app">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -52,6 +52,8 @@
   <a href="#subscriptions"><svg aria-hidden="true"><use href="#i-layers"/></svg><span>Subscriptions</span></a>
   <a href="#plan-orders"><svg aria-hidden="true"><use href="#i-card"/></svg><span>Plan orders</span></a>
   <span class="nav-label">Integrations</span>
+  <a href="#integration-health"><svg aria-hidden="true"><use href="#i-shield"/></svg><span>Integration health</span></a>
+  <a href="#custom-domains"><svg aria-hidden="true"><use href="#i-globe"/></svg><span>Custom domains</span></a>
   <a href="#phone-numbers"><svg aria-hidden="true"><use href="#i-phone"/></svg><span>Dedicated numbers</span></a>
   <a href="#number-routes"><svg aria-hidden="true"><use href="#i-globe"/></svg><span>Numbers by country</span></a>
   <a href="#whatsapp-worker"><svg aria-hidden="true"><use href="#i-chat"/></svg><span>WhatsApp worker</span></a>
@@ -74,6 +76,17 @@
   <section class="card card-pad grow" id="directory" tabindex="-1"><div class="card-head"><h2>Restaurants directory</h2></div><div id="tenant-list" class="row-list muted">Loading…</div></section>
   <section class="card card-pad rail" id="whatsapp-worker" tabindex="-1"><div class="card-head"><h2>WhatsApp worker</h2></div><p id="worker-status" role="status" class="small muted">Loading…</p><dl id="worker-metrics" class="worker-metrics"></dl></section>
  </div>
+
+ <section class="card card-pad" id="integration-health" tabindex="-1">
+  <div class="card-head"><div><h2>Integration health</h2><p class="small muted">Which settings are present on the server (names only) and whether real traffic has been seen. “Configured” still needs one live test.</p></div><div class="top-actions"><button type="button" class="btn btn-ghost btn-sm" id="health-refresh">Refresh</button><button type="button" class="btn btn-dark btn-sm" id="test-openai">Test OpenAI</button></div></div>
+  <p id="health-status" class="status-line" role="status"></p>
+  <div id="health-list" class="health-grid"></div>
+ </section>
+
+ <section class="card card-pad" id="custom-domains" tabindex="-1">
+  <div class="card-head"><div><h2>Custom domains</h2><p class="small muted">After a restaurant verifies its domain, add it to the website in Hostinger (Websites → Domains → add alias/parked domain, then install SSL), then press <b>Mark connected</b>.</p></div></div>
+  <div id="domain-list" class="row-list muted">Loading…</div>
+ </section>
 
  <section class="card card-pad" id="subscriptions" tabindex="-1">
   <div class="card-head"><div><h2>Subscriptions</h2><p class="small muted">Restaurants that chose Starter, Premium or Enterprise.</p></div></div>
@@ -134,6 +147,6 @@ document.addEventListener('click', event => {
  link.setAttribute('aria-current', 'page');
 });
 </script>
-<script type="module" src="/platform.js?v=20261120-s3"></script>
+<script type="module" src="/platform.js?v=20261120-s6"></script>
 </body>
 </html>

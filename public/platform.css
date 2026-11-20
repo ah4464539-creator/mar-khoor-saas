@@ -48,3 +48,10 @@ body.mk{margin:0}
 .platform-app .add-mapping summary{cursor:pointer;font-weight:650;color:var(--ember-text)}
 .platform-app .add-mapping[open]{display:grid;gap:10px}
 @media(max-width:640px){.platform-app .main{padding:18px 14px 40px}.platform-app .row-list button:first-of-type{margin-left:0}}
+.platform-app .health-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.platform-app .health-card{border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:8px;align-content:start;background:var(--surface)}
+.platform-app .health-card[data-status=live]{border-color:#bfe2cf}
+.platform-app .health-card[data-status=missing]{border-color:#f1c3c0}
+.platform-app .health-head{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.platform-app .health-card p{margin:0;font-size:13px;color:var(--ink-2)}
+.platform-app .health-missing{color:var(--bad)!important}

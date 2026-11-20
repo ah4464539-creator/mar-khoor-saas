@@ -324,3 +324,9 @@ body.mk{margin:0}
 .owner-app .import-table td:first-child input{width:18px;height:18px;accent-color:var(--ember)}
 .owner-app .import-table td:last-child{width:130px}
 .owner-app .import-table .hint{display:block;margin-top:4px}
+.owner-app .site-domain{display:grid;gap:12px}
+.owner-app .site-domain .card-head{margin-bottom:0}
+.owner-app #domain-steps{display:grid;gap:12px}
+.owner-app .dns-table{min-width:640px}
+.owner-app .dns-table code{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--sunk);padding:2px 6px;border-radius:6px;overflow-wrap:anywhere}
+.owner-app .dns-table td{font-size:13px}

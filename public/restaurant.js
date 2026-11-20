@@ -6,7 +6,7 @@ setInterval(async()=>{if(!restaurantId||!token||document.hidden||refreshing)retu
 const api=async(path,options={})=>{const r=await fetch(path,{...options,headers:{...options.headers,Authorization:'Bearer '+token}});const data=await r.json();if(!r.ok)throw Error(data.error||'Request failed');return data};
 async function refresh(){
  loadSite().catch(error=>{siteStatus.textContent=error.message});
- if(location.hash==='#website')loadSiteAnalytics().catch(()=>{});
+ if(location.hash==='#website'){loadSiteAnalytics().catch(()=>{});loadDomain().catch(()=>{});}
  loadPlanOrders().catch(error=>{planOrders.textContent=error.message});
  const [menu,orders,analytics,inbox,outbound,aiSettings]=await Promise.all([api('/api/restaurants/'+restaurantId+'/menu'),api('/api/restaurants/'+restaurantId+'/orders'),api('/api/restaurants/'+restaurantId+'/analytics'),api('/api/restaurants/'+restaurantId+'/whatsapp/messages'),api('/api/restaurants/'+restaurantId+'/whatsapp/outbound'),api('/api/restaurants/'+restaurantId+'/whatsapp/ai-settings')]);
  document.querySelector('#whatsapp-ai-enabled').checked=aiSettings.enabled;
@@ -1039,3 +1039,26 @@ document.querySelector('#import-add').addEventListener('click',async event=>{
  }catch(error){importStatus.textContent=error.message;}
  finally{button.disabled=false;}
 });
+
+// Custom domain for the restaurant website.
+const domainInput=document.querySelector('#domain-input'),domainStatus=document.querySelector('#domain-status'),domainNote=document.querySelector('#domain-note');
+const domainLabels={pending:['Waiting for DNS','tag-warn'],verified:['Verified · being connected','tag-info'],connected:['Connected','tag-ok']};
+function showDomain(data){
+ const has=Boolean(data.domain);
+ if(document.activeElement!==domainInput)domainInput.value=data.domain||'';
+ document.querySelector('#domain-steps').hidden=!has;document.querySelector('#domain-remove').hidden=!has;
+ domainStatus.hidden=!has;if(has){const [label,cls]=domainLabels[data.status]||[data.status,''];domainStatus.textContent=label;domainStatus.className='tag '+cls;}
+ document.querySelector('#domain-records').replaceChildren(...(data.records||[]).map(record=>{const row=document.createElement('tr');for(const value of [record.type,record.name,record.value,record.purpose]){const cell=document.createElement('td');const code=document.createElement(value===record.value||value===record.name?'code':'span');code.textContent=value;cell.append(code);row.append(cell);}return row;}));
+ domainNote.textContent=!has?'':data.status==='connected'?'Your website is live on '+data.domain+'.':data.status==='verified'?(data.points_here?'Verified. The Mar-Khoor team is switching on HTTPS for your domain.':'Ownership verified. Make sure the A record points to Mar-Khoor.'):(data.last_error||'');
+}
+async function loadDomain(){if(!restaurantId)return;const id=restaurantId;const data=await api('/api/restaurants/'+id+'/site/domain');if(id===restaurantId)showDomain(data);}
+document.querySelector('#domain-save').addEventListener('click',async event=>{
+ const button=event.currentTarget;button.disabled=true;
+ try{showDomain(await api('/api/restaurants/'+restaurantId+'/site/domain',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({domain:domainInput.value})}));domainNote.textContent='Saved. Now add the DNS records below.';}
+ catch(error){domainNote.textContent=error.message;document.querySelector('#domain-steps').hidden=false;}
+ finally{button.disabled=false;}
+});
+document.querySelector('#domain-remove').addEventListener('click',async()=>{try{showDomain(await api('/api/restaurants/'+restaurantId+'/site/domain',{method:'DELETE'}));domainInput.value='';}catch(error){domainNote.textContent=error.message;}});
+document.querySelector('#domain-verify').addEventListener('click',async event=>{const button=event.currentTarget;button.disabled=true;domainNote.textContent='Checking DNS…';try{showDomain(await api('/api/restaurants/'+restaurantId+'/site/domain/verify',{method:'POST'}));}catch(error){domainNote.textContent=error.message;}finally{button.disabled=false;}});
+window.addEventListener('hashchange',()=>{if(location.hash==='#website')loadDomain().catch(()=>{});});
+if(location.hash==='#website')setTimeout(()=>loadDomain().catch(()=>{}),1500);
