@@ -2,6 +2,8 @@ import express from 'express';
 import { requireAuth } from './auth.js';
 import { isMissingFulfillmentSchema } from './order-fulfillment.js';
 import { isAllowedImageRef } from './media-store.js';
+import { ensurePaymentTables, loadPaymentSettings, sanitizePaymentSettings, publicPaymentOptions } from './payment-options.js';
+import { audit } from './security.js';
 export function operationsRouter(pool) {
  const router=express.Router();
  const access=async(req,res,next)=>{
@@ -132,11 +134,48 @@ export function operationsRouter(pool) {
    res.json({summary:counts[0],last_30_days:recent,by_status:byStatus,top_items:topItems});
   }catch{res.status(503).json({error:'Analytics unavailable'});}
  });
+ // Payment methods customers can choose for this restaurant.
+ router.get('/restaurants/:restaurantId/payment-settings',async(req,res)=>{
+  res.set('Cache-Control','no-store, private');
+  try{await ensurePaymentTables(pool);const settings=await loadPaymentSettings(pool,req.restaurantId);res.json({settings,preview:publicPaymentOptions(settings)});}
+  catch{res.status(503).json({error:'Payment settings unavailable'});}
+ });
+ router.put('/restaurants/:restaurantId/payment-settings',async(req,res)=>{
+  const settings=sanitizePaymentSettings(req.body);
+  try{
+   await ensurePaymentTables(pool);
+   await pool.execute('INSERT INTO restaurant_payment_settings(restaurant_id,config) VALUES (?,?) ON DUPLICATE KEY UPDATE config=VALUES(config)',[req.restaurantId,JSON.stringify(settings)]);
+   await audit(pool,{actorUserId:req.user.id,restaurantId:req.restaurantId,action:'payment_settings.update'});
+   res.json({settings,preview:publicPaymentOptions(settings)});
+  }catch{res.status(503).json({error:'Payment settings unavailable'});}
+ });
+ // Restaurant confirms (money arrived) or rejects (not found) a customer's transfer or card payment.
+ router.post('/restaurants/:restaurantId/orders/:orderId/payment',async(req,res)=>{
+  const orderId=Number(req.params.orderId),action=req.body?.action;
+  if(!Number.isSafeInteger(orderId)||orderId<1||!['confirm','reject'].includes(action))return res.status(400).json({error:'Invalid payment action'});
+  try{
+   const next=action==='confirm'?'confirmed':'rejected';
+   const [result]=await pool.execute("UPDATE order_payments SET status=? WHERE order_id=? AND restaurant_id=? AND status IN ('awaiting','submitted','rejected','confirmed') AND status<>?",[next,orderId,req.restaurantId,next]);
+   if(!result.affectedRows)return res.status(409).json({error:'Payment already '+next});
+   await pool.execute("UPDATE order_fulfillment SET payment_status=? WHERE order_id=? AND restaurant_id=?",[action==='confirm'?'paid':'unpaid',orderId,req.restaurantId]).catch(()=>{});
+   await audit(pool,{actorUserId:req.user.id,restaurantId:req.restaurantId,action:'order_payment.'+next+':'+orderId});
+   res.json({order_id:orderId,status:next});
+  }catch{res.status(503).json({error:'Payment update unavailable'});}
+ });
  router.get('/restaurants/:restaurantId/orders',async(req,res)=>{
   // Fulfilment rows are joined on both order and restaurant so one tenant never sees another's details.
   const detailed='SELECT o.id,o.customer_name,o.status,o.total_minor,o.estimated_ready_epoch,o.created_at,f.order_type,f.customer_phone,f.delivery_address,f.delivery_instructions,f.payment_method,f.payment_status FROM orders o LEFT JOIN order_fulfillment f ON f.order_id=o.id AND f.restaurant_id=o.restaurant_id WHERE o.restaurant_id=? ORDER BY o.id DESC LIMIT 100';
   const legacy='SELECT id,customer_name,status,total_minor,estimated_ready_epoch,created_at FROM orders WHERE restaurant_id=? ORDER BY id DESC LIMIT 100';
-  try{const [orders]=await pool.execute(detailed,[req.restaurantId]);res.json({orders});}
+  const withPayments=async orders=>{
+   if(!orders.length)return orders;
+   try{
+    const ids=orders.map(o=>o.id);
+    const [pays]=await pool.query('SELECT order_id,method_type AS payment_type,method_label AS payment_label,reference AS payment_reference,status AS payment_state FROM order_payments WHERE restaurant_id=? AND order_id IN ('+ids.map(()=>'?').join(',')+')',[req.restaurantId,...ids]);
+    const map=new Map(pays.map(p=>[Number(p.order_id),p]));
+    return orders.map(o=>{const p=map.get(Number(o.id));if(!p)return o;const {order_id,...rest}=p;return {...o,...rest};});
+   }catch{return orders;}
+  };
+  try{const [orders]=await pool.execute(detailed,[req.restaurantId]);res.json({orders:await withPayments(orders)});}
   catch(error){
    if(!isMissingFulfillmentSchema(error))return res.status(503).json({error:'Database unavailable'});
    try{const [orders]=await pool.execute(legacy,[req.restaurantId]);res.json({orders});}

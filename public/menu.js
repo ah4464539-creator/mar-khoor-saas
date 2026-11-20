@@ -64,6 +64,7 @@ function renderCart() {
     const quantity = cart.get(Number(card.dataset.itemId))?.quantity || 0;
     card.querySelector('.in-cart').textContent = quantity ? quantity + ' in order' : '';
   }
+  window.__mkSyncPay?.();
 }
 
 function updateOrderLinks(slug) {
@@ -106,6 +107,7 @@ async function loadMenu(slug) {
     const data = await response.json();
     if (!response.ok) throw Error(data.error || 'Menu unavailable');
     restaurant = data.restaurant;
+    renderPaymentOptions(data.payment_options);
     currency = new Intl.NumberFormat(undefined, { style: 'currency', currency: restaurant.currency });
     storeName.textContent = restaurant.name;
     document.title = restaurant.name + ' · Menu';
@@ -140,12 +142,46 @@ async function loadMenu(slug) {
   }
 }
 
+let paymentOptions = [{ key: 'cash', type: 'cash', label: 'Cash' }];
+function renderPaymentOptions(options) {
+  paymentOptions = Array.isArray(options) && options.length ? options : [{ key: 'cash', type: 'cash', label: 'Cash' }];
+  const box = document.querySelector('#pay-options');
+  box.replaceChildren();
+  paymentOptions.forEach((option, index) => {
+    const label = node('label', null, 'pay-option');
+    const input = document.createElement('input');
+    input.type = 'radio'; input.name = 'payment_option'; input.value = option.key; input.checked = index === 0;
+    const text = node('span', option.label);
+    text.dataset.payKey = option.key;
+    label.append(input, text);
+    box.append(label);
+  });
+  syncOrderType();
+}
+function selectedPayment() {
+  const key = orderForm.querySelector('input[name="payment_option"]:checked')?.value || 'cash';
+  return paymentOptions.find(option => option.key === key) || paymentOptions[0];
+}
 function syncOrderType() {
   const delivery = orderForm.elements.order_type.value === 'delivery';
   for (const field of orderForm.querySelectorAll('.delivery-only')) field.hidden = !delivery;
   document.querySelector('#delivery-address').required = delivery;
-  document.querySelector('#pay-label').textContent = delivery ? 'Cash on delivery' : 'Cash on pickup';
+  for (const span of orderForm.querySelectorAll('[data-pay-key="cash"]')) span.textContent = delivery ? 'Cash on delivery' : 'Cash on pickup';
+  for (const span of orderForm.querySelectorAll('[data-pay-key="card"]')) span.textContent = delivery ? 'Card on delivery' : 'Card at the counter';
+  const option = selectedPayment();
+  const transfer = option?.key?.startsWith('transfer:');
+  document.querySelector('#pay-transfer').hidden = !transfer;
+  if (transfer) {
+    document.querySelector('#pay-title').textContent = option.account_title;
+    document.querySelector('#pay-number').textContent = option.account_number;
+    document.querySelector('#pay-instructions').textContent = option.instructions || '';
+    document.querySelector('#pay-amount').textContent = document.querySelector('#cart-subtotal').textContent || 'the total';
+  }
 }
+document.querySelector('#pay-copy')?.addEventListener('click', async event => {
+  try { await navigator.clipboard.writeText(document.querySelector('#pay-number').textContent); event.target.textContent = 'Copied'; setTimeout(() => { event.target.textContent = 'Copy'; }, 1500); } catch {}
+});
+window.__mkSyncPay = syncOrderType;
 orderForm.addEventListener('change', syncOrderType);
 syncOrderType();
 
@@ -166,6 +202,8 @@ orderForm.addEventListener('submit', async event => {
         items: [...cart.values()].map(item => ({ menu_item_id: item.id, quantity: item.quantity })),
         order_type: orderType,
         payment_method: orderType === 'delivery' ? 'cod' : 'cash_pickup',
+        payment_option: selectedPayment().key,
+        payment_reference: selectedPayment().key.startsWith('transfer:') ? document.querySelector('#pay-reference').value.trim() : undefined,
         customer_phone: document.querySelector('#customer-phone').value,
         delivery_address: orderType === 'delivery' ? document.querySelector('#delivery-address').value : '',
         delivery_instructions: orderType === 'delivery' ? document.querySelector('#delivery-instructions').value : '',
@@ -176,7 +214,12 @@ orderForm.addEventListener('submit', async event => {
     if (!response.ok) throw Error(data.error || 'Order failed');
     const done = node('div', null, 'notice notice-ok');
     const text = node('div');
-    text.append(node('strong', 'Order #' + data.order_id + ' received'), node('p', 'The restaurant will confirm it shortly. Pay in cash on ' + (orderType === 'delivery' ? 'delivery.' : 'pickup.')));
+    const pay = data.payment;
+    const payText = !pay ? 'Pay in cash on ' + (orderType === 'delivery' ? 'delivery.' : 'pickup.')
+      : pay.method_type === 'card_on_delivery' ? 'Pay by card on ' + (orderType === 'delivery' ? 'delivery.' : 'pickup.')
+      : pay.status === 'submitted' ? 'We sent your transaction ID to the restaurant. They will confirm your payment.'
+      : 'Send ' + document.querySelector('#cart-subtotal').textContent + ' to ' + pay.method_label + ' ' + pay.account_number + ' (' + pay.account_title + '), then add the transaction ID on the tracking page.';
+    text.append(node('strong', 'Order #' + data.order_id + ' received'), node('p', 'The restaurant will confirm it shortly. ' + payText));
     if (data.tracking_token) {
       const saved = { id: data.order_id, token: data.tracking_token, restaurant: orderedFrom.name, slug: orderedFrom.slug, currency: orderedFrom.currency, totalMinor: data.total_minor, placedAt: new Date().toISOString() };
       rememberOrder(saved);
@@ -189,6 +232,7 @@ orderForm.addEventListener('submit', async event => {
     orderStatus.replaceChildren(done);
     cart.clear();
     renderCart();
+    document.querySelector('#pay-reference').value = '';
   } catch (error) {
     orderStatus.replaceChildren(node('p', error.message, 'notice notice-bad'));
   } finally {

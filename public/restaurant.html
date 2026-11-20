@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="/summit.css?v=20261120-s4">
-<link rel="stylesheet" href="/owner.css?v=20261120-s10">
+<link rel="stylesheet" href="/owner.css?v=20261120-s12">
 </head>
 <body class="mk owner-app signing-in">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -123,6 +123,18 @@
   <label class="order-filter"><span class="visually-hidden">Status</span><select id="owner-order-status" class="input"><option value="">All statuses</option><option>pending</option><option>accepted</option><option>preparing</option><option>ready</option><option>completed</option><option>cancelled</option></select></label>
  </div>
  <div id="orders" class="order-board" aria-live="polite"></div>
+ <details class="card card-pad pay-settings" id="pay-settings">
+  <summary><strong>How customers can pay</strong> <span class="small muted">Cash, card on delivery, bank / JazzCash / Easypaisa / Raast transfer</span></summary>
+  <form id="pay-form" class="pay-form">
+   <label class="check"><input type="checkbox" id="pay-cash" checked> Cash on delivery / at pickup</label>
+   <label class="check"><input type="checkbox" id="pay-card"> Card on delivery / at the counter (your own card machine)</label>
+   <div><strong>Transfers to your own account</strong><p class="small muted">The customer sends money to this account and enters the transaction ID. You check your bank or wallet app and press “Payment received” on the order. Money goes straight to you.</p></div>
+   <div id="pay-transfers" class="pay-transfers"></div>
+   <button type="button" class="btn btn-ghost btn-sm" id="pay-add">+ Add account</button>
+   <p class="small muted" id="pay-preview"></p>
+   <div class="form-actions"><button class="btn btn-primary">Save payment methods</button><span id="pay-note" class="small muted" role="status"></span></div>
+  </form>
+ </details>
 </section>
 
 <section class="owner-view owner-message-view" id="menu-management" data-title="Menu &amp; items" hidden>
@@ -352,7 +364,7 @@
 </main>
 </div>
 <script src="/password-reset.js?v=20261119"></script>
-<script type="module" src="/restaurant.js?v=20261120-s11"></script>
+<script type="module" src="/restaurant.js?v=20261120-s12"></script>
 <script>document.getElementById("login-show-password")?.addEventListener("change",function(){document.getElementById("password").type=this.checked?"text":"password"});</script>
 </body>
 </html>
