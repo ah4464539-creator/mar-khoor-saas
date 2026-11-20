@@ -684,6 +684,7 @@ const statusLabels = {connected:'Connected', pending:'Pending', failed:'Failed',
 const metricLabels = {ai_chats:'AI chats', whatsapp_messages:'WhatsApp messages', ai_call_minutes:'AI call minutes'};
 let setupSelection = 0;
 let setupStep = 0;
+let setupPlanChoice = null;
 let setupData = {plans:[], subscription:null, integrations:[]};
 
 const setupUrl = path => '/api/restaurants/' + restaurantId + path;
@@ -822,7 +823,7 @@ function showSetupStep(index) {
  deferSetup.hidden = index === LAST_SETUP_STEP;
  nextSetup.textContent = index === 0 || index === 1 ? 'Continue'
   : index === 2 ? (websiteNeedsBuilder() ? 'Finish and open AI Website Builder' : 'Finish setup')
-  : 'Done';
+  : (setupPlanChoice || (setupData?.subscription && setupData.subscription.status !== 'active') ? 'Go to cart & pay' : 'Done');
  setupStatus.textContent = '';
 }
 
@@ -846,8 +847,10 @@ function summarise() {
  const plan = sub && setupData.plans.find(entry => entry.key === sub.plan);
  const connected = setupData.integrations.filter(item => item.status === 'connected').length;
  setupSummary.textContent = sub
-  ? (plan?.name || sub.plan) + ' plan (' + sub.billing_cycle + ', ' + (sub.status === 'active' ? 'active' : 'payment pending — pay in Plans & billing') + '). ' + connected + ' of 3 channels connected.'
+  ? (plan?.name || sub.plan) + ' plan (' + sub.billing_cycle + ', ' + (sub.status === 'active' ? 'active' : 'payment pending') + '). ' + connected + ' of 3 channels connected.'
   : 'Choose a plan and connect WhatsApp, AI Caller and your website.';
+ const payNow = document.querySelector('#pay-now');
+ if (payNow) { payNow.hidden = !sub || sub.status === 'active'; openSetup.classList.toggle('btn-primary', payNow.hidden); openSetup.classList.toggle('btn-ghost', !payNow.hidden); }
  statusList(setupProgress, setupData.integrations.filter(item => item.status !== 'not_started'));
 }
 
@@ -907,10 +910,18 @@ async function advanceSetup() {
   if (setupStep === 0) {
    const plan = setupForm.querySelector('input[name="plan"]:checked')?.value;
    if (!plan) { setupStatus.textContent = 'Choose a plan.'; return; }
-   setupStatus.textContent = 'Saving plan…';
-   const result = await api(setupUrl('/subscription'), jsonBody('PUT', {plan, billing_cycle:setupForm.elements.billing_cycle.value}));
-   if (selection !== setupSelection) return;
-   setupData.subscription = result.subscription;
+   const cycle = setupForm.elements.billing_cycle.value;
+   const current = setupData.subscription;
+   if (current?.status === 'active') {
+    // An active (paid) plan stays active; a change is paid for in the cart at the end.
+    setupPlanChoice = current.plan === plan && current.billing_cycle === cycle ? null : { plan, cycle };
+   } else {
+    setupStatus.textContent = 'Saving plan…';
+    const result = await api(setupUrl('/subscription'), jsonBody('PUT', {plan, billing_cycle:cycle}));
+    if (selection !== setupSelection) return;
+    setupData.subscription = result.subscription;
+    setupPlanChoice = null;
+   }
    try { localStorage.removeItem(PLAN_STORE); } catch {}
    showSetupStep(1);
   } else if (setupStep === 1) {
@@ -935,6 +946,10 @@ async function advanceSetup() {
    showSetupStep(LAST_SETUP_STEP);
   } else {
    setupDialog.close();
+   const sub = setupData.subscription;
+   if (setupPlanChoice) goToCart(setupPlanChoice.plan, setupPlanChoice.cycle, 'Setup saved. Pay for the new plan in your cart; your current plan stays active until then.');
+   else if (sub && sub.status !== 'active') goToCart(sub.plan, sub.billing_cycle, 'Setup saved. Check your cart and pay to activate your plan.');
+   setupPlanChoice = null;
   }
   summarise();
  } catch (error) {
@@ -945,6 +960,7 @@ async function advanceSetup() {
  }
 }
 
+document.querySelector('#pay-now')?.addEventListener('click', () => { const sub = setupData?.subscription; goToCart(sub?.plan, sub?.billing_cycle, 'Check your cart and pay to activate your plan.'); });
 openSetup.addEventListener('click', () => { showSetupStep(0); renderPlans(); fillConnectStep(); setupDialog.showModal(); });
 setupForm.addEventListener('change', event => {
  if (event.target.name === 'billing_cycle') renderPlans();
@@ -1184,6 +1200,18 @@ async function loadBilling(){
  const [data,plans]=await Promise.all([api('/api/restaurants/'+id+'/billing'),api('/api/restaurants/'+id+'/subscription').catch(()=>({plans:[]}))]);
  if(id===restaurantId)showBilling(data,plans.plans);
  return data;
+}
+// Opens Plans & billing with the plan chosen during setup already in the cart.
+function goToCart(planKey,cycle,message){
+ if(location.hash!=='#plan')location.hash='#plan';
+ const apply=()=>{
+  if(cycle&&billingForm.elements.billing_cycle)billingForm.elements.billing_cycle.value=cycle;
+  billingForm.dataset.touched='1';renderBillingPlans();
+  const radio=planKey&&billingForm.querySelector('input[name="plan"][value="'+planKey+'"]');if(radio){radio.checked=true;renderCart()}
+  if(message){const n=billingEl('billing-notice');n.hidden=false;n.className='notice notice-info';n.textContent=message}
+  billingEl('billing-cart')?.scrollIntoView({behavior:'smooth',block:'start'});
+ };
+ if(billingPlans.length)apply();else loadBilling().then(apply).catch(()=>{});
 }
 billingForm?.addEventListener('change',event=>{billingForm.dataset.touched='1';if(event.target.name==='billing_cycle')renderBillingPlans();else renderCart()});
 billingForm?.addEventListener('submit',async event=>{
