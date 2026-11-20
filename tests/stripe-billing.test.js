@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { stripeAmount, verifyStripeSignature, checkoutParams, applyBillingEvent, billingConfig, createStripeClient } from '../src/stripe-billing.js';
+import { stripeAmount, verifyStripeSignature, checkoutParams, applyBillingEvent, billingConfig, createStripeClient, addonPeriodMinor, hasNumberAddon } from '../src/stripe-billing.js';
 
 const sign = (body, secret, t = Math.floor(Date.now() / 1000)) => 't=' + t + ',v1=' + crypto.createHmac('sha256', secret).update(t + '.' + body).digest('hex');
 
@@ -21,6 +21,7 @@ function billingPool({ billing = null, subscription = null } = {}) {
       if (/UPDATE restaurant_billing/.test(sql)) { state.billing.stripe_status = args[0]; return [{}]; }
       if (/SELECT status FROM restaurant_subscriptions/.test(sql)) return [state.subscription ? [state.subscription] : []];
       if (/INSERT INTO restaurant_subscriptions/.test(sql)) { state.subscription = { plan: args[1], cycle: args[2], status: 'active', currency: args[4], price: args[5] }; return [{}]; }
+      if (/INSERT INTO restaurant_addons/.test(sql)) { state.addon = args[1]; return [{}]; }
       if (/UPDATE restaurant_subscriptions SET status/.test(sql)) { state.subscription.status = args[0]; return [{ affectedRows: 1 }]; }
       throw new Error('Unexpected SQL ' + sql);
     },
@@ -97,4 +98,25 @@ test('Stripe client sends form data with the secret key only to api.stripe.com',
   assert.ok(server.indexOf('billingWebhookRouter(pool)') < server.indexOf('express.json('), 'webhook gets the raw body');
   const front = readFileSync(new URL('../public/restaurant.js', import.meta.url), 'utf8');
   assert.ok(!/sk_(live|test)_/.test(front));
+});
+
+test('Starter with a dedicated number: cart total = plan + add-on, both recurring', async () => {
+  const starter = { name: 'Starter', dedicated_number: { included: false, addon_price_minor: 1372000 } };
+  assert.equal(addonPeriodMinor(starter, 'monthly'), 1372000);
+  assert.equal(addonPeriodMinor(starter, 'yearly'), 1372000 * 12);
+  assert.equal(addonPeriodMinor({ dedicated_number: { included: true, addon_price_minor: null } }, 'monthly'), null);
+  const params = checkoutParams({ restaurant: { id: 7, name: 'Grill' }, subscription: { plan: 'starter', billing_cycle: 'monthly', currency: 'PKR', price_minor: 1092000 },
+    plan: starter, baseUrl: 'https://mar-khoor.com', addonMinor: 1372000, tools: ['website', 'whatsapp'] });
+  assert.equal(params['line_items[1][price_data][unit_amount]'], '1372000');
+  assert.equal(params['line_items[1][price_data][recurring][interval]'], 'month');
+  assert.equal(params['metadata[tools]'], 'website,whatsapp');
+  const pool = billingPool({ subscription: { status: 'pending_payment' } });
+  const event = paidSession({ amount_total: 1092000, amount_subtotal: 1092000 });
+  event.data.object.metadata = { ...event.data.object.metadata, number_addon: '1', addon_minor: '1372000' };
+  assert.equal((await applyBillingEvent(pool, event)).result, 'amount_mismatch', 'add-on must be paid too');
+  event.id = 'evt_addon'; event.data.object.amount_subtotal = 1092000 + 1372000; event.data.object.amount_total = 2000000;
+  assert.equal((await applyBillingEvent(pool, event)).result, 'activated', 'promotion codes lower the total, not the subtotal');
+  assert.equal(pool.state.addon, 1);
+  assert.equal(await hasNumberAddon({ execute: async () => [[{ dedicated_number: 1 }]] }, 7), true);
+  assert.equal(await hasNumberAddon({ execute: async () => { throw new Error('no table'); } }, 7), false);
 });

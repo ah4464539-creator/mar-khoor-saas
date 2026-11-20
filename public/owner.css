@@ -356,13 +356,28 @@ body.mk{margin:0}
 .mk .widget-code .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
 @media(max-width:640px){.mk .widget-look{grid-template-columns:1fr}}
 
-/* Plan payment */
-.mk .billing-card{margin-bottom:18px}
-.mk .billing-cycle{display:flex;gap:18px;margin-bottom:12px}
-.mk .billing-plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:14px}
+/* Plans & billing: plan, tools, cart */
+.mk .billing-layout{align-items:flex-start}
+.mk .billing-card .notice{margin-bottom:12px}
+.mk .billing-step{border:0;padding:0;margin:0 0 18px}
+.mk .billing-step legend{display:flex;align-items:center;gap:8px;font-weight:700;margin-bottom:10px;padding:0}
+.mk .step-no{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--ember,#e8701a);color:#fff;font-size:13px}
+.mk .billing-cycle{display:flex;gap:18px;flex-wrap:wrap}
+.mk .billing-plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
 .mk .billing-plan{position:relative;display:grid;gap:6px;padding:14px 14px 14px 40px;border:1px solid var(--line,#e6e0d8);border-radius:14px;cursor:pointer;background:var(--surface,#fff)}
 .mk .billing-plan input{position:absolute;left:14px;top:16px;accent-color:var(--ember,#e8701a)}
 .mk .billing-plan:has(input:checked){border-color:var(--ember,#e8701a);box-shadow:0 0 0 3px var(--ember-soft,#fff3e6)}
 .mk .billing-plan .billing-price{font-size:18px;font-weight:700}
 .mk .billing-plan .tag{justify-self:start}
-.mk .billing-card .notice{margin-bottom:12px}
+.mk .billing-number{margin-top:12px}
+.mk .billing-cart{position:sticky;top:16px}
+.mk .cart-lines{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:8px}
+.mk .cart-lines li{display:flex;justify-content:space-between;gap:12px;font-size:14px}
+.mk .cart-lines .cart-plan{font-weight:700}
+.mk .cart-lines .cart-tool span:last-child{color:var(--muted,#7a6f66)}
+.mk .cart-total{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--line,#e6e0d8);padding-top:12px;font-weight:700}
+.mk .cart-total strong{font-size:22px}
+.mk .billing-cart .btn-block{width:100%;margin-top:10px}
+.mk .billing-cart .btn[disabled]{opacity:.55;cursor:not-allowed}
+.mk .cart-secure{margin-top:10px}
+@media(max-width:960px){.mk .billing-cart{position:static}}

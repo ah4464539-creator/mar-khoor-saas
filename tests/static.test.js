@@ -15,7 +15,7 @@ test('homepage has a clear registration button and the new panels render text sa
  assert.match(home,/class="[^"]*\bbutton\b[^"]*" href="\/register\.html">Register your restaurant/);
  assert.match(home,/class="[^"]*\bnav-cta\b[^"]*" href="\/register\.html"/);
  for(const file of ['public/register.js','public/restaurant.js','public/platform.js'])assert.ok(!/innerHTML/.test(read(file)),file+' must not use innerHTML');
- assert.match(read('public/restaurant.html'),/id="plan-form"/);
+ assert.match(read('public/restaurant.html'),/id="billing-form"[\s\S]*id="billing-cart"/);
  assert.match(read('src/views/super-admin.html'),/id="route-form"/);
 });
 test('register page has every field the script reads',()=>{const html=read('public/register.html'),js=read('public/register.js');for(const id of ['register','restaurant-name','country','email','password','status','done'])assert.ok(html.includes('id="'+id+'"'),id);for(const id of ['#register','#restaurant-name','#country','#email','#password'])assert.ok(js.includes(id),id)});
