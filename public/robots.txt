@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /auth/
+Disallow: /integrations/
+Disallow: /voice-tools/
+Disallow: /super-admin
+
+Sitemap: https://mar-khoor.com/sitemap.xml
