@@ -353,6 +353,7 @@ window.addEventListener('hashchange', () => updateWorkspaceView(true));
 
 async function openRestaurant(restaurant) {
  siteDirty=false;
+ resetSiteForm();
  document.querySelector('#site-preview-wrap').hidden=true;
  document.querySelector('#site-preview-frame').removeAttribute('srcdoc');
  restaurantId = restaurant.id;
@@ -518,10 +519,14 @@ const siteField=name=>document.querySelector('#site-'+name);
 let sitePublished=false,siteSlug='',siteSections=['about','menu','hours','contact'],siteDirty=false;
 siteForm.addEventListener('input',()=>{siteDirty=true;});
 siteForm.addEventListener('change',()=>{siteDirty=true;});
+function resetSiteForm(){
+ siteForm.reset();siteSlug='';sitePublished=false;siteSections=['about','menu','hours','contact'];
+ sitePublish.textContent='Publish';siteLink.replaceChildren();siteStatus.textContent='';
+}
 function showSite(data){
  siteField('headline').value=data.config.headline;siteField('tagline').value=data.config.tagline;siteField('about').value=data.config.about;
  siteField('hours').value=data.config.hours;siteField('phone').value=data.config.phone;siteField('address').value=data.config.address;siteField('theme').value=data.config.theme;
- siteField('description').value=data.description||siteField('description').value;siteSections=data.config.sections;
+ if(typeof data.description==='string')siteField('description').value=data.description;siteSections=data.config.sections;
  const chosenTemplate=siteForm.querySelector('input[name="site-template"][value="'+(data.config.template||'classic')+'"]');
  if(chosenTemplate)chosenTemplate.checked=true;
  siteField('assistant-recording').checked=data.config.assistantRecording===true;
@@ -540,8 +545,10 @@ document.querySelector('#site-generate').addEventListener('click',async e=>{
  const button = e.currentTarget;
  button.disabled=true;siteStatus.textContent='Writing…';
  try{
-  const template=siteConfig().template;
-  const data=await api('/api/restaurants/'+restaurantId+'/site/generate',{method:'POST',headers:siteJson,body:JSON.stringify({description:siteField('description').value})});
+  const template=siteConfig().template,id=restaurantId;
+  const data=await api('/api/restaurants/'+id+'/site/generate',{method:'POST',headers:siteJson,body:JSON.stringify({description:siteField('description').value})});
+  // Never put one restaurant's draft into another restaurant's form after a switch.
+  if(id!==restaurantId)return;
   data.config.template=template;showSite(data);siteDirty=true;
   siteStatus.textContent=data.source==='ai'?'AI draft ready. Review and preview it, then select Save website. Nothing has been published.':'AI writing is unavailable. You can still edit, preview and save this template manually. Nothing has been published.';
  }
@@ -549,16 +556,18 @@ document.querySelector('#site-generate').addEventListener('click',async e=>{
 });
 siteForm.addEventListener('submit',async e=>{
  e.preventDefault();if(!restaurantId){siteStatus.textContent='Select your restaurant first.';return}
- try{const wasPublished=sitePublished;showSite(await api('/api/restaurants/'+restaurantId+'/site',{method:'PUT',headers:siteJson,body:JSON.stringify({config:siteConfig(),description:siteField('description').value})}));siteStatus.textContent=wasPublished?'Saved. Your published site has been updated.':'Draft saved. Publish when you are ready.'}
+ try{const wasPublished=sitePublished,id=restaurantId;const saved=await api('/api/restaurants/'+id+'/site',{method:'PUT',headers:siteJson,body:JSON.stringify({config:siteConfig(),description:siteField('description').value})});if(id!==restaurantId)return;showSite(saved);siteStatus.textContent=wasPublished?'Saved. Your published site has been updated.':'Draft saved. Publish when you are ready.'}
  catch(error){siteStatus.textContent=error.message}
 });
 sitePublish.addEventListener('click',async()=>{
  if(!restaurantId){siteStatus.textContent='Select your restaurant first.';return}
  sitePublish.disabled=true;
  try{
-  const next=!sitePublished;
-  if(next)await api('/api/restaurants/'+restaurantId+'/site',{method:'PUT',headers:siteJson,body:JSON.stringify({config:siteConfig(),description:siteField('description').value})});
-  await api('/api/restaurants/'+restaurantId+'/site/publish',{method:'POST',headers:siteJson,body:JSON.stringify({published:next})});
+  const next=!sitePublished,id=restaurantId;
+  if(next){await api('/api/restaurants/'+id+'/site',{method:'PUT',headers:siteJson,body:JSON.stringify({config:siteConfig(),description:siteField('description').value})});if(id===restaurantId)siteDirty=false;}
+  try{await api('/api/restaurants/'+id+'/site/publish',{method:'POST',headers:siteJson,body:JSON.stringify({published:next})});}
+  catch(error){if(next&&id===restaurantId){await loadSite({force:true}).catch(()=>{});throw Error('Your draft was saved, but it is not live yet. '+error.message)}throw error}
+  if(id!==restaurantId)return;
   siteDirty=false;await loadSite({force:true});
   siteStatus.textContent=next?'Your approved website is live.':'Your website is unpublished. Your saved draft remains available.';
  }catch(error){siteStatus.textContent=error.message}finally{sitePublish.disabled=false}

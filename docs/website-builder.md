@@ -12,6 +12,8 @@ Each restaurant can have a public page at `https://mar-khoor.com/r/<restaurant-s
 - **Preview draft** uses `POST /api/restaurants/:id/site/preview`, authenticates the restaurant admin, renders only that restaurant's active menu, returns a strict CSP and never writes to the database.
 - **Write with AI** returns an **unsaved draft**, not a live edit. The owner must review it and explicitly Save. Browser auto-refresh must not overwrite unsaved changes. Saving while already published updates the live website; the dashboard tells the owner this.
 - Saving never changes the published flag. Publishing still requires the owner to select Publish, and unpublishing does not save unsaved changes.
+- Switching restaurants clears the builder form, and an AI draft, save or publish that finishes after a switch is never applied to the other restaurant's form.
+- If Publish is refused (for example no active Website Builder plan), the owner is told the draft was saved but is not live.
 - Existing published sites without a `template` property stay on the original **Classic Dark** design. No migration or automatic retheming.
 
 ## Publishing rule
