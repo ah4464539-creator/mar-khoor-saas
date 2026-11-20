@@ -27,29 +27,48 @@ function render() {
   if (order.restaurant_slug) {
     document.querySelector('#order-history-link').href = '/orders.html?restaurant=' + encodeURIComponent(order.restaurant_slug);
   }
-  content.replaceChildren(node('h2', views[view]), node('p', order.restaurant_name + ' · Order #' + order.order_id));
+  const head = node('div', '');
+  head.className = 'track-head';
+  const titles = node('div', '');
+  const eyebrow = node('span', order.restaurant_name + ' · Order #' + order.order_id);
+  eyebrow.className = 'eyebrow';
+  titles.append(eyebrow, node('h2', view === 'tracking' ? order.status_label : views[view]));
+  head.append(titles);
+  content.replaceChildren(head);
   if (view === 'tracking') {
-    content.append(node('p', order.status_label));
     const epoch = Number(order.estimated_ready_epoch);
     if (order.estimated_ready_epoch != null && Number.isFinite(epoch) && epoch > 0 &&
         !['completed','cancelled'].includes(order.status)) {
       const remaining = Math.ceil((epoch * 1000 - Date.now()) / 60000);
-      const estimate = remaining > 0
+      const eta = node('div', '');
+      eta.className = 'track-eta';
+      eta.append(node('small', remaining > 0 ? 'Estimated ready in' : 'Restaurant estimate passed'),
+        node('strong', remaining > 0 ? remaining + ' min' : 'Awaiting update'),
+        node('small', 'around ' + new Date(epoch * 1000).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'})));
+      eta.setAttribute('aria-label', remaining > 0
         ? 'Restaurant estimated ready in about ' + remaining + ' minute' + (remaining === 1 ? '' : 's')
-        : 'Restaurant estimate passed; awaiting an updated time';
-      content.append(node('p', estimate + ' (' +
-        new Date(epoch * 1000).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}) + ')'));
+        : 'Restaurant estimate passed; awaiting an updated time');
+      head.append(eta);
     }
     if (order.status !== 'cancelled') {
+      const current = statuses.indexOf(order.status);
+      const bar = node('div', '');
+      bar.className = 'bar track-bar';
+      const fill = document.createElement('i');
+      fill.style.width = Math.max(8, (current + 1) / statuses.length * 100) + '%';
+      bar.append(fill);
       const progress = node('ol', '');
       progress.className = 'order-progress';
       steps.forEach((label, index) => {
-        const row = node('li', label);
+        const row = node('li', '');
+        row.append(node('span', index < current ? '✓' : ''), node('strong', label));
+        if (index < current) row.className = 'done';
         if (order.status === statuses[index]) row.setAttribute('aria-current', 'step');
         progress.append(row);
       });
-      content.append(progress);
-    }
+      content.append(bar, progress);
+    } else content.append(node('p', 'This order was cancelled by the restaurant. Contact them if you have questions.'));
+    if (order.payment_method) content.append(node('p', (order.payment_method === 'cod' ? 'Cash on delivery' : order.payment_method === 'cash_pickup' ? 'Cash on pickup' : 'Payment') + ' · ' + (order.payment_status === 'paid' ? 'paid' : 'unpaid')));
     return;
   }
   if (view === 'refunds') {
@@ -71,10 +90,14 @@ function render() {
     if (item.unit_price_minor != null) row.append(node('strong', money.format(item.quantity * item.unit_price_minor / 100)));
     content.append(row);
   }
-  content.append(node('p', 'Order total: ' + money.format(order.total_minor / 100)));
+  const total = node('div', '');
+  total.className = 'receipt-row receipt-total';
+  total.append(node('strong', 'Total'), node('strong', money.format(order.total_minor / 100)));
+  content.append(total);
   if (view === 'receipt') {
     content.append(node('p', 'Order receipt. Payment status is unavailable.'));
     const print = node('button', 'Print or save PDF');
+    print.className = 'btn btn-ghost';
     print.type = 'button';
     print.addEventListener('click', () => window.print());
     content.append(print);

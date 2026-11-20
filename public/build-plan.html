@@ -1,104 +1,46 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <link rel="icon" type="image/svg+xml" href="/assets/approved-markhor.svg">
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Choose your plan | MAR-KHOOR AI</title>
-  <meta name="description" content="Compare Mar-Khoor Starter, Premium and Enterprise plans in your local currency and start your restaurant setup.">
-  <style>
-:root{color-scheme:dark;--bg:#0d0c0e;--card:#1b1617;--card2:#241c1b;--line:#4d372f;--ink:#fff7ec;--muted:#d0beb0;--accent:#ffab52;--accent2:#ff8b3b}
-*{box-sizing:border-box}
-body{margin:0;min-height:100vh;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);background:linear-gradient(180deg,#100e10ee,#0d0c0ef7 520px),url('/assets/approved-mountain.webp') top center/cover no-repeat fixed,var(--bg)}
-a{color:#ffbc80}
-:is(a,button,input,select):focus-visible{outline:2px solid #ffbc79;outline-offset:3px}
-.top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px clamp(18px,4vw,48px);background:#100e10;border-bottom:1px solid #48342c}
-.brand{display:flex;align-items:center;gap:10px;color:#ffb777;font-weight:800;text-decoration:none;font-size:1.05rem}
-.brand img{width:34px;height:34px}
-.top nav{display:flex;gap:18px;align-items:center}
-.top nav a{color:#f2e3d6;text-decoration:none;font-weight:600}
-.top nav .cta{padding:9px 16px;border-radius:10px;color:#211207;background:linear-gradient(125deg,#ffc16d,#ff8b3b)}
-main{max-width:1180px;margin:0 auto;padding:clamp(28px,5vw,64px) clamp(16px,4vw,40px) 64px}
-.intro{text-align:center;max-width:720px;margin:0 auto 28px}
-.eyebrow{display:inline-block;padding:6px 12px;border-radius:999px;color:#ffb777;background:#38271f;border:1px solid #694a3b;font-weight:700;font-size:.85rem}
-h1{font-size:clamp(32px,5vw,52px);line-height:1.08;margin:14px 0 10px;letter-spacing:-.02em}
-.intro p{color:var(--muted);font-size:1.05rem;line-height:1.55;margin:0}
-.controls{display:flex;flex-wrap:wrap;gap:14px 20px;align-items:end;justify-content:center;margin:26px 0 30px}
-.field{display:grid;gap:6px}
-.field label{font-weight:700;font-size:.9rem;color:#f2e3d6}
-select{min-width:260px;height:46px;padding:0 12px;border-radius:10px;border:1px solid #725145;background:#151214;color:var(--ink);font-size:16px}
-.cycle{display:inline-flex;padding:4px;border-radius:12px;background:#151214;border:1px solid #725145}
-.cycle label{position:relative;cursor:pointer}
-.cycle input{position:absolute;opacity:0;pointer-events:none}
-.cycle span{display:block;padding:9px 16px;border-radius:9px;font-weight:700;color:#e9d8ca}
-.cycle input:checked+span{background:linear-gradient(125deg,#ffc16d,#ff8b3b);color:#211207}
-.cycle input:focus-visible+span{outline:2px solid #ffbc79;outline-offset:2px}
-.save{margin-left:6px;font-size:.78rem;font-weight:800;color:#9fd77e}
-.cycle input:checked+span .save{color:#1f4410}
-.plans{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
-.plan{position:relative;display:flex;flex-direction:column;gap:14px;padding:26px 22px;border-radius:20px;background:linear-gradient(150deg,var(--card2),var(--card));border:1px solid var(--line);cursor:pointer;transition:border-color .15s,box-shadow .15s,transform .15s}
-.plan:hover{transform:translateY(-2px)}
-.plan.selected{border-color:var(--accent);box-shadow:0 0 0 2px #ffab5266,0 18px 40px #0007}
-.plan input[type=radio]{position:absolute;opacity:0;pointer-events:none}
-.plan h2{margin:0;font-size:1.45rem}
-.plan .tag{position:absolute;top:-12px;right:18px;padding:4px 10px;border-radius:999px;background:var(--accent);color:#211207;font-size:.78rem;font-weight:800}
-.price{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
-.price strong{font-size:clamp(28px,3.4vw,38px);letter-spacing:-.02em}
-.price span{color:var(--muted)}
-.usd{color:var(--muted);font-size:.86rem;margin-top:-8px;min-height:1.2em}
-.plan ul{list-style:none;margin:0;padding:0;display:grid;gap:9px}
-.plan li{display:flex;gap:9px;line-height:1.35;color:#f1e4d8}
-.plan li::before{content:"\2713";color:var(--accent);font-weight:900}
-.plan li.muted-line{color:var(--muted)}
-.plan li.muted-line::before{content:"+";}
-.plan .pick{margin-top:auto;padding:12px;border-radius:12px;border:1px solid #765649;text-align:center;font-weight:800;color:#fff}
-.plan.selected .pick{background:linear-gradient(125deg,#ffc16d,#ff8b3b);color:#211207;border-color:transparent}
-.summary{margin-top:26px;display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;padding:20px 22px;border-radius:18px;background:#171315ee;border:1px solid var(--line)}
-.summary p{margin:0;color:var(--muted);line-height:1.5}
-.summary p strong{color:var(--ink)}
-.continue{display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:0 26px;border-radius:12px;font-weight:800;text-decoration:none;color:#211207;background:linear-gradient(125deg,#ffc16d,#ff8b3b)}
-.continue[aria-disabled=true]{opacity:.55;pointer-events:none}
-.notes{margin-top:18px;color:var(--muted);font-size:.88rem;line-height:1.55;text-align:center}
-.status{text-align:center;color:#ffd9cf;min-height:1.2em}
-@media(max-width:900px){.summary{position:sticky;bottom:10px;z-index:2;box-shadow:0 10px 30px #000a}.plans{grid-template-columns:minmax(0,1fr);max-width:520px;margin:0 auto}.top nav a:not(.cta){display:none}}
-@media(max-width:520px){select{min-width:0;width:100%}.controls{flex-direction:column;align-items:stretch}.cycle{justify-content:center}.summary{flex-direction:column;align-items:stretch;text-align:center}}
-  </style>
-  <script src="/build-plan.js?v=20261119" defer></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Choose your plan | Mar-Khoor AI</title>
+<meta name="description" content="Compare Mar-Khoor Starter, Premium and Enterprise plans in your local currency and start your restaurant setup.">
+<link rel="icon" type="image/svg+xml" href="/assets/markhor-ink.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="/summit.css?v=20261120-s2">
+<link rel="stylesheet" href="/public-pages.css?v=20261120-s2">
+<script src="/build-plan.js?v=20261120-s2" defer></script>
 </head>
-<body>
-  <header class="top">
-    <a class="brand" href="/"><img src="/assets/approved-markhor.svg" alt="">Mar-Khoor</a>
-    <nav aria-label="Main navigation"><a href="/#features">Features</a><a href="/#how-it-works">How it works</a><a href="/restaurant.html">Sign in</a><a class="cta" href="/register.html">Register</a></nav>
-  </header>
-  <main>
-    <div class="intro">
-      <span class="eyebrow">Plans &amp; pricing</span>
-      <h1>Choose your plan</h1>
-      <p>Every plan includes the website, AI Assistant, WhatsApp Business and the AI Caller. Plans differ only in monthly usage. Service never stops at a limit.</p>
-    </div>
-
-    <form id="plan" class="controls" novalidate>
-      <div class="field">
-        <label for="country">Restaurant country</label>
-        <select id="country"><option value="">Show prices in USD</option></select>
-      </div>
-      <div class="field">
-        <span class="field-label" id="cycle-label" style="font-weight:700;font-size:.9rem;color:#f2e3d6">Billing</span>
-        <div class="cycle" role="radiogroup" aria-labelledby="cycle-label">
-          <label><input type="radio" name="cycle" value="monthly" checked><span>Monthly</span></label>
-          <label><input type="radio" name="cycle" value="yearly"><span>Yearly <em class="save" id="yearly-save"></em></span></label>
-        </div>
-      </div>
-    </form>
-
-    <p id="status" class="status" role="status"></p>
-    <div id="plans" class="plans" role="radiogroup" aria-label="Plans"></div>
-
-    <div class="summary">
-      <p id="summary-text">Choose a plan to continue.</p>
-      <a id="continue" class="continue" href="/register.html" aria-disabled="true">Continue</a>
-    </div>
-    <p id="notes" class="notes">Prices are before taxes. No payment is taken on this page: you confirm the plan in your restaurant dashboard after registering.</p>
-  </main>
+<body class="mk plan-page">
+<header class="wrap site-nav">
+ <a class="brand" href="/"><img src="/assets/markhor-ink.svg" width="34" height="34" alt=""><b>Mar<span>-</span>Khoor</b></a>
+ <nav aria-label="Main navigation"><a href="/#features">Features</a><a href="/#how-it-works">How it works</a><a href="/track.html">Track an order</a></nav>
+ <div class="top-actions"><a class="btn btn-quiet" href="/restaurant.html">Sign in</a><a class="btn btn-primary" href="/register.html">Register</a></div>
+</header>
+<main class="wrap plan-main">
+ <div class="intro">
+  <span class="eyebrow">Plans &amp; pricing</span>
+  <h1 class="display">Choose your plan</h1>
+  <p class="muted">Every plan includes the website, AI Assistant, WhatsApp Business and the AI Caller. Plans differ only in monthly usage. Service never stops at a limit.</p>
+ </div>
+ <form id="plan" class="controls" novalidate>
+  <div class="field"><label for="country">Restaurant country</label><select id="country" class="input"><option value="">Show prices in USD</option></select></div>
+  <div class="field"><span class="label" id="cycle-label">Billing</span>
+   <div class="cycle tabs" role="radiogroup" aria-labelledby="cycle-label">
+    <label><input type="radio" name="cycle" value="monthly" checked><span>Monthly</span></label>
+    <label><input type="radio" name="cycle" value="yearly"><span>Yearly <em class="save" id="yearly-save"></em></span></label>
+   </div>
+  </div>
+ </form>
+ <p id="status" class="status status-line" role="status"></p>
+ <div id="plans" class="plans" role="radiogroup" aria-label="Plans"></div>
+ <div class="summary">
+  <p id="summary-text">Choose a plan to continue.</p>
+  <a id="continue" class="continue btn btn-primary btn-lg" href="/register.html" aria-disabled="true">Continue</a>
+ </div>
+ <p id="notes" class="notes small muted">Prices are before taxes. No payment is taken on this page: you confirm the plan in your restaurant dashboard after registering.</p>
+</main>
 </body>
 </html>

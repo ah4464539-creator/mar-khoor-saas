@@ -1,18 +1,25 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="referrer" content="no-referrer">
-  <title>Your order | Mar-Khoor</title>
-  <link rel="stylesheet" href="/order-activity.css">
-  <script type="module" src="/track.js"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" type="image/svg+xml" href="/assets/markhor-ink.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="/summit.css?v=20261120-s2">
+<link rel="stylesheet" href="/public-pages.css?v=20261120-s2">
+<title>Your order | Mar-Khoor</title>
+<script type="module" src="/track.js?v=20261120-s2"></script>
 </head>
-<body>
-  <main class="order-shell">
-    <header class="order-header"><a id="order-history-link" href="/orders.html" aria-label="Back to order history">←</a><h1>Your order</h1></header>
-    <nav class="order-tabs" aria-label="Order information" id="track-tabs" hidden></nav>
-    <section class="order-card" id="track-content" aria-live="polite">Loading order…</section>
-  </main>
+<body class="mk order-page">
+<header class="wrap site-nav slim"><a class="brand" href="/"><img src="/assets/markhor-ink.svg" width="30" height="30" alt=""><b>Mar<span>-</span>Khoor</b></a><a id="order-history-link" class="btn btn-ghost btn-sm" href="/orders.html">Order history</a></header>
+<main class="order-shell">
+ <h1 class="visually-hidden">Your order</h1>
+ <nav class="tabs order-tabs" aria-label="Order information" id="track-tabs" hidden></nav>
+ <section class="card card-pad order-card" id="track-content" aria-live="polite">Loading order…</section>
+ <p class="small muted order-foot">This page refreshes automatically while your order is in progress.</p>
+</main>
 </body>
 </html>
