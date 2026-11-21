@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Super Admin V2 | Mar-Khoor</title>
+<link rel="icon" href="/assets/markhor-mark-tile.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/platform-v2.css?v=1">
+</head>
+<body>
+<section id="v2-auth" class="auth-screen">
+ <form id="v2-login" class="auth-card">
+  <div class="brand-mark">M</div>
+  <h1>Mar-Khoor Control Center</h1>
+  <p>Super Admin V2 · Sign in with your platform owner account.</p>
+  <label>Email<input name="email" type="email" autocomplete="username" required></label>
+  <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+  <p id="login-error" role="alert"></p>
+  <button class="btn primary" type="submit">Secure sign in</button>
+  <a href="/super-admin">Use the original Super Admin</a>
+ </form>
+</section>
+<div id="v2-app" class="app" hidden>
+ <aside class="sidebar" id="sidebar">
+  <div class="side-brand"><div class="brand-mark">M</div><div><strong>MAR-KHOOR</strong><small>COMMAND CENTER</small></div><button class="mob-close" id="mob-close" aria-label="Close menu">×</button></div>
+  <div class="side-owner"><span class="owner-badge">SA</span><span><strong>Super Admin</strong><small>Platform owner</small></span><span class="owner-online"></span></div>
+  <div class="nav-label">WORKSPACE</div>
+  <nav class="side-nav" aria-label="Main navigation">
+   <a href="#overview" data-view="overview" class="active"><span>▦</span> Overview</a>
+   <a href="#restaurants" data-view="restaurants"><span>▤</span> Restaurants <em id="nav-restaurants">—</em></a>
+   <a href="#orders" data-view="orders"><span>▣</span> Live Orders</a>
+   <a href="#voice" data-view="voice"><span>◉</span> AI Call Center</a>
+   <a href="#whatsapp" data-view="whatsapp"><span>◌</span> WhatsApp Center</a>
+   <a href="#websites" data-view="websites"><span>◎</span> Website Builder</a>
+   <a href="#billing" data-view="billing"><span>▥</span> Billing & Revenue</a>
+  </nav>
+  <div class="nav-label second-label">OPERATIONS</div>
+  <nav class="side-nav" aria-label="Platform operations">
+   <a href="#system" data-view="system"><span>⚙</span> System Health</a>
+   <a href="/super-admin" class="legacy-link"><span>↶</span> Original dashboard <span class="external">↗</span></a>
+  </nav>
+  <div class="sidebar-bottom"><div class="mini-pulse"></div><div><b>Real data, never invented</b><small id="sidebar-sync">Waiting for connection</small></div></div>
+ </aside>
+ <div id="mobile-shade" class="mobile-shade" hidden></div>
+ <main class="workspace">
+  <header class="topbar">
+   <div class="top-left"><button id="menu-toggle" class="icon-btn mobile-toggle" aria-label="Open menu">☰</button><div><span class="crumb">Mar-Khoor / <span id="crumb-name">Overview</span></span><h1 id="page-title">Platform Overview</h1></div></div>
+   <div class="top-actions">
+    <span id="mode-pill" class="live-pill"><i></i> Connecting</span>
+    <select id="period" aria-label="Time range"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option></select>
+    <button class="icon-btn" id="refresh" type="button" title="Refresh now" aria-label="Refresh now">↻</button>
+    <button class="icon-btn" id="theme-toggle" type="button" title="Toggle light/dark" aria-label="Toggle light/dark">☾</button>
+    <button class="icon-btn logout" id="logout" type="button" title="Sign out" aria-label="Sign out">⇥</button>
+   </div>
+  </header>
+  <div id="notice" class="notice" role="status" hidden></div>
+  <div id="demo-notice" class="demo-notice" hidden>INTERACTIVE DESIGN PREVIEW — Example data only. No production restaurant records are being accessed.</div>
+
+  <section class="view active" data-view-section="overview">
+   <div class="intro"><div><h2>Business at a glance</h2><p>Activity across all your restaurants, updated every 15 seconds when connected.</p></div><span class="last-updated" id="last-updated">Not yet synced</span></div>
+   <div class="kpi-grid">
+    <article class="kpi"><div class="kpi-head"><span>Registered Restaurants</span><b class="kpi-icon blue">▤</b></div><div class="kpi-value" id="k-restaurants">—</div><div class="kpi-note">Total registered tenants</div></article>
+    <article class="kpi"><div class="kpi-head"><span>Total Orders</span><b class="kpi-icon green">▣</b></div><div class="kpi-value" id="k-orders">—</div><div class="kpi-note"><span id="k-period-orders">—</span> in selected period</div></article>
+    <article class="kpi"><div class="kpi-head"><span>Active Subscriptions</span><b class="kpi-icon purple">▥</b></div><div class="kpi-value" id="k-subscriptions">—</div><div class="kpi-note">Paying / enabled plans</div></article>
+    <article class="kpi"><div class="kpi-head"><span>Open Orders</span><b class="kpi-icon amber">◷</b></div><div class="kpi-value" id="k-open-orders">—</div><div class="kpi-note">Require restaurant attention</div></article>
+   </div>
+   <div class="two-cols">
+    <article class="panel major"><div class="panel-title"><div><h3>Orders & Restaurant Growth</h3><p>Daily platform activity</p></div><span class="panel-chip">Selected period</span></div><div class="legend"><span><i class="dot blue-dot"></i> Orders</span><span><i class="dot purple-dot"></i> Registrations</span></div><div id="growth-chart" class="chart-host" aria-label="Orders and registration line chart"></div></article>
+    <article class="panel"><div class="panel-title"><div><h3>Channel Activity</h3><p>AI voice calls & WhatsApp messages</p></div></div><div id="channel-chart" class="chart-host" aria-label="Call and message bar chart"></div><div class="split-metrics"><div><small>AI Voice Calls</small><b id="p-calls">—</b></div><div><small>WhatsApp Messages</small><b id="p-messages">—</b></div></div></article>
+   </div>
+   <div class="three-cols">
+    <article class="panel"><div class="panel-title"><div><h3>Order Status</h3><p>All-time distribution</p></div></div><div id="status-bars" class="status-bars"></div></article>
+    <article class="panel"><div class="panel-title"><div><h3>Recent Restaurants</h3><p>Latest registrations</p></div><button class="text-btn" data-jump="restaurants">View all</button></div><div id="overview-restaurants" class="activity-list"></div></article>
+    <article class="panel"><div class="panel-title"><div><h3>Platform Snapshot</h3><p>Services across tenants</p></div></div><div class="snapshot-grid"><div><span class="snapshot-icon teal">◉</span><strong id="s-assistants">—</strong><small>Active AI assistants</small></div><div><span class="snapshot-icon blue">◎</span><strong id="s-websites">—</strong><small>Published websites</small></div><div><span class="snapshot-icon purple">◷</span><strong id="s-visitors">—</strong><small>Page views in period</small></div><div><span class="snapshot-icon amber">◈</span><strong id="s-users">—</strong><small>Platform user accounts</small></div></div></article>
+   </div>
+   <article class="panel"><div class="panel-title"><div><h3>Recent Orders</h3><p>Latest orders from every restaurant</p></div><button class="text-btn" data-jump="orders">Open orders</button></div><div class="table-wrap"><table><thead><tr><th>Order</th><th>Restaurant</th><th>Amount</th><th>Status</th><th>Placed</th></tr></thead><tbody id="overview-orders"></tbody></table></div></article>
+  </section>
+
+  <section class="view" data-view-section="restaurants">
+   <div class="section-heading"><h2>Restaurant Directory</h2><p>Existing and newly registered restaurants.</p></div>
+   <div class="panel"><div class="panel-title"><h3>Recently registered restaurants</h3><input id="restaurant-search" class="search" placeholder="Search restaurants by name or country" autocomplete="off"></div><div class="table-wrap"><table><thead><tr><th>Restaurant</th><th>Slug</th><th>Country</th><th>Currency</th><th>Registration</th></tr></thead><tbody id="restaurant-table"></tbody></table></div><p class="table-foot">Latest 12 entries. For full account management use the original Super Admin.</p></div>
+  </section>
+  <section class="view" data-view-section="orders">
+   <div class="section-heading"><h2>Live Order Monitor</h2><p>Read-only order overview from the platform database.</p></div>
+   <div class="kpi-grid small-kpis"><article class="kpi"><span>All Orders</span><div class="kpi-value" id="o-total">—</div></article><article class="kpi"><span>Open</span><div class="kpi-value" id="o-open">—</div></article><article class="kpi"><span>Period Orders</span><div class="kpi-value" id="o-period">—</div></article></div>
+   <article class="panel"><div class="panel-title"><h3>Recent Orders</h3><span class="panel-chip">Read only</span></div><div class="table-wrap"><table><thead><tr><th>Order</th><th>Restaurant</th><th>Amount</th><th>Status</th><th>Placed</th></tr></thead><tbody id="order-table"></tbody></table></div></article>
+  </section>
+  <section class="view" data-view-section="voice">
+   <div class="section-heading"><h2>AI Call Center</h2><p>Assistant assignments and incoming call volume.</p></div>
+   <div class="service-grid"><article class="kpi"><span>Active Voice Assistants</span><div class="kpi-value" id="voice-active">—</div></article><article class="kpi"><span>Calls in Selected Period</span><div class="kpi-value" id="voice-calls">—</div></article></div>
+   <article class="panel"><div class="panel-title"><h3>AI Calling Analytics</h3><span class="panel-chip">Actual logged calls</span></div><div id="voice-chart" class="chart-host"></div><p class="panel-hint">To manage individual assistant mappings, use the <a href="/super-admin">original dashboard</a>. Recordings aren't displayed until supported by the active voice provider.</p></article>
+  </section>
+  <section class="view" data-view-section="whatsapp">
+   <div class="section-heading"><h2>WhatsApp Activity</h2><p>Inbound messages recorded per restaurant.</p></div>
+   <div class="service-grid"><article class="kpi"><span>Messages in Selected Period</span><div class="kpi-value" id="whatsapp-messages">—</div></article><article class="kpi"><span>Platform Restaurants</span><div class="kpi-value" id="whatsapp-restaurants">—</div></article></div>
+   <article class="panel"><div class="panel-title"><h3>Inbound WhatsApp Volume</h3></div><div id="whatsapp-chart" class="chart-host"></div><p class="panel-hint">Worker configuration, WhatsApp numbers and integration settings remain in the <a href="/super-admin">original dashboard</a>.</p></article>
+  </section>
+  <section class="view" data-view-section="websites">
+   <div class="section-heading"><h2>Website Builder</h2><p>High-level website deployment and visitor analytics.</p></div>
+   <div class="service-grid"><article class="kpi"><span>Published Websites</span><div class="kpi-value" id="websites-published">—</div></article><article class="kpi"><span>Page Views in Period</span><div class="kpi-value" id="websites-views">—</div></article><article class="kpi"><span>Menu Views</span><div class="kpi-value" id="websites-menu">—</div></article></div>
+   <article class="panel"><div class="panel-title"><h3>Website Management</h3></div><p class="panel-hint">This panel reflects database statistics. Domain setup and website controls continue to work from the <a href="/super-admin">original dashboard</a>.</p></article>
+  </section>
+  <section class="view" data-view-section="billing">
+   <div class="section-heading"><h2>Billing & Revenue</h2><p>Completed order value by original restaurant currency. No invalid exchange-rate mixing.</p></div>
+   <div class="service-grid"><article class="kpi"><span>Active Subscriptions</span><div class="kpi-value" id="billing-subscriptions">—</div></article></div>
+   <article class="panel"><div class="panel-title"><h3>Completed Order Value</h3><span class="panel-chip">Not platform profit</span></div><div id="revenue-list" class="revenue-list"></div><p class="panel-hint">These are completed customer order amounts, not subscription revenue or Mar-Khoor earnings.</p></article>
+  </section>
+  <section class="view" data-view-section="system">
+   <div class="section-heading"><h2>System Health</h2><p>Database connectivity and last successful dashboard sync.</p></div>
+   <article class="panel"><div class="health-grid"><div><small>Overview API</small><b id="system-api">Not checked</b></div><div><small>MariaDB</small><b id="system-db">Not checked</b></div><div><small>Last sync</small><b id="system-sync">—</b></div><div><small>Refresh interval</small><b>15 seconds</b></div></div><p class="panel-hint">For provider integration diagnostics and operational controls, open the <a href="/super-admin">original Super Admin</a>.</p></article>
+  </section>
+  <footer>Mar-Khoor Platform V2 · Staging prototype · <a href="/super-admin">Original dashboard ↗</a> · <span id="footer-sync">Waiting for data</span></footer>
+ </main>
+</div>
+<script src="/platform-v2.js?v=1" defer></script>
+</body>
+</html>
