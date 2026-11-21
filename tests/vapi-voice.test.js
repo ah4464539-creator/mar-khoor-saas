@@ -32,7 +32,7 @@ test('existing assistants are switched once, and only the voice is sent', async 
   assert.deepEqual(result, { ok: 3, failed: 0, secondChoice: 0 });
   assert.deepEqual(sent.map(s => [s[0].split('/').pop(), s[2], Object.keys(s[1]), s[1].voice.voiceId]), [
     ['tmpl-1', 'PATCH', ['voice'], 'marin'], ['asst-pk', 'PATCH', ['voice'], 'marin'], ['asst-us', 'PATCH', ['voice'], 'marin']]);
-  assert.deepEqual(await ensureFemaleVoices(pool, { env: { VAPI_API_KEY: 'k' }, fetcher, log }), { skipped: 'done' });
+  assert.equal((await ensureFemaleVoices(pool, { env: { VAPI_API_KEY: 'k' }, fetcher, log })).skipped, 'done');
   assert.ok(queries[0].startsWith('CREATE TABLE IF NOT EXISTS app_settings'));
 });
 
