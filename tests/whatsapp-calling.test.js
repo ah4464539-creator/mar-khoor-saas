@@ -94,3 +94,14 @@ test('netmask refused: retries narrower, then without', async () => {
   await enableCalling(fakePool(), 4, { env, fetcher, log: quiet, resolve4 });
   assert.deepEqual(bodies.map(b => b.gateways[0].netmask), [16, 24, undefined]);
 });
+
+test('diagnostics report recent Vapi calls and gateways', async () => {
+  const pool = fakePool();
+  await enableCalling(pool, 4, { env, fetcher: fakeFetch().fetcher, log: quiet, resolve4 });
+  const fetcher = async url => ({ ok: true, status: 200, json: async () => url.includes('/call?')
+    ? [{ createdAt: 't', status: 'ended', endedReason: 'sip-gateway-failed', type: 'inboundPhoneCall' }]
+    : { gateways: [{ ip: '57.144.0.0', netmask: 16 }] } });
+  const [report] = await (await import('../src/whatsapp-calling.js')).callingDiagnostics(pool, { env, fetcher });
+  assert.deepEqual(report.gateways, ['57.144.0.0/16']);
+  assert.equal(report.calls[0].ended, 'sip-gateway-failed');
+});

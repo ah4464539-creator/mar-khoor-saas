@@ -20,6 +20,7 @@ import { widgetRouter } from './widget.js';
 import { billingRouter, billingWebhookRouter } from './billing.js';
 import { i18nRouter } from './i18n.js';
 import { ensureFemaleVoices, ensureSpeechRules } from './vapi-voice.js';
+import { callingDiagnostics } from './whatsapp-calling.js';
 import { mediaRouter } from './media.js';
 import { menuImportRouter } from './menu-import-routes.js';
 import { customDomainRouting, domainsRouter } from './domains.js';
@@ -120,6 +121,15 @@ app.listen(port, () => {
   ensureFemaleVoices(pool).then(result => console.log('AI Caller voice:', JSON.stringify(result))).catch(error => console.warn('AI Caller voice update skipped:', error.message))
    .then(() => ensureSpeechRules(pool)).then(result => console.log('AI Caller speech rules:', JSON.stringify(result))).catch(error => console.warn('AI Caller speech rules skipped:', error.message));
   startDomainWorker(pool, hostinger);
+  // WhatsApp calling pilot: log what Vapi saw (at start, then every 5 minutes while a pilot is on).
+  let lastCallingLog = '';
+  const logCalling = () => callingDiagnostics(pool).then(report => {
+    const text = JSON.stringify(report);
+    if (report.length && text !== lastCallingLog) console.log('WhatsApp calling check:', text);
+    lastCallingLog = text;
+  }).catch(() => {});
+  setTimeout(logCalling, 5000).unref();
+  setInterval(logCalling, 5 * 60 * 1000).unref();
   // Finish AI Caller numbers that were waiting on the phone company (every 15 minutes; never buys).
   const voiceRetry = setInterval(() => {
     retryPendingSubscriptionNumbers(pool)
