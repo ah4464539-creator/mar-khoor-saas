@@ -81,10 +81,16 @@ test('continuous worker answers for every paid restaurant plus listed pilot rest
  assert.match(sql,/JOIN whatsapp_ai_settings s ON s\.restaurant_id=j\.restaurant_id AND s\.enabled=1/,'owner opt-in still required');
  assert.match(sql,/whatsapp_numbers w ON .* AND w\.active=1/,'linked number still required');
  assert.deepEqual(args,[37]);
+ // The env flag is no longer needed: the worker runs; super admin can switch it off.
  process.env.WHATSAPP_AI_WORKER_ENABLED='0';
  startWhatsAppAIWorker(pool);
  await new Promise(resolve=>setTimeout(resolve,20));
- assert.equal(seen.length,1,'off switch: only super-admin pilots are served (none here)');
+ assert.equal(seen.length,2,'runs without the env flag');
+ const off={async execute(sql){seen.push([sql]);return [[]];},async query(sql){if(sql.startsWith('SELECT setting_value'))return [[{setting_value:sql.includes('?')?'off':'off'}]];return [[]];}};
+ const before=seen.length;
+ startWhatsAppAIWorker(off);
+ await new Promise(resolve=>setTimeout(resolve,40));
+ assert.equal(seen.length,before,'super-admin switch off: no jobs claimed');
 });
 
 test('Hostinger can load the WhatsApp worker synchronously', () => {

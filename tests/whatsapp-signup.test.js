@@ -69,3 +69,9 @@ test('super admin saves the public launch settings; dashboard has the button', a
   assert.match(client, /facebook\\\.com\$/);
   assert.ok(!/innerHTML/.test(client));
 });
+
+test('connect box tells owners about the 1,000 free replies and the card', () => {
+  const client = readFileSync('public/whatsapp-connect.js', 'utf8');
+  assert.match(client, /first 1,000 WhatsApp replies are free/);
+  assert.match(client, /add a card in WhatsApp Manager/);
+});

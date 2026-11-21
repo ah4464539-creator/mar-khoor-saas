@@ -4,6 +4,15 @@
   let ctx = null, config = null, sdk = null, session = null;
   const $$ = sel => [...document.querySelectorAll(sel)];
   const text = (el, value) => { if (el) el.textContent = value; };
+  const FREE_NOTE = 'Every month the first 1,000 WhatsApp replies are free (Meta). For more, add a card in WhatsApp Manager.';
+  // A second line under the status, so the free-replies note stays visible.
+  function note(box) {
+    let el = box.querySelector('.wa-connect-note');
+    if (!el) { el = document.createElement('p'); el.className = 'wa-connect-note hint'; box.append(el); }
+    const link = document.createElement('a');
+    link.href = 'https://business.facebook.com/wa/manage/home/'; link.target = '_blank'; link.rel = 'noopener'; link.textContent = 'Open WhatsApp Manager';
+    el.replaceChildren(document.createTextNode(FREE_NOTE + ' '), link);
+  }
 
   function loadSdk(appId, version) {
     if (sdk) return sdk;
@@ -35,6 +44,7 @@
       box.hidden = !config.enabled && !linked;
       button.disabled = !config.enabled;
       button.textContent = linked ? 'Connect another WhatsApp number' : 'Connect WhatsApp with Facebook';
+      note(box);
       text(status, linked ? '✅ Connected: ' + (linked.display_phone_number || 'WhatsApp number') + (linked.verified_name ? ' · ' + linked.verified_name : '') : 'Takes about 2 minutes. You log in with Facebook, pick or add your WhatsApp Business number, and we set up everything else.');
     }
   }

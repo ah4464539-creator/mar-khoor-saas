@@ -1,5 +1,5 @@
 import { trackSiteEvent } from './site-analytics.js';
-import { getPilotIds, setPilot } from './whatsapp-pilot.js';
+import { getPilotIds, setPilot, workerSwitch, setWorkerSwitch } from './whatsapp-pilot.js';
 import { getSignupConfig, saveSignupConfig } from './whatsapp-signup-core.js';
 import express from 'express';
 import { requireAuth } from './auth.js';
@@ -85,6 +85,16 @@ export function apiRouter(pool) {
    await audit(pool,{actorUserId:req.user.id,restaurantId,action:'voice_assistant.map:'+assistantId+':'+(active?'on':'off')});
    res.json({assistant_id:assistantId,restaurant_id:restaurantId,active});
   }catch{res.status(503).json({error:'Mapping unavailable'});}
+ });
+ router.get('/platform/whatsapp-ai/switch',requireAuth,async(req,res)=>{
+  if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});
+  res.json({mode:await workerSwitch(pool)});
+ });
+ router.put('/platform/whatsapp-ai/switch',requireAuth,async(req,res)=>{
+  if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});
+  if(typeof req.body?.on!=='boolean')return res.status(400).json({error:'Invalid request'});
+  try{const mode=await setWorkerSwitch(pool,req.body.on);await audit(pool,{actorUserId:req.user.id,restaurantId:null,action:'whatsapp_ai.switch:'+mode});res.json({mode});}
+  catch{res.status(503).json({error:'Switch unavailable'});}
  });
  router.get('/platform/whatsapp-signup',requireAuth,async(req,res)=>{
   if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});

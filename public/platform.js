@@ -111,6 +111,7 @@ form.addEventListener('submit', async event => {
       [loadWhatsAppNumbers, '#wa-number-list'],
       [loadWhatsAppSignup, '#wa-signup-status'],
       [() => loadWorkerMetrics(token), '#worker-status'],
+      [loadWorkerSwitch, '#worker-switch-status'],
       [loadRoutes, '#route-list'],
       [loadSubscriptions, '#subscription-list'],
       [loadOrders, '#order-list'],
@@ -464,4 +465,22 @@ document.querySelector('#wa-signup-form')?.addEventListener('submit', async even
     await platformApi('/api/platform/whatsapp-signup', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ app_id: document.querySelector('#wa-signup-app').value.trim(), config_id: document.querySelector('#wa-signup-config').value.trim() }) });
     await loadWhatsAppSignup();
   } catch (error) { output.textContent = error.message; } finally { button.disabled = false; }
+});
+
+async function loadWorkerSwitch() {
+  const { mode } = await platformApi('/api/platform/whatsapp-ai/switch');
+  const button = document.querySelector('#worker-switch');
+  document.querySelector('#worker-switch-status').textContent = mode === 'on'
+    ? 'AI replies are ON for paid restaurants and pilots.' : 'AI replies are OFF for every restaurant.';
+  button.textContent = mode === 'on' ? 'Turn off for everyone' : 'Turn on';
+  button.dataset.mode = mode; button.disabled = false;
+}
+document.querySelector('#worker-switch')?.addEventListener('click', async event => {
+  const button = event.currentTarget;
+  if (!platformToken) return;
+  if (button.dataset.mode === 'on' && !confirm('Stop WhatsApp AI replies for every restaurant?')) return;
+  button.disabled = true;
+  try { await platformApi('/api/platform/whatsapp-ai/switch', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ on: button.dataset.mode !== 'on' }) }); }
+  catch (error) { document.querySelector('#worker-switch-status').textContent = error.message; }
+  await loadWorkerSwitch().catch(() => {});
 });
