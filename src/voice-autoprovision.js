@@ -10,6 +10,7 @@
 // Countries that need documents leave the number "pending provider"; the retry job finishes it.
 // This spends real money: it only runs for an active, paid subscription, never twice per restaurant.
 import { hasNumberAddon } from './stripe-billing.js';
+import { hasToolNumber } from './tools.js';
 import { randomUUID } from 'node:crypto';
 import { searchNumbers, orderNumber, E164 } from './providers/telnyx.js';
 import { importTelnyxNumber, findTelnyxCredential } from './providers/vapi-numbers.js';
@@ -28,8 +29,8 @@ export function autoProvisionDeps(env = process.env) {
     vapiKey: env.VAPI_API_KEY,
     credentialId: env.VAPI_TELNYX_CREDENTIAL_ID,
     templateAssistantId: env.VAPI_TEMPLATE_ASSISTANT_ID,
-    maxMonthlyUsd: cap(env.TELNYX_MAX_MONTHLY_USD, 15),
-    maxUpfrontUsd: cap(env.TELNYX_MAX_UPFRONT_USD, 15),
+    maxMonthlyUsd: cap(env.TELNYX_MAX_MONTHLY_USD, 50),
+    maxUpfrontUsd: cap(env.TELNYX_MAX_UPFRONT_USD, 50),
     requirementGroup: country => env['TELNYX_REQUIREMENT_GROUP_' + country],
   };
 }
@@ -97,8 +98,12 @@ export async function provisionSubscriptionNumber(pool, restaurantId, baseDeps =
 
   const [subs] = await pool.execute('SELECT plan_key,status FROM restaurant_subscriptions WHERE restaurant_id=? LIMIT 1', [restaurantId]);
   const sub = subs[0];
-  if (!sub || sub.status !== 'active') return result('skipped', 'The subscription is not active (payment not confirmed).');
-  if (!includesNumber(sub.plan_key) && !(await hasNumberAddon(pool, restaurantId))) return result('skipped', 'This plan does not include a dedicated AI number.');
+  // A paid AI Calling tool with a new number counts like a plan that includes one.
+  const toolNumber = await hasToolNumber(pool, restaurantId);
+  if (!toolNumber) {
+    if (!sub || sub.status !== 'active') return result('skipped', 'The subscription is not active (payment not confirmed).');
+    if (!includesNumber(sub.plan_key) && !(await hasNumberAddon(pool, restaurantId))) return result('skipped', 'This plan does not include a dedicated AI number.');
+  }
 
   const [restaurants] = await pool.execute('SELECT id,name,country_code FROM restaurants WHERE id=? LIMIT 1', [restaurantId]);
   const restaurant = restaurants[0];

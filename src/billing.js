@@ -5,6 +5,8 @@ import { audit, rateLimit } from './security.js';
 import { chooseSubscription, getSubscription, planCatalog, validateSubscriptionChoice } from './subscriptions.js';
 import { getUsdRates } from './fx-rates.js';
 import { provisionSubscriptionNumber } from './voice-autoprovision.js';
+import { toolCatalog, validateToolChoice, toolCartLines, activeTools, ensureToolsTable } from './tools.js';
+import { toolsCheckoutParams } from './stripe-billing.js';
 import { billingConfig, createStripeClient, ensureBillingTables, checkoutParams, verifyStripeSignature, applyBillingEvent, addonPeriodMinor, hasNumberAddon, TOOL_KEYS } from './stripe-billing.js';
 
 /** Stripe webhook. Mount BEFORE express.json(): the signature is over the raw body. */
@@ -30,6 +32,7 @@ export function billingWebhookRouter(pool, { config = billingConfig(), stripe = 
 
 export function billingRouter(pool, { config = billingConfig(), stripe = createStripeClient(config), loadRates = getUsdRates, baseUrl = process.env.PUBLIC_BASE_URL || 'https://mar-khoor.com' } = {}) {
   baseUrl = String(baseUrl).replace(/\/+$/, '');
+  ensureToolsTable(pool).catch(() => {});
   const router = express.Router();
   const restaurantAdmin = async (req, res, next) => {
     const id = Number(req.params.restaurantId);
@@ -39,7 +42,7 @@ export function billingRouter(pool, { config = billingConfig(), stripe = createS
         const [rows] = await pool.execute("SELECT role FROM restaurant_members WHERE restaurant_id=? AND user_id=? AND role='admin' LIMIT 1", [id, req.user.id]);
         if (!rows.length) return res.status(403).json({ error: 'Only restaurant admins can manage billing' });
       }
-      const [restaurants] = await pool.execute('SELECT id,name,currency FROM restaurants WHERE id=? LIMIT 1', [id]);
+      const [restaurants] = await pool.execute('SELECT id,name,currency,country_code FROM restaurants WHERE id=? LIMIT 1', [id]);
       if (!restaurants.length) return res.status(404).json({ error: 'Restaurant not found' });
       req.restaurant = restaurants[0];
       next();
@@ -61,6 +64,9 @@ export function billingRouter(pool, { config = billingConfig(), stripe = createS
         subscription: await getSubscription(pool, req.restaurant.id),
         stripe: row ? { has_customer: Boolean(row.stripe_customer_id), status: row.stripe_status, renews_at: row.current_period_end } : null,
         number_addon: config ? await hasNumberAddon(pool, req.restaurant.id) : false,
+        tools: toolCatalog(req.restaurant.currency, req.restaurant.country_code, { fx: await loadRates() }),
+        my_tools: await activeTools(pool, req.restaurant.id),
+        country: req.restaurant.country_code,
       });
     } catch { res.status(503).json({ error: 'Billing unavailable' }); }
   });
@@ -99,6 +105,34 @@ export function billingRouter(pool, { config = billingConfig(), stripe = createS
         res.json({ url: session.url });
       } catch (error) {
         console.error(JSON.stringify({ event: 'stripe_checkout_failed', status: error?.status, code: error?.code }));
+        res.status(502).json({ error: 'Could not start the payment. Please try again in a minute.' });
+      }
+    });
+
+  // Single tools without a full plan: AI Website Builder, WhatsApp Business AI, AI Calling.
+  router.post('/api/restaurants/:restaurantId/billing/tools-checkout', requireAuth, restaurantAdmin,
+    rateLimit({ windowMs: 60000, max: 6, name: 'billing-tools-checkout' }), async (req, res) => {
+      if (!config) return res.status(503).json({ error: 'Online payment is not available yet. The platform will confirm your payment manually.' });
+      const choice = validateToolChoice(req.body);
+      if (choice.error) return res.status(400).json({ error: choice.error });
+      try {
+        await ensureToolsTable(pool);
+        const catalog = toolCatalog(req.restaurant.currency, req.restaurant.country_code, { fx: await loadRates() });
+        const cart = toolCartLines(catalog, choice.value);
+        if (cart.error) return res.status(409).json({ error: cart.error });
+        const owned = (await activeTools(pool, req.restaurant.id)).filter(row => row.status === 'active').map(row => row.tool_key);
+        const again = choice.value.tools.filter(key => owned.includes(key));
+        if (again.length) return res.status(409).json({ error: 'Already active: ' + again.join(', ') + '. Remove it from the cart.' });
+        const row = await billingRow(req.restaurant.id);
+        const params = toolsCheckoutParams({ restaurant: req.restaurant, cart, cycle: choice.value.cycle, numberMode: choice.value.numberMode, email: req.user.email, customerId: row?.stripe_customer_id, baseUrl });
+        if (!params) return res.status(409).json({ error: 'These tools have no confirmed price in your currency yet' });
+        const key = ['tools', req.restaurant.id, choice.value.tools.join('.'), choice.value.cycle, choice.value.numberMode || '', cart.total_minor, Math.floor(Date.now() / 600000)].join('-');
+        const session = await stripe.checkout(params, key);
+        if (!/^https:\/\/checkout\.stripe\.com\//.test(session?.url || '')) throw new Error('Invalid payment session');
+        await audit(pool, { actorUserId: req.user.id, restaurantId: req.restaurant.id, action: 'billing.tools_checkout:' + choice.value.tools.join(',') });
+        res.json({ url: session.url });
+      } catch (error) {
+        console.error(JSON.stringify({ event: 'stripe_tools_checkout_failed', status: error?.status, code: error?.code }));
         res.status(502).json({ error: 'Could not start the payment. Please try again in a minute.' });
       }
     });

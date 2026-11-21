@@ -24,6 +24,11 @@ const signinLink = document.querySelector('#signin-link');
 const compareLink = document.querySelector('#compare-plans');
 if (['starter', 'premium', 'enterprise'].includes(chosen.get('plan'))) planSelect.value = chosen.get('plan');
 if (chosen.get('cycle') === 'yearly') cycleSelect.value = 'yearly';
+// A single tool picked on the landing page: after registration the dashboard opens the cart with it.
+if (['website', 'whatsapp', 'calling'].includes(chosen.get('tool'))) {
+  try { localStorage.setItem('mar-khoor.want-tool', chosen.get('tool')); } catch {}
+  if (signinLink) signinLink.href = '/restaurant.html?tool=' + chosen.get('tool');
+}
 function rememberPlan() {
   const plan = planSelect.value;
   cycleSelect.hidden = !plan;

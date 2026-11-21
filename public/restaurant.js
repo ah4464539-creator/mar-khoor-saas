@@ -737,6 +737,7 @@ const PLAN_STORE = 'mar-khoor.chosen-plan';
 let planIntent = false;
 {
  const params = new URLSearchParams(location.search);
+ if (['website','whatsapp','calling'].includes(params.get('tool'))) { try { localStorage.setItem('mar-khoor.want-tool', params.get('tool')); } catch {} history.replaceState(null, '', location.pathname + location.hash); }
  const plan = params.get('plan');
  if (['starter','premium','enterprise'].includes(plan)) {
   planIntent = true;
@@ -1201,6 +1202,7 @@ function renderBillingPlans(){
  renderCart();
 }
 function renderCart(){
+ if(buyMode()==='tools')return renderToolsCart();
  const plan=billingPlan(),cycle=billingCycle(),lines=billingEl('cart-lines');if(!lines)return;
  const number=billingEl('billing-number'),numberPrice=billingEl('billing-number-price');
  const addon=addonFor(plan,cycle);
@@ -1242,6 +1244,9 @@ function showBilling(data,plans){
  else if(data.test_mode){notice.hidden=false;notice.className='notice notice-info';notice.textContent='Test mode: use card 4242 4242 4242 4242, any future date and any CVC.'}
  else notice.hidden=true;
  renderBillingPlans();
+ if(buyMode()==='tools')syncBuyMode();
+ const myTools=(data.my_tools||[]).filter(t=>t.status==='active');
+ if(myTools.length&&!sub)billingEl('billing-summary').textContent='Active tools: '+myTools.map(t=>({website:'AI Website Builder',whatsapp:'WhatsApp Business AI',calling:'AI Calling'})[t.tool_key]||t.tool_key).join(', ');
 }
 async function loadBilling(){
  if(!restaurantId||!billingEl('billing'))return;const id=restaurantId;
@@ -1261,9 +1266,71 @@ function goToCart(planKey,cycle,message){
  };
  if(billingPlans.length)apply();else loadBilling().then(apply).catch(()=>{});
 }
-billingForm?.addEventListener('change',event=>{billingForm.dataset.touched='1';if(event.target.name==='billing_cycle')renderBillingPlans();else renderCart()});
+// Single tools (no full plan): AI Website Builder, WhatsApp Business AI, AI Calling.
+const buyMode=()=>billingForm?.elements.buy_mode?.value||'plan';
+function syncBuyMode(){
+ const tools=buyMode()==='tools';
+ billingEl('billing-plan-step').hidden=tools;billingEl('billing-included-step').hidden=tools;billingEl('billing-tools-step').hidden=!tools;
+ if(tools)renderToolCards();
+}
+function renderToolCards(){
+ const box=billingEl('billing-tools');if(!box||!billingData?.tools)return;
+ const chosen=new Set([...billingForm.querySelectorAll('input[name="tool_buy"]:checked')].map(i=>i.value));
+ const owned=new Set((billingData.my_tools||[]).filter(t=>t.status==='active').map(t=>t.tool_key));
+ const cycle=billingCycle();box.replaceChildren();
+ for(const tool of billingData.tools){
+  const label=document.createElement('label');label.className='billing-plan';
+  const input=document.createElement('input');input.type='checkbox';input.name='tool_buy';input.value=tool.key;input.checked=chosen.has(tool.key);input.disabled=owned.has(tool.key);
+  const name=document.createElement('strong');name.textContent=tool.name;
+  const price=document.createElement('span');price.className='billing-price';price.textContent=billingMoney(tool.price_minor[cycle],tool.currency)+(cycle==='yearly'?' / year':' / month')+(tool.key==='calling'?' + number':'');
+  const inc=document.createElement('small');inc.className='muted';inc.textContent=tool.includes;
+  label.append(input,name,price,inc);
+  if(owned.has(tool.key)){const tag=document.createElement('span');tag.className='tag tag-ok';tag.textContent='Active';label.append(tag)}
+  box.append(label);
+ }
+ renderToolsCart();
+}
+function renderToolsCart(){
+ const lines=billingEl('cart-lines');if(!lines||!billingData?.tools)return;
+ const cycle=billingCycle(),tools=billingData.tools;
+ const picked=[...billingForm.querySelectorAll('input[name="tool_buy"]:checked')].map(i=>i.value);
+ const calling=tools.find(t=>t.key==='calling');
+ const numberField=billingEl('tool-number-field');numberField.hidden=!picked.includes('calling');
+ const newRadio=billingForm.querySelector('input[name="call_number"][value="new"]');
+ const numberAvailable=Boolean(calling?.number?.available);
+ newRadio.disabled=!numberAvailable;if(!numberAvailable&&newRadio.checked)billingForm.querySelector('input[name="call_number"][value="own"]').checked=true;
+ billingEl('tool-number-price').textContent=numberAvailable?'· +'+billingMoney(calling.number.price_minor[cycle],calling.currency)+(cycle==='yearly'?' / year':' / month')+' (the number\'s real cost)':'· not available in your country yet';
+ const hint=billingEl('tool-number-hint');hint.hidden=!calling?.number?.recommend_own;hint.textContent='Recommended: put a spare SIM or number of your own on the AI Caller. The call minutes are included; a new number from us costs much more here.';
+ lines.replaceChildren();
+ const line=(name,value,cls)=>{const li=document.createElement('li');if(cls)li.className=cls;const a=document.createElement('span');a.textContent=name;const b=document.createElement('span');b.textContent=value;li.append(a,b);lines.append(li)};
+ let total=0;const currency=tools[0]?.currency||'USD';
+ for(const key of picked){const t=tools.find(x=>x.key===key);total+=t.price_minor[cycle];line(t.name+' ('+cycle+')',billingMoney(t.price_minor[cycle],t.currency),'cart-plan')}
+ const wantsNew=picked.includes('calling')&&newRadio.checked&&numberAvailable;
+ if(picked.includes('calling'))line(wantsNew?'Dedicated AI phone number':'Your own number',wantsNew?billingMoney(calling.number.price_minor[cycle],currency):'No fee','cart-tool');
+ if(wantsNew)total+=calling.number.price_minor[cycle];
+ if(!picked.length)line('No tool selected yet','—','cart-tool cart-empty');
+ billingEl('cart-total').textContent=picked.length?billingMoney(total,currency):'—';
+ billingEl('cart-renews').textContent=picked.length?(cycle==='yearly'?'Billed every year':'Billed every month')+'. Price in '+currency+(tools[0]?.converted?' (converted from USD at today’s rate)':'')+(picked.includes('calling')?'. Extra call minutes: '+billingMoney(calling.extra_minute_minor,currency)+' each.':'.'):'';
+ const pay=billingEl('billing-pay');pay.disabled=!billingData.enabled||!picked.length;pay.textContent=picked.length?'Checkout & pay '+billingMoney(total,currency):'Choose a tool';
+}
+function goToTools(toolKey,message){
+ if(location.hash!=='#plan')location.hash='#plan';
+ const apply=()=>{billingForm.elements.buy_mode.value='tools';billingForm.dataset.touched='1';syncBuyMode();const box=billingForm.querySelector('input[name="tool_buy"][value="'+toolKey+'"]');if(box&&!box.disabled){box.checked=true;renderToolsCart()}
+  if(message){const n=billingEl('billing-notice');n.hidden=false;n.className='notice notice-info';n.textContent=message}
+  billingEl('billing-cart')?.scrollIntoView({behavior:'smooth',block:'start'})};
+ if(billingData?.tools)apply();else loadBilling().then(apply).catch(()=>{});
+}
+billingForm?.addEventListener('change',event=>{billingForm.dataset.touched='1';if(event.target.name==='buy_mode'){syncBuyMode();renderCart();return}if(event.target.name==='billing_cycle'){renderBillingPlans();if(buyMode()==='tools')renderToolCards();}else renderCart()});
 billingForm?.addEventListener('submit',async event=>{
  event.preventDefault();const note=billingEl('billing-note'),button=billingEl('billing-pay');
+ if(buyMode()==='tools'){
+  const tools=[...billingForm.querySelectorAll('input[name="tool_buy"]:checked')].map(i=>i.value);
+  if(!tools.length){note.textContent='Choose a tool.';return}
+  button.disabled=true;note.textContent='Opening secure payment…';
+  try{const data=await api('/api/restaurants/'+restaurantId+'/billing/tools-checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tools,billing_cycle:billingCycle(),call_number:billingForm.querySelector('input[name="call_number"]:checked')?.value||'own'})});note.textContent='Redirecting to Stripe…';location.assign(data.url)}
+  catch(e){note.textContent=e.message;button.disabled=false}
+  return;
+ }
  const plan=billingPlan();if(!plan){note.textContent='Choose a plan.';return}
  const tools=[...billingForm.querySelectorAll('input[name="tool"]:checked')].map(i=>i.value);
  if(!tools.length){note.textContent='Choose at least one tool.';return}
@@ -1329,3 +1396,12 @@ payEl('pay-form')?.addEventListener('submit', async event => {
 });
 window.addEventListener('hashchange', () => { if (location.hash === '#order-desk' && payLoadedFor !== restaurantId) { payLoadedFor = restaurantId; loadPaySettings().catch(() => {}); } });
 setTimeout(() => { if (location.hash === '#order-desk') { payLoadedFor = restaurantId; loadPaySettings().catch(() => {}); } }, 1500);
+
+// A visitor who picked a single tool on the landing page lands in the cart with it.
+(function wantTool(tries){
+ let want=null;try{want=localStorage.getItem('mar-khoor.want-tool')}catch{}
+ if(!want||!['website','whatsapp','calling'].includes(want))return;
+ if(!restaurantId){if(tries<300)setTimeout(()=>wantTool(tries+1),1000);return}
+ try{localStorage.removeItem('mar-khoor.want-tool');localStorage.setItem('mar-khoor.setup-prompted.'+restaurantId,'1')}catch{}
+ setTimeout(()=>{if(setupDialog?.open)setupDialog.close();goToTools(want,'Your tool is in the cart. Pay to switch it on.')},1200);
+})(0);

@@ -29,9 +29,12 @@ test('publishing needs an active website plan unless super admin or free pilot f
  const paid=rec(()=>[[{restaurant_id:4}]]);
  assert.equal(await canPublish(paid,4,{free:false}),true);
  assert.match(paid.queries[0].sql,/restaurant_subscriptions WHERE restaurant_id=\? AND status='active'/);
- const withPlan=rec(sql=>/restaurant_subscriptions/.test(sql)?[[]]:[[{id:1}]]);
+ const tool=rec(sql=>/restaurant_tools/.test(sql)?[[{restaurant_id:4}]]:[[]]);
+ assert.equal(await canPublish(tool,4,{free:false}),true,'the single AI Website Builder tool also publishes');
+ assert.match(tool.queries[1].sql,/restaurant_tools WHERE restaurant_id=\? AND tool_key='website' AND status='active'/);
+ const withPlan=rec(sql=>/restaurant_subscriptions|restaurant_tools/.test(sql)?[[]]:[[{id:1}]]);
  assert.equal(await canPublish(withPlan,4,{free:false}),true);
- assert.match(withPlan.queries[1].sql,/FIND_IN_SET\('website',features\)/);
+ assert.match(withPlan.queries[2].sql,/FIND_IN_SET\('website',features\)/);
  const unpaid=rec(()=>[[]]);
  assert.equal(await canPublish(unpaid,4,{free:false}),false);
  assert.equal(await canPublish(rec(()=>[[]]),4,{free:false}),false);

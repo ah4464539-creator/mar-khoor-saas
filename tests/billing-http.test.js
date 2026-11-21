@@ -19,7 +19,7 @@ test('plan checkout and Stripe webhook over HTTP', async () => {
     query: async () => [[]],
     execute: async (sql, args = []) => {
       if (/FROM restaurant_members/.test(sql)) return [args[1] === 5 ? [{ role: 'admin' }] : []];
-      if (/SELECT id,name,currency FROM restaurants/.test(sql)) return [[{ id: 7, name: 'Lahore Grill', currency: 'USD' }]];
+      if (/SELECT id,name,currency,country_code FROM restaurants/.test(sql)) return [[{ id: 7, name: 'Lahore Grill', currency: 'USD' }]];
       if (/SELECT currency FROM restaurants/.test(sql)) return [[{ currency: 'USD' }]];
       if (/FROM restaurant_subscriptions/.test(sql)) return [[{ plan_key: 'starter', billing_cycle: 'monthly', status, limits: '{}', currency: 'USD', price_minor: 3900 }]];
       if (/FROM restaurant_billing/.test(sql)) return [[]];

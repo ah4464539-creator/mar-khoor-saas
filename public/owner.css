@@ -392,3 +392,12 @@ body.mk{margin:0}
 .mk .pay-transfer-row .pay-wide{grid-column:1 / span 3}
 .mk .owner-payment-check{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 0 0;border-top:1px dashed var(--line,#e6e0d8);margin-top:8px}
 @media(max-width:760px){.mk .pay-transfer-row{grid-template-columns:1fr}.mk .pay-transfer-row .pay-wide{grid-column:auto}}
+
+/* Plan or single tools */
+.mk .billing-mode{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.mk .billing-mode-option{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1px solid var(--line,#e6e0d8);border-radius:14px;cursor:pointer}
+.mk .billing-mode-option:has(input:checked){border-color:var(--ember,#e8701a);box-shadow:0 0 0 3px var(--ember-soft,#fff3e6)}
+.mk .billing-mode-option input{margin-top:3px;accent-color:var(--ember,#e8701a)}
+.mk .billing-mode-option span{display:grid;gap:2px}
+.mk .billing-mode-option small{color:var(--muted,#7a6f66)}
+.mk #tool-number-field{display:grid;gap:8px;margin-top:14px}
