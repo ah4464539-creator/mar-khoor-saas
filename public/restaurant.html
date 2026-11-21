@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="/summit.css?v=20261120-s4">
 <link rel="stylesheet" href="/owner.css?v=20261121-s15">
-<script src="/i18n.js?v=20261121-1" defer></script>
+<script src="/i18n.js?v=20261121-2" data-position="right" defer></script>
 </head>
 <body class="mk owner-app signing-in">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -247,7 +247,7 @@
    <div class="field site-headline"><label for="site-headline">Headline</label><input class="input" id="site-headline" maxlength="80" placeholder="Headline"></div>
    <div class="field site-tagline"><label for="site-tagline">Tagline</label><input class="input" id="site-tagline" maxlength="160" placeholder="Tagline"></div>
    <div class="field site-about"><label for="site-about">About us</label><textarea class="input" id="site-about" rows="4" maxlength="800" placeholder="About us"></textarea></div>
-   <div class="field-pair"><div class="field site-hours"><label for="site-hours">Opening hours</label><input class="input" id="site-hours" maxlength="200" placeholder="e.g. Mon–Sun 11am–11pm"></div><div class="field site-phone"><label for="site-phone">Phone</label><input class="input" id="site-phone" maxlength="30" placeholder="+92 300 1234567"></div></div>
+   <div class="field-pair"><div class="field site-hours"><label for="site-hours">Opening hours</label><input class="input" id="site-hours" maxlength="200" placeholder="e.g. Mon–Sun 11am–11pm"></div><div class="field site-phone"><label for="site-phone">Phone</label><input class="input" id="site-phone" data-phone maxlength="30" placeholder="+92 300 1234567"></div></div>
    <div class="field site-address"><label for="site-address">Address</label><input class="input" id="site-address" maxlength="200" placeholder="Address"></div>
    <label class="check"><input id="site-assistant-recording" type="checkbox"> Allow customers to record AI voice conversations on their device</label>
    <div class="field site-theme" hidden><label for="site-theme">Legacy colour setting</label><select class="input" id="site-theme"><option value="green">Green</option><option value="gold">Gold</option><option value="red">Red</option><option value="blue">Blue</option><option value="dark">Dark</option></select></div>
@@ -280,9 +280,9 @@
     <label class="check"><input type="checkbox" id="widget-assistant"> AI Assistant chat (menu questions and orders)</label>
     <p class="small muted" id="widget-assistant-note" hidden></p>
     <label class="check"><input type="checkbox" id="widget-whatsapp"> WhatsApp button</label>
-    <input class="input" id="widget-whatsapp-number" inputmode="tel" autocomplete="off" aria-label="WhatsApp number" placeholder="+923001234567">
+    <input class="input" id="widget-whatsapp-number" data-phone inputmode="tel" autocomplete="off" aria-label="WhatsApp number" placeholder="">
     <label class="check"><input type="checkbox" id="widget-call"> AI Caller button (call to order)</label>
-    <input class="input" id="widget-call-number" inputmode="tel" autocomplete="off" aria-label="AI Caller number" placeholder="+923001234567">
+    <input class="input" id="widget-call-number" data-phone inputmode="tel" autocomplete="off" aria-label="AI Caller number" placeholder="">
    </fieldset>
    <div class="widget-look">
     <label class="field"><span>Button text</span><input class="input" id="widget-label" maxlength="40" placeholder="Order with AI"></label>
@@ -333,13 +333,13 @@
 <div class="setup-grid">
 <div class="setup-item" data-kind="whatsapp">
 <h3>Business WhatsApp</h3>
-<div class="field"><label for="setup-wa">WhatsApp number used by your restaurant</label><input class="input" id="setup-wa" name="whatsapp_value" type="tel" inputmode="tel" autocomplete="tel" maxlength="32" placeholder="+92 300 1234567"></div>
+<div class="field"><label for="setup-wa">WhatsApp number used by your restaurant</label><input class="input" id="setup-wa" data-phone name="whatsapp_value" type="tel" inputmode="tel" autocomplete="tel" maxlength="32" placeholder="+92 300 1234567"></div>
 <input type="hidden" name="whatsapp_mode" value="meta_signup">
 <label class="check setup-skip"><input type="checkbox" name="whatsapp_skip"> Skip WhatsApp for now</label>
 </div>
 <div class="setup-item" data-kind="ai_caller">
 <h3>AI Caller number</h3>
-<div class="field"><label for="setup-call">Number customers call today</label><input class="input" id="setup-call" name="ai_caller_value" type="tel" inputmode="tel" autocomplete="tel" maxlength="32" placeholder="+92 42 1234567"></div>
+<div class="field"><label for="setup-call">Number customers call today</label><input class="input" id="setup-call" data-phone name="ai_caller_value" type="tel" inputmode="tel" autocomplete="tel" maxlength="32" placeholder="+92 42 1234567"></div>
 <div class="field"><label for="setup-call-mode">How to connect</label><select class="input" id="setup-call-mode" name="ai_caller_mode">
 <option value="forward">Forward my calls (easiest)</option>
 <option value="import">Connect my own number</option>
@@ -385,7 +385,8 @@
 </main>
 </div>
 <script src="/password-reset.js?v=20261119"></script>
-<script type="module" src="/restaurant.js?v=20261121-s16"></script>
+<script src="/phone-input.js?v=20261121-1"></script>
+<script type="module" src="/restaurant.js?v=20261121-s17"></script>
 <script>document.getElementById("login-show-password")?.addEventListener("change",function(){document.getElementById("password").type=this.checked?"text":"password"});</script>
 </body>
 </html>

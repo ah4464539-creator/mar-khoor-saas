@@ -6,6 +6,7 @@
   const NAMES = { en:'English', ur:'اردو', ar:'العربية', hi:'हिन्दी', bn:'বাংলা', fa:'فارسی', tr:'Türkçe', es:'Español', fr:'Français', de:'Deutsch', it:'Italiano', pt:'Português', ru:'Русский', id:'Bahasa Indonesia', ms:'Bahasa Melayu', zh:'中文' };
   const RTL = new Set(['ur','ar','fa']);
   const KEY = 'mk-lang', VERSION = '1';
+  const corner = document.currentScript?.dataset.position === 'right' ? 'right' : 'left';
   let lang = 'en';
   try { lang = localStorage.getItem(KEY) || ''; } catch {}
   if (!SUPPORTED.includes(lang)) {
@@ -96,7 +97,7 @@
   function switcher() {
     const box = document.createElement('div');
     box.setAttribute('data-mk-lang', ''); box.setAttribute('translate', 'no');
-    box.style.cssText = 'position:fixed;z-index:2147482000;bottom:14px;left:14px;font:500 13px/1.2 system-ui,-apple-system,"Segoe UI",sans-serif';
+    box.style.cssText = 'position:fixed;z-index:2147482000;bottom:14px;' + corner + ':14px;font:500 13px/1.2 system-ui,-apple-system,"Segoe UI",sans-serif';
     const select = document.createElement('select');
     select.setAttribute('aria-label', 'Language');
     select.style.cssText = 'appearance:auto;padding:8px 10px;border-radius:999px;border:1px solid #d9cfc4;background:#fffdf9;color:#1c1714;box-shadow:0 4px 16px #1c17141f;cursor:pointer;max-width:170px';

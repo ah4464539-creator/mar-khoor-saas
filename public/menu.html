@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="/summit.css?v=20261120-s4">
 <link rel="stylesheet" href="/public-pages.css?v=20261121-s4">
+<script src="/phone-input.js?v=20261121-1" defer></script>
 </head>
 <body class="mk menu-page">
 <header class="menu-header">
@@ -39,7 +40,7 @@
     <label><input type="radio" name="order_type" value="pickup"><span>Pickup</span></label>
    </div>
    <div class="field"><label for="customer-name">Your name</label><input class="input" id="customer-name" maxlength="160" required autocomplete="name"></div>
-   <div class="field"><label for="customer-phone">Phone</label><input class="input" id="customer-phone" type="tel" inputmode="tel" maxlength="32" required autocomplete="tel" placeholder="+92 300 1234567"></div>
+   <div class="field"><label for="customer-phone">Phone</label><input class="input" id="customer-phone" data-phone type="tel" inputmode="tel" maxlength="32" required autocomplete="tel" placeholder="+92 300 1234567"></div>
    <div class="field delivery-only"><label for="delivery-address">Delivery address</label><textarea class="input" id="delivery-address" maxlength="500" rows="2" autocomplete="street-address" placeholder="House, street, area, city"></textarea></div>
    <div class="field delivery-only"><label for="delivery-instructions">Instructions <span class="muted">(optional)</span></label><input class="input" id="delivery-instructions" maxlength="500" placeholder="e.g. Ring the bell twice"></div>
    <fieldset class="pay-method"><legend class="label">Payment</legend>
