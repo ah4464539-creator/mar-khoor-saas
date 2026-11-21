@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { getPilotIds } from './whatsapp-pilot.js';
 import { ensureToolsTable } from './tools.js';
 import mysql from 'mysql2/promise';
 import {pathToFileURL} from 'node:url';
@@ -77,7 +78,8 @@ export function startWhatsAppAIWorker(pool) {
  const run = async () => {
   try {
    if (!toolsReady) { try { await ensureToolsTable(pool); } catch {} toolsReady = true; }
-   await processWhatsAppAIJobs(pool,{alwaysAllowed});
+   const pilot = typeof pool.query === 'function' ? await getPilotIds(pool) : [];
+   await processWhatsAppAIJobs(pool,{alwaysAllowed:[...new Set([...alwaysAllowed,...pilot])]});
   } catch (error) {
    const code = /^[A-Z][A-Z0-9_]{1,63}$/.test(error?.code ?? '') ? error.code : 'UNKNOWN';
    console.warn('WhatsApp AI worker batch failed:', code);

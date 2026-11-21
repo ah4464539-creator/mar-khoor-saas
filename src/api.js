@@ -1,4 +1,5 @@
 import { trackSiteEvent } from './site-analytics.js';
+import { getPilotIds, setPilot } from './whatsapp-pilot.js';
 import express from 'express';
 import { requireAuth } from './auth.js';
 import { audit } from './security.js';
@@ -84,6 +85,18 @@ export function apiRouter(pool) {
    res.json({assistant_id:assistantId,restaurant_id:restaurantId,active});
   }catch{res.status(503).json({error:'Mapping unavailable'});}
  });
+ router.post('/platform/restaurants/:id/whatsapp-ai-pilot',requireAuth,async(req,res)=>{
+  if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});
+  const id=Number(req.params.id),on=req.body?.on;
+  if(!Number.isSafeInteger(id)||id<1||typeof on!=='boolean')return res.status(400).json({error:'Invalid request'});
+  try{
+   const [found]=await pool.execute('SELECT id FROM restaurants WHERE id=? LIMIT 1',[id]);
+   if(!found.length)return res.status(404).json({error:'Restaurant not found'});
+   const list=await setPilot(pool,id,on);
+   await audit(pool,{actorUserId:req.user.id,restaurantId:id,action:'whatsapp_ai.pilot:'+(on?'on':'off')});
+   res.json({restaurant_id:id,ai_pilot:on,pilot:list});
+  }catch{res.status(503).json({error:'Pilot setting unavailable'});}
+ });
  router.post('/platform/whatsapp-accounts/:wabaId/subscribe',requireAuth,async(req,res)=>{
   if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});
   const wabaId=req.params.wabaId,token=process.env.WHATSAPP_ACCESS_TOKEN;
@@ -117,7 +130,7 @@ export function apiRouter(pool) {
  });
  router.get('/platform/whatsapp-numbers',requireAuth,async(req,res)=>{
   if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});
-  try{const [rows]=await pool.query('SELECT w.phone_number_id,w.restaurant_id,r.name AS restaurant_name,r.slug AS restaurant_slug,w.active FROM whatsapp_numbers w JOIN restaurants r ON r.id=w.restaurant_id ORDER BY w.phone_number_id LIMIT 200');res.json({numbers:await withDisplayNumbers(rows)});}
+  try{const [rows]=await pool.query('SELECT w.phone_number_id,w.restaurant_id,r.name AS restaurant_name,r.slug AS restaurant_slug,w.active FROM whatsapp_numbers w JOIN restaurants r ON r.id=w.restaurant_id ORDER BY w.phone_number_id LIMIT 200');const pilot=new Set(await getPilotIds(pool));let ai=new Map();try{const [settings]=await pool.query('SELECT restaurant_id,enabled FROM whatsapp_ai_settings');ai=new Map(settings.map(r=>[Number(r.restaurant_id),Boolean(r.enabled)]));}catch{}res.json({numbers:(await withDisplayNumbers(rows)).map(r=>({...r,ai_pilot:pilot.has(Number(r.restaurant_id)),ai_enabled:ai.get(Number(r.restaurant_id))||false}))});}
   catch{res.status(503).json({error:'Mapping unavailable'});}
  });
  router.get('/my/restaurants',requireAuth,async(req,res)=>{
