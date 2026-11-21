@@ -21,13 +21,14 @@ test('signed WhatsApp delivery statuses update known outbound records',async()=>
  }finally{await new Promise(r=>server.close(r));if(old===undefined)delete process.env.META_APP_SECRET;else process.env.META_APP_SECRET=old}
 });
 
-test('recent delivery callback asks for a replay until the outbound record exists', async t => {
+test('recent delivery callback asks for a replay only while our send is in flight', async t => {
  const old = process.env.META_APP_SECRET;
  process.env.META_APP_SECRET = 'test-only-secret';
- let exists = false;
+ let exists = false, sending = true;
  let status = 'accepted';
  const pool = { async execute(sql, args) {
   if (sql.startsWith('SELECT 1 FROM whatsapp_numbers')) return [exists ? [] : [{ found: 1 }]];
+  if (sql.startsWith('SELECT 1 FROM whatsapp_ai_jobs')) return [sending ? [{ found: 1 }] : []];
   assert.ok(sql.startsWith('UPDATE whatsapp_outbound_messages'));
   if (!exists || status === args[0]) return [{ affectedRows: 0 }];
   status = args[0];
@@ -50,7 +51,9 @@ test('recent delivery callback asks for a replay until the outbound record exist
  const post = () => fetch('http://127.0.0.1:' + server.address().port + '/integrations/webhooks/whatsapp', {
   method: 'POST', headers: { 'Content-Type': 'application/json', 'x-hub-signature-256': signature }, body,
  });
- assert.equal((await post()).status, 503);
+ assert.equal((await post()).status, 503, 'our AI send is still in flight');
+ sending = false;
+ assert.equal((await post()).status, 202, 'status for a message we did not send is acknowledged, no endless retries');
  exists = true;
  assert.equal((await post()).status, 202);
  assert.equal(status, 'delivered');
