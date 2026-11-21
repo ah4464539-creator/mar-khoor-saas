@@ -64,3 +64,13 @@ test('schema is additive and pages load the switcher', () => {
   assert.match(client, /dir = RTL\.has\(lang\)/);
   assert.ok(!/innerHTML/.test(client));
 });
+
+test('landing page has the animated demos', () => {
+  const page = readFileSync('public/index.html', 'utf8');
+  assert.match(page, /id="demo"/);
+  assert.match(page, /\/demo\.js\?v=/);
+  for (const tab of ['calling', 'whatsapp', 'assistant']) assert.match(page, new RegExp('data-demo="' + tab + '"'));
+  const demo = readFileSync('public/demo.js', 'utf8');
+  assert.ok(!/innerHTML/.test(demo));
+  assert.match(demo, /femaleVoice/);
+});
