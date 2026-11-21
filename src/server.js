@@ -8,6 +8,7 @@ import { passwordResetRouter } from './password-reset.js';
 import { createDbSessionStore } from './sessions.js';
 import { apiRouter } from './api.js';
 import { operationsRouter } from './operations.js';
+import { platformDashboardV2Router } from './platform-dashboard-v2.js';
 import { checkoutRouter } from './checkout.js';
 import { onboardingRouter } from './onboarding.js';
 import { integrationRouter } from './integrations.js';
@@ -64,6 +65,10 @@ app.use(express.json({ limit: '1mb' }));
 // Verified restaurant domains (e.g. myrestaurant.pk) show that restaurant's website at "/".
 app.use(customDomainRouting(pool));
 const publicDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
+app.get('/super-admin-v2', (_req, res) => {
+  res.set('X-Robots-Tag', 'noindex, nofollow');
+  res.sendFile(path.resolve(publicDirectory, '../src/views/super-admin-v2.html'), { cacheControl: false });
+});
 app.get('/super-admin', (_req, res) => {
   res.set('X-Robots-Tag', 'noindex, nofollow');
   res.sendFile(path.resolve(publicDirectory, '../src/views/super-admin.html'), { cacheControl: false });
@@ -88,6 +93,7 @@ app.use('/api', publicAssistantRouter());
 app.use('/auth', authRouter(pool));
 app.use('/auth', passwordResetRouter(pool));
 app.use('/auth', registrationRouter(pool));
+app.use('/api/platform/v2', platformDashboardV2Router(pool));
 app.use('/api', apiRouter(pool));
 app.use('/api', operationsRouter(pool));
 app.use('/api', checkoutRouter(pool));
