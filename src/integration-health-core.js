@@ -53,7 +53,6 @@ export function summarize(config, act) {
     payments: config.payments.deferred
       ? { status: 'deferred', missing: config.payments.missing, note: `Customers paying for food by card is switched off on purpose (plan payments use the same Stripe keys and work). Cash, card on delivery and transfer methods are live (${Number(act.cash?.week) || 0} cash orders in 7 days).` }
       : channel([], false, 'Stripe is enabled; place one small live test payment.'),
-    orders: { status: recent(act.orders?.last_at, 2) ? 'live' : 'configured', missing: [], note: `Orders today: ${Number(act.orders?.today) || 0}.` },
   };
 }
 
