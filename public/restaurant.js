@@ -538,6 +538,7 @@ async function loadPlanOrders(){
  planOrders.replaceChildren();
  let shown=0;
  try{const owned=await api('/api/restaurants/'+restaurantId+'/numbers');for(const n of owned.numbers){const p=document.createElement('p');p.textContent='Your dedicated phone number: '+n.phone_number;planOrders.append(p);shown++}}catch{}
+ {const box=document.createElement('div');planOrders.append(box);showForwarding(box,{savedOnly:true}).catch(()=>{});}
  for(const order of data.orders){
   const p=document.createElement('p');shown++;
   p.textContent='#'+order.id+' · '+order.features.join(', ')+(order.number_mode==='new'?' + dedicated number':'')+' · '+usd(order.monthly_minor)+' / month · '+order.status.replace('_',' ')+' ';
@@ -697,6 +698,18 @@ const backSetup = document.querySelector('#back-setup');
 const deferSetup = document.querySelector('#defer-setup');
 const setupProgress = document.querySelector('#setup-progress');
 const setupResults = document.querySelector('#setup-results');
+// Call forwarding steps: shown when the restaurant chose "Forward my calls".
+async function showForwarding(box,{savedOnly=false}={}){
+ if(!box||!window.mkForwarding)return;
+ const caller=setupData.integrations?.find(item=>item.kind==='ai_caller');
+ if(savedOnly&&caller?.mode!=='forward'){box.replaceChildren();return;}
+ const mode=caller?.mode||setupForm.elements.ai_caller_mode?.value;
+ if(mode!=='forward'||caller?.status==='skipped'||setupForm.elements.ai_caller_skip?.checked){box.replaceChildren();return;}
+ let aiNumber=null;
+ try{const owned=await api('/api/restaurants/'+restaurantId+'/numbers');aiNumber=owned.numbers?.[0]?.phone_number||null;}catch{}
+ window.mkForwarding.render(box,{aiNumber,restaurantNumber:caller?.value||setupForm.elements.ai_caller_value?.value?.trim()||''});
+}
+
 const usageMeter = document.querySelector('#usage-meter');
 const planOptions = document.querySelector('#plan-options');
 const setupSteps = [...setupForm.querySelectorAll('.setup-step')];
@@ -987,6 +1000,7 @@ async function advanceSetup() {
    if (selection !== setupSelection) return;
    setupData.integrations = result.integrations;
    statusList(setupResults, result.integrations);
+   showForwarding(document.querySelector('#setup-forwarding'));
    if (websiteNeedsBuilder()) {
     const sub = setupData.subscription;
     if (setupPlanChoice || (sub && sub.status !== 'active')) {
