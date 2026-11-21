@@ -1,29 +1,20 @@
 // WhatsApp Business Calling pilot: a customer taps "call" in the restaurant's WhatsApp chat and
 // the restaurant's own Vapi voice assistant answers. No media server of ours is involved:
-//   Meta (SIP over TLS, SDES-SRTP) -> <vapi credential id>.sip.vapi.ai -> the restaurant's assistant.
+//   Meta (SIP over TLS, SDES-SRTP) -> sip:+<number>@sip.vapi.ai -> the restaurant's assistant.
 // Steps (all reversible with disableCalling):
-//   1. Vapi "byo-sip-trunk" credential that accepts calls from Meta (wa.meta.vc).
-//   2. Vapi "byo-phone-number" with the WhatsApp number, attached to the restaurant's assistant.
-//   3. Meta calling settings on the number: calling ON, SIP server = the Vapi credential host.
+//   1. Vapi SIP phone number (provider "vapi") whose user part is the WhatsApp number, on the
+//      restaurant's assistant. Vapi SIP numbers take calls from any source, so Meta's many IP
+//      ranges need no allowlist (an IP-filtered byo-sip-trunk never received Meta's calls).
+//   2. Meta calling settings on the number: calling ON, SIP server = sip.vapi.ai:5061.
 // State is kept in the additive app_settings table (key whatsapp_calling). No express import.
 import { VOICE_SETTINGS_SQL, femaleVoice } from './vapi-voice.js';
 import { tokenForNumber } from './whatsapp-signup-core.js';
 import { cloneAssistant } from './providers/vapi-assistants.js';
-import { promises as dns } from 'node:dns';
 
-// Vapi only accepts inbound calls from numeric IPv4 gateways. Meta's SIP servers sit in its own
-// ranges (wa.meta.vc resolves to e.g. 57.144.x.x), so each resolved address is allowed with its /16.
-const KNOWN_META_SIP_IPS = ['57.144.153.157'];
-export async function metaSipNetworks({ resolve4 = host => dns.resolve4(host) } = {}) {
-  let ips = [];
-  try { ips = await resolve4(META_SIP_HOST); } catch { /* DNS unavailable: use known address */ }
-  const nets = new Set([...ips, ...KNOWN_META_SIP_IPS].filter(ip => /^\d{1,3}(\.\d{1,3}){3}$/.test(ip)).map(ip => ip.split('.').slice(0, 2).join('.') + '.0.0'));
-  return [...nets].slice(0, 10);
-}
 
 const KEY = 'whatsapp_calling';
 const VAPI = 'https://api.vapi.ai';
-const META_SIP_HOST = 'wa.meta.vc';
+const VAPI_SIP_HOST = 'sip.vapi.ai';
 const graphVersion = env => (/^v\d+\.\d+$/.test(env.WHATSAPP_GRAPH_VERSION || '') ? env.WHATSAPP_GRAPH_VERSION : 'v23.0');
 const errorText = (data, fallback) => String(data?.error?.message || data?.message || fallback).slice(0, 300);
 
@@ -74,28 +65,13 @@ async function ensureAssistant(pool, restaurantId, { env, fetcher }) {
   return created.id;
 }
 
-async function createCredential(fetcher, apiKey, restaurantId, networks) {
-  const name = ('WhatsApp calls ' + restaurantId).slice(0, 40);
-  // Widest range Vapi accepts first; fall back to narrower ones if it refuses the netmask.
-  const attempts = [16, 24, null];
-  let result;
-  for (const netmask of attempts) {
-    const gateways = networks.map(ip => ({ ip, inboundEnabled: true, outboundEnabled: false, ...(netmask ? { netmask } : {}) }));
-    result = await call(fetcher, VAPI + '/credential', { method: 'POST', token: apiKey, body: { provider: 'byo-sip-trunk', name, gateways } });
-    if (result.ok && typeof result.data?.id === 'string') return result.data.id;
-    if (!(result.status === 400 && /netmask/i.test(JSON.stringify(result.data || '')))) break;
-  }
-  throw Object.assign(Error('Vapi SIP trunk: ' + errorText(result.data, 'HTTP ' + result.status)), { status: 502 });
-}
-
 async function removeVapi(fetcher, apiKey, { vapi_phone_number_id: phoneId, vapi_credential_id: credentialId }) {
   if (phoneId) await call(fetcher, VAPI + '/phone-number/' + encodeURIComponent(phoneId), { method: 'DELETE', token: apiKey }).catch(() => {});
   if (credentialId) await call(fetcher, VAPI + '/credential/' + encodeURIComponent(credentialId), { method: 'DELETE', token: apiKey }).catch(() => {});
 }
 
 /** Turns WhatsApp calling on for a restaurant's connected number. Rolls back what it created on failure. */
-export async function enableCalling(pool, restaurantId, { env = process.env, fetcher = fetch, log = console, resolve4 } = {}) {
-  const resolveOptions = resolve4 ? { resolve4 } : {};
+export async function enableCalling(pool, restaurantId, { env = process.env, fetcher = fetch, log = console } = {}) {
   if (!env.VAPI_API_KEY) throw Object.assign(Error('VAPI_API_KEY is not set'), { status: 503 });
   const phoneNumberId = await restaurantNumber(pool, restaurantId);
   if (!phoneNumberId) throw Object.assign(Error('This restaurant has no active WhatsApp number'), { status: 409 });
@@ -109,13 +85,16 @@ export async function enableCalling(pool, restaurantId, { env = process.env, fet
   const assistantId = await ensureAssistant(pool, restaurantId, { env, fetcher });
   const created = {};
   try {
-    created.vapi_credential_id = await createCredential(fetcher, env.VAPI_API_KEY, restaurantId, await metaSipNetworks(resolveOptions));
-    const phone = await call(fetcher, VAPI + '/phone-number', { method: 'POST', token: env.VAPI_API_KEY, body: {
-      provider: 'byo-phone-number', name: ('WhatsApp ' + restaurantId).slice(0, 40), number, numberE164CheckEnabled: false,
-      credentialId: created.vapi_credential_id, assistantId } });
-    if (!phone.ok || typeof phone.data?.id !== 'string') throw Object.assign(Error('Vapi number: ' + errorText(phone.data, 'HTTP ' + phone.status)), { status: 502 });
+    // Meta's INVITE is addressed to sip:+<number>@sip.vapi.ai; try that user part first.
+    let phone;
+    for (const user of ['+' + number, number]) {
+      phone = await call(fetcher, VAPI + '/phone-number', { method: 'POST', token: env.VAPI_API_KEY, body: {
+        provider: 'vapi', name: ('WhatsApp ' + restaurantId).slice(0, 40), sipUri: 'sip:' + user + '@' + VAPI_SIP_HOST, assistantId } });
+      if (phone.ok && typeof phone.data?.id === 'string') { created.sip_user = user; break; }
+    }
+    if (!phone.ok || typeof phone.data?.id !== 'string') throw Object.assign(Error('Vapi SIP number: ' + errorText(phone.data, 'HTTP ' + phone.status)), { status: 502 });
     created.vapi_phone_number_id = phone.data.id;
-    const sipHost = vapiSipHost(created.vapi_credential_id);
+    const sipHost = VAPI_SIP_HOST;
     const settings = await call(fetcher, graph + '/settings', { method: 'POST', token, body: metaCallingSettings(sipHost) });
     if (!settings.ok) throw Object.assign(Error('Meta calling settings: ' + errorText(settings.data, 'HTTP ' + settings.status)), { status: 502 });
     const state = await getCallingState(pool);

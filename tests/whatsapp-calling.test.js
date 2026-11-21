@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { enableCalling, disableCalling, metaCallingSettings, vapiSipHost, getCallingState, metaSipNetworks } from '../src/whatsapp-calling.js';
+import { enableCalling, disableCalling, metaCallingSettings, vapiSipHost, getCallingState } from '../src/whatsapp-calling.js';
 
 function fakePool({ assistant = 'asst_1' } = {}) {
   const settings = new Map();
@@ -41,18 +41,16 @@ test('settings send calls to the Vapi SIP host over TLS with SDES', () => {
   assert.equal(metaCallingSettings('h').calling.srtp_key_exchange_protocol, 'SDES');
 });
 
-test('enable: Vapi trunk + number on the assistant, then Meta settings; state saved', async () => {
+test('enable: Vapi SIP number on the assistant, then Meta settings; state saved', async () => {
   const pool = fakePool(), { calls, fetcher } = fakeFetch();
   const result = await enableCalling(pool, 4, { env, fetcher, log: quiet, resolve4 });
-  assert.equal(result.sip_host, 'cred-123.sip.vapi.ai');
+  assert.equal(result.sip_host, 'sip.vapi.ai');
   assert.equal(result.number, '+15551560265');
-  const credential = calls.find(c => c.url.endsWith('/credential'));
-  assert.equal(credential.body.provider, 'byo-sip-trunk');
-  assert.deepEqual(credential.body.gateways.map(g => [g.ip, g.netmask, g.inboundEnabled]), [['57.144.0.0', 16, true], ['157.240.0.0', 16, true]]);
+  assert.equal(calls.some(c => c.url.endsWith('/credential')), false, 'no IP-filtered trunk');
   const phone = calls.find(c => c.url.endsWith('/phone-number'));
-  assert.deepEqual([phone.body.number, phone.body.assistantId, phone.body.credentialId], ['15551560265', 'asst_1', 'cred-123']);
+  assert.deepEqual([phone.body.provider, phone.body.sipUri, phone.body.assistantId], ['vapi', 'sip:+15551560265@sip.vapi.ai', 'asst_1']);
   const meta = calls.find(c => c.url.endsWith('/1488585814336543/settings'));
-  assert.equal(meta.body.calling.sip.servers[0].hostname, 'cred-123.sip.vapi.ai');
+  assert.equal(meta.body.calling.sip.servers[0].hostname, 'sip.vapi.ai');
   assert.equal((await getCallingState(pool))[4].vapi_phone_number_id, 'pn-456');
 });
 
@@ -60,7 +58,7 @@ test('enable rolls back the Vapi trunk and number when Meta refuses', async () =
   const pool = fakePool(), { calls, fetcher } = fakeFetch({ failMeta: true });
   await assert.rejects(enableCalling(pool, 4, { env, fetcher, log: quiet, resolve4 }), /Calling not allowed/);
   const deletes = calls.filter(c => c.method === 'DELETE').map(c => c.url);
-  assert.deepEqual(deletes, ['https://api.vapi.ai/phone-number/pn-456', 'https://api.vapi.ai/credential/cred-123']);
+  assert.deepEqual(deletes, ['https://api.vapi.ai/phone-number/pn-456']);
   assert.deepEqual(await getCallingState(pool), {});
 });
 
@@ -70,7 +68,7 @@ test('disable turns Meta calling off and removes the Vapi pieces', async () => {
   calls.length = 0;
   await disableCalling(pool, 4, { env, fetcher });
   assert.equal(calls[0].body.calling.status, 'DISABLED');
-  assert.equal(calls.filter(c => c.method === 'DELETE').length, 2);
+  assert.equal(calls.filter(c => c.method === 'DELETE').length, 1);
   assert.deepEqual(await getCallingState(pool), {});
 });
 
@@ -78,21 +76,16 @@ test('no WhatsApp number or no Vapi key gives a clear error', async () => {
   await assert.rejects(enableCalling(fakePool(), 4, { env: {}, fetcher: fakeFetch().fetcher, log: quiet }), /VAPI_API_KEY/);
 });
 
-test('Meta SIP networks: resolved /16s plus the known address, IPv4 only', async () => {
-  assert.deepEqual(await metaSipNetworks({ resolve4: async () => ['57.144.153.157', '1.2.3.4', 'bad'] }), ['57.144.0.0', '1.2.0.0']);
-  assert.deepEqual(await metaSipNetworks({ resolve4: async () => { throw Error('no dns'); } }), ['57.144.0.0']);
-});
-
-test('netmask refused: retries narrower, then without', async () => {
-  const bodies = [];
+test('Vapi refuses "+" in the SIP user: retries with digits only', async () => {
+  const uris = [];
   const fetcher = async (url, init = {}) => {
     const body = init.body ? JSON.parse(init.body) : null;
-    if (url.endsWith('/credential') && init.method === 'POST') { bodies.push(body); return bodies.length < 3 ? { ok: false, status: 400, json: async () => ({ message: ['gateways.0.netmask must be >= 24'] }) } : { ok: true, status: 200, json: async () => ({ id: 'cred-9' }) }; }
+    if (url.endsWith('/phone-number') && init.method === 'POST') { uris.push(body.sipUri); return uris.length < 2 ? { ok: false, status: 400, json: async () => ({ message: 'sipUri invalid' }) } : { ok: true, status: 200, json: async () => ({ id: 'pn-2' }) }; }
     if (url.includes('?fields=display_phone_number')) return { ok: true, status: 200, json: async () => ({ display_phone_number: '15551560265' }) };
-    return { ok: true, status: 200, json: async () => ({ id: 'pn-1', success: true }) };
+    return { ok: true, status: 200, json: async () => ({ success: true }) };
   };
   await enableCalling(fakePool(), 4, { env, fetcher, log: quiet, resolve4 });
-  assert.deepEqual(bodies.map(b => b.gateways[0].netmask), [16, 24, undefined]);
+  assert.deepEqual(uris, ['sip:+15551560265@sip.vapi.ai', 'sip:15551560265@sip.vapi.ai']);
 });
 
 test('diagnostics report recent Vapi calls and gateways', async () => {
