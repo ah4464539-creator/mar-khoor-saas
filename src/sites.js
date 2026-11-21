@@ -11,6 +11,7 @@ import { recordUsage } from './subscriptions.js';
 import { buildRestaurantChatInput, normalizeAssistantHistory } from './restaurant-chat-context.js';
 import { classifyAssistantProviderFailure } from './ai-provider-diagnostics.js';
 import { trackSiteEvent, loadSiteAnalytics } from './site-analytics.js';
+import { KINDS, listContent, createContent, updateContent, deleteContent, publishedList, publishedItem, siteLinks, blogListHtml, articleHtml, draftPost } from './site-content.js';
 import { assistantAllowed, ensureWidgetTable, parseWidgetConfig, frameAncestors, inkOn } from './widget-core.js';
 
 const notFound = '<!doctype html><meta charset="utf-8"><title>Not found</title><p>This restaurant website is not available.</p>';
@@ -355,9 +356,76 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
       assistantControls(req.params.slug, site.config.assistantRecording === true) +
       '</div></div></details><script src="/restaurant-assistant-panel.js" defer></script>' + (voiceEnabled() ? voiceScript : '')
     : '';
-   res.type('html').send(renderSitePage(site, { assistant }));
+   res.type('html').send(renderSitePage(site, { assistant, links: await siteLinks(pool, site.restaurant) }));
    trackSiteEvent(pool, site.restaurant.id, 'page_views', req);
   } catch { res.status(503).type('html').send(notFound); }
+ });
+
+ // Blog and content pages on the public website (published items only; no assistant here).
+ const contentPage = async (req, res, build) => {
+  res.set('Content-Security-Policy', SITE_CSP);
+  try {
+   const site = await loadPublicSite(pool, req.params.slug);
+   if (!site) return res.status(404).type('html').send(notFound);
+   const page = await build(site);
+   if (!page) return res.status(404).type('html').send(notFound);
+   res.set('Cache-Control', 'public, max-age=60');
+   res.type('html').send(renderSitePage(site, { links: await siteLinks(pool, site.restaurant), page }));
+   trackSiteEvent(pool, site.restaurant.id, 'page_views', req);
+  } catch { res.status(503).type('html').send(notFound); }
+ };
+ router.get('/r/:slug/blog', (req, res) => contentPage(req, res, async site => {
+  const all = await publishedList(pool, site.restaurant.id, 'post', { limit: 100 });
+  const categories = [...new Set(all.map(p => p.category).filter(Boolean))].slice(0, 20);
+  const category = typeof req.query.category === 'string' && categories.includes(req.query.category) ? req.query.category : null;
+  const posts = category ? all.filter(p => p.category === category) : all;
+  return { title: category ? 'Blog · ' + category : 'Blog', html: blogListHtml(site.restaurant, posts, { category, categories }) };
+ }));
+ router.get('/r/:slug/blog/:post', (req, res) => contentPage(req, res, async site => {
+  const post = await publishedItem(pool, site.restaurant.id, 'post', req.params.post);
+  return post && { title: post.title, description: post.excerpt || '', html: articleHtml(site.restaurant, post) };
+ }));
+ router.get('/r/:slug/p/:page', (req, res) => contentPage(req, res, async site => {
+  const item = await publishedItem(pool, site.restaurant.id, 'page', req.params.page);
+  return item && { title: item.title, html: articleHtml(site.restaurant, item) };
+ }));
+
+ // Owner: blog posts and content pages.
+ const kindOf = req => (KINDS.includes(req.query.kind) ? req.query.kind : null);
+ router.get('/api/restaurants/:restaurantId/site/content', requireAuth, restaurantAdmin, async (req, res) => {
+  const kind = kindOf(req); if (!kind) return res.status(400).json({ error: 'kind must be post or page' });
+  try { res.json({ kind, items: await listContent(pool, req.restaurant.id, kind), base: '/r/' + req.restaurant.slug }); }
+  catch { res.status(503).json({ error: 'Blog unavailable' }); }
+ });
+ router.post('/api/restaurants/:restaurantId/site/content/draft', requireAuth, rateLimit({ windowMs: 60000, max: 5, name: 'site-content-draft' }), restaurantAdmin, async (req, res) => {
+  try {
+   const [items] = await pool.execute('SELECT name,category FROM menu_items WHERE restaurant_id=? AND active=1 ORDER BY id LIMIT 40', [req.restaurant.id]);
+   const site = await loadSite(pool, req.restaurant);
+   const result = await draftPost({ restaurant: req.restaurant, topic: req.body?.topic, menuItems: items, language: site.config.language || 'en' });
+   if (result.status === 200) recordUsage(pool, req.restaurant.id, 'ai_chats', 1).catch?.(() => {});
+   res.status(result.status).json(result.body);
+  } catch { res.status(503).json({ error: 'AI writing unavailable' }); }
+ });
+ router.post('/api/restaurants/:restaurantId/site/content', requireAuth, restaurantAdmin, async (req, res) => {
+  const kind = kindOf(req); if (!kind) return res.status(400).json({ error: 'kind must be post or page' });
+  try {
+   const result = await createContent(pool, req.restaurant.id, kind, req.body);
+   if (result.status === 201) await audit(pool, { actorUserId: req.user.id, restaurantId: req.restaurant.id, action: 'site.' + kind + '.create' });
+   res.status(result.status).json(result.body);
+  } catch { res.status(503).json({ error: 'Blog unavailable' }); }
+ });
+ router.put('/api/restaurants/:restaurantId/site/content/:id', requireAuth, restaurantAdmin, async (req, res) => {
+  const kind = kindOf(req); if (!kind) return res.status(400).json({ error: 'kind must be post or page' });
+  try { const result = await updateContent(pool, req.restaurant.id, kind, Number(req.params.id), req.body); res.status(result.status).json(result.body); }
+  catch { res.status(503).json({ error: 'Blog unavailable' }); }
+ });
+ router.delete('/api/restaurants/:restaurantId/site/content/:id', requireAuth, restaurantAdmin, async (req, res) => {
+  const kind = kindOf(req); if (!kind) return res.status(400).json({ error: 'kind must be post or page' });
+  try {
+   const result = await deleteContent(pool, req.restaurant.id, kind, Number(req.params.id));
+   if (result.status === 200) await audit(pool, { actorUserId: req.user.id, restaurantId: req.restaurant.id, action: 'site.' + kind + '.delete' });
+   res.status(result.status).json(result.body);
+  } catch { res.status(503).json({ error: 'Blog unavailable' }); }
  });
 
  router.get('/api/restaurants/:restaurantId/site', requireAuth, restaurantAdmin, async (req, res) => {

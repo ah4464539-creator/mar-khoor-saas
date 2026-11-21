@@ -417,3 +417,12 @@ body.mk{margin:0}
 .owner-app .fwd-code code{font:600 15px/1.2 ui-monospace,Menlo,monospace;letter-spacing:.02em;direction:ltr;unicode-bidi:isolate}
 .owner-app .fwd-label{display:block;font-size:12px;color:var(--muted,#6b6058)}
 .owner-app .fwd-code>div{flex:1 1 auto;min-width:0}
+
+/* Blog & pages */
+.content-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.content-item{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;border:1px solid var(--line,#e5e1dc);border-radius:12px}
+.content-item p{margin:.2em 0 0}
+.content-actions{display:flex;gap:8px;flex-wrap:wrap}
+.content-categories{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.content-ai,.content-presets{margin-bottom:14px}
+#content-body{min-height:240px;font:inherit;line-height:1.5}

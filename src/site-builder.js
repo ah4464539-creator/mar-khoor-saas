@@ -108,6 +108,8 @@ export async function generateSiteConfig({ restaurant, menuItems = [], descripti
   }
 }
 
+export const CONTENT_CSS = '.site-article{max-width:760px;margin:auto}.site-article h1{font-size:clamp(1.8rem,4vw,2.6rem);line-height:1.15;margin:.2em 0 .4em}.site-article h2{margin:1.2em 0 .3em}.site-article ul{padding-inline-start:1.2em}.blog-meta{font-size:.85rem;opacity:.75;margin:0 0 .4em}.blog-card h3 a{color:inherit;text-decoration:none}.blog-card h3 a:hover{text-decoration:underline}.category-nav a[aria-current]{background:#ff952f33}.footer-links{display:flex;flex-wrap:wrap;gap:8px 18px}.footer-links a{font-size:.85rem}';
+
 export const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 function formatPrice(minor, currency) {
@@ -115,8 +117,14 @@ function formatPrice(minor, currency) {
   catch { return (Number(minor) / 100).toFixed(2) + ' ' + escapeHtml(currency); }
 }
 
+// Extra header/footer links (blog, content pages). Only same-site /r/<slug>/... paths are allowed.
+function extraLinks(list) {
+  return (Array.isArray(list) ? list : []).filter(l => typeof l?.href === 'string' && /^\/r\/[a-z0-9-]{1,160}\/(blog|p\/[a-z0-9-]{1,80})$/.test(l.href))
+    .map(l => '<a href="' + escapeHtml(l.href) + '">' + escapeHtml(clean(l.label, 40)) + '</a>').join('');
+}
+
 // Public storefront markup. All restaurant copy and item data are escaped before rendering.
-export function renderSitePage({ restaurant, config, items }, { assistant = '' } = {}) {
+export function renderSitePage({ restaurant, config, items }, { assistant = '', links = null, page = null } = {}) {
   const c = sanitizeSiteConfig(config, restaurant);
   const t = { bg: '#0b0b0d', ink: '#fff8ef', accent: '#ff952f', accentInk: '#190d05', card: '#181719', muted: '#bfb6ae' };
   const slug = /^[a-z0-9-]{1,160}$/.test(restaurant.slug) ? restaurant.slug : '';
@@ -181,7 +189,7 @@ export function renderSitePage({ restaurant, config, items }, { assistant = '' }
   const orderLinks = '<a href="' + ordersHref + '#orders">' + escapeHtml(L.track) + '</a><a href="' + ordersHref + '#orders">' + escapeHtml(L.history) + '</a><a href="' + ordersHref + '#refunds">' + escapeHtml(L.refunds) + '</a>';
   const SITE_TEMPLATE_CSS = "\n/* Safe layout presets: preset names are always server-side allowlisted. */\nbody.site-template-bistro{background:#fff8ef;color:#30231d}\n.site-template-bistro .site-header{background:#fff2e4;border-bottom:1px solid #e8cdb9}\n.site-template-bistro .wordmark{color:#9c491e}\n.site-template-bistro .site-nav a{color:#553a2c}\n.site-template-bistro .hero{background:radial-gradient(ellipse at 82% 30%,#f6c5a2 0,transparent 57%),#fff0dc;border-color:#eccab2}\n.site-template-bistro .hero p,.site-template-bistro .info-card p,.site-template-bistro .dish p{color:#69534a}\n.site-template-bistro .btn{background:linear-gradient(130deg,#e89348,#c25c2e);color:#fff}\n.site-template-bistro .feature{background:linear-gradient(145deg,#f5d6bd,#fff4e8);border:1px solid #dbb08e;box-shadow:0 20px 40px #7f462120}\n.site-template-bistro .feature span,.site-template-bistro .feature strong,.site-template-bistro .dish-footer strong{color:#9d451f}\n.site-template-bistro .dish,.site-template-bistro .info-card{background:#fffdf9;border:1px solid #eddbcd;box-shadow:0 12px 30px #75471c12}\n.site-template-bistro .category-nav a{color:#7a3d23;border-color:#e5b88d}\n.site-template-bistro .site-footer{border-top:1px solid #e8d6c7}\nbody.site-template-minimal{background:#ffffff;color:#222222;font-family:Georgia,'Times New Roman',serif}\n.site-template-minimal .site-header{background:#fff;border-color:#e5e1dd}\n.site-template-minimal .wordmark{font-family:system-ui,sans-serif;color:#232323;letter-spacing:.02em}\n.site-template-minimal .site-nav a{color:#424242}\n.site-template-minimal .hero{background:#f6f4f0;border-color:#e1ddd8}\n.site-template-minimal .hero .wrap{grid-template-columns:1fr minmax(0,.65fr)}\n.site-template-minimal .hero h1{font-family:Georgia,serif;font-weight:600;letter-spacing:-.06em}\n.site-template-minimal .hero p,.site-template-minimal .info-card p,.site-template-minimal .dish p{color:#565656}\n.site-template-minimal .btn{background:#242424;color:#fff;border-radius:4px}\n.site-template-minimal .feature{background:#fff;border:1px solid #dadada;border-radius:4px;box-shadow:none}\n.site-template-minimal .feature span,.site-template-minimal .feature strong,.site-template-minimal .dish-footer strong{color:#242424}\n.site-template-minimal .dish,.site-template-minimal .info-card{background:#fff;border:1px solid #e6e2dc;border-radius:4px}\n.site-template-minimal .dish-photo,.site-template-minimal .feature-photo{border-radius:3px}\n.site-template-minimal .category-nav a{color:#303030;border-color:#d1ccc5}\nbody.site-template-midnight{background:#0b1020;color:#eef1ff}\n.site-template-midnight .site-header{background:#111931;border-color:#ffffff17}\n.site-template-midnight .wordmark{color:#ffd18a}\n.site-template-midnight .site-nav a{color:#dae4ff}\n.site-template-midnight .hero{background:radial-gradient(ellipse at 80% 30%,#34487f 0,transparent 60%),#0b1430}\n.site-template-midnight .hero p,.site-template-midnight .info-card p,.site-template-midnight .dish p{color:#bfc9e3}\n.site-template-midnight .btn{background:linear-gradient(120deg,#ffc568,#ff9840);color:#20180d}\n.site-template-midnight .feature{background:linear-gradient(155deg,#202f52,#101b38);border:1px solid #6482be63}\n.site-template-midnight .dish,.site-template-midnight .info-card{background:#151e38;border:1px solid #7386b13b}\n.site-template-midnight .feature span,.site-template-midnight .feature strong,.site-template-midnight .dish-footer strong{color:#ffc576}\n.site-template-midnight .category-nav a{border-color:#627cb6;color:#cbdafa}\n.site-template-bistro .info-card a{color:#9c491e}\n.site-template-minimal .info-card a{color:#242424}\n.site-template-minimal .section-heading em{color:#242424;font-style:italic}\nbody.site-template-summit{background:#FBF7F2;color:#1C1714}\n.site-template-summit .site-header{background:#FFFFFF;border-color:#ECE2D7}\n.site-template-summit .wordmark{color:#1C1714;letter-spacing:.04em}\n.site-template-summit .site-nav a{color:#3A302A}\n.site-template-summit a{color:#A84B0A}\n.site-template-summit .hero{background:radial-gradient(ellipse at 85% 25%,#FFE3C4 0,transparent 55%),#FBF7F2;border-color:#ECE2D7}\n.site-template-summit .hero h1{letter-spacing:-.05em}\n.site-template-summit .hero-kicker{color:#A84B0A}\n.site-template-summit .hero p,.site-template-summit .info-card p,.site-template-summit .dish p{color:#6B5E55}\n.site-template-summit .btn{background:#E8701A;color:#1C1714;border-radius:12px}\n.site-template-summit .btn:hover{background:#F2832F}\n.site-template-summit .feature{background:#FFFFFF;border:1px solid #ECE2D7;border-radius:28px;box-shadow:0 24px 60px #1c17141f}\n.site-template-summit .feature span,.site-template-summit .feature strong,.site-template-summit .dish-footer strong{color:#A84B0A}\n.site-template-summit .dish,.site-template-summit .info-card{background:#FFFFFF;border:1px solid #ECE2D7;border-radius:20px;box-shadow:0 1px 2px #1c17140d,0 8px 24px #1c171410}\n.site-template-summit .section-heading em{color:#E8701A}\n.site-template-summit .category-nav a{color:#3A302A;border-color:#DCCBBB}\n.site-template-summit .category-nav a:hover{background:#FFF0E1}\n.site-template-summit .site-footer{background:#16120F;border:0}\n.site-template-summit .site-footer .wordmark{color:#FFC48A}\n@media(max-width:720px){.site-template-minimal .hero .wrap{grid-template-columns:minmax(0,1fr)}}\n";
   return '<!doctype html><html lang="' + escapeHtml(lang) + '" dir="' + dir + '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
-    + '<title>' + restaurantName + '</title><meta name="description" content="' + escapeHtml(c.tagline) + '">'
+    + '<title>' + (page ? escapeHtml(clean(page.title, 160)) + ' · ' : '') + restaurantName + '</title><meta name="description" content="' + escapeHtml(page?.description || c.tagline) + '">'
     + `<style>
 *{box-sizing:border-box}
 html{scroll-padding-top:16px}
@@ -221,20 +229,20 @@ main section+section{margin-top:22px}
 .site-footer .wrap{padding-block:24px 85px}
 @media(max-width:720px){.hero .wrap{grid-template-columns:minmax(0,1fr)}.feature{min-height:0}.menu-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:430px){.wrap{width:calc(100% - 32px)}.menu-grid{gap:10px}.dish{padding:14px;border-radius:18px}.site-nav{gap:8px 14px}.site-nav a{min-height:44px;display:inline-flex;align-items:center}}
-` + SITE_TEMPLATE_CSS + '</style><style>'
+` + SITE_TEMPLATE_CSS + CONTENT_CSS + '</style><style>'
     + (assistant ? assistantCss(t) : '')
     + '</style></head><body class="site-template-' + c.template + '">'
-    + '<header class="site-header"><div class="wrap"><a class="wordmark" href="#top">' + logo + restaurantName + '</a>'
-    + '<nav class="site-nav" aria-label="Customer navigation">' + (menuVisible ? '<a href="#menu">' + escapeHtml(L.menu) + '</a>' : '') + orderLinks + '</nav></div></header>'
-    + '<div class="hero" id="top"><div class="wrap"><div><h1>' + restaurantName + '</h1>' + introHeadline + '<p>' + escapeHtml(c.tagline) + '</p>'
+    + '<header class="site-header"><div class="wrap"><a class="wordmark" href="' + (page ? '/r/' + slug : '#top') + '">' + logo + restaurantName + '</a>'
+    + '<nav class="site-nav" aria-label="Customer navigation">' + (menuVisible ? '<a href="' + (page ? '/r/' + slug : '') + '#menu">' + escapeHtml(L.menu) + '</a>' : '') + orderLinks + extraLinks(links?.nav) + '</nav></div></header>'
+    + (page ? '' : '<div class="hero" id="top"><div class="wrap"><div><h1>' + restaurantName + '</h1>' + introHeadline + '<p>' + escapeHtml(c.tagline) + '</p>'
     + (menuVisible ? '<a class="btn" href="#menu">' + escapeHtml(L.explore) + '</a>' : '') + '</div>'
     + (c.cover && !featured ? '<aside class="feature" aria-label="Restaurant photo"><img class="feature-photo" src="' + escapeHtml(c.cover) + '" alt="" decoding="async"></aside>' : '')
     + (featured ? '<aside class="feature" aria-label="' + escapeHtml(L.featured) + '">' + (c.cover ? '<img class="feature-photo" src="' + escapeHtml(c.cover) + '" alt="" decoding="async">' : picture(featured, 'feature-photo')) + '<span>' + escapeHtml(L.featured) + '</span><h2>'
       + escapeHtml(clean(featured.name, 180)) + '</h2>'
       + (featured.description ? '<p>' + escapeHtml(clean(featured.description, 300)) + '</p>' : '')
-      + '<strong>' + price(featured) + '</strong></aside>' : '') + '</div></div>'
-    + '<main class="wrap">' + body + '</main><footer class="site-footer"><div class="wrap"><span class="wordmark">'
-    + restaurantName + '</span></div></footer>' + assistant + '</body></html>';
+      + '<strong>' + price(featured) + '</strong></aside>' : '') + '</div></div>')
+    + '<main class="wrap">' + (page ? page.html : body) + '</main><footer class="site-footer"><div class="wrap"><span class="wordmark">'
+    + restaurantName + '</span>' + (links?.footer?.length ? '<nav class="footer-links" aria-label="Pages">' + extraLinks(links.footer) + '</nav>' : '') + '</div></footer>' + assistant + '</body></html>';
 }
 
 
