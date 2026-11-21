@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="/summit.css?v=20261120-s4">
-<link rel="stylesheet" href="/platform.css?v=20261120-s8">
+<link rel="stylesheet" href="/platform.css?v=20261121-s9">
 </head>
 <body class="mk platform platform-app">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -42,7 +42,8 @@
 </main>
 
 <div id="platform-workspace" class="shell" hidden>
-<aside class="side" aria-label="Platform navigation">
+<aside class="side" id="platform-side" aria-label="Platform navigation">
+ <button type="button" class="side-close" id="menu-close" aria-label="Close menu">×</button>
  <a class="brand" href="/"><img src="/assets/markhor-mark-tile.svg" width="34" height="34" alt=""><b>Mar<span>-</span>Khoor</b></a>
  <div class="side-tenant"><div class="avatar"><svg width="18" height="18" aria-hidden="true"><use href="#i-shield"/></svg></div><div><strong>Platform console</strong><small>Super admin</small></div></div>
  <nav class="nav" aria-label="Platform sections">
@@ -57,16 +58,19 @@
   <a href="#phone-numbers"><svg aria-hidden="true"><use href="#i-phone"/></svg><span>Dedicated numbers</span></a>
   <a href="#number-routes"><svg aria-hidden="true"><use href="#i-globe"/></svg><span>Numbers by country</span></a>
   <a href="#whatsapp-worker"><svg aria-hidden="true"><use href="#i-chat"/></svg><span>WhatsApp worker</span></a>
+  <a href="#whatsapp-numbers"><svg aria-hidden="true"><use href="#i-chat"/></svg><span>WhatsApp numbers</span></a>
   <a href="#voice-assistants"><svg aria-hidden="true"><use href="#i-mic"/></svg><span>Voice assistants</span></a>
  </nav>
  <div class="side-foot"><button id="platform-sign-out" type="button" class="btn btn-sm btn-quiet"><svg width="18" height="18" aria-hidden="true"><use href="#i-logout"/></svg>Sign out</button></div>
 </aside>
+<div class="side-backdrop" id="side-backdrop" hidden></div>
 <main class="main">
  <header class="topbar" id="overview">
+  <button type="button" class="btn btn-quiet menu-toggle" id="menu-toggle" aria-controls="platform-side" aria-expanded="false" aria-label="Open menu"><svg width="22" height="22" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></button>
   <div><p class="small muted">Platform console</p><h1 id="platform-heading" tabindex="-1">Platform overview</h1><p class="sub">Tenant operations, plans and integrations at a glance.</p></div>
  </header>
  <p id="status" class="status-line" role="status"></p>
- <section class="grid-4 kpi-row" aria-label="Platform totals">
+ <section class="grid-4 kpi-row" id="overview-kpis" aria-label="Platform totals">
   <article class="card kpi"><div class="k-label">Restaurants<span class="k-icon"><svg width="18" height="18" aria-hidden="true"><use href="#i-store"/></svg></span></div><strong class="k-value num" id="restaurants">—</strong><div class="k-foot">Registered tenants</div></article>
   <article class="card kpi"><div class="k-label">Users<span class="k-icon"><svg width="18" height="18" aria-hidden="true"><use href="#i-users"/></svg></span></div><strong class="k-value num" id="users">—</strong><div class="k-foot">Platform accounts</div></article>
   <article class="card kpi"><div class="k-label">Orders<span class="k-icon"><svg width="18" height="18" aria-hidden="true"><use href="#i-orders"/></svg></span></div><strong class="k-value num" id="orders">—</strong><div class="k-foot">All restaurants</div></article>
@@ -157,12 +161,42 @@
 </main>
 </div>
 <script>
-document.addEventListener('click', event => {
- const link = event.target.closest('#platform-workspace .nav a');
- if (!link) return;
- for (const item of document.querySelectorAll('#platform-workspace .nav a')) item.removeAttribute('aria-current');
- link.setAttribute('aria-current', 'page');
-});
+(() => {
+ // One section at a time: the left menu picks which card is shown.
+ const VIEWS = ['overview','directory','subscriptions','plan-orders','integration-health','custom-domains','phone-numbers','number-routes','whatsapp-worker','whatsapp-numbers','voice-assistants'];
+ const side = document.getElementById('platform-side'), backdrop = document.getElementById('side-backdrop'), toggle = document.getElementById('menu-toggle');
+ const heading = document.getElementById('platform-heading'), sub = document.querySelector('#overview .sub');
+ const links = [...document.querySelectorAll('#platform-workspace .nav a')];
+ function openMenu(open) {
+  side.classList.toggle('open', open); backdrop.hidden = !open; toggle.setAttribute('aria-expanded', String(open));
+  document.body.classList.toggle('menu-open', open);
+ }
+ function show(view) {
+  if (!VIEWS.includes(view)) view = 'overview';
+  for (const id of VIEWS) { const el = id === 'overview' ? document.getElementById('overview-kpis') : document.getElementById(id); if (el) el.hidden = id !== view; }
+  const split = document.querySelector('.main .split');
+  if (split) split.hidden = view !== 'directory' && view !== 'whatsapp-worker';
+  const link = links.find(a => a.getAttribute('href') === '#' + view);
+  for (const a of links) { a.classList.toggle('selected', a === link); if (a === link) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); }
+  heading.textContent = view === 'overview' ? 'Platform overview' : (link?.textContent.trim() || 'Platform');
+  if (sub) sub.hidden = view !== 'overview';
+  window.scrollTo(0, 0);
+ }
+ toggle.addEventListener('click', () => openMenu(!side.classList.contains('open')));
+ document.getElementById('menu-close').addEventListener('click', () => openMenu(false));
+ backdrop.addEventListener('click', () => openMenu(false));
+ document.addEventListener('keydown', e => { if (e.key === 'Escape') openMenu(false); });
+ document.addEventListener('click', event => {
+  const link = event.target.closest('#platform-workspace .nav a');
+  if (!link) return;
+  event.preventDefault();
+  const view = link.getAttribute('href').slice(1);
+  history.replaceState(null, '', '#' + view);
+  show(view); openMenu(false);
+ });
+ window.addEventListener('hashchange', () => show(location.hash.slice(1)));
+ show(location.hash.slice(1));
+})();
 </script>
 <script type="module" src="/platform.js?v=20261121-s9"></script>
 </body>

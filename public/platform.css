@@ -58,3 +58,21 @@ body.mk{margin:0}
 .platform-app .sub-head{font-size:16px;margin:18px 0 8px}
 .platform-app #domains-help code{font-size:12px;background:var(--sunk);padding:1px 5px;border-radius:5px}
 .mk .tenant-row{display:flex;justify-content:space-between;align-items:center;gap:12px}.mk .tenant-delete{color:var(--danger,#b42318)}
+
+/* Left menu shows one section at a time; on phones it slides in from the left. */
+.platform-app .menu-toggle,.platform-app .side-close{display:none}
+@media(min-width:960px){.platform-app .shell{flex-wrap:nowrap}.platform-app .main{flex:1 1 auto;min-width:0}}
+@media(max-width:959px){
+ .platform-app .shell{display:block}
+ .mk.platform-app .shell>.side{position:fixed;inset:0 auto 0 0;width:min(290px,86vw);z-index:60;overflow-y:auto;transform:translateX(-105%);transition:transform .22s ease}
+ .mk.platform-app .shell>.side.open{transform:none;box-shadow:0 0 40px #0006}
+ .mk.platform-app .shell>.side{padding:22px 16px;gap:16px}
+ .mk.platform-app .shell>.side .nav{display:flex;flex-direction:column;overflow:visible;gap:2px;padding-bottom:0}
+ .mk.platform-app .shell>.side .nav-label,.mk.platform-app .shell>.side .side-foot{display:block}
+ .platform-app .side-close{display:grid;place-items:center;position:absolute;top:14px;right:12px;width:36px;height:36px;border:0;border-radius:10px;background:#ffffff14;color:#fff;font-size:22px;cursor:pointer}
+ .platform-app .side-backdrop{position:fixed;inset:0;background:#0b0f1299;z-index:55}
+ .platform-app .menu-toggle{display:inline-grid;place-items:center;width:44px;height:44px;padding:0;margin-right:10px;flex:none}
+ .mk.platform-app .topbar{display:flex;align-items:flex-start;justify-content:flex-start;gap:6px;text-align:start}
+ body.menu-open{overflow:hidden}
+}
+.platform-app [hidden]{display:none!important}
