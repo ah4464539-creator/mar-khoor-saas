@@ -3,7 +3,7 @@ import { createVoiceCalls, minutesLeft, maxMinutes, callIdFrom } from './voice-l
 import { URDU_SPEECH_RULES } from './speech-rules.js';
 import express from 'express';
 import { requireAuth } from './auth.js';
-import { generateSiteConfig, renderSitePage, SITE_CSP, SITE_TEMPLATES, assistantCss } from './site-builder.js';
+import { generateSiteConfig, renderSitePage, SITE_CSP, SITE_TEMPLATES, TEMPLATE_INFO, assistantCss } from './site-builder.js';
 import { loadRestaurant, loadSite, saveSite, canPublish, setPublished, loadPublicSite, loadAssistantSite } from './site-store.js';
 import { audit, rateLimit } from './security.js';
 import { restaurantAssistantInstructions } from './restaurant-assistant-policy.js';
@@ -439,7 +439,7 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
   catch { res.status(503).json({ error: 'Website analytics unavailable' }); }
  });
  router.get('/api/restaurants/:restaurantId/site/templates', requireAuth, restaurantAdmin, (_req, res) => {
-  res.json({ templates: Object.entries(SITE_TEMPLATES).map(([id, label]) => ({ id, label })) });
+  res.json({ templates: Object.entries(SITE_TEMPLATES).map(([id, label]) => ({ id, label, ...(TEMPLATE_INFO[id] || {}) })) });
  });
  router.post('/api/restaurants/:restaurantId/site/preview', requireAuth, restaurantAdmin, async (req, res) => {
   if (!req.body?.config || typeof req.body.config !== 'object' || Array.isArray(req.body.config))

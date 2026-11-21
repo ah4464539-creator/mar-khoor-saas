@@ -16,7 +16,7 @@ test('sanitizeSiteConfig keeps only safe plain values and fixed choices',()=>{
  assert.deepEqual(c.sections,['menu','about']);
  assert.ok(!('extra' in c));
  assert.equal(sanitizeSiteConfig({phone:'call <me>'},restaurant).phone,'');
- assert.deepEqual(sanitizeSiteConfig({sections:['x']},restaurant).sections,SECTIONS);
+ assert.deepEqual(sanitizeSiteConfig({sections:['x']},restaurant).sections,['about','menu','hours','contact']);
  assert.deepEqual(sanitizeSiteConfig(null,restaurant),defaultSiteConfig(restaurant));
  assert.equal(sanitizeSiteConfig({theme:'constructor'},restaurant).theme,'green');
 });
@@ -92,7 +92,7 @@ test('templates are allowlisted, existing sites stay classic and each preset has
  assert.equal(defaultSiteConfig(restaurant).template,'classic');
  assert.equal(sanitizeSiteConfig({template:'constructor'},restaurant).template,'classic');
  assert.equal(sanitizeSiteConfig({template:'" onload="alert(1)'},restaurant).template,'classic');
- assert.deepEqual(Object.keys(SITE_TEMPLATES),['classic','bistro','minimal','midnight','summit']);
+ assert.deepEqual(Object.keys(SITE_TEMPLATES),['classic','bistro','minimal','midnight','summit','street','cafe','desi','bakery','fresh','noir']);
  for(const id of Object.keys(SITE_TEMPLATES)){
   const config=sanitizeSiteConfig({template:id,headline:'Hello'},restaurant);
   assert.equal(config.template,id);
