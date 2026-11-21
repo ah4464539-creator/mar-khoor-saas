@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { createVoiceCalls, callIdFrom, maxMinutes, minutesLeft } from '../src/voice-limits.js';
+import { createVoiceCalls, callIdFrom, maxMinutes, minutesLeft, planVoiceMinutes, voiceUsageEntry } from '../src/voice-limits.js';
 
 const usagePool = () => {
   const recorded = [];
-  return { recorded, async execute(sql, params) {
-    if (sql.startsWith('INSERT INTO usage_counters')) recorded.push(params[3]);
+  return { recorded, async query() { return [[]]; }, async execute(sql, params) {
+    if (sql.startsWith('INSERT INTO website_voice_usage')) recorded.push(params[2]);
+    if (sql.startsWith('INSERT INTO usage_counters')) throw Error('must not touch phone-call minutes');
     return [[]];
   } };
 };
@@ -46,16 +47,27 @@ test('another restaurant cannot end a call it does not own', async () => {
   assert.equal(calls.size(), 1);
 });
 
-test('minutes left: plan minutes, small allowance without a plan, never blocks on errors', async () => {
-  const pool = (sub, used) => ({ async execute(sql) {
+test('minutes left: own live-voice limit, separate from phone-call minutes', async () => {
+  const pool = (sub, used, callUsed = 0) => ({ async query() { return [[]]; }, async execute(sql) {
     if (sql.startsWith('SELECT plan_key')) return [sub ? [{ plan_key: 'starter', billing_cycle: 'monthly', status: 'active', limits: JSON.stringify({ ai_call_minutes: 100 }), currency: 'USD', price_minor: 3900 }] : []];
-    if (sql.startsWith('SELECT metric,used')) return [[{ metric: 'ai_call_minutes', used }]];
+    if (sql.startsWith('SELECT minutes FROM website_voice_usage')) return [[{ minutes: used }]];
+    if (sql.startsWith('SELECT metric,used')) return [[{ metric: 'ai_call_minutes', used: callUsed }]];
     return [[]];
   } });
-  assert.equal(await minutesLeft(pool(true, 40), 4), 60);
+  assert.equal(await minutesLeft(pool(true, 40, 100), 4), 60, 'phone calls used up does not block website voice');
   assert.equal(await minutesLeft(pool(true, 140), 4), 0);
   assert.equal(await minutesLeft(pool(false, 10), 4, { env: {} }), 20);
-  assert.equal(await minutesLeft({ async execute() { throw Error('db down'); } }, 4), null);
+  assert.equal(await minutesLeft({ async query() { throw Error('db down'); }, async execute() { throw Error('db down'); } }, 4), null);
+  const entry = await voiceUsageEntry(pool(true, 80), 4, { plan: 'starter', status: 'active', limits: {} }, { env: {} });
+  assert.deepEqual([entry.metric, entry.used, entry.limit, entry.warning, entry.stops_at_limit], ['ai_voice_minutes', 80, 100, 75, true]);
+});
+
+test('per-plan live-voice minutes: plan value, env override, defaults', () => {
+  assert.equal(planVoiceMinutes({ plan: 'premium', limits: {} }, {}), 400);
+  assert.equal(planVoiceMinutes({ plan: 'starter', limits: { ai_voice_minutes: 250 } }, {}), 250);
+  assert.equal(planVoiceMinutes({ plan: 'starter', limits: {} }, { WEBSITE_VOICE_PLAN_MINUTES_JSON: '{"starter":1000}' }), 1000);
+  assert.equal(planVoiceMinutes({ plan: 'starter', limits: {} }, { WEBSITE_VOICE_PLAN_MINUTES_JSON: 'bad' }), 100);
+  assert.equal(planVoiceMinutes({ plan: 'nope', limits: {} }, {}), null);
 });
 
 test('route refuses voice when minutes are used up; client stops at the limit', () => {
