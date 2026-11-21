@@ -418,7 +418,20 @@ async function loadWhatsAppNumbers() {
     const ai = document.createElement('p'); ai.className = 'small muted'; ai.textContent = 'AI replies: ' + (n.ai_enabled ? 'on' : 'off') + (n.ai_pilot ? ' · pilot (free)' : '');
     main.append(ai);
     const actions = document.createElement('div'); actions.style.cssText = 'display:flex;gap:8px;align-items:center;flex-wrap:wrap';
-    actions.append(tag, pilot);
+    const calls = document.createElement('button'); calls.type = 'button'; calls.className = 'btn btn-sm ' + (n.calling_on ? 'btn-quiet' : 'btn-dark');
+    calls.textContent = n.calling_on ? 'WhatsApp calls: ON (turn off)' : 'Turn on WhatsApp calls';
+    calls.title = 'Customers can call this number inside WhatsApp; the restaurant voice assistant answers (pilot)';
+    const callInfo = document.createElement('p'); callInfo.className = 'small muted';
+    calls.addEventListener('click', async () => {
+      calls.disabled = true; callInfo.textContent = n.calling_on ? 'Turning off…' : 'Setting up calling (Vapi + Meta)…';
+      try { await platformApi('/api/platform/restaurants/' + n.restaurant_id + '/whatsapp-calling', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ on: !n.calling_on }) }); await loadWhatsAppNumbers(); }
+      catch (error) { callInfo.textContent = error.message; calls.disabled = false; }
+    });
+    if (n.calling_on) platformApi('/api/platform/restaurants/' + n.restaurant_id + '/whatsapp-calling').then(s => {
+      callInfo.textContent = 'WhatsApp calls: Meta ' + (s.meta?.status || '?') + ' · SIP ' + (s.meta?.sip_status || '?') + ' · ' + (s.meta?.srtp || '') + (s.error ? ' · ' + s.error : '');
+    }).catch(() => {});
+    main.append(callInfo);
+    actions.append(tag, pilot, calls);
     row.append(main, actions); root.append(row);
   }
   if (!data.numbers.length) root.textContent = 'No WhatsApp number is connected to any restaurant yet, so incoming WhatsApp messages are ignored.';
