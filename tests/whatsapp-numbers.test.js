@@ -13,3 +13,11 @@ test('super admin lists WhatsApp numbers with the real phone number from Meta', 
   assert.match(js, /\[loadWhatsAppNumbers, '#wa-number-list'\]/);
   assert.ok(!/loadWhatsAppNumbers[\s\S]*innerHTML/.test(js.slice(js.indexOf('async function loadWhatsAppNumbers'))));
 });
+
+test('super admin menu opens each section on its own and slides in on phones', () => {
+  const page = readFileSync('src/views/super-admin.html', 'utf8');
+  assert.match(page, /href="#whatsapp-numbers"/);
+  assert.match(page, /id="menu-toggle"/);
+  assert.match(page, /const VIEWS = \[/);
+  assert.match(readFileSync('public/platform.css', 'utf8'), /\.side\.open\{transform:none/);
+});
