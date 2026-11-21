@@ -44,3 +44,13 @@ test('AI gets menu prices as customers see them (stored ×100)', async () => {
   assert.equal(fn(7200000, 'PKR'), 'PKR 72,000');
   assert.match(src, /price:menuPrice\(i\.price_minor,job\.currency\)/);
 });
+
+test('AI reply switch defaults to on and can be turned off', async () => {
+  const { workerSwitch, setWorkerSwitch } = await import('../src/whatsapp-pilot.js');
+  const store = new Map();
+  const pool = { async query(sql, p = []) { if (sql.startsWith('SELECT setting_value')) return [store.has(p[0]) ? [{ setting_value: store.get(p[0]) }] : []]; if (sql.startsWith('INSERT INTO app_settings')) store.set(p[0], p[1]); return [[]]; } };
+  assert.equal(await workerSwitch(pool), 'on');
+  assert.equal(await setWorkerSwitch(pool, false), 'off');
+  assert.equal(await workerSwitch(pool), 'off');
+  assert.equal(await setWorkerSwitch(pool, true), 'on');
+});

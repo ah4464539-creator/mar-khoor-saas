@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { getPilotIds } from './whatsapp-pilot.js';
+import { getPilotIds, workerSwitch } from './whatsapp-pilot.js';
 import { tokenForNumber } from './whatsapp-signup-core.js';
 import { ensureToolsTable } from './tools.js';
 import mysql from 'mysql2/promise';
@@ -84,22 +84,24 @@ export async function processWhatsAppAIJobs(pool,{fetcher=fetch,restaurantId=nul
 // Run from the long-lived Node service when enabled. Wait for each batch to
 // finish before scheduling the next one; database claims guard across processes.
 export function startWhatsAppAIWorker(pool) {
- // WHATSAPP_AI_WORKER_ENABLED=1: every paid restaurant (plus pilots). Otherwise the worker still
- // serves restaurants the super admin put on the WhatsApp AI pilot, and nothing else.
- const allPaid = workerEnabled();
+ // Serves every paid restaurant plus super-admin pilots. The on/off switch lives in super admin
+ // (app_settings); WHATSAPP_AI_WORKER_ENABLED is no longer needed. Restaurants still opt in.
  const { alwaysAllowed } = workerScope();
  if (!process.env.OPENAI_API_KEY || !process.env.WHATSAPP_ACCESS_TOKEN) {
   console.warn('WhatsApp AI worker disabled: missing OpenAI or WhatsApp configuration');
   return;
  }
- console.log('WhatsApp AI worker started (' + (allPaid ? 'paid restaurants and pilots' : 'pilot restaurants only') + ')');
- let toolsReady = typeof pool.query !== 'function';
+ console.log('WhatsApp AI worker started');
+ let toolsReady = typeof pool.query !== 'function', lastMode = 'on';
  const run = async () => {
   try {
    if (!toolsReady) { try { await ensureToolsTable(pool); } catch {} toolsReady = true; }
-   const pilot = typeof pool.query === 'function' ? await getPilotIds(pool) : [];
-   if (allPaid) await processWhatsAppAIJobs(pool,{alwaysAllowed:[...new Set([...alwaysAllowed,...pilot])]});
-   else for (const restaurantId of pilot) await processWhatsAppAIJobs(pool,{restaurantId});
+   const mode = typeof pool.query === 'function' ? await workerSwitch(pool) : 'on';
+   if (mode !== lastMode) { console.log('WhatsApp AI replies switched ' + mode + ' in super admin'); lastMode = mode; }
+   if (mode === 'on') {
+    const pilot = typeof pool.query === 'function' ? await getPilotIds(pool) : [];
+    await processWhatsAppAIJobs(pool,{alwaysAllowed:[...new Set([...alwaysAllowed,...pilot])]});
+   }
   } catch (error) {
    const code = /^[A-Z][A-Z0-9_]{1,63}$/.test(error?.code ?? '') ? error.code : 'UNKNOWN';
    console.warn('WhatsApp AI worker batch failed:', code, String(error?.message||'').slice(0,120));

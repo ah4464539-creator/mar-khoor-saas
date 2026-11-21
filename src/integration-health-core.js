@@ -16,7 +16,8 @@ export function configStatus(env = process.env) {
     domains: { missing: need(['HOSTINGER_API_TOKEN', 'HOSTINGER_USERNAME']) },
     billing: { missing: need(['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET']) },
     email: { missing: present(env, 'MAIL_FROM') && (present(env, 'RESEND_API_KEY') || (present(env, 'SMTP_HOST') && present(env, 'SMTP_USER') && present(env, 'SMTP_PASSWORD'))) ? [] : ['MAIL_FROM with RESEND_API_KEY or SMTP_*'] },
-    payments: { missing: stripeReady(env) ? [] : ['STRIPE_CHECKOUT_ENABLED=1, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET'], deferred: !stripeReady(env) },
+    // Customer card payments: list only keys that are really absent; the on/off switch is not a missing key.
+    payments: { missing: stripeReady(env) ? [] : need(['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET']), deferred: !stripeReady(env) },
   };
 }
 
@@ -50,7 +51,7 @@ export function summarize(config, act) {
     domains: channel(config.domains.missing, false, 'Connects restaurant domains automatically (hosting, DNS, SSL) and lets you buy domains for restaurants.'),
     email: channel(config.email.missing, false, 'Needed for password-reset emails.'),
     payments: config.payments.deferred
-      ? { status: 'deferred', missing: config.payments.missing, note: `Online card payments are intentionally off. Cash on delivery/pickup is live (${Number(act.cash?.week) || 0} cash orders in 7 days).` }
+      ? { status: 'deferred', missing: config.payments.missing, note: `Customers paying for food by card is switched off on purpose (plan payments use the same Stripe keys and work). Cash, card on delivery and transfer methods are live (${Number(act.cash?.week) || 0} cash orders in 7 days).` }
       : channel([], false, 'Stripe is enabled; place one small live test payment.'),
     orders: { status: recent(act.orders?.last_at, 2) ? 'live' : 'configured', missing: [], note: `Orders today: ${Number(act.orders?.today) || 0}.` },
   };

@@ -22,3 +22,17 @@ export async function setPilot(pool, restaurantId, on) {
   if (on) await pool.query('INSERT INTO whatsapp_ai_settings(restaurant_id,enabled) VALUES (?,TRUE) ON DUPLICATE KEY UPDATE enabled=TRUE', [restaurantId]);
   return list;
 }
+
+// Super-admin on/off switch for WhatsApp AI replies (all restaurants). On unless switched off.
+const SWITCH = 'whatsapp_ai_worker';
+export async function workerSwitch(pool) {
+  try {
+    const [rows] = await pool.query('SELECT setting_value FROM app_settings WHERE setting_key=?', [SWITCH]);
+    return rows[0]?.setting_value === 'off' ? 'off' : 'on';
+  } catch { return 'on'; }
+}
+export async function setWorkerSwitch(pool, on) {
+  await pool.query(VOICE_SETTINGS_SQL);
+  await pool.query('INSERT INTO app_settings (setting_key,setting_value) VALUES (?,?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value)', [SWITCH, on ? 'on' : 'off']);
+  return on ? 'on' : 'off';
+}
