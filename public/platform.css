@@ -76,3 +76,59 @@ body.mk{margin:0}
  body.menu-open{overflow:hidden}
 }
 .platform-app [hidden]{display:none!important}
+
+/* ===== Boxy layout (2026-11-22): every list item, form and setting sits in its own box ===== */
+.platform-app .main{background:radial-gradient(ellipse at 100% 0%,#e1f2f1 0,transparent 45%),var(--ground)}
+.platform-app .main>section.card,.platform-app .main>.split>section.card,.platform-app .overview-wrap>section.card{border:1px solid var(--line);border-radius:var(--r-xl);box-shadow:var(--shadow);background:var(--surface)}
+.platform-app .card-head{padding-bottom:12px;margin-bottom:14px;border-bottom:1px solid var(--line)}
+.platform-app .card-head h2{display:flex;align-items:center;gap:10px;font:750 20px/1.2 var(--display);letter-spacing:-.02em}
+.platform-app .card-head h2::before{content:"";width:8px;height:22px;border-radius:4px;background:linear-gradient(180deg,var(--teal),#3fa7a0)}
+
+/* Overview: KPIs + section tiles */
+.platform-app .overview-wrap{display:grid;gap:18px}
+.platform-app .overview-wrap .kpi-row .card{border-radius:var(--r-xl);background:linear-gradient(160deg,#fff 0,#f4fbfa 100%);border:1px solid #d7ebe8}
+.platform-app .overview-wrap .k-value{font-size:34px}
+.platform-app .overview-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.platform-app .overview-tile{display:flex;gap:12px;align-items:flex-start;padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--ink);text-decoration:none;transition:transform .12s,box-shadow .12s,border-color .12s}
+.platform-app .overview-tile:hover,.platform-app .overview-tile:focus-visible{transform:translateY(-2px);box-shadow:0 10px 24px #1c171414;border-color:#bfdedb}
+.platform-app .overview-tile strong{display:block;font-size:15px}
+.platform-app .overview-tile small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+.platform-app .tile-icon{display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:12px;background:var(--teal-bg);color:var(--teal)}
+
+/* Lists become grids of boxes */
+.platform-app .row-list{grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:12px}
+.platform-app .row-list>p,.platform-app .row-list>div,.platform-app .row-list>article{padding:14px 16px;border:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:16px;background:var(--surface);box-shadow:0 1px 2px #1c17140a;align-content:start}
+.platform-app .row-list>:last-child{border-bottom:1px solid var(--line)}
+.platform-app .row-list>p:hover,.platform-app .row-list>div:hover,.platform-app .row-list>article:hover{border-color:var(--line-strong);box-shadow:0 8px 20px #1c171412}
+.platform-app .row-list button{border-radius:999px}
+.platform-app .row-list .row{display:grid;grid-template-columns:1fr;gap:10px}
+.platform-app .row-list .row strong{font-size:15px}
+.platform-app .row-list .row p{margin:2px 0}
+.platform-app .row-list.muted:not(:has(p,div,article)){padding:18px;border:1px dashed var(--line-strong);border-radius:16px;text-align:center}
+/* Wide tables of orders and numbers keep one box per line */
+.platform-app #order-list,.platform-app #number-list,.platform-app #route-list,.platform-app #subscription-list{grid-template-columns:1fr}
+
+/* Forms and settings in soft boxes */
+.platform-app .form-grid{padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--sunk)}
+.platform-app .main details{margin-top:14px;border:1px solid var(--line);border-radius:16px;background:var(--surface);padding:0}
+.platform-app .main details>summary{list-style:none;cursor:pointer;padding:14px 16px;font-weight:700;color:var(--ink);display:flex;justify-content:space-between;align-items:center}
+.platform-app .main details>summary::-webkit-details-marker{display:none}
+.platform-app .main details>summary::after{content:"+";font:700 18px var(--display);color:var(--teal)}
+.platform-app .main details[open]>summary::after{content:"–"}
+.platform-app .main details[open]{padding:0 16px 16px}
+.platform-app .main details[open]>summary{margin:0 -16px 8px;border-bottom:1px solid var(--line)}
+.platform-app .add-mapping{border-top:0;padding-top:0}
+
+/* Health and worker boxes */
+.platform-app .health-grid{gap:14px}
+.platform-app .health-card{border-radius:16px;padding:16px;box-shadow:0 1px 2px #1c17140a}
+.platform-app .health-card[data-status=live]{background:linear-gradient(180deg,#f2fbf6,#fff)}
+.platform-app .health-card[data-status=missing]{background:linear-gradient(180deg,#fdf3f2,#fff)}
+.platform-app .worker-switch{padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--sunk);display:grid;gap:10px}
+.platform-app .worker-metrics{gap:12px}
+.platform-app .worker-metrics>div,.platform-app .worker-metrics dt{border-radius:12px}
+.platform-app .status-line:not(:empty){padding:10px 14px;border-radius:12px;background:var(--teal-bg);color:var(--teal);font-weight:600}
+.platform-app .split{gap:18px}
+@media(max-width:640px){.platform-app .row-list{grid-template-columns:1fr}.platform-app .overview-tiles{grid-template-columns:1fr}}
+.platform-app .worker-metrics>div{padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.platform-app .worker-metrics>div dd{margin:4px 0 0}

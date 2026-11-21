@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="/summit.css?v=20261120-s4">
-<link rel="stylesheet" href="/platform.css?v=20261121-s9">
+<link rel="stylesheet" href="/platform.css?v=20261122-s10">
 </head>
 <body class="mk platform platform-app">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -70,11 +70,28 @@
   <div><p class="small muted">Platform console</p><h1 id="platform-heading" tabindex="-1">Platform overview</h1><p class="sub">Tenant operations, plans and integrations at a glance.</p></div>
  </header>
  <p id="status" class="status-line" role="status"></p>
- <section class="grid-4 kpi-row" id="overview-kpis" aria-label="Platform totals">
+ <div id="overview-kpis" class="overview-wrap">
+  <section class="grid-4 kpi-row" aria-label="Platform totals">
   <article class="card kpi"><div class="k-label">Restaurants<span class="k-icon"><svg width="18" height="18" aria-hidden="true"><use href="#i-store"/></svg></span></div><strong class="k-value num" id="restaurants">—</strong><div class="k-foot">Registered tenants</div></article>
   <article class="card kpi"><div class="k-label">Users<span class="k-icon"><svg width="18" height="18" aria-hidden="true"><use href="#i-users"/></svg></span></div><strong class="k-value num" id="users">—</strong><div class="k-foot">Platform accounts</div></article>
   <article class="card kpi"><div class="k-label">Orders<span class="k-icon"><svg width="18" height="18" aria-hidden="true"><use href="#i-orders"/></svg></span></div><strong class="k-value num" id="orders">—</strong><div class="k-foot">All restaurants</div></article>
- </section>
+  </section>
+  <section class="card card-pad overview-tiles-card" aria-labelledby="overview-tiles-title">
+   <div class="card-head"><h2 id="overview-tiles-title">Go to</h2></div>
+   <nav class="overview-tiles" aria-label="Platform sections">
+   <a class="overview-tile" href="#directory"><span class="tile-icon"><svg width="20" height="20" aria-hidden="true"><use href="#i-store"/></svg></span><span><strong>Restaurants</strong><small>Accounts, owners and deleting test restaurants</small></span></a>
+   <a class="overview-tile" href="#subscriptions"><span class="tile-icon"><svg width="20" height="20" aria-hidden="true"><use href="#i-layers"/></svg></span><span><strong>Subscriptions</strong><small>Who is on Starter, Premium or Enterprise</small></span></a>
+   <a class="overview-tile" href="#plan-orders"><span class="tile-icon"><svg width="20" height="20" aria-hidden="true"><use href="#i-card"/></svg></span><span><strong>Plan orders</strong><small>Confirm payments and move orders forward</small></span></a>
+   <a class="overview-tile" href="#integration-health"><span class="tile-icon"><svg width="20" height="20" aria-hidden="true"><use href="#i-shield"/></svg></span><span><strong>Integration health</strong><small>Which services are set up and working</small></span></a>
+   <a class="overview-tile" href="#custom-domains"><span class="tile-icon"><svg width="20" height="20" aria-hidden="true"><use href="#i-globe"/></svg></span><span><strong>Custom domains</strong><small>Restaurant domains, DNS and SSL</small></span></a>
+   <a class="overview-tile" href="#phone-numbers"><span class="tile-icon"><svg width="20" height="20" aria-hidden="true"><use href="#i-phone"/></svg></span><span><strong>Dedicated numbers</strong><small>Buy and assign AI caller numbers</small></span></a>
+   <a class="overview-tile" href="#number-routes"><span class="tile-icon"><svg width="20" height="20" aria-hidden="true"><use href="#i-globe"/></svg></span><span><strong>Numbers by country</strong><small>Provider and price per country</small></span></a>
+   <a class="overview-tile" href="#whatsapp-worker"><span class="tile-icon"><svg width="20" height="20" aria-hidden="true"><use href="#i-chat"/></svg></span><span><strong>WhatsApp worker</strong><small>AI replies switch and delivery counts</small></span></a>
+   <a class="overview-tile" href="#whatsapp-numbers"><span class="tile-icon"><svg width="20" height="20" aria-hidden="true"><use href="#i-chat"/></svg></span><span><strong>WhatsApp numbers</strong><small>Numbers, pilots, calling and signup</small></span></a>
+   <a class="overview-tile" href="#voice-assistants"><span class="tile-icon"><svg width="20" height="20" aria-hidden="true"><use href="#i-mic"/></svg></span><span><strong>Voice assistants</strong><small>Vapi assistant mappings</small></span></a>
+   </nav>
+  </section>
+ </div>
 
  <div class="split">
   <section class="card card-pad grow" id="directory" tabindex="-1"><div class="card-head"><h2>Restaurants directory</h2></div><div id="tenant-list" class="row-list muted">Loading…</div></section>
@@ -213,6 +230,6 @@
  show(location.hash.slice(1));
 })();
 </script>
-<script type="module" src="/platform.js?v=20261122-s14"></script>
+<script type="module" src="/platform.js?v=20261122-s15"></script>
 </body>
 </html>
