@@ -41,13 +41,24 @@
     let form = box.querySelector('.wa-otp');
     if (form) return form;
     form = document.createElement('div'); form.className = 'wa-otp';
-    form.innerHTML = '<p class="wa-otp-title"><strong>Activate WhatsApp with your number</strong></p>'
-      + '<div class="field"><label>WhatsApp number for your restaurant</label><input class="input" data-phone name="wa-otp-phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="32" placeholder="+92 300 1234567"></div>'
-      + '<div class="field"><label>Name customers will see</label><input class="input" name="wa-otp-name" maxlength="120" placeholder="e.g. Urban Cafe"></div>'
-      + '<div class="wa-otp-row"><select class="input" name="wa-otp-method" aria-label="How to receive the code"><option value="SMS">Code by SMS</option><option value="VOICE">Code by phone call</option></select><button type="button" class="btn btn-primary" data-otp-send>Send code</button></div>'
-      + '<div class="wa-otp-row" data-otp-code hidden><input class="input" name="wa-otp-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6-digit code" aria-label="6-digit code"><button type="button" class="btn btn-primary" data-otp-verify>Activate</button></div>'
-      + '<p class="hint">This number must <strong>not</strong> be active in the WhatsApp or WhatsApp Business app (delete WhatsApp from it first, or use a new SIM). It must be able to receive an SMS or a call.</p>'
-      + '<p class="wa-otp-status" role="status"></p>';
+    const make = (tag, attrs = {}, kids = []) => { const n = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) { if (k === 'text') n.textContent = v; else if (k === 'hidden') n.hidden = v; else n.setAttribute(k, v); } n.append(...kids); return n; };
+    const field = (label, input) => make('div', { class: 'field' }, [make('label', {}, [label, input])]);
+    const strongNot = make('strong', { text: 'not' });
+    form.append(
+      make('p', { class: 'wa-otp-title' }, [make('strong', { text: 'Activate WhatsApp with your number' })]),
+      field('WhatsApp number for your restaurant', make('input', { class: 'input', 'data-phone': '', name: 'wa-otp-phone', type: 'tel', inputmode: 'tel', autocomplete: 'tel', maxlength: '32', placeholder: '+92 300 1234567' })),
+      field('Name customers will see', make('input', { class: 'input', name: 'wa-otp-name', maxlength: '120', placeholder: 'e.g. Urban Cafe' })),
+      make('div', { class: 'wa-otp-row' }, [
+        make('select', { class: 'input', name: 'wa-otp-method', 'aria-label': 'How to receive the code' }, [make('option', { value: 'SMS', text: 'Code by SMS' }), make('option', { value: 'VOICE', text: 'Code by phone call' })]),
+        make('button', { type: 'button', class: 'btn btn-primary', 'data-otp-send': '', text: 'Send code' }),
+      ]),
+      make('div', { class: 'wa-otp-row', 'data-otp-code': '', hidden: true }, [
+        make('input', { class: 'input', name: 'wa-otp-code', inputmode: 'numeric', autocomplete: 'one-time-code', maxlength: '6', placeholder: '6-digit code', 'aria-label': '6-digit code' }),
+        make('button', { type: 'button', class: 'btn btn-primary', 'data-otp-verify': '', text: 'Activate' }),
+      ]),
+      make('p', { class: 'hint' }, ['This number must ', strongNot, ' be active in the WhatsApp or WhatsApp Business app (delete WhatsApp from it first, or use a new SIM). It must be able to receive an SMS or a call.']),
+      make('p', { class: 'wa-otp-status', role: 'status' }),
+    );
     box.append(form);
     window.mkPhone?.scan?.();
     const status = form.querySelector('.wa-otp-status'), phone = form.querySelector('[name="wa-otp-phone"]'), name = form.querySelector('[name="wa-otp-name"]');
