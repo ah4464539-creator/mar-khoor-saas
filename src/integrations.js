@@ -108,7 +108,14 @@ export function integrationRouter(pool){
       'SELECT 1 FROM whatsapp_numbers w LEFT JOIN whatsapp_outbound_messages o ON o.phone_number_id=w.phone_number_id AND o.restaurant_id=w.restaurant_id AND o.message_id=? WHERE w.phone_number_id=? AND w.active=1 AND o.message_id IS NULL LIMIT 1',
       [event.id,event.phoneId]
      );
-     if(missing.length)retryRecentStatus=true;
+     // Ask Meta to replay only while one of OUR sends is still in flight for this number
+     // (status can beat the outbound INSERT). Statuses for messages sent elsewhere (Meta
+     // dashboard tests, other apps) are acknowledged, otherwise Meta retries them for hours.
+     let inFlight=[];
+     if(missing.length){
+      try{[inFlight]=await pool.execute("SELECT 1 FROM whatsapp_ai_jobs j JOIN whatsapp_inbound_messages m ON m.message_id=j.inbound_message_id AND m.restaurant_id=j.restaurant_id WHERE m.phone_number_id=? AND j.status='processing' LIMIT 1",[event.phoneId]);}catch{inFlight=[];}
+     }
+     if(missing.length&&inFlight.length)retryRecentStatus=true;
      else {
       const [reapplied]=await applyStatus();
       updated_statuses+=reapplied.affectedRows;
