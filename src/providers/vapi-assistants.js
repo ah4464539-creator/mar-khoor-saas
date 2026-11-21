@@ -48,7 +48,13 @@ export function assistantCopy(template, { name, restaurantId, restaurantName = '
 export async function cloneAssistant({ apiKey, templateId, name, restaurantId, restaurantName, voice = null, fetcher = fetch }) {
   if (!/^[a-zA-Z0-9_-]{1,128}$/.test(templateId || '')) throw Error('Invalid template assistant id');
   const template = await call(fetcher, apiKey, '/assistant/' + templateId);
-  const created = await call(fetcher, apiKey, '/assistant', { method: 'POST', body: JSON.stringify(assistantCopy(template, { name, restaurantId, restaurantName, voice })) });
+  let created;
+  try { created = await call(fetcher, apiKey, '/assistant', { method: 'POST', body: JSON.stringify(assistantCopy(template, { name, restaurantId, restaurantName, voice })) }); }
+  catch (error) {
+    // If Vapi refuses OpenAI "marin" outside realtime models, use the next best female voice.
+    if (voice?.provider !== 'openai' || voice?.voiceId !== 'marin') throw error;
+    created = await call(fetcher, apiKey, '/assistant', { method: 'POST', body: JSON.stringify(assistantCopy(template, { name, restaurantId, restaurantName, voice: { ...voice, voiceId: 'coral' } })) });
+  }
   if (typeof created?.id !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(created.id)) throw Error('Vapi returned no assistant id');
   return { id: created.id };
 }

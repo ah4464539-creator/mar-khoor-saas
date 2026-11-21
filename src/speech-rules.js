@@ -6,7 +6,8 @@ export const URDU_SPEECH_RULES = SPEECH_RULES_MARKER + ` Your replies are spoken
 - For a sum say "Total" (in English letters). Never write کل for a total; use کل only for "tomorrow" and then write it as کَل.
 - Put zer, zabar or pesh (ِ َ ُ) on any short Urdu word that can be read two ways.
 - Write prices as digits followed by روپے, for example 1,450 روپے.
-- Keep sentences short and natural, like a polite restaurant host.`;
+- Keep sentences short and natural, like a polite restaurant host.
+- Sound professional: calm, warm, clear and respectful; no slang or jokes.`;
 
 /** Append the rules to a Vapi model's system message (idempotent). */
 export function withSpeechRules(model) {
