@@ -37,7 +37,10 @@ export const I18N_SQL = `CREATE TABLE IF NOT EXISTS i18n_strings (
 export const normalize = text => String(text).replace(/\s+/g, ' ').trim();
 export const hashText = text => createHash('sha1').update(normalize(text)).digest('hex');
 const KEEP = new Set(['Mar', 'Khoor', 'Mar-Khoor', 'MARKHOOR', 'Markhoor', 'Mar-Khoor AI', 'WhatsApp', 'Stripe', 'OK', 'AI']);
-const looksTranslatable = text => !KEEP.has(text) && !/^[a-z0-9]+(?:[-_.:/][a-z0-9]+)+$/.test(text) && !/^[a-z]+[A-Z]\w*$/.test(text) && text.length >= 2 && text.length <= 400 && /\p{L}{2}/u.test(text) && !/^[\w.-]+@[\w.-]+$/.test(text) && !/^(https?:|\/[\w/.-]*$|#[\w-]+$)/.test(text);
+// Fragments of code (concatenation pieces, codes, identifiers) never reach the translator.
+const looksLikeCode = text => /^[,)\]]/.test(text) || /(\+|\|\||\?|,|\(|\[|=)\s*$/.test(text) || /^\+\s*[\w.(]+\s*\+?$/.test(text)
+  || /\b[a-z_]+\.[a-z_]+\b/i.test(text) && /[+?(]/.test(text) || /^[A-Z]{2,3}$/.test(text) || /^[a-z]{2}(?:-[A-Z]{2})?$/.test(text) || /^[a-z]+$/.test(text) && text.length <= 3;
+const looksTranslatable = text => !looksLikeCode(text) && !KEEP.has(text) && !/^[a-z0-9]+(?:[-_.:/][a-z0-9]+)+$/.test(text) && !/^[a-z]+[A-Z]\w*$/.test(text) && text.length >= 2 && text.length <= 400 && /\p{L}{2}/u.test(text) && !/^[\w.-]+@[\w.-]+$/.test(text) && !/^(https?:|\/[\w/.-]*$|#[\w-]+$)/.test(text);
 
 const decode = text => text.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&rarr;/g, '→').replace(/&larr;/g, '←').replace(/&middot;/g, '·').replace(/&hellip;/g, '…').replace(/&mdash;/g, '—').replace(/&ndash;/g, '–');
 

@@ -19,6 +19,8 @@ test('extracts interface text, placeholders and JS labels, not code', () => {
   const js = [...extractStrings("show('Payment received'); el.className = 'btn-dark';", 'js')];
   assert.ok(js.includes('Payment received'));
   assert.ok(!js.includes('btn-dark'));
+  const frag = [...extractStrings("x = ', BLURBS[plan.key] ||' + '+ tenant.name +' + 'PK' + 'en' + '+ Add account' + '(optional)'", 'js')];
+  assert.deepEqual(frag.sort(), ['(optional)', '+ Add account']);
 });
 
 test('allowlist covers the landing page, register and dashboard', () => {
