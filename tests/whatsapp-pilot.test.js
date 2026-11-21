@@ -35,3 +35,12 @@ test('worker switch accepts 1/true/yes/on', async () => {
   for (const v of ['1', 'true', 'TRUE', ' yes ', '"1"', 'on']) assert.equal(workerEnabled({ WHATSAPP_AI_WORKER_ENABLED: v }), true, v);
   for (const v of ['0', 'false', '', undefined]) assert.equal(workerEnabled({ WHATSAPP_AI_WORKER_ENABLED: v }), false, String(v));
 });
+
+test('AI gets menu prices as customers see them (stored ×100)', async () => {
+  const src = (await import('node:fs')).readFileSync('src/whatsapp-ai-worker.js', 'utf8');
+  const fn = new Function(src.match(/export function menuPrice[\s\S]*?\n}\n/)[0].replace('export ', '') + ';return menuPrice')();
+  assert.equal(fn(42000, 'PKR'), 'PKR 420');
+  assert.equal(fn(1250, 'USD'), 'USD 12.50');
+  assert.equal(fn(7200000, 'PKR'), 'PKR 72,000');
+  assert.match(src, /price:menuPrice\(i\.price_minor,job\.currency\)/);
+});
