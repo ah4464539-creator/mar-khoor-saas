@@ -473,3 +473,11 @@ CREATE TABLE IF NOT EXISTS restaurant_tools (
  INDEX (stripe_subscription_id),
  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS i18n_strings (
+ lang VARCHAR(8) NOT NULL,
+ src_hash CHAR(40) NOT NULL,
+ translation TEXT NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ PRIMARY KEY (lang, src_hash)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

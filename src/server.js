@@ -18,6 +18,7 @@ import { retryPendingSubscriptionNumbers } from './voice-autoprovision.js';
 import { sitesRouter } from './sites.js';
 import { widgetRouter } from './widget.js';
 import { billingRouter, billingWebhookRouter } from './billing.js';
+import { i18nRouter } from './i18n.js';
 import { mediaRouter } from './media.js';
 import { menuImportRouter } from './menu-import-routes.js';
 import { customDomainRouting, domainsRouter } from './domains.js';
@@ -81,6 +82,7 @@ app.post('/api/public/plan-quote', async (req, res) => {
     res.status(503).json({ error: 'Quote unavailable' });
   }
 });
+app.use(i18nRouter(pool));
 app.use('/api', publicAssistantRouter());
 app.use('/auth', authRouter(pool));
 app.use('/auth', passwordResetRouter(pool));
