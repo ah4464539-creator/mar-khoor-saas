@@ -60,3 +60,36 @@ export async function ensureFemaleVoices(pool, { env = process.env, fetcher = fe
   if (!failed) await pool.query('INSERT IGNORE INTO app_settings (setting_key,setting_value) VALUES (?,?)', [MARKER, JSON.stringify({ ok, at: new Date().toISOString() })]);
   return { ok, failed };
 }
+
+/** One-time: add the Urdu speech rules to the template and every restaurant assistant's prompt. */
+export async function ensureSpeechRules(pool, { env = process.env, fetcher = fetch, log = console } = {}) {
+  const { withSpeechRules } = await import('./speech-rules.js');
+  const apiKey = env.VAPI_API_KEY;
+  if (!apiKey) return { skipped: 'no key' };
+  await pool.query(VOICE_SETTINGS_SQL);
+  const key = 'vapi_speech_rules_v1';
+  const [done] = await pool.query('SELECT setting_value FROM app_settings WHERE setting_key=?', [key]);
+  if (done.length) return { skipped: 'done' };
+  const ids = [];
+  if (env.VAPI_TEMPLATE_ASSISTANT_ID) ids.push(env.VAPI_TEMPLATE_ASSISTANT_ID);
+  try { const [rows] = await pool.query('SELECT assistant_id FROM voice_assistants'); for (const r of rows) ids.push(r.assistant_id); } catch {}
+  let ok = 0, failed = 0;
+  for (const id of [...new Set(ids)]) {
+    try {
+      if (!/^[a-zA-Z0-9_-]{1,128}$/.test(id)) throw Error('bad id');
+      const headers = { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' };
+      const got = await fetcher('https://api.vapi.ai/assistant/' + id, { headers, redirect: 'error', signal: AbortSignal.timeout(20000) });
+      if (!got.ok) throw Error('Vapi ' + got.status);
+      const assistant = await got.json();
+      if (!assistant?.model) { ok++; continue; }
+      const model = withSpeechRules(assistant.model);
+      if (model === assistant.model) { ok++; continue; }
+      const res = await fetcher('https://api.vapi.ai/assistant/' + id, { method: 'PATCH', headers, redirect: 'error', signal: AbortSignal.timeout(20000), body: JSON.stringify({ model }) });
+      if (!res.ok) throw Error('Vapi ' + res.status);
+      ok++;
+    } catch (error) { failed++; log.warn?.('AI Caller speech rules failed for ' + String(id).slice(0, 8) + '…: ' + error.message); }
+  }
+  log.log?.(`AI Caller Urdu speech rules: ${ok} assistant(s) ready, ${failed} failed`);
+  if (!failed) await pool.query('INSERT IGNORE INTO app_settings (setting_key,setting_value) VALUES (?,?)', [key, JSON.stringify({ ok, at: new Date().toISOString() })]);
+  return { ok, failed };
+}

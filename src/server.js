@@ -19,7 +19,7 @@ import { sitesRouter } from './sites.js';
 import { widgetRouter } from './widget.js';
 import { billingRouter, billingWebhookRouter } from './billing.js';
 import { i18nRouter } from './i18n.js';
-import { ensureFemaleVoices } from './vapi-voice.js';
+import { ensureFemaleVoices, ensureSpeechRules } from './vapi-voice.js';
 import { mediaRouter } from './media.js';
 import { menuImportRouter } from './menu-import-routes.js';
 import { customDomainRouting, domainsRouter } from './domains.js';
@@ -117,7 +117,8 @@ const port = Number(process.env.PORT || 3001);
 app.listen(port, () => {
   console.log(`Mar-Khoor API listening on ${port}`);
   startWhatsAppAIWorker(pool);
-  ensureFemaleVoices(pool).catch(error => console.warn('AI Caller voice update skipped:', error.message));
+  ensureFemaleVoices(pool).catch(error => console.warn('AI Caller voice update skipped:', error.message))
+   .then(() => ensureSpeechRules(pool)).catch(error => console.warn('AI Caller speech rules skipped:', error.message));
   startDomainWorker(pool, hostinger);
   // Finish AI Caller numbers that were waiting on the phone company (every 15 minutes; never buys).
   const voiceRetry = setInterval(() => {
