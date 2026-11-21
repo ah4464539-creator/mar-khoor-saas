@@ -118,7 +118,7 @@ app.listen(port, () => {
   console.log(`Mar-Khoor API listening on ${port}`);
   startWhatsAppAIWorker(pool);
   ensureFemaleVoices(pool).catch(error => console.warn('AI Caller voice update skipped:', error.message))
-   .then(() => ensureSpeechRules(pool)).catch(error => console.warn('AI Caller speech rules skipped:', error.message));
+   .then(() => ensureSpeechRules(pool)).then(result => console.log('AI Caller speech rules:', JSON.stringify(result))).catch(error => console.warn('AI Caller speech rules skipped:', error.message));
   startDomainWorker(pool, hostinger);
   // Finish AI Caller numbers that were waiting on the phone company (every 15 minutes; never buys).
   const voiceRetry = setInterval(() => {
