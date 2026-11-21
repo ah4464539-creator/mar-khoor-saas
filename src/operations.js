@@ -1,4 +1,5 @@
 import express from 'express';
+import { notifyOrderStatus } from './whatsapp-orders.js';
 import { requireAuth } from './auth.js';
 import { isMissingFulfillmentSchema } from './order-fulfillment.js';
 import { isAllowedImageRef } from './media-store.js';
@@ -219,7 +220,9 @@ export function operationsRouter(pool) {
   const id=Number(req.params.orderId),status=req.body?.status;
   if(!Number.isSafeInteger(id)||id<1||!['accepted','preparing','ready','completed','cancelled'].includes(status))return res.status(400).json({error:'Invalid status'});
   const allowed={accepted:['pending'],preparing:['accepted'],ready:['preparing'],completed:['ready'],cancelled:['pending','accepted']};
-  try{const [result]=await pool.query('UPDATE orders SET status=? WHERE id=? AND restaurant_id=? AND status IN (?)',[status,id,req.restaurantId,allowed[status]]);if(!result.affectedRows)return res.status(409).json({error:'Order missing or invalid status transition'});res.json({updated:true});}
+  try{const [result]=await pool.query('UPDATE orders SET status=? WHERE id=? AND restaurant_id=? AND status IN (?)',[status,id,req.restaurantId,allowed[status]]);if(!result.affectedRows)return res.status(409).json({error:'Order missing or invalid status transition'});res.json({updated:true});
+   // Orders placed on WhatsApp: tell the customer about the new status (never blocks the owner).
+   notifyOrderStatus(pool,req.restaurantId,id,status,{tokenFor:phoneId=>tokenForNumber(pool,phoneId)}).catch(()=>{});}
   catch{res.status(503).json({error:'Database unavailable'});}
  });
  return router;
