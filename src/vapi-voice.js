@@ -1,18 +1,20 @@
-// Female voice for every AI Caller (owner's choice): ElevenLabs "Jessica", a natural,
-// conversational female voice. Pakistan uses Eleven v3, which speaks Urdu; elsewhere the fast
-// Flash v2.5 model. If ElevenLabs is unavailable Vapi falls back to Azure's female voices.
+// Female voice for every AI Caller (owner's choice): OpenAI "marin" through gpt-4o-mini-tts,
+// told to sound like a professional restaurant host. If Vapi does not accept marin for its
+// TTS pipeline we fall back to OpenAI "coral"; if OpenAI is down Vapi falls back to Azure.
 // VAPI_VOICE_JSON ({"PK":{...},"default":{...}}) can replace them without a code change.
-const ELEVEN_FEMALE = 'cgSgspJ2msm6clMCkdW9';
+const PROFESSIONAL = 'Speak as a professional, calm and warm restaurant host on the phone: clear, polite, moderate pace, friendly but not playful. '
+  + 'Pronounce Urdu naturally with a Pakistani accent and English words (Chicken, Total, Order) as in English.';
 const BUILT_IN = {
-  PK: { provider: '11labs', voiceId: ELEVEN_FEMALE, model: 'eleven_v3', stability: 0.45, similarityBoost: 0.8, fallback: { provider: 'azure', voiceId: 'ur-PK-UzmaNeural' } },
-  default: { provider: '11labs', voiceId: ELEVEN_FEMALE, model: 'eleven_flash_v2_5', stability: 0.45, similarityBoost: 0.8, fallback: { provider: 'azure', voiceId: 'en-US-JennyMultilingualNeural' } },
+  PK: { provider: 'openai', model: 'gpt-4o-mini-tts', voiceId: 'marin', instructions: PROFESSIONAL, fallback: { provider: 'azure', voiceId: 'ur-PK-UzmaNeural' } },
+  default: { provider: 'openai', model: 'gpt-4o-mini-tts', voiceId: 'marin', instructions: PROFESSIONAL.replace(' with a Pakistani accent', ''), fallback: { provider: 'azure', voiceId: 'en-US-JennyMultilingualNeural' } },
 };
+export const SECOND_CHOICE_VOICE = 'coral';
 export const VOICE_SETTINGS_SQL = `CREATE TABLE IF NOT EXISTS app_settings (
  setting_key VARCHAR(80) NOT NULL PRIMARY KEY,
  setting_value TEXT NULL,
  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`;
-const MARKER = 'vapi_female_voice_v2_elevenlabs';
+const MARKER = 'vapi_female_voice_v3_openai_marin';
 
 function table(env = process.env) {
   try {
@@ -52,13 +54,21 @@ export async function ensureFemaleVoices(pool, { env = process.env, fetcher = fe
     const [rows] = await pool.query('SELECT va.assistant_id, r.country_code FROM voice_assistants va JOIN restaurants r ON r.id=va.restaurant_id');
     for (const row of rows) targets.push([row.assistant_id, row.country_code]);
   } catch { /* table missing: template only */ }
-  let ok = 0, failed = 0;
+  let ok = 0, failed = 0, secondChoice = 0;
   for (const [id, country] of targets) {
-    try { await patchVoice(fetcher, apiKey, id, femaleVoice(country, env)); ok++; } catch (error) { failed++; log.warn?.('AI Caller voice update failed for ' + String(id).slice(0, 8) + '…: ' + error.message); }
+    const voice = femaleVoice(country, env);
+    try { await patchVoice(fetcher, apiKey, id, voice); ok++; }
+    catch (error) {
+      // Vapi may only allow marin with realtime models: retry once with the next best voice.
+      if (voice.provider === 'openai' && voice.voiceId === 'marin') {
+        try { await patchVoice(fetcher, apiKey, id, { ...voice, voiceId: SECOND_CHOICE_VOICE }); ok++; secondChoice++; continue; } catch {}
+      }
+      failed++; log.warn?.('AI Caller voice update failed for ' + String(id).slice(0, 8) + '…: ' + error.message);
+    }
   }
-  log.log?.(`AI Caller ElevenLabs female voice: ${ok} assistant(s) updated, ${failed} failed`);
+  log.log?.(`AI Caller OpenAI female voice: ${ok} assistant(s) updated (${ok - secondChoice} marin, ${secondChoice} coral), ${failed} failed`);
   if (!failed) await pool.query('INSERT IGNORE INTO app_settings (setting_key,setting_value) VALUES (?,?)', [MARKER, JSON.stringify({ ok, at: new Date().toISOString() })]);
-  return { ok, failed };
+  return { ok, failed, secondChoice };
 }
 
 /** One-time: add the Urdu speech rules to the template and every restaurant assistant's prompt. */
