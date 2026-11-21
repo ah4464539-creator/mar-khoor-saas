@@ -47,7 +47,7 @@ export async function ensureFemaleVoices(pool, { env = process.env, fetcher = fe
   if (!apiKey) return { skipped: 'no key' };
   await pool.query(VOICE_SETTINGS_SQL);
   const [done] = await pool.query('SELECT setting_value FROM app_settings WHERE setting_key=?', [MARKER]);
-  if (done.length) return { skipped: 'done' };
+  if (done.length) return { skipped: 'done', result: String(done[0].setting_value || '').slice(0, 200) };
   const targets = [];
   if (env.VAPI_TEMPLATE_ASSISTANT_ID) targets.push([env.VAPI_TEMPLATE_ASSISTANT_ID, 'PK']);
   try {
@@ -67,7 +67,7 @@ export async function ensureFemaleVoices(pool, { env = process.env, fetcher = fe
     }
   }
   log.log?.(`AI Caller OpenAI female voice: ${ok} assistant(s) updated (${ok - secondChoice} marin, ${secondChoice} coral), ${failed} failed`);
-  if (!failed) await pool.query('INSERT IGNORE INTO app_settings (setting_key,setting_value) VALUES (?,?)', [MARKER, JSON.stringify({ ok, at: new Date().toISOString() })]);
+  if (!failed) await pool.query('INSERT IGNORE INTO app_settings (setting_key,setting_value) VALUES (?,?)', [MARKER, JSON.stringify({ ok, marin: ok - secondChoice, coral: secondChoice, at: new Date().toISOString() })]);
   return { ok, failed, secondChoice };
 }
 
