@@ -33,19 +33,20 @@ function fillName(value, restaurantName) {
   return value;
 }
 
-export function assistantCopy(template, { name, restaurantId, restaurantName = '' }) {
+export function assistantCopy(template, { name, restaurantId, restaurantName = '', voice = null }) {
   const copy = {};
   const safeName = String(restaurantName).replace(/[\u0000-\u001f]/g, ' ').slice(0, 160);
   for (const [key, value] of Object.entries(template || {})) if (!READ_ONLY.has(key)) copy[key] = safeName ? fillName(value, safeName) : value;
+  if (voice) copy.voice = voice;
   copy.name = String(name).slice(0, 40);
   copy.metadata = { ...(template?.metadata && typeof template.metadata === 'object' ? template.metadata : {}), markhoorRestaurantId: String(restaurantId) };
   return copy;
 }
 
-export async function cloneAssistant({ apiKey, templateId, name, restaurantId, restaurantName, fetcher = fetch }) {
+export async function cloneAssistant({ apiKey, templateId, name, restaurantId, restaurantName, voice = null, fetcher = fetch }) {
   if (!/^[a-zA-Z0-9_-]{1,128}$/.test(templateId || '')) throw Error('Invalid template assistant id');
   const template = await call(fetcher, apiKey, '/assistant/' + templateId);
-  const created = await call(fetcher, apiKey, '/assistant', { method: 'POST', body: JSON.stringify(assistantCopy(template, { name, restaurantId, restaurantName })) });
+  const created = await call(fetcher, apiKey, '/assistant', { method: 'POST', body: JSON.stringify(assistantCopy(template, { name, restaurantId, restaurantName, voice })) });
   if (typeof created?.id !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(created.id)) throw Error('Vapi returned no assistant id');
   return { id: created.id };
 }

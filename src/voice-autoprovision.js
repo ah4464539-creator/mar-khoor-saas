@@ -15,6 +15,7 @@ import { randomUUID } from 'node:crypto';
 import { searchNumbers, orderNumber, E164 } from './providers/telnyx.js';
 import { importTelnyxNumber, findTelnyxCredential } from './providers/vapi-numbers.js';
 import { cloneAssistant } from './providers/vapi-assistants.js';
+import { femaleVoice } from './vapi-voice.js';
 import { retryNumber } from './provisioning.js';
 import { planCatalog } from './subscriptions.js';
 
@@ -74,7 +75,7 @@ async function ensureAssistant(pool, restaurant, deps) {
   const [rows] = await pool.execute('SELECT assistant_id FROM voice_assistants WHERE restaurant_id=? AND active=1 LIMIT 2', [restaurant.id]);
   if (rows.length === 1) return rows[0].assistant_id;
   if (rows.length > 1) throw Object.assign(Error('This restaurant has more than one active voice assistant; keep one in Voice integrations'), { needsReview: true });
-  const created = await cloneAssistant({ apiKey: deps.vapiKey, templateId: deps.templateAssistantId, name: 'MarKhoor ' + restaurant.id + ' ' + restaurant.name, restaurantId: restaurant.id, restaurantName: restaurant.name, fetcher: deps.fetcher });
+  const created = await cloneAssistant({ apiKey: deps.vapiKey, templateId: deps.templateAssistantId, name: 'MarKhoor ' + restaurant.id + ' ' + restaurant.name, restaurantId: restaurant.id, restaurantName: restaurant.name, voice: femaleVoice(restaurant.country_code), fetcher: deps.fetcher });
   await pool.execute('INSERT INTO voice_assistants(assistant_id,restaurant_id,active) VALUES (?,?,TRUE)', [created.id, restaurant.id]);
   return created.id;
 }
