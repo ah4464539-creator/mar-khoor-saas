@@ -84,7 +84,7 @@ test('continuous worker answers for every paid restaurant plus listed pilot rest
  process.env.WHATSAPP_AI_WORKER_ENABLED='0';
  startWhatsAppAIWorker(pool);
  await new Promise(resolve=>setTimeout(resolve,20));
- assert.equal(seen.length,1,'off switch still works');
+ assert.equal(seen.length,1,'off switch: only super-admin pilots are served (none here)');
 });
 
 test('Hostinger can load the WhatsApp worker synchronously', () => {
