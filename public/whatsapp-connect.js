@@ -36,16 +36,79 @@
     else if (data.event === 'ERROR') session = { error: data.data?.error_message || 'Meta reported an error' };
   });
 
+  // "Number + code" activation: no Facebook login. Built once per box.
+  function otpForm(box) {
+    let form = box.querySelector('.wa-otp');
+    if (form) return form;
+    form = document.createElement('div'); form.className = 'wa-otp';
+    const make = (tag, attrs = {}, kids = []) => { const n = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) { if (k === 'text') n.textContent = v; else if (k === 'hidden') n.hidden = v; else n.setAttribute(k, v); } n.append(...kids); return n; };
+    const field = (label, input) => make('div', { class: 'field' }, [make('label', {}, [label, input])]);
+    const strongNot = make('strong', { text: 'not' });
+    form.append(
+      make('p', { class: 'wa-otp-title' }, [make('strong', { text: 'Activate WhatsApp with your number' })]),
+      field('WhatsApp number for your restaurant', make('input', { class: 'input', 'data-phone': '', name: 'wa-otp-phone', type: 'tel', inputmode: 'tel', autocomplete: 'tel', maxlength: '32', placeholder: '+92 300 1234567' })),
+      field('Name customers will see', make('input', { class: 'input', name: 'wa-otp-name', maxlength: '120', placeholder: 'e.g. Urban Cafe' })),
+      make('div', { class: 'wa-otp-row' }, [
+        make('select', { class: 'input', name: 'wa-otp-method', 'aria-label': 'How to receive the code' }, [make('option', { value: 'SMS', text: 'Code by SMS' }), make('option', { value: 'VOICE', text: 'Code by phone call' })]),
+        make('button', { type: 'button', class: 'btn btn-primary', 'data-otp-send': '', text: 'Send code' }),
+      ]),
+      make('div', { class: 'wa-otp-row', 'data-otp-code': '', hidden: true }, [
+        make('input', { class: 'input', name: 'wa-otp-code', inputmode: 'numeric', autocomplete: 'one-time-code', maxlength: '6', placeholder: '6-digit code', 'aria-label': '6-digit code' }),
+        make('button', { type: 'button', class: 'btn btn-primary', 'data-otp-verify': '', text: 'Activate' }),
+      ]),
+      make('p', { class: 'hint' }, ['This number must ', strongNot, ' be active in the WhatsApp or WhatsApp Business app (delete WhatsApp from it first, or use a new SIM). It must be able to receive an SMS or a call.']),
+      make('p', { class: 'wa-otp-status', role: 'status' }),
+    );
+    box.append(form);
+    window.mkPhone?.scan?.();
+    const status = form.querySelector('.wa-otp-status'), phone = form.querySelector('[name="wa-otp-phone"]'), name = form.querySelector('[name="wa-otp-name"]');
+    const setupWa = document.querySelector('#setup-wa');
+    const prefill = () => {
+      if (!phone.value && setupWa?.value) { phone.value = setupWa.value; window.mkPhone?.sync?.(); }
+      if (!name.value) name.value = (document.querySelector('#owner-restaurant-label')?.textContent || '').trim().replace(/^Restaurant$/, '');
+    };
+    prefill(); setupWa?.addEventListener('change', prefill);
+    form.querySelector('[data-otp-send]').addEventListener('click', async e => {
+      const button = e.currentTarget; button.disabled = true; text(status, 'Asking Meta to send your code…');
+      try {
+        const r = await ctx.api('/api/restaurants/' + ctx.restaurantId + '/whatsapp/number/start', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: phone.value, display_name: name.value, method: form.querySelector('[name="wa-otp-method"]').value }) });
+        form.querySelector('[data-otp-code]').hidden = false;
+        form.querySelector('[name="wa-otp-code"]').focus();
+        text(status, (r.method === 'VOICE' ? 'You will get a call on ' : 'Code sent by SMS to ') + r.phone + '. Type the 6-digit code above.');
+        button.textContent = 'Send a new code';
+      } catch (error) { text(status, error.message); }
+      finally { button.disabled = false; }
+    });
+    form.querySelector('[data-otp-verify]').addEventListener('click', async e => {
+      const button = e.currentTarget; button.disabled = true; text(status, 'Activating…');
+      try {
+        const r = await ctx.api('/api/restaurants/' + ctx.restaurantId + '/whatsapp/number/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: form.querySelector('[name="wa-otp-code"]').value }) });
+        text(status, '✅ WhatsApp is active on ' + r.phone + '. AI replies are on. Meta reviews the name “' + r.display_name + '” (usually within a day); messages work meanwhile.');
+        await refresh(false);
+      } catch (error) { text(status, error.message); }
+      finally { button.disabled = false; }
+    });
+    return form;
+  }
+
   function render() {
     for (const box of $$('[data-wa-connect]')) {
       const button = box.querySelector('button'), status = box.querySelector('.wa-connect-status');
       if (!config) { button.disabled = true; text(status, 'Loading…'); continue; }
       const linked = config.numbers?.[0];
-      box.hidden = !config.enabled && !linked;
+      const codeOn = Boolean(config.number_code?.available), codeDone = config.number_code?.status?.status === 'registered';
+      box.hidden = !config.enabled && !linked && !codeOn;
+      button.hidden = !config.enabled;
       button.disabled = !config.enabled;
       button.textContent = linked ? 'Connect another WhatsApp number' : 'Connect WhatsApp with Facebook';
       note(box);
-      text(status, linked ? '✅ Connected: ' + (linked.display_phone_number || 'WhatsApp number') + (linked.verified_name ? ' · ' + linked.verified_name : '') : 'Takes about 2 minutes. You log in with Facebook, pick or add your WhatsApp Business number, and we set up everything else.');
+      if (codeDone) text(status, '✅ Connected: ' + config.number_code.status.phone + ' · ' + config.number_code.status.display_name + '. AI replies are on.');
+      else if (linked) text(status, '✅ Connected: ' + (linked.display_phone_number || 'WhatsApp number') + (linked.verified_name ? ' · ' + linked.verified_name : ''));
+      else text(status, config.enabled ? 'Takes about 2 minutes. You log in with Facebook, pick or add your WhatsApp Business number, and we set up everything else.' : '');
+      const form = codeOn ? otpForm(box) : box.querySelector('.wa-otp');
+      if (form) form.hidden = !codeOn || codeDone || Boolean(linked);
     }
   }
 
