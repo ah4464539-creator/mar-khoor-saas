@@ -405,7 +405,19 @@ async function loadWhatsAppNumbers() {
     meta.textContent = 'Restaurant #' + n.restaurant_id + ' ' + n.restaurant_name + ' · Phone number ID ' + n.phone_number_id + (n.quality_rating ? ' · Quality ' + n.quality_rating : '') + (n.lookup_error ? ' · ' + n.lookup_error : '');
     main.append(title, meta);
     const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = n.active ? 'Active' : 'Off';
-    row.append(main, tag); root.append(row);
+    const pilot = document.createElement('button'); pilot.type = 'button'; pilot.className = 'btn btn-sm ' + (n.ai_pilot ? 'btn-quiet' : 'btn-dark');
+    pilot.textContent = n.ai_pilot ? 'AI pilot: ON (turn off)' : 'Turn on AI pilot';
+    pilot.title = 'Lets this restaurant use WhatsApp AI replies without a paid plan';
+    pilot.addEventListener('click', async () => {
+      pilot.disabled = true;
+      try { await platformApi('/api/platform/restaurants/' + n.restaurant_id + '/whatsapp-ai-pilot', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ on: !n.ai_pilot }) }); await loadWhatsAppNumbers(); }
+      catch (error) { pilot.textContent = error.message; pilot.disabled = false; }
+    });
+    const ai = document.createElement('p'); ai.className = 'small muted'; ai.textContent = 'AI replies: ' + (n.ai_enabled ? 'on' : 'off') + (n.ai_pilot ? ' · pilot (free)' : '');
+    main.append(ai);
+    const actions = document.createElement('div'); actions.style.cssText = 'display:flex;gap:8px;align-items:center;flex-wrap:wrap';
+    actions.append(tag, pilot);
+    row.append(main, actions); root.append(row);
   }
   if (!data.numbers.length) root.textContent = 'No WhatsApp number is connected to any restaurant yet, so incoming WhatsApp messages are ignored.';
 }
