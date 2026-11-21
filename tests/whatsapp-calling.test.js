@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { enableCalling, disableCalling, metaCallingSettings, vapiSipHost, getCallingState } from '../src/whatsapp-calling.js';
+import { enableCalling, disableCalling, metaCallingSettings, vapiSipHost, getCallingState, metaSipNetworks } from '../src/whatsapp-calling.js';
 
 function fakePool({ assistant = 'asst_1' } = {}) {
   const settings = new Map();
@@ -33,6 +33,7 @@ function fakeFetch({ failMeta = false } = {}) {
 }
 const env = { VAPI_API_KEY: 'vk', WHATSAPP_ACCESS_TOKEN: 'wt' };
 const quiet = { log() {}, error() {} };
+const resolve4 = async () => ['57.144.10.20', '157.240.1.2'];
 
 test('settings send calls to the Vapi SIP host over TLS with SDES', () => {
   assert.equal(vapiSipHost('cred-123'), 'cred-123.sip.vapi.ai');
@@ -42,12 +43,12 @@ test('settings send calls to the Vapi SIP host over TLS with SDES', () => {
 
 test('enable: Vapi trunk + number on the assistant, then Meta settings; state saved', async () => {
   const pool = fakePool(), { calls, fetcher } = fakeFetch();
-  const result = await enableCalling(pool, 4, { env, fetcher, log: quiet });
+  const result = await enableCalling(pool, 4, { env, fetcher, log: quiet, resolve4 });
   assert.equal(result.sip_host, 'cred-123.sip.vapi.ai');
   assert.equal(result.number, '+15551560265');
   const credential = calls.find(c => c.url.endsWith('/credential'));
   assert.equal(credential.body.provider, 'byo-sip-trunk');
-  assert.equal(credential.body.gateways[0].ip, 'wa.meta.vc');
+  assert.deepEqual(credential.body.gateways.map(g => [g.ip, g.netmask, g.inboundEnabled]), [['57.144.0.0', 16, true], ['157.240.0.0', 16, true]]);
   const phone = calls.find(c => c.url.endsWith('/phone-number'));
   assert.deepEqual([phone.body.number, phone.body.assistantId, phone.body.credentialId], ['15551560265', 'asst_1', 'cred-123']);
   const meta = calls.find(c => c.url.endsWith('/1488585814336543/settings'));
@@ -57,7 +58,7 @@ test('enable: Vapi trunk + number on the assistant, then Meta settings; state sa
 
 test('enable rolls back the Vapi trunk and number when Meta refuses', async () => {
   const pool = fakePool(), { calls, fetcher } = fakeFetch({ failMeta: true });
-  await assert.rejects(enableCalling(pool, 4, { env, fetcher, log: quiet }), /Calling not allowed/);
+  await assert.rejects(enableCalling(pool, 4, { env, fetcher, log: quiet, resolve4 }), /Calling not allowed/);
   const deletes = calls.filter(c => c.method === 'DELETE').map(c => c.url);
   assert.deepEqual(deletes, ['https://api.vapi.ai/phone-number/pn-456', 'https://api.vapi.ai/credential/cred-123']);
   assert.deepEqual(await getCallingState(pool), {});
@@ -65,7 +66,7 @@ test('enable rolls back the Vapi trunk and number when Meta refuses', async () =
 
 test('disable turns Meta calling off and removes the Vapi pieces', async () => {
   const pool = fakePool(), { calls, fetcher } = fakeFetch();
-  await enableCalling(pool, 4, { env, fetcher, log: quiet });
+  await enableCalling(pool, 4, { env, fetcher, log: quiet, resolve4 });
   calls.length = 0;
   await disableCalling(pool, 4, { env, fetcher });
   assert.equal(calls[0].body.calling.status, 'DISABLED');
@@ -75,4 +76,21 @@ test('disable turns Meta calling off and removes the Vapi pieces', async () => {
 
 test('no WhatsApp number or no Vapi key gives a clear error', async () => {
   await assert.rejects(enableCalling(fakePool(), 4, { env: {}, fetcher: fakeFetch().fetcher, log: quiet }), /VAPI_API_KEY/);
+});
+
+test('Meta SIP networks: resolved /16s plus the known address, IPv4 only', async () => {
+  assert.deepEqual(await metaSipNetworks({ resolve4: async () => ['57.144.153.157', '1.2.3.4', 'bad'] }), ['57.144.0.0', '1.2.0.0']);
+  assert.deepEqual(await metaSipNetworks({ resolve4: async () => { throw Error('no dns'); } }), ['57.144.0.0']);
+});
+
+test('netmask refused: retries narrower, then without', async () => {
+  const bodies = [];
+  const fetcher = async (url, init = {}) => {
+    const body = init.body ? JSON.parse(init.body) : null;
+    if (url.endsWith('/credential') && init.method === 'POST') { bodies.push(body); return bodies.length < 3 ? { ok: false, status: 400, json: async () => ({ message: ['gateways.0.netmask must be >= 24'] }) } : { ok: true, status: 200, json: async () => ({ id: 'cred-9' }) }; }
+    if (url.includes('?fields=display_phone_number')) return { ok: true, status: 200, json: async () => ({ display_phone_number: '15551560265' }) };
+    return { ok: true, status: 200, json: async () => ({ id: 'pn-1', success: true }) };
+  };
+  await enableCalling(fakePool(), 4, { env, fetcher, log: quiet, resolve4 });
+  assert.deepEqual(bodies.map(b => b.gateways[0].netmask), [16, 24, undefined]);
 });
