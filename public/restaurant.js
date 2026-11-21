@@ -3,7 +3,7 @@ const form=document.querySelector('#login'),status=document.querySelector('#stat
 let token='',restaurantId=null,restaurantCurrency='';
 let refreshing=false;
 setInterval(async()=>{if(!restaurantId||!token||document.hidden||refreshing)return;refreshing=true;try{await refresh()}catch(e){status.textContent='Auto-refresh: '+e.message}finally{refreshing=false}},15000);
-const api=async(path,options={})=>{const r=await fetch(path,{...options,headers:{...options.headers,Authorization:'Bearer '+token}});const data=await r.json();if(!r.ok)throw Error(data.error||'Request failed');return data};
+const api=async(path,options={})=>{const r=await fetch(path,{...options,headers:{...options.headers,Authorization:'Bearer '+token}});const data=await r.json();if(!r.ok){const e=Error(data.error||'Request failed');e.code=data.code;e.status=r.status;throw e}return data};
 async function refresh(){
  loadSite().catch(error=>{siteStatus.textContent=error.message});
  if(location.hash==='#website'){loadSiteAnalytics().catch(()=>{});loadDomain().catch(()=>{});loadWidget().catch(()=>{});}
@@ -655,7 +655,7 @@ sitePublish.addEventListener('click',async()=>{
   const next=!sitePublished,id=restaurantId;
   if(next){await api('/api/restaurants/'+id+'/site',{method:'PUT',headers:siteJson,body:JSON.stringify({config:siteConfig(),description:siteField('description').value})});if(id===restaurantId)siteDirty=false;}
   try{await api('/api/restaurants/'+id+'/site/publish',{method:'POST',headers:siteJson,body:JSON.stringify({published:next})});}
-  catch(error){if(next&&id===restaurantId){await loadSite({force:true}).catch(()=>{});throw Error('Your draft was saved, but it is not live yet. '+error.message)}throw error}
+  catch(error){if(next&&id===restaurantId){await loadSite({force:true}).catch(()=>{});if(error.code==='plan_required'){siteStatus.textContent='Your website is saved. Buy a plan to put it live.';showPlanRequired();return}throw Error('Your draft was saved, but it is not live yet. '+error.message)}throw error}
   if(id!==restaurantId)return;
   siteDirty=false;await loadSite({force:true});
   siteStatus.textContent=next?'Your approved website is live.':'Your website is unpublished. Your saved draft remains available.';
@@ -1115,7 +1115,7 @@ function showDomain(data){
  ns.hidden=!(has&&data.automatic&&!data.managed&&data.stage==='dns');
  if(!ns.hidden)ns.textContent='Easiest option: at your domain company, either add the records below, or change the nameservers to Hostinger’s (ask us for the exact pair) — then we manage all records for you automatically.';
  document.querySelector('#domain-verify').hidden=!has||data.stage==='live';
- domainNote.textContent=!has?'':data.automatic?(stageNotes[data.stage]||'')+(data.last_error&&data.stage!=='live'?' ('+data.last_error+')':''):data.status==='connected'?'Your website is live on '+data.domain+'.':data.status==='verified'?'Ownership verified. The Mar-Khoor team is switching on HTTPS.':(data.last_error||'');
+ domainNote.textContent=!has?'':(!sitePublished&&data.status!=='connected'?'Saved. Your domain shows your website once it is published (publishing needs a plan). ':'')+(data.automatic?(stageNotes[data.stage]||'')+(data.last_error&&data.stage!=='live'?' ('+data.last_error+')':''):data.status==='connected'?'Your website is live on '+data.domain+'.':data.status==='verified'?'Ownership verified. The Mar-Khoor team is switching on HTTPS.':(data.last_error||''));
 }
 async function loadDomain(){if(!restaurantId)return;const id=restaurantId;const data=await api('/api/restaurants/'+id+'/site/domain');if(id===restaurantId)showDomain(data);loadDomainRequests().catch(()=>{});}
 async function loadDomainRequests(){const id=restaurantId;const {requests}=await api('/api/restaurants/'+id+'/site/domain/requests');if(id!==restaurantId||!requests.length)return;const latest=requests[0];const labels={requested:'waiting for confirmation',purchasing:'being registered',purchased:'registered — connecting automatically',failed:'could not be registered',rejected:'not approved'};document.querySelector('#domain-request-status').textContent='Your request for '+latest.domain+' is '+(labels[latest.status]||latest.status)+'.';}
@@ -1405,3 +1405,26 @@ setTimeout(() => { if (location.hash === '#order-desk') { payLoadedFor = restaur
  try{localStorage.removeItem('mar-khoor.want-tool');localStorage.setItem('mar-khoor.setup-prompted.'+restaurantId,'1')}catch{}
  setTimeout(()=>{if(setupDialog?.open)setupDialog.close();goToTools(want,'Your tool is in the cart. Pay to switch it on.')},1200);
 })(0);
+
+// Publishing (and a custom domain going live) needs a paid plan or the AI Website Builder tool.
+const planRequired=document.getElementById('plan-required-dialog');
+async function showPlanRequired(){
+ if(!planRequired)return;
+ const list=document.getElementById('plan-required-plans');list.replaceChildren();
+ try{
+  const data=billingData&&billingPlans.length?{plans:billingPlans,tools:billingData.tools}:await (async()=>{const [b,p]=await Promise.all([api('/api/restaurants/'+restaurantId+'/billing'),api('/api/restaurants/'+restaurantId+'/subscription')]);billingData=b;billingPlans=p.plans||[];return {plans:billingPlans,tools:b.tools}})();
+  for(const plan of data.plans){
+   const li=document.createElement('li');const name=document.createElement('strong');name.textContent=plan.name;
+   const price=document.createElement('span');price.textContent=plan.price_minor?.monthly==null?'Price on request':billingMoney(plan.price_minor.monthly,plan.currency)+' / month';
+   const b=document.createElement('button');b.type='button';b.className='btn btn-sm '+(plan.key==='starter'?'btn-primary':'btn-ghost');b.textContent='Choose '+plan.name;
+   b.addEventListener('click',()=>{planRequired.close();try{localStorage.setItem('mar-khoor.after-pay.'+restaurantId,'website')}catch{};goToCart(plan.key,'monthly','Pay for your plan: your website goes live right after.')});
+   li.append(name,price,b);list.append(li);
+  }
+  const site=(data.tools||[]).find(t=>t.key==='website');
+  const only=document.getElementById('plan-required-tool');
+  only.hidden=!site;if(site)only.textContent='Only the AI Website Builder ('+billingMoney(site.price_minor.monthly,site.currency)+' / month)';
+ }catch(error){console.warn('plan dialog',error?.message)}
+ planRequired.showModal();
+}
+document.getElementById('plan-required-tool')?.addEventListener('click',()=>{planRequired.close();try{localStorage.setItem('mar-khoor.after-pay.'+restaurantId,'website')}catch{};goToTools('website','Pay for the AI Website Builder: your website goes live right after.')});
+document.getElementById('plan-required-close')?.addEventListener('click',()=>planRequired.close());

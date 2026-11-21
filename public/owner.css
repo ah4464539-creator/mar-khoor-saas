@@ -401,3 +401,11 @@ body.mk{margin:0}
 .mk .billing-mode-option span{display:grid;gap:2px}
 .mk .billing-mode-option small{color:var(--muted,#7a6f66)}
 .mk #tool-number-field{display:grid;gap:8px;margin-top:14px}
+
+/* Plan required to publish */
+.mk dialog.plan-required{max-width:560px;width:calc(100vw - 32px);border:0;border-radius:18px;padding:24px;box-shadow:0 24px 80px #1c171433}
+.mk dialog.plan-required::backdrop{background:#1c171466}
+.mk dialog.plan-required h2{margin:0 0 8px}
+.mk .plan-required-list{list-style:none;margin:16px 0;padding:0;display:grid;gap:10px}
+.mk .plan-required-list li{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--line,#e6e0d8);border-radius:12px}
+@media(max-width:520px){.mk .plan-required-list li{grid-template-columns:1fr auto}.mk .plan-required-list li button{grid-column:1 / -1}}
