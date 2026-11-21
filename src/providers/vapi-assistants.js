@@ -1,3 +1,4 @@
+import { withSpeechRules } from '../speech-rules.js';
 // Creates a restaurant's own Vapi assistant by copying a template assistant
 // (GET/POST https://api.vapi.ai/assistant). The template holds the model, voice, transcriber
 // and the tool server settings that point at Mar-Khoor; the restaurant is identified on every
@@ -38,6 +39,7 @@ export function assistantCopy(template, { name, restaurantId, restaurantName = '
   const safeName = String(restaurantName).replace(/[\u0000-\u001f]/g, ' ').slice(0, 160);
   for (const [key, value] of Object.entries(template || {})) if (!READ_ONLY.has(key)) copy[key] = safeName ? fillName(value, safeName) : value;
   if (voice) copy.voice = voice;
+  if (copy.model) copy.model = withSpeechRules(copy.model);
   copy.name = String(name).slice(0, 40);
   copy.metadata = { ...(template?.metadata && typeof template.metadata === 'object' ? template.metadata : {}), markhoorRestaurantId: String(restaurantId) };
   return copy;
