@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="/summit.css?v=20261120-s4">
 <link rel="stylesheet" href="/owner.css?v=20261121-s15">
+<script src="/i18n.js?v=20261121-1" defer></script>
 </head>
 <body class="mk owner-app signing-in">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -32,7 +33,7 @@
 <div class="shell">
 <aside class="side" aria-label="Restaurant navigation">
  <a class="brand" href="/"><img src="/assets/markhor-mark-tile.svg" width="34" height="34" alt=""><b>Mar<span>-</span>Khoor</b></a>
- <div class="side-tenant" id="owner-restaurant-switch" hidden><div class="avatar" id="owner-tenant-initials" aria-hidden="true">R</div><div><strong id="owner-switch-name">Restaurant</strong><small>Restaurant admin</small></div></div>
+ <div class="side-tenant" id="owner-restaurant-switch" hidden><div class="avatar" id="owner-tenant-initials" aria-hidden="true">R</div><div><strong id="owner-switch-name" translate="no">Restaurant</strong><small>Restaurant admin</small></div></div>
  <nav class="nav" aria-label="Workspace">
   <span class="nav-label">Restaurant</span>
   <a class="selected" aria-current="page" href="#owner-overview"><svg aria-hidden="true"><use href="#i-home"/></svg><span>Dashboard</span></a>
@@ -303,7 +304,7 @@
 
 <section class="owner-view owner-message-view" id="whatsapp-inbox-view" data-title="WhatsApp inbox" hidden>
  <h2 tabindex="-1" class="visually-hidden">WhatsApp inbox</h2>
- <div class="card card-pad"><div class="card-head"><p class="small muted">Customer messages to your WhatsApp Business number.</p><label class="check ai-toggle"><input id="whatsapp-ai-enabled" type="checkbox"> AI auto-replies</label></div><div id="whatsapp-inbox" class="message-list muted"></div></div>
+ <div class="card card-pad"><div class="card-head"><p class="small muted">Customer messages to your WhatsApp Business number.</p><label class="check ai-toggle"><input id="whatsapp-ai-enabled" type="checkbox"> AI auto-replies</label></div><div id="whatsapp-inbox" class="message-list muted" translate="no"></div></div>
 </section>
 <section class="owner-view owner-message-view" id="whatsapp-outgoing-view" data-title="Outgoing messages" hidden>
  <h2 tabindex="-1" class="visually-hidden">Outgoing WhatsApp messages</h2>
