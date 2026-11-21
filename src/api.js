@@ -84,6 +84,25 @@ export function apiRouter(pool) {
    res.json({assistant_id:assistantId,restaurant_id:restaurantId,active});
   }catch{res.status(503).json({error:'Mapping unavailable'});}
  });
+ router.post('/platform/whatsapp-accounts/:wabaId/subscribe',requireAuth,async(req,res)=>{
+  if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});
+  const wabaId=req.params.wabaId,token=process.env.WHATSAPP_ACCESS_TOKEN;
+  if(!/^[0-9]{5,64}$/.test(wabaId))return res.status(400).json({error:'Invalid WhatsApp account ID'});
+  if(!token)return res.status(503).json({error:'WHATSAPP_ACCESS_TOKEN is not set'});
+  const version=/^v\d+\.\d+$/.test(process.env.WHATSAPP_GRAPH_VERSION||'')?process.env.WHATSAPP_GRAPH_VERSION:'v23.0';
+  const url='https://graph.facebook.com/'+version+'/'+wabaId+'/subscribed_apps';
+  try{
+   const post=await fetch(url,{method:'POST',headers:{Authorization:'Bearer '+token},redirect:'error',signal:AbortSignal.timeout(10000)});
+   const posted=await post.json().catch(()=>({}));
+   if(!post.ok)return res.status(502).json({error:String(posted?.error?.message||('Meta '+post.status)).slice(0,300)});
+   const get=await fetch(url,{headers:{Authorization:'Bearer '+token},redirect:'error',signal:AbortSignal.timeout(10000)});
+   const listed=await get.json().catch(()=>({}));
+   const apps=Array.isArray(listed?.data)?listed.data.map(a=>String(a?.whatsapp_business_api_data?.name||a?.name||a?.whatsapp_business_api_data?.id||'app').slice(0,80)):[];
+   await audit(pool,{actorUserId:req.user.id,restaurantId:null,action:'whatsapp_account.subscribe:'+wabaId});
+   console.log('WhatsApp account …'+wabaId.slice(-4)+' subscribed to the app ('+apps.length+' app(s))');
+   res.json({subscribed:posted?.success===true,apps});
+  }catch(error){res.status(502).json({error:'Meta request failed'});}
+ });
  router.put('/platform/whatsapp-numbers/:phoneId',requireAuth,async(req,res)=>{
   if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});
   const phoneId=req.params.phoneId,restaurantId=req.body?.restaurant_id,active=req.body?.active;

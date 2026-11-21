@@ -421,3 +421,15 @@ document.querySelector('#wa-number-form')?.addEventListener('submit', async even
     await loadWhatsAppNumbers();
   } catch (error) { output.textContent = error.message; } finally { button.disabled = false; }
 });
+
+document.querySelector('#waba-form')?.addEventListener('submit', async event => {
+  event.preventDefault();
+  if (!platformToken) return;
+  const form = event.currentTarget, button = form.querySelector('button'), output = document.querySelector('#waba-status');
+  const id = document.querySelector('#waba-id').value.trim();
+  button.disabled = true; output.textContent = 'Connecting…';
+  try {
+    const data = await platformApi('/api/platform/whatsapp-accounts/' + encodeURIComponent(id) + '/subscribe', { method: 'POST' });
+    output.textContent = data.subscribed ? 'Done. Messages to this WhatsApp account now reach Mar-Khoor' + (data.apps.length ? ' (apps: ' + data.apps.join(', ') + ').' : '.') : 'Meta did not confirm the subscription.';
+  } catch (error) { output.textContent = error.message; } finally { button.disabled = false; }
+});

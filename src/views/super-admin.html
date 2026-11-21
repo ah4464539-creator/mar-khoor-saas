@@ -133,6 +133,11 @@
  <section class="card card-pad" id="whatsapp-numbers" tabindex="-1">
   <div class="card-head"><div><h2>WhatsApp numbers</h2><p class="small muted">Which WhatsApp Business number belongs to which restaurant. Messages to a number that is not listed here are ignored.</p></div></div>
   <div id="wa-number-list" class="row-list">Loading…</div>
+  <form id="waba-form" class="form-grid">
+   <div class="field"><label for="waba-id">WhatsApp account ID (Meta → WhatsApp → API setup → "WhatsApp Business Account ID")</label><input class="input" id="waba-id" inputmode="numeric" pattern="[0-9]{5,64}" placeholder="2191752318117550" required></div>
+   <button class="btn btn-dark">Receive messages from this account</button>
+  </form>
+  <p id="waba-status" role="status" class="status-line"></p>
   <details>
    <summary>Connect a WhatsApp number to a restaurant</summary>
    <form id="wa-number-form" class="form-grid">
@@ -198,6 +203,6 @@
  show(location.hash.slice(1));
 })();
 </script>
-<script type="module" src="/platform.js?v=20261121-s9"></script>
+<script type="module" src="/platform.js?v=20261121-s10"></script>
 </body>
 </html>
