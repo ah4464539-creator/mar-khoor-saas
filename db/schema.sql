@@ -458,3 +458,18 @@ CREATE TABLE IF NOT EXISTS order_payments (
  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE,
  INDEX (restaurant_id,status)
 ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS restaurant_tools (
+ restaurant_id BIGINT UNSIGNED NOT NULL,
+ tool_key VARCHAR(20) NOT NULL,
+ billing_cycle VARCHAR(10) NOT NULL,
+ status VARCHAR(20) NOT NULL DEFAULT 'pending_payment',
+ number_mode VARCHAR(10) NULL,
+ currency CHAR(3) NOT NULL,
+ price_minor BIGINT UNSIGNED NOT NULL,
+ stripe_subscription_id VARCHAR(64) NULL,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ PRIMARY KEY (restaurant_id,tool_key),
+ INDEX (stripe_subscription_id),
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+) ENGINE=InnoDB;

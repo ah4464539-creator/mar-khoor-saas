@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="/summit.css?v=20261120-s4">
-<link rel="stylesheet" href="/owner.css?v=20261120-s12">
+<link rel="stylesheet" href="/owner.css?v=20261121-s14">
 </head>
 <body class="mk owner-app signing-in">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -176,11 +176,23 @@
    <div class="card-head"><div><h2 id="billing-title">Choose your plan and tools</h2><p class="small muted" id="billing-summary">Loading…</p></div><span id="billing-status" class="tag" hidden></span></div>
    <div id="billing-notice" class="notice" role="status" hidden></div>
    <form id="billing-form">
+    <div class="billing-mode" role="radiogroup" aria-label="What do you want to buy">
+     <label class="billing-mode-option"><input type="radio" name="buy_mode" value="plan" checked><span><strong>Complete plan</strong><small>All tools together, best value</small></span></label>
+     <label class="billing-mode-option"><input type="radio" name="buy_mode" value="tools"><span><strong>Single tools</strong><small>Only the tool you need</small></span></label>
+    </div>
     <fieldset class="billing-step"><legend><span class="step-no">1</span> Billing period</legend>
      <div class="billing-cycle"><label class="check"><input type="radio" name="billing_cycle" value="monthly" checked> Monthly</label><label class="check"><input type="radio" name="billing_cycle" value="yearly"> Yearly <span class="tag tag-ok">2 months free</span></label></div>
     </fieldset>
-    <fieldset class="billing-step"><legend><span class="step-no">2</span> Plan</legend><div class="billing-plans" id="billing-plans"></div></fieldset>
-    <fieldset class="billing-step"><legend><span class="step-no">3</span> Tools</legend>
+    <fieldset class="billing-step" id="billing-plan-step"><legend><span class="step-no">2</span> Plan</legend><div class="billing-plans" id="billing-plans"></div></fieldset>
+    <fieldset class="billing-step" id="billing-tools-step" hidden><legend><span class="step-no">2</span> Choose your tools</legend>
+     <div class="billing-plans" id="billing-tools"></div>
+     <div class="field" id="tool-number-field" hidden><span class="small"><strong>AI Calling number</strong></span>
+      <label class="check"><input type="radio" name="call_number" value="own" checked> <span>Use my own number (a spare SIM works) <small class="muted">· no number fee</small></span></label>
+      <label class="check"><input type="radio" name="call_number" value="new"> <span>Get a new local number from us <small class="muted" id="tool-number-price"></small></span></label>
+      <p class="small muted" id="tool-number-hint" hidden></p>
+     </div>
+    </fieldset>
+    <fieldset class="billing-step" id="billing-included-step"><legend><span class="step-no">3</span> Tools</legend>
      <p class="small muted">Every plan includes all four tools. Tick the ones you want to use; they are added to your cart.</p>
      <div class="service-grid">
       <label class="service"><input type="checkbox" name="tool" value="website" checked><span><strong>Website Builder</strong><small>AI website with your live menu</small></span></label>
@@ -366,7 +378,7 @@
 </main>
 </div>
 <script src="/password-reset.js?v=20261119"></script>
-<script type="module" src="/restaurant.js?v=20261121-s13"></script>
+<script type="module" src="/restaurant.js?v=20261121-s14"></script>
 <script>document.getElementById("login-show-password")?.addEventListener("change",function(){document.getElementById("password").type=this.checked?"text":"password"});</script>
 </body>
 </html>

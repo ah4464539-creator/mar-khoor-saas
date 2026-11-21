@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { ensureToolsTable } from './tools.js';
 import mysql from 'mysql2/promise';
 import {pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
@@ -21,7 +22,7 @@ export async function processWhatsAppAIJobs(pool,{fetcher=fetch,restaurantId=nul
  if(restaurantId!==null){restaurantFilter=' AND j.restaurant_id=?';params.push(restaurantId);}
  else if(alwaysAllowed!==null){
   const allowed=alwaysAllowed.filter(id=>Number.isSafeInteger(id)&&id>0);
-  restaurantFilter=" AND (EXISTS (SELECT 1 FROM restaurant_subscriptions sub WHERE sub.restaurant_id=j.restaurant_id AND sub.status='active')"+(allowed.length?' OR j.restaurant_id IN ('+allowed.map(()=>'?').join(',')+')':'')+')';
+  restaurantFilter=" AND (EXISTS (SELECT 1 FROM restaurant_subscriptions sub WHERE sub.restaurant_id=j.restaurant_id AND sub.status='active') OR EXISTS (SELECT 1 FROM restaurant_tools tool WHERE tool.restaurant_id=j.restaurant_id AND tool.tool_key='whatsapp' AND tool.status='active')"+(allowed.length?' OR j.restaurant_id IN ('+allowed.map(()=>'?').join(',')+')':'')+')';
   params.push(...allowed);
  }
  const [jobs]=await pool.execute("SELECT j.inbound_message_id,j.restaurant_id,m.phone_number_id,m.sender,m.text_body,r.name,r.locale,r.currency FROM whatsapp_ai_jobs j JOIN whatsapp_inbound_messages m ON m.message_id=j.inbound_message_id AND m.restaurant_id=j.restaurant_id JOIN whatsapp_ai_settings s ON s.restaurant_id=j.restaurant_id AND s.enabled=1 JOIN restaurants r ON r.id=j.restaurant_id JOIN whatsapp_numbers w ON w.phone_number_id=m.phone_number_id AND w.restaurant_id=j.restaurant_id AND w.active=1 WHERE j.status='pending' AND m.message_type='text' AND m.text_body IS NOT NULL AND m.received_at>=NOW()-INTERVAL 23 HOUR"+restaurantFilter+" ORDER BY j.created_at LIMIT 10",params);
@@ -72,8 +73,10 @@ export function startWhatsAppAIWorker(pool) {
   return;
  }
 
+ let toolsReady = typeof pool.query !== 'function';
  const run = async () => {
   try {
+   if (!toolsReady) { try { await ensureToolsTable(pool); } catch {} toolsReady = true; }
    await processWhatsAppAIJobs(pool,{alwaysAllowed});
   } catch (error) {
    const code = /^[A-Z][A-Z0-9_]{1,63}$/.test(error?.code ?? '') ? error.code : 'UNKNOWN';

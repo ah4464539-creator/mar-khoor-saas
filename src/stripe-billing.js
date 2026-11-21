@@ -6,6 +6,7 @@
 // activates anything. Renewals, failed payments and cancellations arrive as webhooks too.
 import crypto from 'node:crypto';
 import { planCatalog } from './subscriptions.js';
+import { ensureToolsTable, TOOLS } from './tools.js';
 
 export const BILLING_SQL = [
   `CREATE TABLE IF NOT EXISTS restaurant_billing (
@@ -147,6 +148,66 @@ export function checkoutParams({ restaurant, subscription, plan, email, customer
   return params;
 }
 
+/** Checkout for single tools: one recurring line per tool (+ the number), all from server prices. */
+export function toolsCheckoutParams({ restaurant, cart, cycle, numberMode, email, customerId, baseUrl }) {
+  const interval = cycle === 'yearly' ? 'year' : 'month';
+  const params = {
+    mode: 'subscription',
+    success_url: baseUrl + '/restaurant.html?billing=success#plan',
+    cancel_url: baseUrl + '/restaurant.html?billing=cancelled#plan',
+    client_reference_id: 'restaurant-' + restaurant.id,
+    allow_promotion_codes: 'true',
+  };
+  for (const [i, line] of cart.lines.entries()) {
+    const amount = stripeAmount(line.amount_minor, cart.currency);
+    if (!amount) return null;
+    params['line_items[' + i + '][quantity]'] = '1';
+    params['line_items[' + i + '][price_data][currency]'] = cart.currency.toLowerCase();
+    params['line_items[' + i + '][price_data][unit_amount]'] = String(amount);
+    params['line_items[' + i + '][price_data][recurring][interval]'] = interval;
+    params['line_items[' + i + '][price_data][product_data][name]'] = 'Mar-Khoor ' + line.name + ' (' + cycle + ')';
+  }
+  const meta = {
+    kind: 'tools', restaurant_id: String(restaurant.id), cycle, currency: cart.currency,
+    lines: cart.lines.map(line => line.key + ':' + line.amount_minor).join(';'), number_mode: numberMode || '',
+  };
+  for (const [key, value] of Object.entries(meta)) {
+    params['metadata[' + key + ']'] = value;
+    params['subscription_data[metadata][' + key + ']'] = value;
+  }
+  if (customerId) params.customer = customerId;
+  else if (email) params.customer_email = email;
+  return params;
+}
+
+async function applyToolsCheckout(pool, event, object, meta, outcome) {
+  const currency = String(meta.currency || '');
+  const lines = String(meta.lines || '').split(';').map(part => part.split(':')).map(([key, amount]) => ({ key, amount: Number(amount) }));
+  if (!lines.length || lines.some(line => !(line.key in TOOLS || line.key === 'number') || !Number.isSafeInteger(line.amount) || line.amount < 1) || !['monthly', 'yearly'].includes(meta.cycle))
+    return record(pool, event, { ...outcome, result: 'rejected' });
+  let expected = 0;
+  for (const line of lines) { const amount = stripeAmount(line.amount, currency); if (!amount) return record(pool, event, { ...outcome, result: 'rejected' }); expected += amount; }
+  const paid = Number.isSafeInteger(object.amount_subtotal) ? object.amount_subtotal : object.amount_total;
+  if (paid !== expected || String(object.currency).toUpperCase() !== currency) return record(pool, event, { ...outcome, result: 'amount_mismatch' });
+  if (object.payment_status !== 'paid' && object.payment_status !== 'no_payment_required') return record(pool, event, { ...outcome, result: 'not_paid' });
+  if (await seen(pool, event.id)) return { ...outcome, result: 'duplicate' };
+  await ensureToolsTable(pool);
+  // Keep the customer for the billing portal; a plan subscription stays where it is.
+  await pool.execute('INSERT INTO restaurant_billing(restaurant_id,stripe_customer_id) VALUES (?,?) ON DUPLICATE KEY UPDATE stripe_customer_id=COALESCE(stripe_customer_id,VALUES(stripe_customer_id))',
+    [outcome.restaurantId, object.customer || null]);
+  const number = lines.find(line => line.key === 'number');
+  for (const line of lines.filter(item => item.key !== 'number')) {
+    const numberMode = line.key === 'calling' ? (number && meta.number_mode === 'new' ? 'new' : 'own') : null;
+    const amount = line.amount + (line.key === 'calling' && number ? number.amount : 0);
+    await pool.execute(
+      "INSERT INTO restaurant_tools(restaurant_id,tool_key,billing_cycle,status,number_mode,currency,price_minor,stripe_subscription_id) VALUES (?,?,?,'active',?,?,?,?) "
+      + "ON DUPLICATE KEY UPDATE billing_cycle=VALUES(billing_cycle),status='active',number_mode=VALUES(number_mode),currency=VALUES(currency),price_minor=VALUES(price_minor),stripe_subscription_id=VALUES(stripe_subscription_id)",
+      [outcome.restaurantId, line.key, meta.cycle, numberMode, currency, amount, object.subscription || null]);
+  }
+  const tools = lines.map(line => line.key).filter(key => key !== 'number');
+  return record(pool, event, { ...outcome, result: 'tools_activated', tools, activated: Boolean(number && meta.number_mode === 'new') }, true);
+}
+
 const STATUS = { active: 'active', trialing: 'active', past_due: 'past_due', unpaid: 'past_due', canceled: 'cancelled', incomplete_expired: 'cancelled' };
 const toDate = seconds => Number.isSafeInteger(seconds) && seconds > 0 ? new Date(seconds * 1000) : null;
 
@@ -166,6 +227,7 @@ export async function applyBillingEvent(pool, event, { stripe = null } = {}) {
     const restaurantId = Number(meta.restaurant_id);
     outcome.restaurantId = Number.isSafeInteger(restaurantId) && restaurantId > 0 ? restaurantId : null;
     if (!outcome.restaurantId) return record(pool, event, { ...outcome, result: 'rejected' });
+    if (meta.kind === 'tools') return applyToolsCheckout(pool, event, object, meta, outcome);
     const price = Number(meta.price_minor);
     const currency = String(meta.currency || '');
     // Never trust metadata alone: the paid amount and currency must be what we asked for.
@@ -207,7 +269,18 @@ export async function applyBillingEvent(pool, event, { stripe = null } = {}) {
     return record(pool, event, outcome);
   if (await seen(pool, event.id)) return { ...outcome, result: 'duplicate' };
   const [rows] = await pool.execute('SELECT restaurant_id FROM restaurant_billing WHERE stripe_subscription_id=? LIMIT 1', [subscriptionId]);
-  if (!rows.length) return record(pool, event, { ...outcome, result: 'unknown_subscription' }, true);
+  if (!rows.length) {
+    // A single-tools subscription: its status goes to those tools only.
+    let toolRows = [];
+    try { [toolRows] = await pool.execute('SELECT restaurant_id FROM restaurant_tools WHERE stripe_subscription_id=? LIMIT 1', [subscriptionId]); } catch { toolRows = []; }
+    if (!toolRows.length) return record(pool, event, { ...outcome, result: 'unknown_subscription' }, true);
+    outcome.restaurantId = Number(toolRows[0].restaurant_id);
+    const toolStatus = { 'invoice.paid': 'active', 'invoice.payment_failed': 'past_due', 'customer.subscription.deleted': 'canceled' }[event.type] ?? object.status;
+    const mapped = STATUS[toolStatus];
+    if (!mapped) return record(pool, event, { ...outcome, result: 'recorded' }, true);
+    await pool.execute('UPDATE restaurant_tools SET status=? WHERE stripe_subscription_id=? AND restaurant_id=?', [mapped, subscriptionId, outcome.restaurantId]);
+    return record(pool, event, { ...outcome, result: 'tools_' + mapped }, true);
+  }
   outcome.restaurantId = Number(rows[0].restaurant_id);
 
   let stripeStatus = null, periodEnd = null;

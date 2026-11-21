@@ -34,6 +34,10 @@ export async function canPublish(pool, restaurantId, { superAdmin = false, free 
     const [subs] = await pool.execute("SELECT restaurant_id FROM restaurant_subscriptions WHERE restaurant_id=? AND status='active' LIMIT 1", [restaurantId]);
     if (subs.length) return true;
   } catch { /* older database without subscriptions */ }
+  try {
+    const [tools] = await pool.execute("SELECT restaurant_id FROM restaurant_tools WHERE restaurant_id=? AND tool_key='website' AND status='active' LIMIT 1", [restaurantId]);
+    if (tools.length) return true;
+  } catch { /* no single tools bought yet */ }
   const [rows] = await pool.execute("SELECT id FROM plan_orders WHERE restaurant_id=? AND status='active' AND FIND_IN_SET('website',features) LIMIT 1", [restaurantId]);
   return rows.length > 0;
 }
