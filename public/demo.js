@@ -49,10 +49,16 @@
   let current = 'calling', run = 0, sound = false, playing = false;
   const sleep = ms => new Promise(resolve => setTimeout(resolve, reduced ? 0 : ms));
 
+  // Prefer the most natural female voice the visitor's device offers (Edge/Windows "Natural"
+  // voices, Apple Samantha/Ava, Google female), then any female English voice.
   function femaleVoice() {
-    const voices = speechSynthesis.getVoices();
-    const female = /female|woman|zira|samantha|victoria|karen|moira|tessa|fiona|veena|uzma|aria|jenny|sonia|libby|natasha|google uk english female|google us english/i;
-    return voices.find(v => /^en/i.test(v.lang) && female.test(v.name)) || voices.find(v => /^en/i.test(v.lang)) || null;
+    const voices = speechSynthesis.getVoices().filter(v => /^en/i.test(v.lang));
+    const female = /female|woman|aria|jenny|ava|emma|michelle|sonia|libby|natasha|samantha|victoria|karen|moira|tessa|fiona|zira|serena|allison|susan/i;
+    const natural = /natural|neural|online|premium|enhanced/i;
+    return voices.find(v => natural.test(v.name) && female.test(v.name))
+      || voices.find(v => /google uk english female/i.test(v.name))
+      || voices.find(v => female.test(v.name))
+      || voices[0] || null;
   }
   function speak(text, who) {
     if (!sound || !('speechSynthesis' in window)) return Promise.resolve(false);
@@ -60,7 +66,7 @@
       const u = new SpeechSynthesisUtterance(text.replace(/[✅×]/g, ' ').replace(/Rs /g, 'rupees '));
       const voice = femaleVoice();
       if (who === 'ai' && voice) u.voice = voice;
-      u.rate = 1.02; u.pitch = who === 'ai' ? 1.15 : 0.85;
+      u.rate = 1; u.pitch = who === 'ai' ? 1.05 : 0.9;
       u.onend = u.onerror = () => resolve(true);
       speechSynthesis.speak(u);
     });
