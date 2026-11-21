@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Super Admin V2 | Mar-Khoor</title>
+<link rel="icon" href="/assets/markhor-mark-tile.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/platform-v2.css?v=1">
+</head>
+<body>
+<svg class="icon-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+<symbol id="ic-dashboard" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></symbol>
+<symbol id="ic-store" viewBox="0 0 24 24"><path d="M3 10 5 4h14l2 6v2a3 3 0 0 1-5 2 3 3 0 0 1-4 0 3 3 0 0 1-4 0 3 3 0 0 1-5-2v-2Z"/><path d="M5 15v6h14v-6M10 21v-5h4v5"/></symbol>
+<symbol id="ic-orders" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></symbol>
+<symbol id="ic-phone" viewBox="0 0 24 24"><path d="M7 3H4a2 2 0 0 0-2 2c0 9.4 7.6 17 17 17a2 2 0 0 0 2-2v-3l-5-2-2 2a14 14 0 0 1-7-7l2-2-2-5Z"/></symbol>
+<symbol id="ic-chat" viewBox="0 0 24 24"><path d="M20 15a4 4 0 0 1-4 4H9l-5 3v-5a4 4 0 0 1-2-3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z"/><path d="M7 10h10M7 14h7"/></symbol>
+<symbol id="ic-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c4 4 4 14 0 18M12 3c-4 4-4 14 0 18"/></symbol>
+<symbol id="ic-credit" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></symbol>
+<symbol id="ic-settings" viewBox="0 0 24 24"><path d="M9.7 3.3h4.6l.6 2.3 1.8.8 2.1-1.2 3.2 3.2-1.2 2.1.8 1.8 2.3.6v4.6l-2.3.6-.8 1.8 1.2 2.1-3.2 3.2-2.1-1.2-1.8.8-.6 2.3H9.7l-.6-2.3-1.8-.8-2.1 1.2L2 20l1.2-2.1-.8-1.8L0 15.5v-4.6l2.3-.6.8-1.8L2 6.4l3.2-3.2 2.1 1.2 1.8-.8.6-2.3Z" transform="translate(2 1) scale(.82)"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="ic-back" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></symbol>
+<symbol id="ic-external" viewBox="0 0 24 24"><path d="M8 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3M12 12l9-9M14 3h7v7"/></symbol>
+<symbol id="ic-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+<symbol id="ic-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+<symbol id="ic-refresh" viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.7 9A7 7 0 0 1 18 7l2 5M4 12l2 5a7 7 0 0 0 12.4-2"/></symbol>
+<symbol id="ic-moon" viewBox="0 0 24 24"><path d="M20.7 15.2A9 9 0 0 1 8.8 3.3a9 9 0 1 0 11.9 11.9Z"/></symbol>
+<symbol id="ic-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+<symbol id="ic-logout" viewBox="0 0 24 24"><path d="M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h5M14 7l5 5-5 5M19 12H9"/></symbol>
+<symbol id="ic-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l4 2"/></symbol>
+<symbol id="ic-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="ic-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M2 21v-2a7 7 0 0 1 14 0v2M17 5a3 3 0 0 1 0 6M18 15a6 6 0 0 1 4 6"/></symbol>
+<symbol id="ic-shield" viewBox="0 0 24 24"><path d="M12 2 20 5v6c0 5-3 9-8 11-5-2-8-6-8-11V5Z"/><path d="m8.5 12 2.5 2.5 4.5-5"/></symbol>
+</svg>
+<section id="v2-auth" class="auth-screen">
+ <form id="v2-login" class="auth-card">
+  <img class="brand-mark brand-image" src="/assets/markhor-mark-tile.svg" alt="Mar-Khoor logo">
+  <h1>Mar-Khoor Control Center</h1>
+  <p>Super Admin V2 · Sign in with your platform owner account.</p>
+  <label>Email<input name="email" type="email" autocomplete="username" required></label>
+  <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+  <p id="login-error" role="alert"></p>
+  <button class="btn primary" type="submit">Secure sign in</button>
+  <a href="/super-admin">Use the original Super Admin</a>
+ </form>
+</section>
+<div id="v2-app" class="app" hidden>
+ <aside class="sidebar" id="sidebar">
+  <div class="side-brand"><img class="brand-mark brand-image" src="/assets/markhor-mark-tile.svg" alt="Mar-Khoor logo"><div><strong>MAR-KHOOR</strong><small>COMMAND CENTER</small></div><button class="mob-close" id="mob-close" aria-label="Close menu"><svg class="ui-icon" aria-hidden="true"><use href="#ic-x"></use></svg></button></div>
+  <div class="side-owner"><span class="owner-badge"><svg class="ui-icon" aria-hidden="true"><use href="#ic-shield"></use></svg></span><span><strong>Super Admin</strong><small>Platform owner</small></span><span class="owner-online"></span></div>
+  <div class="nav-label">WORKSPACE</div>
+  <nav class="side-nav" aria-label="Main navigation">
+   <a href="#overview" data-view="overview" class="active"><svg class="ui-icon" aria-hidden="true"><use href="#ic-dashboard"></use></svg> Overview</a>
+   <a href="#restaurants" data-view="restaurants"><svg class="ui-icon" aria-hidden="true"><use href="#ic-store"></use></svg> Restaurants <em id="nav-restaurants">—</em></a>
+   <a href="#orders" data-view="orders"><svg class="ui-icon" aria-hidden="true"><use href="#ic-orders"></use></svg> Live Orders</a>
+   <a href="#voice" data-view="voice"><svg class="ui-icon" aria-hidden="true"><use href="#ic-phone"></use></svg> AI Call Center</a>
+   <a href="#whatsapp" data-view="whatsapp"><svg class="ui-icon" aria-hidden="true"><use href="#ic-chat"></use></svg> WhatsApp Center</a>
+   <a href="#websites" data-view="websites"><svg class="ui-icon" aria-hidden="true"><use href="#ic-globe"></use></svg> Website Builder</a>
+   <a href="#billing" data-view="billing"><svg class="ui-icon" aria-hidden="true"><use href="#ic-credit"></use></svg> Billing & Revenue</a>
+  </nav>
+  <div class="nav-label second-label">OPERATIONS</div>
+  <nav class="side-nav" aria-label="Platform operations">
+   <a href="#system" data-view="system"><svg class="ui-icon" aria-hidden="true"><use href="#ic-settings"></use></svg> System Health</a>
+   <a href="/super-admin" class="legacy-link"><svg class="ui-icon" aria-hidden="true"><use href="#ic-back"></use></svg> Original dashboard <span class="external"><svg class="ui-icon" aria-hidden="true"><use href="#ic-external"></use></svg></span></a>
+  </nav>
+  <div class="sidebar-bottom"><div class="mini-pulse"></div><div><b>Real data, never invented</b><small id="sidebar-sync">Waiting for connection</small></div></div>
+ </aside>
+ <div id="mobile-shade" class="mobile-shade" hidden></div>
+ <main class="workspace">
+  <header class="topbar">
+   <div class="top-left"><button id="menu-toggle" class="icon-btn mobile-toggle" aria-label="Open menu"><svg class="ui-icon" aria-hidden="true"><use href="#ic-menu"></use></svg></button><div><span class="crumb">Mar-Khoor / <span id="crumb-name">Overview</span></span><h1 id="page-title">Platform Overview</h1></div></div>
+   <div class="top-actions">
+    <span id="mode-pill" class="live-pill"><i></i> Connecting</span>
+    <select id="period" aria-label="Time range"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option></select>
+    <button class="icon-btn" id="refresh" type="button" title="Refresh now" aria-label="Refresh now"><svg class="ui-icon" aria-hidden="true"><use href="#ic-refresh"></use></svg></button>
+    <button class="icon-btn" id="theme-toggle" type="button" title="Toggle light/dark" aria-label="Toggle light/dark"><svg class="ui-icon" aria-hidden="true"><use href="#ic-moon"></use></svg></button>
+    <button class="icon-btn logout" id="logout" type="button" title="Sign out" aria-label="Sign out"><svg class="ui-icon" aria-hidden="true"><use href="#ic-logout"></use></svg></button>
+   </div>
+  </header>
+  <div id="notice" class="notice" role="status" hidden></div>
+  <div id="demo-notice" class="demo-notice" hidden>INTERACTIVE DESIGN PREVIEW — Example data only. No production restaurant records are being accessed.</div>
+
+  <section class="view active" data-view-section="overview">
+   <div class="intro"><div><h2>Business at a glance</h2><p>Activity across all your restaurants, updated every 15 seconds when connected.</p></div><span class="last-updated" id="last-updated">Not yet synced</span></div>
+   <div class="kpi-grid">
+    <article class="kpi"><div class="kpi-head"><span>Registered Restaurants</span><span class="kpi-icon blue"><svg class="ui-icon" aria-hidden="true"><use href="#ic-store"></use></svg></span></div><div class="kpi-value" id="k-restaurants">—</div><div class="kpi-note">Total registered tenants</div></article>
+    <article class="kpi"><div class="kpi-head"><span>Total Orders</span><span class="kpi-icon green"><svg class="ui-icon" aria-hidden="true"><use href="#ic-orders"></use></svg></span></div><div class="kpi-value" id="k-orders">—</div><div class="kpi-note"><span id="k-period-orders">—</span> in selected period</div></article>
+    <article class="kpi"><div class="kpi-head"><span>Active Subscriptions</span><span class="kpi-icon purple"><svg class="ui-icon" aria-hidden="true"><use href="#ic-credit"></use></svg></span></div><div class="kpi-value" id="k-subscriptions">—</div><div class="kpi-note">Paying / enabled plans</div></article>
+    <article class="kpi"><div class="kpi-head"><span>Open Orders</span><span class="kpi-icon amber"><svg class="ui-icon" aria-hidden="true"><use href="#ic-clock"></use></svg></span></div><div class="kpi-value" id="k-open-orders">—</div><div class="kpi-note">Require restaurant attention</div></article>
+   </div>
+   <div class="two-cols">
+    <article class="panel major"><div class="panel-title"><div><h3>Orders & Restaurant Growth</h3><p>Daily platform activity</p></div><span class="panel-chip">Selected period</span></div><div class="legend"><span><i class="dot blue-dot"></i> Orders</span><span><i class="dot purple-dot"></i> Registrations</span></div><div id="growth-chart" class="chart-host" aria-label="Orders and registration line chart"></div></article>
+    <article class="panel"><div class="panel-title"><div><h3>Channel Activity</h3><p>AI voice calls & WhatsApp messages</p></div></div><div id="channel-chart" class="chart-host" aria-label="Call and message bar chart"></div><div class="split-metrics"><div><small>AI Voice Calls</small><b id="p-calls">—</b></div><div><small>WhatsApp Messages</small><b id="p-messages">—</b></div></div></article>
+   </div>
+   <div class="three-cols">
+    <article class="panel"><div class="panel-title"><div><h3>Order Status</h3><p>All-time distribution</p></div></div><div id="status-bars" class="status-bars"></div></article>
+    <article class="panel"><div class="panel-title"><div><h3>Recent Restaurants</h3><p>Latest registrations</p></div><button class="text-btn" data-jump="restaurants">View all</button></div><div id="overview-restaurants" class="activity-list"></div></article>
+    <article class="panel"><div class="panel-title"><div><h3>Platform Snapshot</h3><p>Services across tenants</p></div></div><div class="snapshot-grid"><div><span class="snapshot-icon teal"><svg class="ui-icon" aria-hidden="true"><use href="#ic-phone"></use></svg></span><strong id="s-assistants">—</strong><small>Active AI assistants</small></div><div><span class="snapshot-icon blue"><svg class="ui-icon" aria-hidden="true"><use href="#ic-globe"></use></svg></span><strong id="s-websites">—</strong><small>Published websites</small></div><div><span class="snapshot-icon purple"><svg class="ui-icon" aria-hidden="true"><use href="#ic-eye"></use></svg></span><strong id="s-visitors">—</strong><small>Page views in period</small></div><div><span class="snapshot-icon amber"><svg class="ui-icon" aria-hidden="true"><use href="#ic-users"></use></svg></span><strong id="s-users">—</strong><small>Platform user accounts</small></div></div></article>
+   </div>
+   <article class="panel"><div class="panel-title"><div><h3>Recent Orders</h3><p>Latest orders from every restaurant</p></div><button class="text-btn" data-jump="orders">Open orders</button></div><div class="table-wrap"><table><thead><tr><th>Order</th><th>Restaurant</th><th>Amount</th><th>Status</th><th>Placed</th></tr></thead><tbody id="overview-orders"></tbody></table></div></article>
+  </section>
+
+  <section class="view" data-view-section="restaurants">
+   <div class="section-heading"><h2>Restaurant Directory</h2><p>Existing and newly registered restaurants.</p></div>
+   <div class="panel"><div class="panel-title"><h3>Recently registered restaurants</h3><input id="restaurant-search" class="search" placeholder="Search restaurants by name or country" autocomplete="off"></div><div class="table-wrap"><table><thead><tr><th>Restaurant</th><th>Slug</th><th>Country</th><th>Currency</th><th>Registration</th></tr></thead><tbody id="restaurant-table"></tbody></table></div><p class="table-foot">Latest 12 entries. For full account management use the original Super Admin.</p></div>
+  </section>
+  <section class="view" data-view-section="orders">
+   <div class="section-heading"><h2>Live Order Monitor</h2><p>Read-only order overview from the platform database.</p></div>
+   <div class="kpi-grid small-kpis"><article class="kpi"><span>All Orders</span><div class="kpi-value" id="o-total">—</div></article><article class="kpi"><span>Open</span><div class="kpi-value" id="o-open">—</div></article><article class="kpi"><span>Period Orders</span><div class="kpi-value" id="o-period">—</div></article></div>
+   <article class="panel"><div class="panel-title"><h3>Recent Orders</h3><span class="panel-chip">Read only</span></div><div class="table-wrap"><table><thead><tr><th>Order</th><th>Restaurant</th><th>Amount</th><th>Status</th><th>Placed</th></tr></thead><tbody id="order-table"></tbody></table></div></article>
+  </section>
+  <section class="view" data-view-section="voice">
+   <div class="section-heading"><h2>AI Call Center</h2><p>Assistant assignments and incoming call volume.</p></div>
+   <div class="service-grid"><article class="kpi"><span>Active Voice Assistants</span><div class="kpi-value" id="voice-active">—</div></article><article class="kpi"><span>Calls in Selected Period</span><div class="kpi-value" id="voice-calls">—</div></article></div>
+   <article class="panel"><div class="panel-title"><h3>AI Calling Analytics</h3><span class="panel-chip">Actual logged calls</span></div><div id="voice-chart" class="chart-host"></div><p class="panel-hint">To manage individual assistant mappings, use the <a href="/super-admin">original dashboard</a>. Recordings aren't displayed until supported by the active voice provider.</p></article>
+  </section>
+  <section class="view" data-view-section="whatsapp">
+   <div class="section-heading"><h2>WhatsApp Activity</h2><p>Inbound messages recorded per restaurant.</p></div>
+   <div class="service-grid"><article class="kpi"><span>Messages in Selected Period</span><div class="kpi-value" id="whatsapp-messages">—</div></article><article class="kpi"><span>Platform Restaurants</span><div class="kpi-value" id="whatsapp-restaurants">—</div></article></div>
+   <article class="panel"><div class="panel-title"><h3>Inbound WhatsApp Volume</h3></div><div id="whatsapp-chart" class="chart-host"></div><p class="panel-hint">Worker configuration, WhatsApp numbers and integration settings remain in the <a href="/super-admin">original dashboard</a>.</p></article>
+  </section>
+  <section class="view" data-view-section="websites">
+   <div class="section-heading"><h2>Website Builder</h2><p>High-level website deployment and visitor analytics.</p></div>
+   <div class="service-grid"><article class="kpi"><span>Published Websites</span><div class="kpi-value" id="websites-published">—</div></article><article class="kpi"><span>Page Views in Period</span><div class="kpi-value" id="websites-views">—</div></article><article class="kpi"><span>Menu Views</span><div class="kpi-value" id="websites-menu">—</div></article></div>
+   <article class="panel"><div class="panel-title"><h3>Website Management</h3></div><p class="panel-hint">This panel reflects database statistics. Domain setup and website controls continue to work from the <a href="/super-admin">original dashboard</a>.</p></article>
+  </section>
+  <section class="view" data-view-section="billing">
+   <div class="section-heading"><h2>Billing & Revenue</h2><p>Completed order value by original restaurant currency. No invalid exchange-rate mixing.</p></div>
+   <div class="service-grid"><article class="kpi"><span>Active Subscriptions</span><div class="kpi-value" id="billing-subscriptions">—</div></article></div>
+   <article class="panel"><div class="panel-title"><h3>Completed Order Value</h3><span class="panel-chip">Not platform profit</span></div><div id="revenue-list" class="revenue-list"></div><p class="panel-hint">These are completed customer order amounts, not subscription revenue or Mar-Khoor earnings.</p></article>
+  </section>
+  <section class="view" data-view-section="system">
+   <div class="section-heading"><h2>System Health</h2><p>Database connectivity and last successful dashboard sync.</p></div>
+   <article class="panel"><div class="health-grid"><div><small>Overview API</small><b id="system-api">Not checked</b></div><div><small>MariaDB</small><b id="system-db">Not checked</b></div><div><small>Last sync</small><b id="system-sync">—</b></div><div><small>Refresh interval</small><b>15 seconds</b></div></div><p class="panel-hint">For provider integration diagnostics and operational controls, open the <a href="/super-admin">original Super Admin</a>.</p></article>
+  </section>
+  <footer>Mar-Khoor Platform V2 · Staging prototype · <a href="/super-admin">Original dashboard <svg class="ui-icon" aria-hidden="true"><use href="#ic-external"></use></svg></a> · <span id="footer-sync">Waiting for data</span></footer>
+ </main>
+</div>
+<script src="/platform-v2.js?v=1" defer></script>
+</body>
+</html>
