@@ -1,5 +1,6 @@
 import { trackSiteEvent } from './site-analytics.js';
 import { getPilotIds, setPilot, workerSwitch, setWorkerSwitch } from './whatsapp-pilot.js';
+import { enableCalling, disableCalling, callingStatus, getCallingState } from './whatsapp-calling.js';
 import { getSignupConfig, saveSignupConfig } from './whatsapp-signup-core.js';
 import express from 'express';
 import { requireAuth } from './auth.js';
@@ -117,6 +118,22 @@ export function apiRouter(pool) {
    res.json({restaurant_id:id,ai_pilot:on,pilot:list});
   }catch{res.status(503).json({error:'Pilot setting unavailable'});}
  });
+ // WhatsApp Business Calling pilot: customers call the restaurant inside WhatsApp; its Vapi assistant answers.
+ router.get('/platform/restaurants/:id/whatsapp-calling',requireAuth,async(req,res)=>{
+  if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});
+  const id=Number(req.params.id);if(!Number.isSafeInteger(id)||id<1)return res.status(400).json({error:'Invalid request'});
+  try{res.json(await callingStatus(pool,id));}catch{res.status(503).json({error:'Calling status unavailable'});}
+ });
+ router.post('/platform/restaurants/:id/whatsapp-calling',requireAuth,async(req,res)=>{
+  if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});
+  const id=Number(req.params.id),on=req.body?.on;
+  if(!Number.isSafeInteger(id)||id<1||typeof on!=='boolean')return res.status(400).json({error:'Invalid request'});
+  try{
+   const result=on?await enableCalling(pool,id):await disableCalling(pool,id);
+   await audit(pool,{actorUserId:req.user.id,restaurantId:id,action:'whatsapp_calling:'+(on?'on':'off')});
+   res.json(result);
+  }catch(error){res.status(error.status||503).json({error:error.status?error.message:'WhatsApp calling unavailable'});}
+ });
  router.post('/platform/whatsapp-accounts/:wabaId/subscribe',requireAuth,async(req,res)=>{
   if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});
   const wabaId=req.params.wabaId,token=process.env.WHATSAPP_ACCESS_TOKEN;
@@ -150,7 +167,7 @@ export function apiRouter(pool) {
  });
  router.get('/platform/whatsapp-numbers',requireAuth,async(req,res)=>{
   if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});
-  try{const [rows]=await pool.query('SELECT w.phone_number_id,w.restaurant_id,r.name AS restaurant_name,r.slug AS restaurant_slug,w.active FROM whatsapp_numbers w JOIN restaurants r ON r.id=w.restaurant_id ORDER BY w.phone_number_id LIMIT 200');const pilot=new Set(await getPilotIds(pool));let ai=new Map();try{const [settings]=await pool.query('SELECT restaurant_id,enabled FROM whatsapp_ai_settings');ai=new Map(settings.map(r=>[Number(r.restaurant_id),Boolean(r.enabled)]));}catch{}res.json({numbers:(await withDisplayNumbers(rows)).map(r=>({...r,ai_pilot:pilot.has(Number(r.restaurant_id)),ai_enabled:ai.get(Number(r.restaurant_id))||false}))});}
+  try{const [rows]=await pool.query('SELECT w.phone_number_id,w.restaurant_id,r.name AS restaurant_name,r.slug AS restaurant_slug,w.active FROM whatsapp_numbers w JOIN restaurants r ON r.id=w.restaurant_id ORDER BY w.phone_number_id LIMIT 200');const pilot=new Set(await getPilotIds(pool));let ai=new Map();try{const [settings]=await pool.query('SELECT restaurant_id,enabled FROM whatsapp_ai_settings');ai=new Map(settings.map(r=>[Number(r.restaurant_id),Boolean(r.enabled)]));}catch{}const calling=await getCallingState(pool);res.json({numbers:(await withDisplayNumbers(rows)).map(r=>({...r,ai_pilot:pilot.has(Number(r.restaurant_id)),ai_enabled:ai.get(Number(r.restaurant_id))||false,calling_on:Boolean(calling[r.restaurant_id])}))});}
   catch{res.status(503).json({error:'Mapping unavailable'});}
  });
  router.get('/my/restaurants',requireAuth,async(req,res)=>{
