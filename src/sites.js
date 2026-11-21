@@ -1,4 +1,5 @@
 import { setTimeout as sleep } from 'node:timers/promises';
+import { createVoiceCalls, minutesLeft, maxMinutes, callIdFrom } from './voice-limits.js';
 import { URDU_SPEECH_RULES } from './speech-rules.js';
 import express from 'express';
 import { requireAuth } from './auth.js';
@@ -36,6 +37,7 @@ async function restaurantAiRequest(send) {
 }
 
 export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch } = {}) {
+ const voiceCalls = createVoiceCalls({ pool, fetcher: voiceFetch });
  const router = express.Router();
  const restaurantAdmin = async (req, res, next) => {
   const id = Number(req.params.restaurantId);
@@ -61,7 +63,7 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
 
  const assistantCsp = SITE_CSP.replace("form-action 'none'", "form-action 'self'") +
   "; script-src 'self'; connect-src 'self'; media-src 'self' blob:";
- const voiceScript = '<script src="/restaurant-assistant-voice.js" defer></script>';
+ const voiceScript = '<script src="/restaurant-assistant-voice.js?v=20261121-limit" defer></script>';
 
  const icon = path => '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + path + '</svg>';
 
@@ -251,6 +253,8 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
     if (typeof req.body !== 'string' || !req.body.startsWith('v=0')) return res.sendStatus(400);
     const key = process.env.OPENAI_API_KEY;
     if (!key) return res.set('X-Voice-Error', 'missing_key').sendStatus(503);
+    const left = await minutesLeft(pool, Number(site.restaurant.id));
+    if (left === 0) return res.set('X-Voice-Error', 'minutes_used_up').sendStatus(429);
     const menu = site.items.map(({ id, name, price_minor }) => ({ id, name, price_minor }));
     const data = new FormData();
     data.set('sdp', req.body);
@@ -278,6 +282,10 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
      console.warn('Restaurant voice provider unavailable:', reason);
      return res.set('X-Voice-Error', reason).sendStatus(502);
     }
+    const callId = callIdFrom(response.headers?.get?.('location'));
+    await voiceCalls.start(callId, Number(site.restaurant.id));
+    if (callId) res.set('X-Voice-Call', callId);
+    res.set('X-Voice-Max-Minutes', String(maxMinutes()));
     return res.type('application/sdp').send(await response.text());
    } catch {
     console.warn('Restaurant voice provider connection failed');
@@ -285,6 +293,21 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
    }
   });
 
+
+ // The visitor ended a live voice conversation: count its minutes and hang it up.
+ router.post('/r/:slug/assistant/voice/end',
+  rateLimit({ windowMs: 60000, max: 20, name: 'restaurant-voice-end' }),
+  express.text({ type: '*/*', limit: '1kb' }),
+  async (req, res) => {
+   try {
+    const callId = String(req.body || '').trim();
+    if (!/^rtc_[A-Za-z0-9_-]{4,120}$/.test(callId)) return res.sendStatus(400);
+    const site = await loadAssistantSite(pool, req.params.slug);
+    if (!site) return res.sendStatus(404);
+    await voiceCalls.end(callId, Number(site.restaurant.id));
+    return res.sendStatus(204);
+   } catch { return res.sendStatus(204); }
+  });
 
  // Embed widget: the AI Assistant inside an iframe on the owner's own website. Framing is
  // allowed only here, and only by the sites the owner listed (any https site if none).

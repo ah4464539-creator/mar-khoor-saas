@@ -21,9 +21,19 @@ function updateRecordingControls() {
 function stopRecording(current) {
   if (current?.recorder?.state === 'recording') current.recorder.stop();
 }
+// Tell the server the conversation is over, so only the minutes talked are counted.
+function endOnServer(current) {
+  if (!current?.callId || current.ended) return;
+  current.ended = true;
+  try { navigator.sendBeacon?.(voiceHolder.dataset.voiceUrl + '/end', new Blob([current.callId], { type: 'text/plain' })); } catch {}
+}
+window.addEventListener('pagehide', () => endOnServer(call));
 function finish(message = 'Voice ended.') {
   const current = call;
   call = undefined;
+  endOnServer(current);
+  if (current?.limitTimer) clearTimeout(current.limitTimer);
+  if (current?.warnTimer) clearTimeout(current.warnTimer);
   if (current?.connectionTimeout) clearTimeout(current.connectionTimeout);
   if (current?.finishTimer) clearTimeout(current.finishTimer);
   current?.controller.abort();
@@ -62,6 +72,7 @@ function waitForIceGathering(peer, signal, maxMs = 5000) {
   });
 }
 function voiceFailure(code, reason) {
+  if (reason === 'minutes_used_up') return 'Voice minutes for this month are used up. Please use text chat.';
   if (reason === 'quota_unavailable') return 'Voice API quota is unavailable. Use text chat.';
   if (reason === 'invalid_credentials' || reason === 'permission_denied') return 'Voice provider access needs configuration.';
   if (reason === 'model_unavailable') return 'Voice model unavailable for this project.';
@@ -269,9 +280,14 @@ start?.addEventListener('click',async()=>{
       body:current.peer.localDescription.sdp,signal:current.controller.signal
     });
     if (!response.ok) throw Error(voiceFailure(response.status,response.headers.get('X-Voice-Error')));
+    current.callId = response.headers.get('X-Voice-Call') || null;
+    const maxMinutes = Math.min(30, Math.max(1, Number(response.headers.get('X-Voice-Max-Minutes')) || 5));
     const answer = await response.text();
     if (!answer.startsWith('v=0')) throw Error('Invalid voice response.');
-    if (call!==current) return;
+    if (call!==current) { endOnServer(current); return; }
+    // Each live conversation lasts at most maxMinutes; the server hangs up then too.
+    current.warnTimer = setTimeout(() => { if (call === current) status.textContent = 'One minute left in this voice conversation.'; }, Math.max(0, maxMinutes - 1) * 60000);
+    current.limitTimer = setTimeout(() => { if (call === current) finish('Voice conversations last up to ' + maxMinutes + ' minutes. Start again or continue in text chat.'); }, maxMinutes * 60000);
     await current.peer.setRemoteDescription({type:'answer',sdp:answer});
     if (current.peer.connectionState !== 'connected') {
       current.connectionTimeout=setTimeout(()=>{
