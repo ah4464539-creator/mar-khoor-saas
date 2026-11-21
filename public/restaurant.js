@@ -600,7 +600,7 @@ function resetSiteForm(){
 }
 function showSite(data){
  siteField('headline').value=data.config.headline;siteField('tagline').value=data.config.tagline;siteField('about').value=data.config.about;
- siteField('hours').value=data.config.hours;siteField('phone').value=data.config.phone;siteField('address').value=data.config.address;siteField('theme').value=data.config.theme;
+ siteField('hours').value=data.config.hours;siteField('phone').value=data.config.phone;siteField('address').value=data.config.address;window.mkPhone?.sync();siteField('theme').value=data.config.theme;
  if(typeof data.description==='string')siteField('description').value=data.description;siteSections=data.config.sections;
  const chosenTemplate=siteForm.querySelector('input[name="site-template"][value="'+(data.config.template||'classic')+'"]');
  if(chosenTemplate)chosenTemplate.checked=true;
@@ -828,6 +828,7 @@ function fillConnectStep() {
   const value = setupForm.elements[item.kind + '_value'];
   const mode = setupForm.elements[item.kind + '_mode'];
   if (value && item.value) value.value = item.value;
+  window.mkPhone?.sync();
   if (mode && item.mode && (mode.tagName === 'SELECT' || mode instanceof RadioNodeList)) mode.value = item.mode;
   setupForm.elements[item.kind + '_skip'].checked = item.status === 'skipped';
  }
@@ -891,6 +892,7 @@ function summarise() {
 var setupCountry = '';
 async function loadSetup(restaurant) {
  setupCountry = restaurant.country_code || '';
+ window.mkPhone?.setDefaultCountry(setupCountry);
  const selection = ++setupSelection;
  setupPanel.hidden = restaurant.role !== 'admin';
  openSetup.disabled = true;
@@ -1153,9 +1155,9 @@ const widgetEl=id=>document.getElementById(id);
 function showWidget(data){
  const c=data.config,n=data.connected_numbers||{};
  widgetEl('widget-enabled').checked=c.enabled;widgetEl('widget-assistant').checked=c.assistant;widgetEl('widget-whatsapp').checked=c.whatsapp;widgetEl('widget-call').checked=c.call;
- widgetEl('widget-whatsapp-number').value=c.whatsapp_number;widgetEl('widget-whatsapp-number').placeholder=n.whatsapp?'Using your connected number '+n.whatsapp:'+923001234567';
- widgetEl('widget-call-number').value=c.call_number;widgetEl('widget-call-number').placeholder=n.call?'Using your AI Caller number '+n.call:'+923001234567';
- widgetEl('widget-label').value=c.label;widgetEl('widget-color').value=c.color;widgetEl('widget-position').value=c.position;widgetEl('widget-greeting').value=c.greeting;
+ widgetEl('widget-whatsapp-number').value=c.whatsapp_number;widgetEl('widget-whatsapp-number').placeholder=n.whatsapp?'Using your connected number '+n.whatsapp:'';
+ widgetEl('widget-call-number').value=c.call_number;widgetEl('widget-call-number').placeholder=n.call?'Using your AI Caller number '+n.call:'';
+ widgetEl('widget-label').value=c.label;widgetEl('widget-color').value=c.color;widgetEl('widget-position').value=c.position;widgetEl('widget-greeting').value=c.greeting;window.mkPhone?.sync();
  widgetEl('widget-origins').value=c.origins.map(o=>o.replace(/^https:\/\//,'')).join(', ');
  const note=widgetEl('widget-assistant-note');
  note.hidden=data.assistant_available&&data.menu_items>0;
