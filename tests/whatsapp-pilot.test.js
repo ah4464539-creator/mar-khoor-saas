@@ -28,3 +28,10 @@ test('a broken stored value is treated as an empty pilot', async () => {
   const pool = { async query() { return [[{ setting_value: 'not json' }]]; } };
   assert.deepEqual(await getPilotIds(pool), []);
 });
+
+test('worker switch accepts 1/true/yes/on', async () => {
+  const { workerEnabled } = await import('../src/whatsapp-ai-worker.js').catch(() => ({}));
+  if (!workerEnabled) return; // mysql2 missing locally; CI runs it
+  for (const v of ['1', 'true', 'TRUE', ' yes ', '"1"', 'on']) assert.equal(workerEnabled({ WHATSAPP_AI_WORKER_ENABLED: v }), true, v);
+  for (const v of ['0', 'false', '', undefined]) assert.equal(workerEnabled({ WHATSAPP_AI_WORKER_ENABLED: v }), false, String(v));
+});

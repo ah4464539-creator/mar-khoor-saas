@@ -8,6 +8,11 @@ import {resolve} from 'node:path';
 // Which restaurants get AI replies: each restaurant still opts in (AI switch on, WhatsApp number
 // linked by the platform). On top of that, the restaurant needs an active (paid) plan, or must be
 // listed in WHATSAPP_AI_WORKER_RESTAURANT_ID (comma-separated pilot/demo restaurants).
+// Accept the usual ways of writing "on" in hPanel (1, true, yes, on), with stray spaces or quotes.
+export function workerEnabled(env=process.env){
+ return ['1','true','yes','on'].includes(String(env.WHATSAPP_AI_WORKER_ENABLED??'').trim().replace(/^["']|["']$/g,'').toLowerCase());
+}
+
 export function workerScope(env=process.env){
  const ids=String(env.WHATSAPP_AI_WORKER_RESTAURANT_ID??'').split(',').map(v=>Number(v.trim())).filter(id=>Number.isSafeInteger(id)&&id>0);
  return {alwaysAllowed:[...new Set(ids)].slice(0,50)};
@@ -68,7 +73,7 @@ export async function processWhatsAppAIJobs(pool,{fetcher=fetch,restaurantId=nul
 // Run from the long-lived Node service when enabled. Wait for each batch to
 // finish before scheduling the next one; database claims guard across processes.
 export function startWhatsAppAIWorker(pool) {
- if (process.env.WHATSAPP_AI_WORKER_ENABLED !== '1') return;
+ if (!workerEnabled()) { console.log('WhatsApp AI worker is off (WHATSAPP_AI_WORKER_ENABLED is not 1/true)'); return; }
  const { alwaysAllowed } = workerScope();
  if (!process.env.OPENAI_API_KEY || !process.env.WHATSAPP_ACCESS_TOKEN) {
   console.warn('WhatsApp AI worker disabled: missing OpenAI or WhatsApp configuration');
