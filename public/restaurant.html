@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="/summit.css?v=20261120-s4">
-<link rel="stylesheet" href="/owner.css?v=20261121-s15">
+<link rel="stylesheet" href="/owner.css?v=20261121-s16">
 <script src="/i18n.js?v=20261121-2" data-position="right" defer></script>
 </head>
 <body class="mk owner-app signing-in">
@@ -304,6 +304,7 @@
 
 <section class="owner-view owner-message-view" id="whatsapp-inbox-view" data-title="WhatsApp inbox" hidden>
  <h2 tabindex="-1" class="visually-hidden">WhatsApp inbox</h2>
+ <div class="card card-pad"><div class="wa-connect" data-wa-connect hidden><button type="button" class="btn btn-dark"><svg width="18" height="18" aria-hidden="true"><use href="#i-chat"/></svg>Connect WhatsApp with Facebook</button><p class="wa-connect-status hint"></p></div></div>
  <div class="card card-pad"><div class="card-head"><p class="small muted">Customer messages to your WhatsApp Business number.</p><label class="check ai-toggle"><input id="whatsapp-ai-enabled" type="checkbox"> AI auto-replies</label></div><div id="whatsapp-inbox" class="message-list muted" translate="no"></div></div>
 </section>
 <section class="owner-view owner-message-view" id="whatsapp-outgoing-view" data-title="Outgoing messages" hidden>
@@ -333,6 +334,7 @@
 <div class="setup-grid">
 <div class="setup-item" data-kind="whatsapp">
 <h3>Business WhatsApp</h3>
+<div class="wa-connect" data-wa-connect hidden><button type="button" class="btn btn-dark"><svg width="18" height="18" aria-hidden="true"><use href="#i-chat"/></svg>Connect WhatsApp with Facebook</button><p class="wa-connect-status hint"></p></div>
 <div class="field"><label for="setup-wa">WhatsApp number used by your restaurant</label><input class="input" id="setup-wa" data-phone name="whatsapp_value" type="tel" inputmode="tel" autocomplete="tel" maxlength="32" placeholder="+92 300 1234567"></div>
 <input type="hidden" name="whatsapp_mode" value="meta_signup">
 <label class="check setup-skip"><input type="checkbox" name="whatsapp_skip"> Skip WhatsApp for now</label>
@@ -386,7 +388,8 @@
 </div>
 <script src="/password-reset.js?v=20261119"></script>
 <script src="/phone-input.js?v=20261121-1"></script>
-<script type="module" src="/restaurant.js?v=20261121-s17"></script>
+<script src="/whatsapp-connect.js?v=20261121-1"></script>
+<script type="module" src="/restaurant.js?v=20261121-s18"></script>
 <script>document.getElementById("login-show-password")?.addEventListener("change",function(){document.getElementById("password").type=this.checked?"text":"password"});</script>
 </body>
 </html>

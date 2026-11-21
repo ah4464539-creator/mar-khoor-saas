@@ -1,5 +1,6 @@
 import { trackSiteEvent } from './site-analytics.js';
 import { getPilotIds, setPilot } from './whatsapp-pilot.js';
+import { getSignupConfig, saveSignupConfig } from './whatsapp-signup-core.js';
 import express from 'express';
 import { requireAuth } from './auth.js';
 import { audit } from './security.js';
@@ -84,6 +85,15 @@ export function apiRouter(pool) {
    await audit(pool,{actorUserId:req.user.id,restaurantId,action:'voice_assistant.map:'+assistantId+':'+(active?'on':'off')});
    res.json({assistant_id:assistantId,restaurant_id:restaurantId,active});
   }catch{res.status(503).json({error:'Mapping unavailable'});}
+ });
+ router.get('/platform/whatsapp-signup',requireAuth,async(req,res)=>{
+  if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});
+  res.json({...await getSignupConfig(pool),app_secret_set:Boolean(process.env.META_APP_SECRET)});
+ });
+ router.put('/platform/whatsapp-signup',requireAuth,async(req,res)=>{
+  if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});
+  try{const saved=await saveSignupConfig(pool,req.body||{});await audit(pool,{actorUserId:req.user.id,restaurantId:null,action:'whatsapp_signup.config'});res.json({...saved,app_secret_set:Boolean(process.env.META_APP_SECRET)});}
+  catch(error){res.status(error.status||503).json({error:error.status?error.message:'Could not save'});}
  });
  router.post('/platform/restaurants/:id/whatsapp-ai-pilot',requireAuth,async(req,res)=>{
   if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});
