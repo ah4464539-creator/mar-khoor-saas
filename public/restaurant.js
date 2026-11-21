@@ -918,6 +918,12 @@ async function loadSetup(restaurant) {
   if ((!setupData.subscription && !location.hash && !alreadyPrompted) || wantsChange) {
    if (!wantsChange) { try { localStorage.setItem(firstPromptKey,'1'); } catch {} }
    showSetupStep(0); setupDialog.showModal();
+   // A plan already picked on the landing page / registration is not asked again: save it and
+   // go straight to connecting channels (Back still lets the owner change it).
+   if (remembered && setupData.subscription?.status !== 'active' && setupForm.querySelector('input[name="plan"][value="' + remembered.plan + '"]')?.checked) {
+    await advanceSetup();
+    if (setupStep === 1) setupStatus.textContent = remembered.plan[0].toUpperCase() + remembered.plan.slice(1) + ' plan (' + remembered.cycle + ') selected. Use Back to change it.';
+   }
   }
   planIntent = false;
  } catch (error) {
