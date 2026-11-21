@@ -19,7 +19,7 @@
   function theme(value) {
     const selected = value === 'dark' ? 'dark' : 'light';
     document.documentElement.dataset.theme = selected;
-    $('theme-toggle').textContent = selected === 'dark' ? '☀' : '☾';
+    $('theme-toggle').querySelector('use')?.setAttribute('href', selected === 'dark' ? '#ic-sun' : '#ic-moon');
     $('theme-toggle').title = selected === 'dark' ? 'Switch to light' : 'Switch to dark';
     try { localStorage.setItem(themeKey,selected); } catch {}
   }
