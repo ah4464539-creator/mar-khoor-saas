@@ -4,6 +4,20 @@ import { requireAuth } from './auth.js';
 import { audit } from './security.js';
 import { deletePreview, deleteRestaurant } from './restaurant-delete.js';
 import { loadPaymentSettings, publicPaymentOptions } from './payment-options.js';
+// The real phone number and business name behind each Meta phone_number_id (read-only Graph call).
+async function withDisplayNumbers(rows,{env=process.env,fetcher=fetch}={}){
+ const token=env.WHATSAPP_ACCESS_TOKEN,version=/^v\d+\.\d+$/.test(env.WHATSAPP_GRAPH_VERSION||'')?env.WHATSAPP_GRAPH_VERSION:'v23.0';
+ return Promise.all(rows.map(async row=>{
+  if(!token||!/^[0-9]{1,64}$/.test(String(row.phone_number_id)))return {...row,display_phone_number:null,verified_name:null,quality_rating:null};
+  try{
+   const r=await fetcher('https://graph.facebook.com/'+version+'/'+row.phone_number_id+'?fields=display_phone_number,verified_name,quality_rating,code_verification_status',{headers:{Authorization:'Bearer '+token},redirect:'error',signal:AbortSignal.timeout(6000)});
+   const d=await r.json().catch(()=>({}));
+   if(!r.ok)return {...row,display_phone_number:null,verified_name:null,quality_rating:null,lookup_error:String(d?.error?.message||('Meta '+r.status)).slice(0,160)};
+   return {...row,display_phone_number:d.display_phone_number||null,verified_name:d.verified_name||null,quality_rating:d.quality_rating||null};
+  }catch{return {...row,display_phone_number:null,verified_name:null,quality_rating:null,lookup_error:'Meta lookup failed'};}
+ }));
+}
+export { withDisplayNumbers };
 export function apiRouter(pool) {
  const router=express.Router();
  router.get('/platform/summary',requireAuth,async(req,res)=>{
@@ -84,7 +98,7 @@ export function apiRouter(pool) {
  });
  router.get('/platform/whatsapp-numbers',requireAuth,async(req,res)=>{
   if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});
-  try{const [rows]=await pool.query('SELECT w.phone_number_id,w.restaurant_id,r.name AS restaurant_name,w.active FROM whatsapp_numbers w JOIN restaurants r ON r.id=w.restaurant_id ORDER BY w.phone_number_id LIMIT 200');res.json({numbers:rows});}
+  try{const [rows]=await pool.query('SELECT w.phone_number_id,w.restaurant_id,r.name AS restaurant_name,r.slug AS restaurant_slug,w.active FROM whatsapp_numbers w JOIN restaurants r ON r.id=w.restaurant_id ORDER BY w.phone_number_id LIMIT 200');res.json({numbers:await withDisplayNumbers(rows)});}
   catch{res.status(503).json({error:'Mapping unavailable'});}
  });
  router.get('/my/restaurants',requireAuth,async(req,res)=>{

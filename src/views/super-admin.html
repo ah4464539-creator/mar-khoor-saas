@@ -126,6 +126,20 @@
   <div id="route-list" class="row-list muted">Loading…</div>
  </section>
 
+ <section class="card card-pad" id="whatsapp-numbers" tabindex="-1">
+  <div class="card-head"><div><h2>WhatsApp numbers</h2><p class="small muted">Which WhatsApp Business number belongs to which restaurant. Messages to a number that is not listed here are ignored.</p></div></div>
+  <div id="wa-number-list" class="row-list">Loading…</div>
+  <details>
+   <summary>Connect a WhatsApp number to a restaurant</summary>
+   <form id="wa-number-form" class="form-grid">
+    <div class="field"><label for="wa-phone-id">Phone number ID (from Meta → WhatsApp → API setup)</label><input class="input" id="wa-phone-id" inputmode="numeric" pattern="[0-9]{1,64}" placeholder="123456789012345" required></div>
+    <div class="field"><label for="wa-restaurant-id">Restaurant ID</label><input class="input" id="wa-restaurant-id" type="number" min="1" step="1" required></div>
+    <button class="btn btn-dark">Save</button>
+   </form>
+   <p id="wa-number-status" role="status" class="status-line"></p>
+  </details>
+ </section>
+
  <section class="card card-pad" id="voice-assistants" tabindex="-1">
   <div class="card-head"><div><h2>Vapi assistant mappings</h2><p class="small muted">Webhook signature check is still pending before live calls.</p></div></div>
   <div id="assistant-list" class="row-list">Loading mappings…</div>
@@ -150,6 +164,6 @@ document.addEventListener('click', event => {
  link.setAttribute('aria-current', 'page');
 });
 </script>
-<script type="module" src="/platform.js?v=20261120-s8"></script>
+<script type="module" src="/platform.js?v=20261121-s9"></script>
 </body>
 </html>

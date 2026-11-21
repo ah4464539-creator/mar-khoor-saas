@@ -108,6 +108,7 @@ form.addEventListener('submit', async event => {
       [loadSummary, '#status'],
       [loadTenants, '#tenant-list'],
       [loadAssistants, '#assistant-list'],
+      [loadWhatsAppNumbers, '#wa-number-list'],
       [() => loadWorkerMetrics(token), '#worker-status'],
       [loadRoutes, '#route-list'],
       [loadSubscriptions, '#subscription-list'],
@@ -390,3 +391,33 @@ async function loadDomains(){
   return row;
  }));
 }
+
+async function loadWhatsAppNumbers() {
+  const data = await platformApi('/api/platform/whatsapp-numbers');
+  const root = document.querySelector('#wa-number-list');
+  root.replaceChildren();
+  for (const n of data.numbers) {
+    const row = document.createElement('div'); row.className = 'row';
+    const main = document.createElement('div');
+    const title = document.createElement('strong');
+    title.textContent = (n.display_phone_number || 'Number not readable') + (n.verified_name ? ' · ' + n.verified_name : '');
+    const meta = document.createElement('p'); meta.className = 'small muted';
+    meta.textContent = 'Restaurant #' + n.restaurant_id + ' ' + n.restaurant_name + ' · Phone number ID ' + n.phone_number_id + (n.quality_rating ? ' · Quality ' + n.quality_rating : '') + (n.lookup_error ? ' · ' + n.lookup_error : '');
+    main.append(title, meta);
+    const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = n.active ? 'Active' : 'Off';
+    row.append(main, tag); root.append(row);
+  }
+  if (!data.numbers.length) root.textContent = 'No WhatsApp number is connected to any restaurant yet, so incoming WhatsApp messages are ignored.';
+}
+document.querySelector('#wa-number-form')?.addEventListener('submit', async event => {
+  event.preventDefault();
+  if (!platformToken) return;
+  const button = event.currentTarget.querySelector('button'), output = document.querySelector('#wa-number-status');
+  const id = document.querySelector('#wa-phone-id').value.trim(), restaurant_id = Number(document.querySelector('#wa-restaurant-id').value);
+  button.disabled = true; output.textContent = 'Saving…';
+  try {
+    await platformApi('/api/platform/whatsapp-numbers/' + encodeURIComponent(id), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ restaurant_id, active: true }) });
+    event.currentTarget?.reset?.(); output.textContent = 'Saved.';
+    await loadWhatsAppNumbers();
+  } catch (error) { output.textContent = error.message; } finally { button.disabled = false; }
+});
