@@ -256,7 +256,8 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
     data.set('session', JSON.stringify({
      type: 'realtime',
      model: process.env.OPENAI_REALTIME_MODEL || 'gpt-realtime',
-     audio: { input: { transcription: { model: 'gpt-4o-mini-transcribe' } } },
+     // 'marin': OpenAI's most natural female realtime voice (owner asked for a natural female voice).
+     audio: { input: { transcription: { model: 'gpt-4o-mini-transcribe' } }, output: { voice: process.env.OPENAI_REALTIME_VOICE || 'marin' } },
      tools: [
       { type:'function',name:'prepare_order',description:'Prepare a draft itemized order from the verified restaurant menu. Ask for customer name, and after preview ask for explicit verbal confirmation before submitting.',parameters:{type:'object',properties:{customer_name:{type:'string'},items:{type:'array',items:{type:'object',properties:{menu_item_id:{type:'integer'},quantity:{type:'integer'}},required:['menu_item_id','quantity']}}},required:['customer_name','items']} },
       { type:'function',name:'submit_order',description:'Only after a draft is shown and the customer explicitly confirms the full order. Never submit on implied approval.',parameters:{type:'object',properties:{confirmed:{type:'boolean'}},required:['confirmed']} },
