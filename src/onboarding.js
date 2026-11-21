@@ -6,6 +6,7 @@ import { planCatalog, chooseSubscription, getSubscription, getUsage } from './su
 import { getIntegrations, saveSetup, finishSetup } from './setup-integrations.js';
 import { assignRegistrationNumber } from './registration-voice.js';
 import { getUsdRates, FX_ATTRIBUTION } from './fx-rates.js';
+import { voiceUsageEntry } from './voice-limits.js';
 import { defaultCurrency } from './registration-core.js';
 
 export function onboardingRouter(pool, { assignVoiceNumber = assignRegistrationNumber, loadRates = getUsdRates } = {}) {
@@ -53,7 +54,12 @@ export function onboardingRouter(pool, { assignVoiceNumber = assignRegistrationN
   res.status(result.status).json(result.body);
  });
  router.get(base + '/usage', requireAuth, restaurantAdmin, async (req, res) => {
-  try { res.json(await getUsage(pool, req.restaurantId)); }
+  try {
+   const data = await getUsage(pool, req.restaurantId);
+   const voice = await voiceUsageEntry(pool, req.restaurantId, data.subscription);
+   if (voice) data.usage.push(voice); // website live voice has its own limit, separate from phone-call minutes
+   res.json(data);
+  }
   catch { res.status(503).json({ error: 'Usage unavailable' }); }
  });
 
