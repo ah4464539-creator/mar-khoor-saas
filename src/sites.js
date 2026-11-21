@@ -381,7 +381,7 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
   if (typeof published !== 'boolean') return res.status(400).json({ error: 'published must be true or false' });
   try {
    if (published && !(await canPublish(pool, req.restaurant.id, { superAdmin: req.user.platformRole === 'super_admin' })))
-    return res.status(403).json({ error: 'Publishing needs an active plan that includes the Website Builder' });
+    return res.status(402).json({ error: 'Your website is saved. Buy a plan (or the AI Website Builder tool) to put it live.', code: 'plan_required' });
    await setPublished(pool, req.restaurant, published);
    await audit(pool, { actorUserId: req.user.id, restaurantId: req.restaurant.id, action: published ? 'site.publish' : 'site.unpublish' });
    res.json({ published, url: '/r/' + req.restaurant.slug });

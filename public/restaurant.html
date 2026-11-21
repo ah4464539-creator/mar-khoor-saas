@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="/summit.css?v=20261120-s4">
-<link rel="stylesheet" href="/owner.css?v=20261121-s14">
+<link rel="stylesheet" href="/owner.css?v=20261121-s15">
 </head>
 <body class="mk owner-app signing-in">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -374,11 +374,17 @@
 </div>
 </form>
 </dialog>
+<dialog id="plan-required-dialog" class="plan-required" aria-labelledby="plan-required-title">
+ <h2 id="plan-required-title">Buy a plan to put your website live</h2>
+ <p class="muted">Your website, logo, numbers and domain are saved. It goes live as soon as you choose a plan and pay. Every plan includes the website, AI Assistant, WhatsApp AI and AI Calling.</p>
+ <ul class="plan-required-list" id="plan-required-plans"></ul>
+ <div class="form-actions"><button type="button" class="btn btn-ghost" id="plan-required-tool" hidden>Only the AI Website Builder</button><button type="button" class="btn btn-ghost" id="plan-required-close">Not now</button></div>
+</dialog>
 </div>
 </main>
 </div>
 <script src="/password-reset.js?v=20261119"></script>
-<script type="module" src="/restaurant.js?v=20261121-s14"></script>
+<script type="module" src="/restaurant.js?v=20261121-s15"></script>
 <script>document.getElementById("login-show-password")?.addEventListener("change",function(){document.getElementById("password").type=this.checked?"text":"password"});</script>
 </body>
 </html>
