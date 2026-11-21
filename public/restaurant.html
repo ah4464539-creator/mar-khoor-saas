@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="/summit.css?v=20261120-s4">
-<link rel="stylesheet" href="/owner.css?v=20261122-s18">
+<link rel="stylesheet" href="/owner.css?v=20261122-s19">
 <script src="/i18n.js?v=20261121-2" data-position="right" defer></script>
 </head>
 <body class="mk owner-app signing-in">
@@ -56,7 +56,7 @@
 <main class="main" id="owner-workspace">
 <header class="topbar owner-topbar">
  <div><p class="small muted owner-greeting">Good to see you, <strong id="owner-restaurant-label">Restaurant</strong></p><h1 id="owner-heading">Dashboard</h1></div>
- <div class="top-actions"><label class="search"><svg aria-hidden="true" width="16" height="16"><use href="#i-search"/></svg><span class="visually-hidden">Search orders or customers</span><input id="owner-global-search" type="search" placeholder="Search orders or customers"></label><a class="btn btn-primary" href="#menu-management"><svg aria-hidden="true" width="18" height="18"><use href="#i-plus"/></svg>Add menu item</a></div>
+ <div class="top-actions"><a class="btn btn-ghost live-site-btn" id="owner-live-site" href="#website" hidden><svg aria-hidden="true" width="18" height="18"><use href="#i-globe"/></svg><span>Live website</span></a><label class="search"><svg aria-hidden="true" width="16" height="16"><use href="#i-search"/></svg><span class="visually-hidden">Search orders or customers</span><input id="owner-global-search" type="search" placeholder="Search orders or customers"></label><a class="btn btn-primary" href="#menu-management"><svg aria-hidden="true" width="18" height="18"><use href="#i-plus"/></svg>Add menu item</a></div>
 </header>
 
 <div class="auth mk-login-grid">
@@ -115,7 +115,7 @@
  </div>
  <div class="split">
   <section class="card card-pad grow"><div class="card-head"><div><h2>Top dishes</h2><p class="small muted">Best sellers from completed orders</p></div></div><div id="owner-top-items"></div></section>
-  <section class="card card-pad rail"><div class="card-head"><h2>Quick actions</h2></div><div class="quick-actions"><a href="#menu-management" class="quick"><svg aria-hidden="true" width="22" height="22"><use href="#i-plus"/></svg>Add menu item</a><a href="#website" class="quick"><svg aria-hidden="true" width="22" height="22"><use href="#i-sparkle"/></svg>AI Website</a><a href="#order-desk" class="quick"><svg aria-hidden="true" width="22" height="22"><use href="#i-orders"/></svg>Live orders</a><a href="#whatsapp-inbox-view" class="quick"><svg aria-hidden="true" width="22" height="22"><use href="#i-chat"/></svg>WhatsApp inbox</a></div></section>
+  <section class="card card-pad rail"><div class="card-head"><h2>Quick actions</h2></div><div class="quick-actions"><a href="#menu-management" class="quick"><svg aria-hidden="true" width="22" height="22"><use href="#i-plus"/></svg>Add menu item</a><a href="#website" class="quick"><svg aria-hidden="true" width="22" height="22"><use href="#i-sparkle"/></svg>AI Website</a><a href="#website" class="quick live-site-btn" id="quick-live-site" hidden><svg aria-hidden="true" width="22" height="22"><use href="#i-globe"/></svg>Live website</a><a href="#order-desk" class="quick"><svg aria-hidden="true" width="22" height="22"><use href="#i-orders"/></svg>Live orders</a><a href="#whatsapp-inbox-view" class="quick"><svg aria-hidden="true" width="22" height="22"><use href="#i-chat"/></svg>WhatsApp inbox</a></div></section>
  </div>
 </div>
 
@@ -224,14 +224,15 @@
 <section class="owner-view owner-message-view" id="website" data-title="AI Website" hidden>
  <h2 tabindex="-1" class="visually-hidden">AI Website Builder</h2>
  <div class="notice notice-info"><svg aria-hidden="true" width="18" height="18"><use href="#i-eye"/></svg><span>Choose a template, add photos and let AI draft the words. Your live page stays unchanged until you save.</span></div>
- <p id="site-link" class="site-link small"></p>
+ <div class="site-live-bar"><p id="site-link" class="site-link small"></p><a class="btn btn-primary live-site-btn" id="site-live-open" href="#" target="_blank" rel="noopener" hidden><svg aria-hidden="true" width="18" height="18"><use href="#i-globe"/></svg>Open live website</a></div>
  <section class="card card-pad site-analytics" aria-labelledby="site-analytics-title">
   <div class="card-head"><div><h2 id="site-analytics-title">Website visitors</h2><p class="small muted">Last 30 days · counted without cookies, bots excluded</p></div></div>
   <div class="analytics-stats"><div><span class="small muted">Page views</span><strong id="sa-views" class="num">—</strong></div><div><span class="small muted">Menu opened</span><strong id="sa-menu" class="num">—</strong></div><div><span class="small muted">Orders (all channels)</span><strong id="sa-orders" class="num">—</strong></div><div><span class="small muted">Visitors who opened the menu</span><strong id="sa-rate" class="num">—</strong></div></div>
   <div id="sa-chart" class="analytics-bars" aria-hidden="true"></div>
  </section>
+ <div class="site-builder" id="site-builder">
  <form id="site-form" class="site-form">
-  <section class="card card-pad"><fieldset class="site-template-picker"><legend>1. Template</legend><p class="small muted">Existing sites keep their current design until you choose another.</p><div class="site-template-grid">
+  <section class="card card-pad"><fieldset class="site-template-picker"><legend>1. Template</legend><p class="small muted">Each preview shows <strong>your own</strong> menu and photos. Tap a design to use it, or open a full preview on desktop and mobile.</p><div class="site-template-grid">
    <label class="site-template-option" data-template="classic"><input type="radio" name="site-template" value="classic" checked><span class="site-template-thumb"><i></i><b></b><em></em></span><strong>Classic Dark</strong><small>Original Mar-Khoor style</small></label>
    <label class="site-template-option" data-template="bistro"><input type="radio" name="site-template" value="bistro"><span class="site-template-thumb"><i></i><b></b><em></em></span><strong>Warm Bistro</strong><small>Elegant, warm and welcoming</small></label>
    <label class="site-template-option" data-template="minimal"><input type="radio" name="site-template" value="minimal"><span class="site-template-thumb"><i></i><b></b><em></em></span><strong>Clean Editorial</strong><small>Minimal typography and whitespace</small></label>
@@ -254,6 +255,14 @@
    <label class="check"><input id="site-assistant-recording" type="checkbox"> Allow customers to record AI voice conversations on their device</label>
    <div class="field site-theme" hidden><label for="site-theme">Legacy colour setting</label><select class="input" id="site-theme"><option value="green">Green</option><option value="gold">Gold</option><option value="red">Red</option><option value="blue">Blue</option><option value="dark">Dark</option></select></div>
   </section>
+  <section class="card card-pad site-sections-card" aria-labelledby="site-sections-title">
+   <div class="card-head"><div><h2 id="site-sections-title">Sections</h2><p class="small muted">Turn sections on or off and move them up or down. The live preview updates as you go.</p></div></div>
+   <ul id="site-section-list" class="site-section-list"></ul>
+   <div class="field"><label for="site-banner">Top banner <span class="muted small">(optional)</span></label><input class="input" id="site-banner" maxlength="120" placeholder="e.g. Free delivery on orders over Rs 2,000 this weekend"></div>
+   <div class="field"><label for="site-whatsapp">WhatsApp number for the "Order on WhatsApp" section</label><input class="input" id="site-whatsapp" data-phone maxlength="25" placeholder="+92 300 1234567"></div>
+   <fieldset class="site-list-editor" id="site-offers-editor"><legend>Offers &amp; deals</legend><div data-rows></div><button type="button" class="btn btn-sm btn-ghost" data-add>+ Add offer</button></fieldset>
+   <fieldset class="site-list-editor" id="site-reviews-editor"><legend>Customer reviews</legend><p class="small muted">Only real reviews from your customers, with their permission.</p><div data-rows></div><button type="button" class="btn btn-sm btn-ghost" data-add>+ Add review</button></fieldset>
+  </section>
   <section class="card card-pad site-domain" aria-labelledby="site-domain-title">
    <div class="card-head"><div><h2 id="site-domain-title">4. Your own domain <span class="muted small">(optional)</span></h2><p class="small muted">Use your own address, like myrestaurant.pk, instead of mar-khoor.com/r/…</p></div><span id="domain-status" class="tag" hidden></span></div>
    <div class="describe-row"><input class="input" id="domain-input" placeholder="myrestaurant.pk" autocomplete="off" aria-label="Your domain"><button type="button" class="btn btn-ghost" id="domain-save">Save domain</button><button type="button" class="btn btn-quiet" id="domain-remove" hidden>Remove</button></div>
@@ -274,6 +283,8 @@
   </section>
   <div class="site-actions"><button type="button" id="site-preview-button" class="btn btn-ghost"><svg aria-hidden="true" width="18" height="18"><use href="#i-eye"/></svg>Preview draft</button><button type="submit" class="btn btn-ghost">Save website</button><button type="button" id="site-publish" class="btn btn-primary">Publish</button><span id="site-status" role="status" class="small muted"></span></div>
  </form>
+ <div class="site-preview-wrap card" id="site-preview-wrap" hidden><div class="card-head"><strong>Live preview · only you can see this</strong><div class="preview-devices" role="group" aria-label="Preview size"><button type="button" class="btn btn-sm btn-ghost" data-device="desktop" aria-pressed="true">Desktop</button><button type="button" class="btn btn-sm btn-ghost" data-device="mobile" aria-pressed="false">Mobile</button><button type="button" id="site-preview-close" class="btn btn-ghost btn-sm">Close</button></div></div><div class="preview-stage" id="preview-stage"><iframe id="site-preview-frame" title="Website draft preview" sandbox="" loading="lazy"></iframe></div></div>
+ </div>
  <section class="card card-pad site-widget" id="site-widget" aria-labelledby="site-widget-title">
   <div class="card-head"><div><h2 id="site-widget-title">Use Mar-Khoor on your own website</h2><p class="small muted">Already have a website? Add the AI Assistant, a WhatsApp button and an AI Caller button to it with one line of code. Orders arrive here like any other order.</p></div><span id="widget-status" class="tag" hidden></span></div>
   <form id="widget-form" class="widget-form">
@@ -301,9 +312,14 @@
    <p class="small"><a id="widget-preview" target="_blank" rel="noopener">Open the AI chat on its own</a> to test it.</p>
   </div>
  </section>
- <div class="site-preview-wrap card" id="site-preview-wrap" hidden><div class="card-head"><strong>Unpublished preview · only you can see this</strong><button type="button" id="site-preview-close" class="btn btn-ghost btn-sm">Close preview</button></div><iframe id="site-preview-frame" title="Website draft preview" sandbox="" loading="lazy"></iframe></div>
+
 </section>
 
+<dialog id="template-dialog" class="template-dialog" aria-labelledby="template-dialog-title">
+ <div class="card-head"><div><h2 id="template-dialog-title">Template</h2><p class="small muted" id="template-dialog-blurb"></p></div><div class="preview-devices" role="group" aria-label="Preview size"><button type="button" class="btn btn-sm btn-ghost" data-tdevice="desktop" aria-pressed="true">Desktop</button><button type="button" class="btn btn-sm btn-ghost" data-tdevice="mobile" aria-pressed="false">Mobile</button></div></div>
+ <div class="preview-stage" id="template-stage"><iframe id="template-frame" title="Template preview" sandbox=""></iframe></div>
+ <div class="form-actions"><button type="button" class="btn btn-primary" id="template-use">Use this template</button><button type="button" class="btn btn-ghost" id="template-close">Close</button></div>
+</dialog>
 <section class="owner-view owner-message-view" id="blog-pages" data-title="Blog &amp; pages" hidden>
  <h2 tabindex="-1" class="visually-hidden">Blog and pages</h2>
  <div class="notice notice-info"><svg aria-hidden="true" width="18" height="18"><use href="#i-eye"/></svg><span>Blog posts and pages appear on your AI website once it is live. Drafts stay hidden until you publish them.</span></div>
@@ -418,7 +434,7 @@
 <script src="/whatsapp-connect.js?v=20261121-2"></script>
 <script src="/call-forwarding.js?v=20261122-1"></script>
 <script src="/site-content.js?v=20261122-1"></script>
-<script type="module" src="/restaurant.js?v=20261122-s21"></script>
+<script type="module" src="/restaurant.js?v=20261122-s22"></script>
 <script>document.getElementById("login-show-password")?.addEventListener("change",function(){document.getElementById("password").type=this.checked?"text":"password"});</script>
 </body>
 </html>

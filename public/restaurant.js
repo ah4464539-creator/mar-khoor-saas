@@ -378,7 +378,7 @@ window.addEventListener('hashchange', () => { updateWorkspaceView(true); if (loc
 async function openRestaurant(restaurant) {
  siteDirty=false;
  resetSiteForm();
- document.querySelector('#site-preview-wrap').hidden=true;
+ document.querySelector('#site-preview-wrap').hidden=true;galleryFor=null;
  document.querySelector('#site-preview-frame').removeAttribute('srcdoc');
  restaurantId = restaurant.id;
  window.mkWhatsAppConnect?.init({ restaurantId, api });
@@ -600,6 +600,7 @@ siteForm.addEventListener('change',()=>{siteDirty=true;});
 function resetSiteForm(){
  siteForm.reset();siteImages={logo:'',cover:'',gallery:[]};renderSiteImages();siteSlug='';sitePublished=false;siteSections=['about','menu','hours','contact'];
  sitePublish.textContent='Publish';siteLink.replaceChildren();siteStatus.textContent='';
+ showSiteExtras({});updateLiveButtons();
 }
 function showSite(data){
  siteField('headline').value=data.config.headline;siteField('tagline').value=data.config.tagline;siteField('about').value=data.config.about;
@@ -616,6 +617,7 @@ function showSite(data){
  sitePublish.textContent=sitePublished?'Unpublish':'Publish';
  siteLink.replaceChildren();
  if(sitePublished&&siteSlug){const a=document.createElement('a');a.href='/r/'+siteSlug;a.textContent='mar-khoor.com/r/'+siteSlug;a.target='_blank';a.rel='noopener';siteLink.append('Live at ',a)}
+ showSiteExtras(data.config);updateLiveButtons();
 }
 async function loadSiteAnalytics(){
  if(!restaurantId)return;
@@ -629,8 +631,8 @@ async function loadSiteAnalytics(){
  const max=Math.max(1,...data.days.map(day=>day.page_views));
  document.querySelector('#sa-chart').replaceChildren(...data.days.map(day=>{const bar=document.createElement('span');bar.style.height=Math.max(3,Math.round(day.page_views/max*100))+'%';bar.title=day.day+': '+day.page_views+' views';return bar;}));
 }
-async function loadSite({force=false}={}){if(!restaurantId||(siteDirty&&!force))return;const id=restaurantId;const data=await api('/api/restaurants/'+id+'/site');if(id===restaurantId)showSite(data)}
-const siteConfig=()=>({template:siteForm.querySelector('input[name="site-template"]:checked')?.value||'classic',headline:siteField('headline').value,tagline:siteField('tagline').value,about:siteField('about').value,hours:siteField('hours').value,phone:siteField('phone').value,address:siteField('address').value,theme:siteField('theme').value,assistantRecording:siteField('assistant-recording').checked,sections:siteSections,language:siteField('language').value,...(siteImages.logo?{logo:siteImages.logo}:{}),...(siteImages.cover?{cover:siteImages.cover}:{}),...(siteImages.gallery.length?{gallery:siteImages.gallery}:{})});
+async function loadSite({force=false}={}){if(!restaurantId||(siteDirty&&!force))return;const id=restaurantId;const data=await api('/api/restaurants/'+id+'/site');if(id===restaurantId){showSite(data);if(location.hash==='#website')buildTemplateGallery();}}
+const siteConfig=()=>({template:siteForm.querySelector('input[name="site-template"]:checked')?.value||'classic',headline:siteField('headline').value,tagline:siteField('tagline').value,about:siteField('about').value,hours:siteField('hours').value,phone:siteField('phone').value,address:siteField('address').value,theme:siteField('theme').value,assistantRecording:siteField('assistant-recording').checked,sections:siteSections,language:siteField('language').value,...siteExtrasConfig(),...(siteImages.logo?{logo:siteImages.logo}:{}),...(siteImages.cover?{cover:siteImages.cover}:{}),...(siteImages.gallery.length?{gallery:siteImages.gallery}:{})});
 const siteJson={'Content-Type':'application/json'};
 document.querySelector('#site-generate').addEventListener('click',async e=>{
  if(!restaurantId){siteStatus.textContent='Select your restaurant first.';return}
@@ -666,27 +668,173 @@ sitePublish.addEventListener('click',async()=>{
 });
 const sitePreviewWrap=document.querySelector('#site-preview-wrap');
 const sitePreviewFrame=document.querySelector('#site-preview-frame');
+
+// ---- Website builder: sections, offers/reviews, template gallery, live preview, live-site buttons ----
+const SECTION_LABELS={about:'About us',menu:'Menu',hours:'Opening hours',contact:'Contact',offers:'Offers & deals',reviews:'Customer reviews',whatsapp:'Order on WhatsApp',map:'Map & directions'};
+let siteExtras={banner:'',whatsapp:'',offers:[],reviews:[]};
+function siteExtrasConfig(){
+ const out={};
+ if(siteExtras.banner.trim())out.banner=siteExtras.banner;
+ if(siteExtras.whatsapp.trim())out.whatsapp=siteExtras.whatsapp;
+ const offers=siteExtras.offers.filter(o=>o.title.trim());if(offers.length)out.offers=offers;
+ const reviews=siteExtras.reviews.filter(r=>r.text.trim());if(reviews.length)out.reviews=reviews;
+ return out;
+}
+function showSiteExtras(config){
+ siteExtras={banner:config.banner||'',whatsapp:config.whatsapp||'',offers:(config.offers||[]).map(o=>({title:o.title||'',text:o.text||'',price:o.price||''})),reviews:(config.reviews||[]).map(r=>({name:r.name||'',text:r.text||''}))};
+ document.querySelector('#site-banner').value=siteExtras.banner;
+ document.querySelector('#site-whatsapp').value=siteExtras.whatsapp;window.mkPhone?.sync();
+ renderSectionList();renderListEditor('offers');renderListEditor('reviews');
+}
+document.querySelector('#site-banner').addEventListener('input',e=>{siteExtras.banner=e.target.value;});
+document.querySelector('#site-whatsapp').addEventListener('input',e=>{siteExtras.whatsapp=e.target.value;});
+document.querySelector('#site-whatsapp').addEventListener('change',e=>{siteExtras.whatsapp=e.target.value;});
+function renderSectionList(){
+ const list=document.querySelector('#site-section-list');list.replaceChildren();
+ const order=[...siteSections,...Object.keys(SECTION_LABELS).filter(k=>!siteSections.includes(k))];
+ order.forEach((key,index)=>{
+  const on=siteSections.includes(key);
+  const li=document.createElement('li');li.className='site-section-row'+(on?'':' is-off');
+  const label=document.createElement('label');label.className='check';
+  const box=document.createElement('input');box.type='checkbox';box.checked=on;
+  box.addEventListener('change',()=>{siteSections=box.checked?[...siteSections,key]:siteSections.filter(k=>k!==key);if(!siteSections.length)siteSections=['menu'];siteDirty=true;renderSectionList();scheduleLivePreview();});
+  label.append(box,' '+SECTION_LABELS[key]);
+  const moves=document.createElement('span');moves.className='section-moves';
+  for(const [dir,text] of [[-1,'↑'],[1,'↓']]){
+   const b=document.createElement('button');b.type='button';b.className='btn btn-sm btn-quiet';b.textContent=text;b.setAttribute('aria-label',(dir<0?'Move up: ':'Move down: ')+SECTION_LABELS[key]);
+   const i=siteSections.indexOf(key);b.disabled=!on||(dir<0?i<=0:i>=siteSections.length-1);
+   b.addEventListener('click',()=>{const j=siteSections.indexOf(key),k=j+dir;if(k<0||k>=siteSections.length)return;const next=[...siteSections];[next[j],next[k]]=[next[k],next[j]];siteSections=next;siteDirty=true;renderSectionList();scheduleLivePreview();});
+   moves.append(b);
+  }
+  li.append(label,moves);list.append(li);
+ });
+}
+const LIST_FIELDS={offers:[['title','Offer name',60],['text','Details',160],['price','Price',30]],reviews:[['name','Customer name',40],['text','What they said',300]]};
+function renderListEditor(kind){
+ const box=document.querySelector('#site-'+kind+'-editor [data-rows]');box.replaceChildren();
+ siteExtras[kind].forEach((item,index)=>{
+  const row=document.createElement('div');row.className='site-list-row';
+  for(const [field,label,max] of LIST_FIELDS[kind]){
+   const input=document.createElement(field==='text'&&kind==='reviews'?'textarea':'input');input.className='input';input.maxLength=max;input.placeholder=label;input.setAttribute('aria-label',label);input.value=item[field];
+   if(input.tagName==='TEXTAREA')input.rows=2;
+   input.addEventListener('input',()=>{item[field]=input.value;});
+   row.append(input);
+  }
+  const del=document.createElement('button');del.type='button';del.className='btn btn-sm btn-quiet';del.textContent='Remove';
+  del.addEventListener('click',()=>{siteExtras[kind].splice(index,1);siteDirty=true;renderListEditor(kind);scheduleLivePreview();});
+  row.append(del);box.append(row);
+ });
+}
+for(const kind of ['offers','reviews'])document.querySelector('#site-'+kind+'-editor [data-add]').addEventListener('click',()=>{
+ if(siteExtras[kind].length>=6)return;
+ siteExtras[kind].push(kind==='offers'?{title:'',text:'',price:''}:{name:'',text:''});
+ if(!siteSections.includes(kind)){siteSections=[...siteSections,kind];renderSectionList();}
+ siteDirty=true;renderListEditor(kind);
+ document.querySelector('#site-'+kind+'-editor [data-rows] .site-list-row:last-child input,#site-'+kind+'-editor [data-rows] .site-list-row:last-child textarea')?.focus();
+});
+
+async function renderPreviewHtml(config){
+ const id=restaurantId;
+ const response=await fetch('/api/restaurants/'+id+'/site/preview',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({config})});
+ if(!response.ok){const result=await response.json().catch(()=>({}));throw Error(result.error||'Preview unavailable')}
+ const html=await response.text();
+ if(id!==restaurantId)throw Error('Restaurant changed');
+ return html;
+}
+// Live preview: re-renders a moment after each change while it is open.
+let livePreviewTimer=null,livePreviewSeq=0;
+async function refreshLivePreview(){
+ if(!restaurantId||sitePreviewWrap.hidden)return;
+ const seq=++livePreviewSeq;
+ try{const html=await renderPreviewHtml(siteConfig());if(seq===livePreviewSeq)sitePreviewFrame.srcdoc=html;}catch{}
+}
+function scheduleLivePreview(){if(sitePreviewWrap.hidden)return;clearTimeout(livePreviewTimer);livePreviewTimer=setTimeout(refreshLivePreview,700);}
+siteForm.addEventListener('input',scheduleLivePreview);
+siteForm.addEventListener('change',scheduleLivePreview);
+function setDevice(stage,buttons,device){stage.dataset.device=device;buttons.forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.device===device||b.dataset.tdevice===device)));}
+const previewDeviceButtons=[...document.querySelectorAll('#site-preview-wrap [data-device]')];
+previewDeviceButtons.forEach(b=>b.addEventListener('click',()=>setDevice(document.querySelector('#preview-stage'),previewDeviceButtons,b.dataset.device)));
 document.querySelector('#site-preview-close').addEventListener('click',()=>{
- sitePreviewWrap.hidden=true;sitePreviewFrame.removeAttribute('srcdoc');
+ sitePreviewWrap.hidden=true;sitePreviewFrame.removeAttribute('srcdoc');document.querySelector('#site-builder').classList.remove('with-preview');
 });
-document.querySelector('#site-preview-button').addEventListener('click',async event=>{
+async function openLivePreview({scroll=true}={}){
  if(!restaurantId){siteStatus.textContent='Select your restaurant first.';return}
- const button=event.currentTarget,id=restaurantId;
- button.disabled=true;siteStatus.textContent='Preparing your private preview…';
- try{
-  const response=await fetch('/api/restaurants/'+id+'/site/preview',{
-   method:'POST',
-   headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
-   body:JSON.stringify({config:siteConfig()}),
-  });
-  if(!response.ok){const result=await response.json().catch(()=>({}));throw Error(result.error||'Preview unavailable')}
-  const html=await response.text();
+ sitePreviewWrap.hidden=false;document.querySelector('#site-builder').classList.add('with-preview');
+ await refreshLivePreview();
+ if(scroll&&!window.matchMedia('(min-width: 1200px)').matches)sitePreviewWrap.scrollIntoView({behavior:'smooth',block:'start'});
+ siteStatus.textContent='Live preview is on. Changes show here before you save; nothing is published.';
+}
+document.querySelector('#site-preview-button').addEventListener('click',()=>openLivePreview().catch(error=>{siteStatus.textContent=error.message}));
+
+// Template gallery: every card is a real, scaled-down render of the restaurant's own data.
+let siteTemplates=[],galleryFor=null;
+const templateGrid=document.querySelector('.site-template-grid');
+async function buildTemplateGallery(){
+ if(!restaurantId||galleryFor===restaurantId)return;
+ const id=restaurantId;galleryFor=id;
+ try{siteTemplates=(await api('/api/restaurants/'+id+'/site/templates')).templates;}catch{galleryFor=null;return}
+ if(id!==restaurantId)return;
+ const current=siteConfig().template;
+ templateGrid.replaceChildren(...siteTemplates.map(t=>{
+  const label=document.createElement('label');label.className='site-template-option';label.dataset.template=t.id;
+  const input=document.createElement('input');input.type='radio';input.name='site-template';input.value=t.id;input.checked=t.id===current;
+  input.addEventListener('change',()=>{siteDirty=true;scheduleLivePreview();});
+  const thumb=document.createElement('span');thumb.className='template-live-thumb';
+  const sw=document.createElement('span');sw.className='template-swatches';for(const c of t.colors||[]){const i=document.createElement('i');i.style.background=c;sw.append(i)}
+  thumb.append(sw);
+  const name=document.createElement('strong');name.textContent=t.label;
+  const blurb=document.createElement('small');blurb.textContent=t.blurb||'';
+  const best=document.createElement('small');best.className='template-best';best.textContent=t.best?'Best for: '+t.best:'';
+  const open=document.createElement('button');open.type='button';open.className='btn btn-sm btn-ghost';open.textContent='Full preview';
+  open.addEventListener('click',e=>{e.preventDefault();openTemplateDialog(t)});
+  label.append(input,thumb,name,blurb,best,open);
+  return label;
+ }));
+ // Load real thumbnails one by one so the dashboard stays fast.
+ for(const t of siteTemplates){
   if(id!==restaurantId)return;
-  sitePreviewFrame.srcdoc=html;sitePreviewWrap.hidden=false;
-  sitePreviewWrap.scrollIntoView({behavior:'smooth',block:'start'});
-  siteStatus.textContent='Preview ready. This view is private; nothing was published.';
- }catch(error){siteStatus.textContent=error.message}finally{button.disabled=false}
+  try{
+   const html=await renderPreviewHtml({...siteConfig(),template:t.id});
+   const frame=document.createElement('iframe');frame.setAttribute('sandbox','');frame.setAttribute('aria-hidden','true');frame.tabIndex=-1;frame.title=t.label+' preview';frame.srcdoc=html;
+   const holder=templateGrid.querySelector('[data-template="'+t.id+'"] .template-live-thumb');
+   if(holder){holder.prepend(frame);fitThumb(holder);}
+  }catch{}
+ }
+}
+// Scale each 1280px-wide render to its card width.
+const thumbObserver=window.ResizeObserver?new ResizeObserver(entries=>entries.forEach(e=>fitThumb(e.target))):null;
+function fitThumb(holder){const frame=holder.querySelector('iframe');if(!frame)return;frame.style.transform='scale('+(holder.clientWidth/1280||.16)+')';if(thumbObserver&&!holder.dataset.observed){holder.dataset.observed='1';thumbObserver.observe(holder);}}
+const templateDialog=document.querySelector('#template-dialog');let dialogTemplate=null;
+const tDeviceButtons=[...templateDialog.querySelectorAll('[data-tdevice]')];
+tDeviceButtons.forEach(b=>b.addEventListener('click',()=>setDevice(document.querySelector('#template-stage'),tDeviceButtons,b.dataset.tdevice)));
+async function openTemplateDialog(t){
+ dialogTemplate=t;
+ document.querySelector('#template-dialog-title').textContent=t.label;
+ document.querySelector('#template-dialog-blurb').textContent=[t.blurb,t.best?'Best for: '+t.best:''].filter(Boolean).join(' · ');
+ const frame=document.querySelector('#template-frame');frame.removeAttribute('srcdoc');
+ setDevice(document.querySelector('#template-stage'),tDeviceButtons,window.matchMedia('(max-width: 720px)').matches?'mobile':'desktop');
+ templateDialog.showModal();
+ try{frame.srcdoc=await renderPreviewHtml({...siteConfig(),template:t.id});}catch(error){document.querySelector('#template-dialog-blurb').textContent=error.message}
+}
+document.querySelector('#template-close').addEventListener('click',()=>templateDialog.close());
+document.querySelector('#template-use').addEventListener('click',()=>{
+ const input=templateGrid.querySelector('input[value="'+dialogTemplate?.id+'"]');
+ if(input){input.checked=true;siteDirty=true;}
+ templateDialog.close();
+ siteStatus.textContent=dialogTemplate.label+' selected. Press Save website (and Publish) to put it live.';
+ openLivePreview({scroll:false}).catch(()=>{});
 });
+
+// "Live website" buttons: open the restaurant's public page in a new tab when it is published.
+function updateLiveButtons(){
+ const live=Boolean(sitePublished&&siteSlug),href=live?'/r/'+siteSlug:'#website';
+ for(const id of ['owner-live-site','site-live-open','quick-live-site']){
+  const a=document.querySelector('#'+id);if(!a)continue;
+  a.hidden=!live;a.href=href;
+  if(live){a.target='_blank';a.rel='noopener';}else{a.removeAttribute('target');}
+ }
+}
+window.addEventListener('hashchange',()=>{if(location.hash==='#website'){buildTemplateGallery();if(window.matchMedia('(min-width: 1200px)').matches&&sitePreviewWrap.hidden)openLivePreview({scroll:false}).catch(()=>{});}});
 
 const setupPanel = document.querySelector('#restaurant-setup');
 const setupDialog = document.querySelector('#setup-dialog');
