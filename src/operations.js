@@ -4,7 +4,8 @@ import { requireAuth } from './auth.js';
 import { isMissingFulfillmentSchema } from './order-fulfillment.js';
 import { isAllowedImageRef } from './media-store.js';
 import { ensurePaymentTables, loadPaymentSettings, sanitizePaymentSettings, publicPaymentOptions } from './payment-options.js';
-import { audit } from './security.js';
+import { audit, rateLimit } from './security.js';
+import { startNumber, verifyNumber, onboardingStatus } from './whatsapp-number-onboarding.js';
 import { getSignupConfig, completeSignup, connectionStatus, tokenForNumber, graphVersion } from './whatsapp-signup-core.js';
 export function operationsRouter(pool) {
  const router=express.Router();
@@ -88,7 +89,20 @@ export function operationsRouter(pool) {
  });
  router.get('/restaurants/:restaurantId/whatsapp/signup',async(req,res)=>{
   const config=await getSignupConfig(pool);
-  res.json({enabled:Boolean(config.app_id&&config.config_id&&process.env.META_APP_SECRET),app_id:config.app_id,config_id:config.config_id,graph_version:graphVersion(),numbers:await connectionStatus(pool,req.restaurantId)});
+  res.json({enabled:Boolean(config.app_id&&config.config_id&&process.env.META_APP_SECRET),app_id:config.app_id,config_id:config.config_id,graph_version:graphVersion(),numbers:await connectionStatus(pool,req.restaurantId),number_code:{available:Boolean(process.env.WHATSAPP_ACCESS_TOKEN),status:await onboardingStatus(pool,req.restaurantId)}});
+ });
+ // Number + code activation (no Facebook login): Meta sends a code by SMS or call.
+ router.post('/restaurants/:restaurantId/whatsapp/number/start',rateLimit({windowMs:10*60000,max:5,name:'wa-number-start'}),express.json({limit:'4kb'}),async(req,res)=>{
+  const result=await startNumber(pool,req.restaurantId,req.body||{});
+  if(result.status===200)await audit(pool,{actorUserId:req.user.id,restaurantId:req.restaurantId,action:'whatsapp.number_code:'+String(result.body.phone).slice(-4)});
+  else console.warn('WhatsApp number code failed for restaurant #'+req.restaurantId+': '+String(result.body.error).slice(0,160));
+  res.status(result.status).json(result.body);
+ });
+ router.post('/restaurants/:restaurantId/whatsapp/number/verify',rateLimit({windowMs:10*60000,max:10,name:'wa-number-verify'}),express.json({limit:'4kb'}),async(req,res)=>{
+  const result=await verifyNumber(pool,req.restaurantId,req.body||{});
+  if(result.status===200){await audit(pool,{actorUserId:req.user.id,restaurantId:req.restaurantId,action:'whatsapp.number_connected:'+String(result.body.phone).slice(-4)});console.log('WhatsApp number connected for restaurant #'+req.restaurantId+' (number + code)');}
+  else console.warn('WhatsApp number verify failed for restaurant #'+req.restaurantId+': '+String(result.body.error).slice(0,160));
+  res.status(result.status).json(result.body);
  });
  router.post('/restaurants/:restaurantId/whatsapp/signup',express.json({limit:'8kb'}),async(req,res)=>{
   try{
