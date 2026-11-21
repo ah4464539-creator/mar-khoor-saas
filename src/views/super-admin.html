@@ -133,6 +133,16 @@
  <section class="card card-pad" id="whatsapp-numbers" tabindex="-1">
   <div class="card-head"><div><h2>WhatsApp numbers</h2><p class="small muted">Which WhatsApp Business number belongs to which restaurant. Messages to a number that is not listed here are ignored.</p></div></div>
   <div id="wa-number-list" class="row-list">Loading…</div>
+  <details id="wa-signup-settings">
+   <summary>Self-service signup for restaurants (Meta Embedded Signup)</summary>
+   <p class="small muted">Restaurants get a "Connect WhatsApp with Facebook" button once these are saved. App ID: Meta app dashboard → App settings → Basic. Configuration ID: Facebook Login for Business → Configurations (WhatsApp Embedded Signup).</p>
+   <form id="wa-signup-form" class="form-grid">
+    <div class="field"><label for="wa-signup-app">Meta App ID</label><input class="input" id="wa-signup-app" inputmode="numeric" pattern="[0-9]{5,64}" required></div>
+    <div class="field"><label for="wa-signup-config">Configuration ID</label><input class="input" id="wa-signup-config" inputmode="numeric" pattern="[0-9]{5,64}" required></div>
+    <button class="btn btn-dark">Save</button>
+   </form>
+   <p id="wa-signup-status" role="status" class="status-line"></p>
+  </details>
   <form id="waba-form" class="form-grid">
    <div class="field"><label for="waba-id">WhatsApp account ID (Meta → WhatsApp → API setup → "WhatsApp Business Account ID")</label><input class="input" id="waba-id" inputmode="numeric" pattern="[0-9]{5,64}" placeholder="2191752318117550" required></div>
    <button class="btn btn-dark">Receive messages from this account</button>
@@ -203,6 +213,6 @@
  show(location.hash.slice(1));
 })();
 </script>
-<script type="module" src="/platform.js?v=20261121-s11"></script>
+<script type="module" src="/platform.js?v=20261121-s12"></script>
 </body>
 </html>

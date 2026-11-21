@@ -109,6 +109,7 @@ form.addEventListener('submit', async event => {
       [loadTenants, '#tenant-list'],
       [loadAssistants, '#assistant-list'],
       [loadWhatsAppNumbers, '#wa-number-list'],
+      [loadWhatsAppSignup, '#wa-signup-status'],
       [() => loadWorkerMetrics(token), '#worker-status'],
       [loadRoutes, '#route-list'],
       [loadSubscriptions, '#subscription-list'],
@@ -443,5 +444,24 @@ document.querySelector('#waba-form')?.addEventListener('submit', async event => 
   try {
     const data = await platformApi('/api/platform/whatsapp-accounts/' + encodeURIComponent(id) + '/subscribe', { method: 'POST' });
     output.textContent = data.subscribed ? 'Done. Messages to this WhatsApp account now reach Mar-Khoor' + (data.apps.length ? ' (apps: ' + data.apps.join(', ') + ').' : '.') : 'Meta did not confirm the subscription.';
+  } catch (error) { output.textContent = error.message; } finally { button.disabled = false; }
+});
+
+async function loadWhatsAppSignup() {
+  const data = await platformApi('/api/platform/whatsapp-signup');
+  document.querySelector('#wa-signup-app').value = data.app_id || '';
+  document.querySelector('#wa-signup-config').value = data.config_id || '';
+  document.querySelector('#wa-signup-status').textContent = data.app_id && data.config_id
+    ? (data.app_secret_set ? 'On: restaurants can connect WhatsApp themselves.' : 'Saved, but META_APP_SECRET is missing on the server.')
+    : 'Off: add the App ID and Configuration ID to turn it on.';
+}
+document.querySelector('#wa-signup-form')?.addEventListener('submit', async event => {
+  event.preventDefault();
+  if (!platformToken) return;
+  const button = event.currentTarget.querySelector('button'), output = document.querySelector('#wa-signup-status');
+  button.disabled = true; output.textContent = 'Saving…';
+  try {
+    await platformApi('/api/platform/whatsapp-signup', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ app_id: document.querySelector('#wa-signup-app').value.trim(), config_id: document.querySelector('#wa-signup-config').value.trim() }) });
+    await loadWhatsAppSignup();
   } catch (error) { output.textContent = error.message; } finally { button.disabled = false; }
 });

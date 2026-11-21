@@ -4,6 +4,7 @@ import { isMissingFulfillmentSchema } from './order-fulfillment.js';
 import { isAllowedImageRef } from './media-store.js';
 import { ensurePaymentTables, loadPaymentSettings, sanitizePaymentSettings, publicPaymentOptions } from './payment-options.js';
 import { audit } from './security.js';
+import { getSignupConfig, completeSignup, connectionStatus, tokenForNumber, graphVersion } from './whatsapp-signup-core.js';
 export function operationsRouter(pool) {
  const router=express.Router();
  const access=async(req,res,next)=>{
@@ -84,6 +85,21 @@ export function operationsRouter(pool) {
    res.json({call:rows[0]});
   }catch{res.status(503).json({error:'Call history unavailable'});}
  });
+ router.get('/restaurants/:restaurantId/whatsapp/signup',async(req,res)=>{
+  const config=await getSignupConfig(pool);
+  res.json({enabled:Boolean(config.app_id&&config.config_id&&process.env.META_APP_SECRET),app_id:config.app_id,config_id:config.config_id,graph_version:graphVersion(),numbers:await connectionStatus(pool,req.restaurantId)});
+ });
+ router.post('/restaurants/:restaurantId/whatsapp/signup',express.json({limit:'8kb'}),async(req,res)=>{
+  try{
+   const result=await completeSignup(pool,req.restaurantId,req.body||{});
+   await audit(pool,{actorUserId:req.user.id,restaurantId:req.restaurantId,action:'whatsapp.embedded_signup:'+String(req.body?.phone_number_id).slice(-6)});
+   console.log('WhatsApp connected for restaurant #'+req.restaurantId+(result.registered?'':' (number registration needs attention)'));
+   res.json(result);
+  }catch(error){
+   console.warn('WhatsApp signup failed for restaurant #'+req.restaurantId+': '+String(error.message).slice(0,160));
+   res.status(error.status&&error.status<600?error.status:503).json({error:error.status?error.message:'WhatsApp connection failed. Please try again.'});
+  }
+ });
  router.get('/restaurants/:restaurantId/whatsapp/ai-settings',async(req,res)=>{
   try{const [rows]=await pool.execute('SELECT enabled FROM whatsapp_ai_settings WHERE restaurant_id=?',[req.restaurantId]);res.json({enabled:Boolean(rows[0]?.enabled)});}
   catch{res.status(503).json({error:'AI settings unavailable'});}
@@ -110,8 +126,9 @@ export function operationsRouter(pool) {
    if(!rows.length)return res.status(409).json({error:'No eligible recent inbound message'});
    const {phone_number_id:phoneId,sender}=rows[0];
    if(!/^[0-9]{1,64}$/.test(phoneId)||!/^[0-9]{5,20}$/.test(sender))return res.status(409).json({error:'Invalid recipient'});
+   const sendToken=await tokenForNumber(pool,phoneId)||token;
    const response=await fetch('https://graph.facebook.com/'+version+'/'+phoneId+'/messages',{
-    method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},
+    method:'POST',headers:{Authorization:'Bearer '+sendToken,'Content-Type':'application/json'},
     body:JSON.stringify({messaging_product:'whatsapp',recipient_type:'individual',to:sender,type:'text',text:{body:text.trim()}}),
     signal:AbortSignal.timeout(10000)
    });

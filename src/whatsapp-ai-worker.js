@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { getPilotIds } from './whatsapp-pilot.js';
+import { tokenForNumber } from './whatsapp-signup-core.js';
 import { ensureToolsTable } from './tools.js';
 import mysql from 'mysql2/promise';
 import {pathToFileURL} from 'node:url';
@@ -59,7 +60,8 @@ export async function processWhatsAppAIJobs(pool,{fetcher=fetch,restaurantId=nul
    if(!/^v[0-9]{1,2}[.][0-9]{1,2}$/.test(version))throw Error('Invalid Graph version');
    const [stillEnabled]=await pool.execute("SELECT s.enabled FROM whatsapp_ai_settings s JOIN whatsapp_numbers w ON w.restaurant_id=s.restaurant_id AND w.phone_number_id=? AND w.active=1 JOIN whatsapp_inbound_messages m ON m.message_id=? AND m.restaurant_id=s.restaurant_id WHERE s.restaurant_id=? AND m.received_at>=NOW()-INTERVAL 23 HOUR",[job.phone_number_id,job.inbound_message_id,job.restaurant_id]);
    if(!stillEnabled.length||!stillEnabled[0].enabled)throw Error('AI disabled, number unlinked or reply window expired');
-   const meta=await fetcher('https://graph.facebook.com/'+version+'/'+job.phone_number_id+'/messages',{method:'POST',headers:{Authorization:'Bearer '+metaToken,'Content-Type':'application/json'},body:JSON.stringify({messaging_product:'whatsapp',to:job.sender,type:'text',text:{body:reply}}),signal:AbortSignal.timeout(10000)});
+   const sendToken=(typeof pool.query==='function'?await tokenForNumber(pool,job.phone_number_id):null)||metaToken;
+   const meta=await fetcher('https://graph.facebook.com/'+version+'/'+job.phone_number_id+'/messages',{method:'POST',headers:{Authorization:'Bearer '+sendToken,'Content-Type':'application/json'},body:JSON.stringify({messaging_product:'whatsapp',to:job.sender,type:'text',text:{body:reply}}),signal:AbortSignal.timeout(10000)});
    if(!meta.ok){const detail=await meta.json().catch(()=>({}));throw Error('WhatsApp send failed (Meta '+meta.status+(detail?.error?.message?': '+String(detail.error.message).slice(0,120):'')+')');}
    const data=await meta.json(),id=data?.messages?.[0]?.id;
    if(typeof id!=='string'||!id.startsWith('wamid.')||id.length>255)throw Error('Missing outbound ID');
