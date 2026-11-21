@@ -382,6 +382,7 @@ async function openRestaurant(restaurant) {
  document.querySelector('#site-preview-frame').removeAttribute('srcdoc');
  restaurantId = restaurant.id;
  window.mkWhatsAppConnect?.init({ restaurantId, api });
+ window.mkSiteContent?.init({ restaurantId, api });
  restaurantCurrency = restaurant.currency;
  document.querySelector('#owner-tenant-initials').textContent = String(restaurant.name || 'R').split(/\s+/).filter(Boolean).slice(0, 2).map(word => word[0]).join('').toUpperCase() || 'R';
  document.querySelector('#owner-restaurant-label').textContent = restaurant.name;
