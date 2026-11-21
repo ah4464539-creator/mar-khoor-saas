@@ -47,9 +47,9 @@ export function integrationRouter(pool){
   if(!secret)return res.status(503).json({error:'Not configured'});
   if(!Buffer.isBuffer(req.body))return res.status(400).json({error:'Invalid body'});
   const signature=req.get('x-hub-signature-256')||'';
-  if(!/^sha256=[a-f0-9]{64}$/.test(signature))return res.sendStatus(401);
+  if(!/^sha256=[a-f0-9]{64}$/.test(signature)){console.warn('WhatsApp webhook: request without a valid signature header');return res.sendStatus(401);}
   const expected='sha256='+crypto.createHmac('sha256',secret).update(req.body).digest('hex');
-  if(!crypto.timingSafeEqual(Buffer.from(signature),Buffer.from(expected)))return res.sendStatus(401);
+  if(!crypto.timingSafeEqual(Buffer.from(signature),Buffer.from(expected))){console.warn('WhatsApp webhook: signature rejected (META_APP_SECRET does not match this Meta app)');return res.sendStatus(401);}
   let payload;
   try{payload=JSON.parse(req.body.toString('utf8'))}catch{return res.status(400).json({error:'Invalid JSON'})}
   if(payload?.object!=='whatsapp_business_account'||!Array.isArray(payload.entry))return res.status(400).json({error:'Invalid WhatsApp event'});
@@ -75,13 +75,14 @@ export function integrationRouter(pool){
     }
    }
   }
+  console.log(`WhatsApp webhook: ${messages.length} message(s), ${statuses.length} status(es)`);
   if(!messages.length&&!statuses.length)return res.status(202).json({received:true,processed:0});
   if(!pool)return res.status(503).json({error:'Message storage unavailable'});
   try{
    let processed=0;
    for(const msg of messages){
     const [mapped]=await pool.execute('SELECT restaurant_id FROM whatsapp_numbers WHERE phone_number_id=? AND active=1 LIMIT 1',[msg.phoneId]);
-    if(!mapped.length)continue;
+    if(!mapped.length){console.warn('WhatsApp webhook: ignored message for unconnected phone number ID …'+msg.phoneId.slice(-4));continue;}
     const [result]=await pool.execute('INSERT IGNORE INTO whatsapp_inbound_messages(message_id,restaurant_id,phone_number_id,sender,message_type,text_body) VALUES (?,?,?,?,?,?)',[msg.id,mapped[0].restaurant_id,msg.phoneId,msg.from,msg.type,msg.body]);
     processed+=result.affectedRows;
     if(msg.type==='text'&&msg.body?.trim()){
