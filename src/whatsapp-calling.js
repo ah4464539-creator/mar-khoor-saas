@@ -165,3 +165,23 @@ export async function callingStatus(pool, restaurantId, { env = process.env, fet
       sip_hosts: (calling.sip?.servers || []).map(s => s.hostname).filter(Boolean) } : null,
     ...(result.ok ? {} : { error: errorText(result.data, 'Meta ' + result.status) }) };
 }
+
+/**
+ * Read-only check for the pilot: what Vapi saw for each WhatsApp-calling number (recent calls and
+ * how they ended) and the trunk's gateways. Logged so failed calls can be diagnosed from runtime logs.
+ */
+export async function callingDiagnostics(pool, { env = process.env, fetcher = fetch } = {}) {
+  if (!env.VAPI_API_KEY) return [];
+  const state = await getCallingState(pool);
+  const out = [];
+  for (const [restaurantId, entry] of Object.entries(state)) {
+    const calls = await call(fetcher, VAPI + '/call?limit=5&phoneNumberId=' + encodeURIComponent(entry.vapi_phone_number_id), { token: env.VAPI_API_KEY }).catch(() => null);
+    const credential = await call(fetcher, VAPI + '/credential/' + encodeURIComponent(entry.vapi_credential_id), { token: env.VAPI_API_KEY }).catch(() => null);
+    const list = Array.isArray(calls?.data) ? calls.data : Array.isArray(calls?.data?.results) ? calls.data.results : [];
+    out.push({ restaurantId: Number(restaurantId), sip_host: entry.sip_host,
+      gateways: (credential?.data?.gateways || []).map(g => g.ip + (g.netmask ? '/' + g.netmask : '')),
+      calls: list.slice(0, 5).map(c => ({ at: c.createdAt, status: c.status, ended: c.endedReason, type: c.type })),
+      ...(calls && !calls.ok ? { calls_error: errorText(calls.data, 'HTTP ' + calls.status) } : {}) });
+  }
+  return out;
+}
