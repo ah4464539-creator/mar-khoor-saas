@@ -14,8 +14,8 @@ test('AI proposal is checked against the real menu; prices come from the menu', 
   assert.equal(d.total_minor, 160000 + 4 * 5000);
   assert.deepEqual(d.items.map(i => [i.name, i.quantity]), [['Chicken Karahi', 1], ['Naan', 4]]);
   const text = summaryText(d, 'PKR');
-  assert.match(text, /1 × Chicken Karahi — PKR 1,600/);
-  assert.match(text, /\*Total: PKR 1,800\*/);
+  assert.match(text, /1 × Chicken Karahi — Rs 1,600/);
+  assert.match(text, /\*Total: Rs 1,800\*/);
   assert.match(text, /Delivery: House 5, DHA Lahore/);
   assert.deepEqual(buttonsFor(12, 'roman').map(b => b.reply.id), ['mk_confirm:12', 'mk_change:12']);
   assert.ok(buttonsFor(12, 'ur').every(b => b.reply.title.length <= 20));
@@ -30,7 +30,7 @@ test('replies: button ids and typed yes in several languages; other text is not 
 
 test('received and status texts', () => {
   const r = receivedText({ order_id: 55, total_minor: 180000, tracking_token: 'a'.repeat(48) }, { language: 'en' }, 'PKR', 'https://mar-khoor.com/');
-  assert.match(r, /Order #55 received! Total PKR 1,800/);
+  assert.match(r, /Order #55 received! Total Rs 1,800/);
   assert.match(r, /https:\/\/mar-khoor\.com\/track\.html#id=55&t=a{48}/);
   assert.match(statusText('ready', 55, 'pickup', 'roman'), /pickup ke liye tayyar/);
   assert.match(statusText('ready', 55, 'delivery', 'en'), /on its way/);
@@ -111,7 +111,7 @@ test('worker: AI proposes an order -> customer gets our exact summary with Confi
   };
   assert.deepEqual(await processWhatsAppAIJobs(pool, { fetcher }), { claimed: 1, sent: 1, failed: 0 });
   assert.equal(sent[0].type, 'interactive');
-  assert.match(sent[0].interactive.body.text, /1 × Chicken Karahi — PKR 1,600/);
+  assert.match(sent[0].interactive.body.text, /1 × Chicken Karahi — Rs 1,600/);
   assert.deepEqual(sent[0].interactive.action.buttons.map(b => b.reply.id), ['mk_confirm:31', 'mk_change:31']);
   assert.ok(pool.queries.some(q => q.sql.startsWith('INSERT INTO whatsapp_order_drafts')));
 }));
@@ -180,7 +180,7 @@ const pjob = { restaurant_id: 4, phone_number_id: '148', sender: '923001234567',
 test('choosing a transfer records it and sends the restaurant account details', async () => {
   const pool = payPool();
   const text = await choosePayment(pool, pjob, 77, 'transfer:jc01', 'PKR');
-  assert.match(text, /\*PKR 1,800\* for order #77/);
+  assert.match(text, /\*Rs 1,800\* for order #77/);
   assert.match(text, /JazzCash[\s\S]*Urban Cafe[\s\S]*03001234567/);
   assert.match(text, /transaction ID/);
   assert.ok(pool.writes.some(w => w.sql.startsWith('INSERT INTO order_payments') && w.p[2] === 'transfer:jc01'));
