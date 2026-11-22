@@ -1,15 +1,15 @@
 import { Router } from 'express';
 
 // Public Mar-Khoor website support only. No tenant context, credentials, or order tools.
-// Enabling requires both WEBSITE_AI_ASSISTANT_ENABLED=true and an OpenAI server-side key.
+// AI support is on when a server-side OpenAI key is present. Emergency pause: WEBSITE_AI_ASSISTANT_PAUSED=true.
 export function publicAssistantRouter({ fetcher = fetch } = {}) {
   const router = Router();
-  const isEnabled = () => process.env.WEBSITE_AI_ASSISTANT_ENABLED === 'true' && Boolean(process.env.OPENAI_API_KEY);
+  const isEnabled = () => Boolean(process.env.OPENAI_API_KEY) && process.env.WEBSITE_AI_ASSISTANT_PAUSED !== 'true';
   router.get('/public/assistant/status', (_req, res) => {
     res.set('Cache-Control', 'no-store').json({ enabled: isEnabled() });
   });
   router.post('/public/assistant/chat', async (req, res) => {
-    if (process.env.WEBSITE_AI_ASSISTANT_ENABLED !== 'true') return res.status(503).json({ error: 'Assistant is not enabled' });
+    if (process.env.WEBSITE_AI_ASSISTANT_PAUSED === 'true') return res.status(503).json({ error: 'Assistant is temporarily paused' });
     const key = process.env.OPENAI_API_KEY;
     if (!key) return res.status(503).json({ error: 'Assistant is not configured' });
 
