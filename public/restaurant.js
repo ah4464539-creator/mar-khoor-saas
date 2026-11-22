@@ -498,7 +498,9 @@ async function openRestaurant(restaurant) {
  window.mkOwnerApp?.init({ restaurantId, api });
  document.body.dataset.category = restaurant.category || 'restaurant';
  window.mkBookings?.init({ restaurantId, api, category: restaurant.category || 'restaurant', currency: restaurant.currency, slug: restaurant.slug });
- if (document.body.dataset.category !== 'restaurant' && (!location.hash || location.hash === '#order-desk' || location.hash === '#menu-management')) history.replaceState(null, '', location.pathname + location.search + '#bookings');
+ // Clinics, salons and hotels open on their bookings (new owners first see Plans & billing).
+ let seenSetup = false; try { seenSetup = localStorage.getItem('mar-khoor.setup-prompted.' + restaurant.id) === '1'; } catch {}
+ if (document.body.dataset.category !== 'restaurant' && ((!location.hash && seenSetup) || location.hash === '#order-desk' || location.hash === '#menu-management')) history.replaceState(null, '', location.pathname + location.search + '#bookings');
  restaurantCurrency = restaurant.currency;
  document.querySelector('#owner-tenant-initials').textContent = String(restaurant.name || 'R').split(/\s+/).filter(Boolean).slice(0, 2).map(word => word[0]).join('').toUpperCase() || 'R';
  document.querySelector('#owner-restaurant-label').textContent = restaurant.name;
@@ -1548,16 +1550,28 @@ function showBilling(data,plans){
  if(myTools.length&&!sub)billingEl('billing-summary').textContent='Active tools: '+myTools.map(t=>({website:'AI Website Builder',whatsapp:'WhatsApp Business AI',calling:'AI Calling'})[t.tool_key]||t.tool_key).join(', ');
 }
 // After payment: one box per paid tool with its status and a button that opens its setup.
+const BIZ_COPY={
+ restaurant:{services:'Menu',wa:'Customers order on WhatsApp; the AI takes the order and sends a summary to confirm.',call:'Add the number customers call. The AI answers and takes orders.'},
+ clinic:{services:'Doctors & services',wa:'Patients book appointments on WhatsApp; the AI offers free times.',call:'Add the clinic number. The AI answers and books appointments.'},
+ salon:{services:'Services & staff',wa:'Clients book on WhatsApp; the AI offers free times.',call:'Add your number. The AI answers and books appointments.'},
+ hotel:{services:'Rooms & rates',wa:'Guests book rooms on WhatsApp; the AI checks free rooms.',call:'Add your number. The AI answers and books rooms.'}
+};
+const bizCopy=()=>BIZ_COPY[document.body.dataset.category]||BIZ_COPY.restaurant;
 const PLAN_INTEGRATIONS={
+ menu:{icon:'🍽️',title:'Menu',desc:'Add your dishes and prices; website, WhatsApp and calls use them.',kind:'menu',action:'Add menu',go:()=>{location.hash='#menu-management'}},
+ services:{icon:'📋',get title(){return bizCopy().services},desc:'Add what customers can book, prices and your opening hours.',kind:'services',action:'Add services',go:()=>{location.hash='#booking-setup'}},
  website:{icon:'🌐',title:'AI Website',desc:'Pick a template, let AI write it, then publish.',kind:'website',action:'Build website',go:()=>{location.hash='#website'}},
  ai_assistant:{icon:'💬',title:'Web AI Assistant',desc:'Add the chat and voice assistant to your website.',kind:'ai_assistant',action:'Add assistant',go:()=>{location.hash='#website';setTimeout(()=>document.querySelector('#site-widget')?.scrollIntoView({behavior:'smooth',block:'start'}),500)}},
- whatsapp:{icon:'🟢',title:'WhatsApp Business',desc:'Activate your number with a code, or connect with Facebook.',kind:'whatsapp',action:'Connect WhatsApp',go:()=>{location.hash='#whatsapp-inbox-view'}},
- calling:{icon:'📞',title:'AI Calling',desc:'Add the number customers call. The AI answers and takes orders.',kind:'ai_caller',action:'Set up calling',go:()=>{showSetupStep(1);renderPlans();fillConnectStep();setupDialog.showModal()}}
+ whatsapp:{icon:'🟢',title:'WhatsApp Business',get desc(){return 'Activate your number with a code, or connect with Facebook. '+bizCopy().wa},kind:'whatsapp',action:'Connect WhatsApp',go:()=>{location.hash='#whatsapp-inbox-view'}},
+ calling:{icon:'📞',title:'AI Calling',get desc(){return bizCopy().call},kind:'ai_caller',action:'Set up calling',go:()=>{showSetupStep(1);renderPlans();fillConnectStep();setupDialog.showModal()}}
 };
 function renderPlanIntegrations(data){
  const card=billingEl('plan-integrations'),list=billingEl('plan-integrations-list');if(!card||!list)return;
  const planActive=data.subscription?.status==='active';
- const keys=planActive?['website','ai_assistant','whatsapp','calling']:[...new Set((data.my_tools||[]).filter(t=>t.status==='active').map(t=>t.tool_key))].filter(k=>PLAN_INTEGRATIONS[k]);
+ const paid=planActive?['website','ai_assistant','whatsapp','calling']:[...new Set((data.my_tools||[]).filter(t=>t.status==='active').map(t=>t.tool_key))].filter(k=>PLAN_INTEGRATIONS[k]);
+ // First step depends on the type of business: the menu for food, services/rooms for bookings.
+ const cat=document.body.dataset.category||'restaurant';
+ const keys=paid.length?[cat==='restaurant'?'menu':'services',...paid]:[];
  card.hidden=!keys.length;if(!keys.length)return;
  const done={connected:'Connected',active:'Connected',live:'Connected',published:'Live',skipped:'Skipped',pending:'In progress',requested:'In progress'};
  list.replaceChildren(...keys.map(key=>{
@@ -1569,7 +1583,7 @@ function renderPlanIntegrations(data){
   const p=document.createElement('span');p.className='small muted';p.textContent=info.desc;
   text.append(h,p);
   const label=item&&done[item.status];
-  const tag=document.createElement('span');tag.className='tag '+(label==='Connected'||label==='Live'?'tag-ok':'tag-ember');tag.textContent=label||'Not set up';
+  const tag=document.createElement('span');tag.className='tag '+(label==='Connected'||label==='Live'?'tag-ok':'tag-ember');tag.textContent=label||(key==='menu'||key==='services'?'Start here':'Not set up');
   const btn=document.createElement('button');btn.type='button';btn.className='btn btn-sm '+(label==='Connected'||label==='Live'?'btn-ghost':'btn-primary');btn.textContent=label==='Connected'||label==='Live'?'Open':info.action;btn.addEventListener('click',info.go);
   const foot=document.createElement('div');foot.className='integration-foot';foot.append(tag,btn);
   box.append(icon,text,foot);return box;

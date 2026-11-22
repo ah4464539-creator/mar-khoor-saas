@@ -62,7 +62,7 @@ form.addEventListener('submit', async event => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         restaurant_name: document.querySelector('#restaurant-name').value,
-        business_type: document.querySelector('input[name="business_type"]:checked')?.value || 'restaurant',
+        business_type: document.querySelector('input[name="business_type"]:checked')?.value,
         country: country.value,
         email: document.querySelector('#email').value,
         password: document.querySelector('#password').value
@@ -72,7 +72,7 @@ form.addEventListener('submit', async event => {
     if (!response.ok) throw Error(data.error || 'Registration failed');
     form.hidden = true;
     status.textContent = '';
-    document.querySelector('#done-text').textContent = 'Your restaurant name for customers is "' + data.slug + '". Opening your workspace to finish setup' + (planSelect.value ? ' with the ' + planSelect.options[planSelect.selectedIndex].text + ' plan' : '') + '…';
+    document.querySelector('#done-text').textContent = 'Your web address is "' + data.slug + '". Opening your workspace to finish setup' + (planSelect.value ? ' with the ' + planSelect.options[planSelect.selectedIndex].text + ' plan' : '') + '…';
     document.querySelector('#registration-voice').textContent = data.voice?.status === 'active'
       ? 'Your AI call number: ' + data.voice.number
       : 'AI call number: pending.';
@@ -120,6 +120,12 @@ function changeStage(index) {
 }
 
 next.addEventListener('click', () => {
+  if (stage === 0 && !document.querySelector('input[name="business_type"]:checked')) {
+    const hint = document.querySelector('#biz-type-hint');
+    if (hint) { hint.textContent = 'Please choose your type of business first.'; hint.classList.add('hint-error'); }
+    document.querySelector('.biz-types')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
   if (form.reportValidity()) changeStage(stage + 1);
 });
 previous.addEventListener('click', () => changeStage(stage - 1));
@@ -130,6 +136,11 @@ previous.addEventListener('click', () => changeStage(stage - 1));
   const want = new URLSearchParams(location.search).get('type');
   const radio = want && document.querySelector('input[name="business_type"][value="' + want.replace(/[^a-z]/g, '') + '"]');
   if (radio) radio.checked = true;
-  const sync = () => { const v = document.querySelector('input[name="business_type"]:checked')?.value || 'restaurant'; const input = document.querySelector('#restaurant-name'); if (input) input.placeholder = NAMES[v] || NAMES.restaurant; };
+  const sync = () => {
+    const v = document.querySelector('input[name="business_type"]:checked')?.value || 'restaurant';
+    const input = document.querySelector('#restaurant-name'); if (input) input.placeholder = NAMES[v] || NAMES.restaurant;
+    const hint = document.querySelector('#biz-type-hint');
+    if (hint && document.querySelector('input[name="business_type"]:checked')) { hint.classList.remove('hint-error'); hint.textContent = 'WhatsApp, AI calls and your dashboard will be set up for this type.'; }
+  };
   document.querySelectorAll('input[name="business_type"]').forEach(r => r.addEventListener('change', sync)); sync();
 })();
