@@ -322,9 +322,9 @@ export function renderSitePage({ restaurant, config, items }, { assistant = '', 
     + (group.category === escapeHtml(L.other) && groups.size === 1 ? '' : '<h3>' + group.category + '</h3>')
     + '<ul class="menu-grid">' + group.cards + '</ul></div>').join('');
   const blocks = {
-    menu: '<section id="menu"><div class="section-heading"><h2>' + escapeHtml(L.exploreThe) + ' <em>' + escapeHtml(L.menuWord) + '</em></h2>'
+    menu: menuVisible ? '<section id="menu"><div class="section-heading"><h2>' + escapeHtml(L.exploreThe) + ' <em>' + escapeHtml(L.menuWord) + '</em></h2>'
       + (items.length ? '<a class="btn" href="' + menuHref + '">' + escapeHtml(L.orderOnline) + '</a>' : '')
-      + '</div>' + (menuCards ? categoryNav + menuCards : '<p>' + escapeHtml(L.noItems) + '</p>') + '</section>',
+      + '</div>' + (menuCards ? categoryNav + menuCards : '<p>' + escapeHtml(L.noItems) + '</p>') + '</section>' : '',
     about: paragraphs ? '<section class="info-card"><h2>' + escapeHtml(L.about) + '</h2>' + paragraphs + '</section>' : '',
     hours: c.hours ? '<section class="info-card"><h2>' + escapeHtml(L.hours) + '</h2><p>' + escapeHtml(c.hours) + '</p></section>' : '',
     contact: (c.phone || c.address) ? '<section class="info-card"><h2>' + escapeHtml(L.find) + '</h2>'
