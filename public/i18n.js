@@ -100,7 +100,7 @@
     box.style.cssText = 'position:fixed;z-index:2147482000;bottom:14px;' + corner + ':14px;font:500 13px/1.2 system-ui,-apple-system,"Segoe UI",sans-serif';
     const select = document.createElement('select');
     select.setAttribute('aria-label', 'Language');
-    select.style.cssText = 'appearance:auto;padding:8px 10px;border-radius:999px;border:1px solid #d9cfc4;background:#fffdf9;color:#1c1714;box-shadow:0 4px 16px #1c17141f;cursor:pointer;max-width:170px';
+    select.style.cssText = 'appearance:auto;padding:8px 10px;border-radius:999px;border:1px solid #3A4D5F;background:#16212C;color:#EEF3F6;color-scheme:dark;box-shadow:0 4px 16px #0006;cursor:pointer;max-width:170px';
     for (const code of SUPPORTED) { const o = document.createElement('option'); o.value = code; o.textContent = '🌐 ' + NAMES[code]; o.selected = code === lang; select.append(o); }
     select.addEventListener('change', () => { try { localStorage.setItem(KEY, select.value); } catch {} location.reload(); });
     box.append(select);
