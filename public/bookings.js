@@ -6,10 +6,10 @@
   const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const TYPE_ICONS = { restaurant: '🍽️', clinic: '🩺', hotel: '🏨', salon: '✂️' };
   const COPY = {
-    restaurant: { people: 'Guests', cat: 'Category', arrive: 'Seated', finish: 'Done', group: 'Restaurant', online: 'Take table bookings online (website, WhatsApp and AI calls)', nav: 'Table bookings', setup: 'Tables & hours', resHint: 'Tables or areas guests can book (optional).', svcHint: 'For example: Table for 2, Family table, Private room.', capacity: 'Tables of this kind', resLegend: 'Which tables', guests: 'Guests' },
-    clinic: { people: 'Patients', cat: 'Specialty', arrive: 'Patient arrived', finish: 'Done', group: 'Clinic', online: 'Patients can book appointments online (website, WhatsApp and AI calls)', nav: 'Appointments', setup: 'Doctors & services', resHint: 'Doctors or specialists who see patients.', svcHint: 'For example: General check-up, Dental cleaning, Follow-up visit.', capacity: 'Patients at the same time', resLegend: 'Which doctors', guests: 'Patients' },
-    salon: { people: 'Clients', cat: 'Category', arrive: 'Arrived', finish: 'Done', group: 'Salon', online: 'Clients can book appointments online (website, WhatsApp and AI calls)', nav: 'Appointments', setup: 'Services & staff', resHint: 'Stylists or staff who do the work.', svcHint: 'For example: Haircut, Facial, Bridal makeup.', capacity: 'Clients at the same time', resLegend: 'Who does it', guests: 'People' },
-    hotel: { people: 'Guests', cat: 'Category', arrive: 'Check in', finish: 'Check out', group: 'Hotel', online: 'Guests can book rooms online (website, WhatsApp and AI calls)', nav: 'Reservations', setup: 'Rooms & rates', resHint: 'Each room by its number (101, 102…). Housekeeping uses these.', svcHint: 'Each room type with its price per night. Tick its rooms, or give a number of rooms.', capacity: 'Rooms of this type (if no rooms are ticked)', resLegend: 'Rooms of this type', guests: 'Guests' },
+    restaurant: { today: 'Today', ai: 'AI assistant', people: 'Customers', cat: 'Category', arrive: 'Seated', finish: 'Done', group: 'Restaurant', online: 'Take table bookings online (website, WhatsApp and AI calls)', nav: 'Table bookings', setup: 'Tables & hours', resHint: 'Tables or areas guests can book (optional).', svcHint: 'For example: Table for 2, Family table, Private room.', capacity: 'Tables of this kind', resLegend: 'Which tables', guests: 'Guests' },
+    clinic: { today: 'Reception', ai: 'AI receptionist', people: 'Patients', cat: 'Specialty', arrive: 'Patient arrived', finish: 'Done', group: 'Clinic', online: 'Patients can book appointments online (website, WhatsApp and AI calls)', nav: 'Appointments', setup: 'Doctors & services', resHint: 'Doctors or specialists who see patients.', svcHint: 'For example: General check-up, Dental cleaning, Follow-up visit.', capacity: 'Patients at the same time', resLegend: 'Which doctors', guests: 'Patients' },
+    salon: { today: 'Today', ai: 'AI receptionist', people: 'Clients', cat: 'Category', arrive: 'Arrived', finish: 'Done', group: 'Salon', online: 'Clients can book appointments online (website, WhatsApp and AI calls)', nav: 'Appointments', setup: 'Services & staff', resHint: 'Stylists or staff who do the work.', svcHint: 'For example: Haircut, Facial, Bridal makeup.', capacity: 'Clients at the same time', resLegend: 'Who does it', guests: 'People' },
+    hotel: { today: 'Front desk', ai: 'AI receptionist', people: 'Guests', cat: 'Category', arrive: 'Check in', finish: 'Check out', group: 'Hotel', online: 'Guests can book rooms online (website, WhatsApp and AI calls)', nav: 'Reservations', setup: 'Rooms & rates', resHint: 'Each room by its number (101, 102…). Housekeeping uses these.', svcHint: 'Each room type with its price per night. Tick its rooms, or give a number of rooms.', capacity: 'Rooms of this type (if no rooms are ticked)', resLegend: 'Rooms of this type', guests: 'Guests' },
   };
   const STATUS = { pending: 'New', confirmed: 'Confirmed', checked_in: 'Arrived', completed: 'Done', cancelled: 'Cancelled', no_show: 'No-show' };
   const SOURCE = { owner: '🧑‍💼', website: '🌐', whatsapp: '💬', call: '📞' };
@@ -33,6 +33,13 @@
     document.querySelectorAll('[data-biz-label="setup"]').forEach(n => { n.textContent = c.setup; });
     document.querySelectorAll('[data-biz-label="group"]').forEach(n => { n.textContent = c.group; });
     document.querySelectorAll('[data-biz-label="customers"]').forEach(n => { n.textContent = c.people; });
+    document.querySelectorAll('[data-biz-label="today"]').forEach(n => { n.textContent = c.today; });
+    document.querySelectorAll('[data-biz-label="ai"]').forEach(n => { n.textContent = c.ai; });
+    $('today')?.setAttribute('data-title', c.today); $('ai-receptionist')?.setAttribute('data-title', c.ai);
+    const heads = { '#today': c.today, '#ai-receptionist': c.ai };
+    if (heads[location.hash]) { const h = document.querySelector('#owner-heading'); if (h) h.textContent = heads[location.hash]; }
+    const thead = document.querySelector('.cu-table thead tr');
+    if (thead) thead.replaceChildren(...(type() === 'restaurant' ? ['Name', 'Phone', 'Orders', 'Completed', 'Cancelled', 'Spent', 'Last order'] : ['Name', 'Phone', 'Bookings', 'Visits', 'Missed', 'Spent', 'Last visit', 'Next']).map(t => el('th', null, t)));
     $('customers')?.setAttribute('data-title', c.people);
     if (location.hash === '#customers') { const h = document.querySelector('#owner-heading'); if (h) h.textContent = c.people; }
     if ($('bk-enabled-text')) $('bk-enabled-text').textContent = c.online;
@@ -348,7 +355,7 @@
   }
   async function setStatus(id, status, button) {
     button.disabled = true;
-    try { await ctx.api(base() + '/bookings/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) }); if (location.hash === '#bookings') loadBoard(); else loadOverview(); }
+    try { await ctx.api(base() + '/bookings/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) }); if (location.hash === '#bookings') loadBoard(); else if (PAGE_LOADERS[location.hash]) PAGE_LOADERS[location.hash](); else loadOverview(); }
     catch (error) { button.disabled = false; alertNote(error.message); }
   }
   const alertNote = msg => { const p = $('bk-public'); if (p) p.textContent = msg; };
@@ -536,6 +543,19 @@
   async function loadCustomers() {
     if (!ctx || !$('cu-rows')) return;
     const q = $('cu-search').value.trim();
+    if (type() === 'restaurant') {
+      try {
+        const { customers } = await ctx.api(base() + '/order-customers' + (q ? '?q=' + encodeURIComponent(q) : ''));
+        $('cu-note').textContent = customers.length ? customers.length + ' customers' : 'No orders yet.';
+        $('cu-rows').replaceChildren(...customers.map(cu => {
+          const tr = el('tr'); tr.tabIndex = 0;
+          for (const v of [cu.name, cu.phone || '—', cu.orders, cu.completed, cu.cancelled, money(cu.spent_minor), cu.last_at ? fmtDay(cu.last_at.slice(0, 10)) : '—']) tr.append(el('td', null, String(v)));
+          if (cu.phone) { const open = () => openOrderCustomer(cu); tr.addEventListener('click', open); tr.addEventListener('keydown', e => { if (e.key === 'Enter') open(); }); }
+          return tr;
+        }));
+      } catch (error) { $('cu-note').textContent = error.message; }
+      return;
+    }
     try {
       const { customers } = await ctx.api(base() + '/customers' + (q ? '?q=' + encodeURIComponent(q) : ''));
       $('cu-note').textContent = customers.length ? customers.length + ' ' + copy().people.toLowerCase() : 'Nobody has booked yet.';
@@ -548,6 +568,125 @@
       }));
     } catch (error) { $('cu-note').textContent = error.message; }
   }
+  async function openOrderCustomer(cu) {
+    $('cu-detail').hidden = false; $('cu-detail-title').textContent = cu.name + ' · ' + cu.phone;
+    const list = $('cu-detail-list'); list.replaceChildren(el('p', 'muted', 'Loading…'));
+    try {
+      const { orders } = await ctx.api(base() + '/order-customers/' + encodeURIComponent(cu.phone));
+      list.replaceChildren(...(orders.length ? orders.map(o => { const row = el('div', 'cu-row'); row.append(el('b', null, 'Order #' + o.id), el('span', null, o.at), el('span', 'tag', o.status), el('span', null, money(o.total_minor))); return row; }) : [el('p', 'muted', 'No orders found for this number.')]));
+    } catch (error) { list.replaceChildren(el('p', 'muted', error.message)); }
+  }
+  // ---------- Today / reception ----------
+  async function loadToday() {
+    if (!ctx || !$('td-list')) return;
+    const t = today();
+    try {
+      const { bookings } = await ctx.api(base() + '/bookings?from=' + t + '&to=' + t);
+      const live = bookings.filter(b => !['cancelled', 'no_show'].includes(b.status));
+      const chip = (n, label, cls) => { const c = el('div', 'bk-chip ' + (cls || '')); c.append(el('b', null, String(n)), el('span', null, label)); return c; };
+      $('td-summary').replaceChildren(chip(live.filter(b => ['pending', 'confirmed'].includes(b.status)).length, night() ? 'Arriving' : 'Waiting', 'new'), chip(live.filter(b => b.status === 'checked_in').length, night() ? 'In house' : 'Arrived'), chip(live.filter(b => b.status === 'completed').length, night() ? 'Checked out' : 'Done'));
+      $('td-clock').textContent = new Date().toLocaleString(undefined, { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+      $('td-list').replaceChildren(...(live.length ? live.map(card) : [el('p', 'muted bk-none', 'Nothing booked for today.')]));
+    } catch (error) { $('td-list').replaceChildren(el('p', 'muted', error.message)); }
+  }
+  // ---------- Calendar: week grid, or rooms × days for hotels ----------
+  let calStart = '';
+  async function loadCalendar() {
+    if (!ctx || !data || !$('cal-body')) return;
+    if (!calStart) calStart = night() ? today() : mondayOf(today());
+    const days = night() ? 14 : 7, to = addDays(calStart, days - 1);
+    $('cal-label').textContent = fmtDay(calStart) + ' – ' + fmtDay(to);
+    $('cal-hint').textContent = night() ? 'Each row is a room. Coloured cells are booked; tap one for details.' : '';
+    try {
+      const { bookings } = await ctx.api(base() + '/bookings?from=' + calStart + '&to=' + to);
+      const live = bookings.filter(b => !['cancelled', 'no_show'].includes(b.status));
+      if (!night()) {
+        const grid = el('div', 'bk-list week');
+        grid.append(...Array.from({ length: 7 }, (_, i) => {
+          const date = addDays(calStart, i), items = live.filter(b => b.start_at.slice(0, 10) === date);
+          const col = el('section', 'bk-day' + (date === today() ? ' is-today' : ''));
+          const head = el('div', 'bk-day-head'); head.append(el('h3', null, fmtDay(date)), el('span', 'count', String(items.length)));
+          col.append(head, ...(items.length ? items.map(card) : [el('p', 'small muted', 'Free')]));
+          return col;
+        }));
+        $('cal-body').replaceChildren(grid); return;
+      }
+      const rooms = data.resources.filter(r => r.active);
+      const table = el('table', 'av-grid');
+      const head = el('tr'); head.append(el('th', null, 'Room'));
+      for (let i = 0; i < days; i++) { const d = addDays(calStart, i); const th = el('th', d === today() ? 'is-today' : '', new Date(d + 'T00:00:00Z').toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', timeZone: 'UTC' })); head.append(th); }
+      const thead = el('thead'); thead.append(head); table.append(thead);
+      const body = el('tbody');
+      const noRoom = live.filter(b => !b.resource_id);
+      for (const room of rooms) {
+        const tr = el('tr'); tr.append(el('th', null, room.name + (room.room_status === 'out_of_order' ? ' ⛔' : '')));
+        for (let i = 0; i < days; i++) {
+          const d = addDays(calStart, i);
+          const b = live.find(x => x.resource_id === room.id && x.start_at.slice(0, 10) <= d && x.end_at.slice(0, 10) > d);
+          const td = el('td', b ? 'booked status-' + b.status : room.room_status === 'out_of_order' ? 'ooo' : 'free');
+          if (b) { td.textContent = b.start_at.slice(0, 10) === d ? b.customer_name.split(' ')[0] : ''; td.title = b.customer_name + ' · ' + b.service + ' · #' + b.id; td.tabIndex = 0; td.addEventListener('click', () => { location.hash = '#bookings'; setTimeout(() => { $('bk-search').value = String(b.id); loadBoard(); }, 300); }); }
+          tr.append(td);
+        }
+        body.append(tr);
+      }
+      table.append(body);
+      const wrap = el('div', 'av-wrap'); wrap.append(table);
+      const legend = el('p', 'small muted av-legend', 'Free · Booked (name on the first night) · ⛔ out of order' + (noRoom.length ? ' · ' + noRoom.length + ' booking(s) without a room number' : ''));
+      $('cal-body').replaceChildren(rooms.length ? wrap : el('p', 'muted bk-none', 'Add your rooms in Rooms & rates first.'), legend);
+    } catch (error) { $('cal-body').replaceChildren(el('p', 'muted', error.message)); }
+  }
+  // ---------- Deals (restaurants): menu items in the "Deals" category ----------
+  const menuBase = () => '/api/restaurants/' + ctx.restaurantId + '/menu';
+  async function loadDeals() {
+    if (!ctx || !$('dl-list')) return;
+    try {
+      const { items } = await ctx.api(menuBase());
+      const deals = items.filter(i => String(i.category || '').toLowerCase() === 'deals');
+      $('dl-list').replaceChildren(...(deals.length ? deals.map(d => {
+        const box = el('div', 'bk-tile' + (d.active ? '' : ' off'));
+        const info = el('div', 'bk-tile-info'); info.append(el('strong', null, d.name), el('span', 'small muted', money(Number(d.price_minor))), ...(d.description ? [el('span', 'small muted', d.description)] : []), el('span', 'small', d.active ? 'On menu' : 'Hidden'));
+        const t = el('button', 'btn btn-ghost btn-sm', d.active ? 'Hide' : 'Show'); t.type = 'button';
+        t.addEventListener('click', async () => { t.disabled = true; try { await ctx.api(menuBase() + '/' + d.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: d.name, description: d.description || '', price_minor: Number(d.price_minor), active: !d.active, category: 'Deals' }) }); loadDeals(); } catch (error) { t.disabled = false; alert(error.message); } });
+        box.append(info, t); return box;
+      }) : [el('p', 'muted bk-none', 'No deals yet.')]));
+    } catch (error) { $('dl-list').replaceChildren(el('p', 'muted', error.message)); }
+  }
+  async function addDeal(event) {
+    event.preventDefault();
+    const note = $('dl-note'); note.textContent = 'Adding…';
+    try {
+      await ctx.api(menuBase(), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: $('dl-name').value, description: $('dl-desc').value, price_minor: Math.round(Number($('dl-price').value) * 100), category: 'Deals' }) });
+      note.textContent = 'Added to your menu.'; $('dl-name').value = ''; $('dl-desc').value = ''; $('dl-price').value = ''; loadDeals();
+    } catch (error) { note.textContent = error.message; }
+  }
+  // ---------- AI receptionist ----------
+  async function loadAi() {
+    if (!ctx || !$('ai-notes')) return;
+    try {
+      const [ai, wa] = await Promise.all([ctx.api(base() + '/ai'), ctx.api('/api/restaurants/' + ctx.restaurantId + '/whatsapp/ai-settings').catch(() => ({ enabled: false }))]);
+      $('ai-notes').value = ai.notes || ''; $('ai-notes-count').textContent = (ai.notes || '').length + ' / 1000';
+      $('ai-transfer').value = ai.transfer_phone || '';
+      $('ai-wa-on').checked = Boolean(wa.enabled);
+      $('ai-wa-note').textContent = wa.enabled ? 'On: the AI answers new WhatsApp messages.' : 'Off: messages wait for you in the inbox.';
+    } catch (error) { $('ai-notes-note').textContent = error.message; }
+  }
+  async function saveAiNotes() {
+    const note = $('ai-notes-note'); note.textContent = 'Saving…';
+    try { const r = await ctx.api(base() + '/ai', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ notes: $('ai-notes').value }) }); $('ai-notes').value = r.notes; note.textContent = 'Saved. WhatsApp AI uses it from the next message' + (type() === 'restaurant' ? '.' : '; AI calls update in a minute.'); }
+    catch (error) { note.textContent = error.message; }
+  }
+  async function saveAiTransfer() {
+    const note = $('ai-transfer-note'); note.textContent = 'Saving…';
+    try { const r = await ctx.api(base() + '/contacts', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ transfer_phone: $('ai-transfer').value.trim() }) }); note.textContent = r.transfer_phone ? 'Saved. Callers who ask for a person go to ' + r.transfer_phone + '.' : 'Removed.'; if ($('bk-transfer')) $('bk-transfer').value = r.transfer_phone || ''; }
+    catch (error) { note.textContent = error.message; }
+  }
+  async function toggleWa(e) {
+    const on = e.target.checked; e.target.disabled = true;
+    try { await ctx.api('/api/restaurants/' + ctx.restaurantId + '/whatsapp/ai-settings', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: on }) }); $('ai-wa-note').textContent = on ? 'On: the AI answers new WhatsApp messages.' : 'Off: messages wait for you in the inbox.'; const inbox = document.querySelector('#whatsapp-ai-enabled'); if (inbox) inbox.checked = on; }
+    catch (error) { e.target.checked = !on; $('ai-wa-note').textContent = error.message; }
+    finally { e.target.disabled = false; }
+  }
+  const PAGE_LOADERS = { '#today': () => loadToday(), '#calendar': () => loadCalendar(), '#deals': () => loadDeals(), '#ai-receptionist': () => loadAi() };
   async function openCustomer(cu) {
     $('cu-detail').hidden = false; $('cu-detail-title').textContent = cu.name + ' · ' + cu.phone;
     const list = $('cu-detail-list'); list.replaceChildren(el('p', 'muted', 'Loading…'));
@@ -567,6 +706,7 @@
       applyLabels(); renderTypes(); renderHours(); renderResources(); renderServices(); renderBoardHints();
       if (location.hash === '#bookings') loadBoard();
       if (location.hash === '#customers') loadCustomers();
+      PAGE_LOADERS[location.hash]?.();
       if (location.hash === '#housekeeping') renderHousekeeping();
       if (location.hash === '#reports') loadReport();
       if (document.body.dataset.role !== 'staff') { loadDiscounts(); loadTeam(); }
@@ -598,6 +738,15 @@
     $('rp-days')?.addEventListener('change', loadReport);
     $('dc-add')?.addEventListener('click', addDiscount);
     $('tm-add')?.addEventListener('click', addStaff);
+    $('cal-prev')?.addEventListener('click', () => { calStart = addDays(calStart || today(), night() ? -14 : -7); loadCalendar(); });
+    $('cal-next')?.addEventListener('click', () => { calStart = addDays(calStart || today(), night() ? 14 : 7); loadCalendar(); });
+    $('cal-today')?.addEventListener('click', () => { calStart = ''; loadCalendar(); });
+    $('dl-form')?.addEventListener('submit', addDeal);
+    $('ai-notes-save')?.addEventListener('click', saveAiNotes);
+    $('ai-transfer-save')?.addEventListener('click', saveAiTransfer);
+    $('ai-wa-on')?.addEventListener('change', toggleWa);
+    $('ai-notes')?.addEventListener('input', () => { $('ai-notes-count').textContent = $('ai-notes').value.length + ' / 1000'; });
+    setInterval(() => { if (ctx && location.hash === '#today' && !document.hidden) loadToday(); }, 60000);
     $('bk-i-own-hours')?.addEventListener('change', e => { $('bk-i-hours').hidden = !e.target.checked; });
     $('bk-f-res')?.addEventListener('change', checkAvailability);
     document.querySelector('[data-bk-new-link]')?.addEventListener('click', () => setTimeout(openNew, 50));
@@ -610,14 +759,14 @@
     $('bk-f-cancel')?.addEventListener('click', () => $('bk-dialog').close());
     $('bk-f-service')?.addEventListener('change', fillResources);
     for (const id of ['bk-f-service', 'bk-f-date', 'bk-f-out']) $(id)?.addEventListener('change', () => { if (id === 'bk-f-date' && night() && $('bk-f-out').value <= $('bk-f-date').value) $('bk-f-out').value = addDays($('bk-f-date').value, 1); checkAvailability(); });
-    window.addEventListener('hashchange', () => { if (!ctx) return; applyLabels(); if (location.hash === '#housekeeping') renderHousekeeping(); if (location.hash === '#reports') loadReport(); if (location.hash === '#whatsapp-inbox-view') loadHandovers(); if (location.hash === '#customers') loadCustomers(); if (location.hash === '#bookings') loadBoard(); if (!location.hash || location.hash === '#owner-overview') loadOverview(); });
+    window.addEventListener('hashchange', () => { if (!ctx) return; applyLabels(); PAGE_LOADERS[location.hash]?.(); if (location.hash === '#housekeeping') renderHousekeeping(); if (location.hash === '#reports') loadReport(); if (location.hash === '#whatsapp-inbox-view') loadHandovers(); if (location.hash === '#customers') loadCustomers(); if (location.hash === '#bookings') loadBoard(); if (!location.hash || location.hash === '#owner-overview') loadOverview(); });
     $('bk-type-change')?.addEventListener('click', () => { const g = $('bk-type-grid'); g.hidden = !g.hidden; $('bk-type-change').textContent = g.hidden ? 'Wrong type? Change' : 'Keep this type'; });
     setInterval(() => { if (ctx && location.hash === '#bookings' && !document.hidden) loadBoard(); }, 60000);
   }
 
   window.mkBookings = {
     init(options) {
-      ctx = { ...options }; data = null; day = ''; range = 'week';
+      ctx = { ...options }; data = null; day = ''; range = 'week'; calStart = '';
       wire(); applyLabels(); load();
     },
   };
