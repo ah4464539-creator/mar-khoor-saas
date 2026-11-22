@@ -89,7 +89,14 @@ body.mk{margin:0}
 .home-page .feature h3{font-size:19px}
 .home-page .feature-icon{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--ember-soft);color:var(--ember-text)}
 .home-page .how{display:flex;flex-wrap:wrap;gap:48px;align-items:center}
-.home-page .chef-art{flex:1 1 360px;min-height:460px;border-radius:28px;background:url('/assets/burger.webp') center/cover no-repeat}
+.home-page .sector-art{flex:1 1 360px;min-height:460px;border-radius:28px;padding:28px;display:grid;align-content:center;gap:18px;background:linear-gradient(160deg,#16120fee 15%,#16120fb3 60%,#16120fee),url('/assets/approved-mountain.webp') center/cover no-repeat;color:#fff;box-shadow:0 30px 80px #1c171433}
+.home-page .sector-kicker{margin:0;font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:13px;color:#ffb27a}
+.home-page .sector-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.home-page .sector-tile{position:relative;display:grid;gap:6px;align-content:start;padding:18px;border-radius:18px;background:#ffffff14;border:1px solid #ffffff26;backdrop-filter:blur(6px)}
+.home-page .sector-tile strong{font-size:16px;line-height:1.25}
+.home-page .sector-tile small{color:#ffffffb8;font-size:13px;line-height:1.4}
+.home-page .sector-icon{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:#fff;font-size:22px}
+.home-page .sector-soon{position:absolute;top:12px;right:12px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;background:#E86A17;color:#fff}
 .home-page .how-steps{flex:1 1 460px;display:grid;gap:22px}
 .home-page .how-steps ol{list-style:none;margin:0;padding:0;display:grid;gap:22px}
 .home-page .how-steps li{display:flex;gap:18px}
@@ -108,7 +115,7 @@ body.mk{margin:0}
 .home-page .cta-band{background:var(--ink);color:#fff;border-radius:28px;padding:clamp(28px,5vw,60px);display:flex;flex-wrap:wrap;gap:24px;align-items:center;justify-content:space-between}
 .home-page .cta-band h2{font-size:clamp(28px,3.4vw,38px);color:#fff;margin-bottom:10px}
 .home-page .cta-band p{color:#D9CBBE;max-width:62ch}
-@media(max-width:720px){.home-page .hero-art{min-height:300px}.home-page .chef-art{min-height:320px}.home-page .section{padding:52px 0}}
+@media(max-width:720px){.home-page .hero-art{min-height:300px}.home-page .sector-art{min-height:0;padding:20px}.home-page .sector-grid{grid-template-columns:1fr 1fr;gap:10px}.home-page .sector-tile{padding:14px}.home-page .section{padding:52px 0}}
 
 /* Footer */
 .mk .site-footer{background:var(--night);color:var(--night-text)}
