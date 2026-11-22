@@ -548,3 +548,6 @@ body.mk{margin:0}
 .owner-app .order-card .money .total-label{font-size:12px;color:var(--muted);margin-right:auto}
 .owner-app .order-card .money .total{font:800 18px var(--display)}
 .owner-app .order-card .actions .btn{min-height:40px}
+.owner-app .order-toolbar>.search,.owner-app .order-toolbar>.order-filter{align-self:center;flex:0 1 280px}
+.owner-app .order-toolbar>.order-filter{flex:0 0 auto}
+@media(max-width:720px){.owner-app .order-toolbar>.search{flex:1 1 100%}.owner-app .sum-chip{flex:1 1 calc(50% - 10px);min-width:0}}
