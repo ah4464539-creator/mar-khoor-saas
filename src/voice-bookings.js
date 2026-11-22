@@ -62,22 +62,31 @@ const TOOL_SCHEMAS = {
   check_availability: { description: 'Free times (or rooms) for one service on a date. Call before offering any time.', parameters: { type: 'object', required: ['service_id', 'date'], properties: { service_id: { type: 'integer' }, date: { type: 'string', description: 'YYYY-MM-DD' }, check_out: { type: 'string', description: 'YYYY-MM-DD, rooms only' }, staff_id: { type: 'integer' } } } },
   book_appointment: { description: 'Create the booking after reading it back and the caller clearly said yes.', parameters: { type: 'object', required: ['service_id', 'date', 'customer_name', 'confirmed'], properties: { service_id: { type: 'integer' }, date: { type: 'string' }, time: { type: 'string', description: 'HH:MM from check_availability' }, check_out: { type: 'string' }, staff_id: { type: 'integer' }, customer_name: { type: 'string' }, guests: { type: 'integer' }, note: { type: 'string' }, confirmed: { type: 'boolean' } } } },
 };
-export const BOOKING_CALL_RULE = 'BOOKINGS: when the caller wants an appointment, a table or a room, call get_business_info, then check_availability, offer at most 3 free times, ask the name, read the booking back and only after a clear yes call book_appointment with confirmed true. Never invent times. For a business that is not a restaurant, do not take food orders.';
+export const BOOKING_CALL_RULE = 'BOOKINGS: when the caller wants an appointment, a table or a room, call get_business_info, then check_availability, offer at most 3 free times, ask the name, read the booking back and only after a clear yes call book_appointment with confirmed true. Never invent times.';
+const START = '[[MK-BUSINESS]]', END = '[[/MK-BUSINESS]]';
+/** The call rule for this business type (kept between markers so a later type change replaces it). */
+export function businessCallRule(category, name) {
+  const type = BUSINESS_TYPES[category] || BUSINESS_TYPES.restaurant;
+  const lines = [BOOKING_CALL_RULE];
+  if (category !== 'restaurant') lines.push('This business is ' + (name ? '"' + name + '", ' : '') + 'a ' + type.label.toLowerCase() + ', not a restaurant. Greet callers as its reception, never offer a menu or food orders, and help them book ' + (type.booking === 'night' ? 'rooms' : type.unit + 's') + ' with the booking tools. Do not give medical, legal or financial advice.');
+  return START + '\n' + lines.join('\n') + '\n' + END;
+}
 
-/** Adds the three booking tools (same server settings as the existing place_order tool) and the rule. */
-export function withBookingTools(model, server) {
+/** Adds the three booking tools (same server settings as the existing place_order tool) and the type rule. */
+export function withBookingTools(model, server, rule = businessCallRule('restaurant')) {
   if (!model || typeof model !== 'object') return model;
   const tools = Array.isArray(model.tools) ? model.tools : [];
   const have = new Set(tools.map(t => t?.function?.name));
   const extra = VOICE_BOOKING_TOOLS.filter(n => !have.has(n)).map(name => ({ type: 'function', function: { name, ...TOOL_SCHEMAS[name] }, ...(server ? { server } : {}) }));
   const messages = Array.isArray(model.messages) ? model.messages : [];
-  const hasRule = messages.some(m => String(m?.content || '').includes('BOOKINGS: when the caller'));
-  if (!extra.length && hasRule) return model;
+  const i = messages.findIndex(m => m?.role === 'system');
+  const current = i >= 0 ? String(messages[i].content || '') : '';
+  const a = current.indexOf(START), b = current.indexOf(END);
+  const base = a >= 0 && b > a ? (current.slice(0, a) + current.slice(b + END.length)).trimEnd() : current;
+  const content = (base ? base + '\n\n' : '') + rule;
+  if (!extra.length && content === current) return model;
   const next = { ...model, tools: [...tools, ...extra] };
-  if (!hasRule) {
-    const i = messages.findIndex(m => m?.role === 'system');
-    next.messages = i >= 0 ? messages.map((m, k) => k === i ? { ...m, content: String(m.content || '') + '\n\n' + BOOKING_CALL_RULE } : m) : [{ role: 'system', content: BOOKING_CALL_RULE }, ...messages];
-  }
+  next.messages = i >= 0 ? messages.map((m, k) => k === i ? { ...m, content } : m) : [{ role: 'system', content: rule }, ...messages];
   return next;
 }
 
@@ -86,6 +95,9 @@ export async function syncCallBookingTools(pool, restaurantId, { env = process.e
   if (!apiKey) return { skipped: 'no key' };
   const profile = await getProfile(pool, restaurantId);
   if (!profile?.bookings_enabled) return { skipped: 'bookings off' };
+  let name = '';
+  try { const [[r]] = await pool.execute('SELECT name FROM restaurants WHERE id=?', [restaurantId]); name = r?.name || ''; } catch {}
+  const rule = businessCallRule(profile.category, name);
   let rows = [];
   try { [rows] = await pool.execute('SELECT assistant_id FROM voice_assistants WHERE restaurant_id=? AND active=1', [restaurantId]); } catch { return { skipped: 'no assistant' }; }
   const headers = { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' };
@@ -109,7 +121,7 @@ export async function syncCallBookingTools(pool, restaurantId, { env = process.e
         }
       }
       if (!server?.url) throw Error('order tool server not found');
-      const model = withBookingTools(assistant.model, server);
+      const model = withBookingTools(assistant.model, server, rule);
       if (model === assistant.model) continue;
       const res = await fetcher('https://api.vapi.ai/assistant/' + id, { method: 'PATCH', headers, redirect: 'error', signal: AbortSignal.timeout(20000), body: JSON.stringify({ model }) });
       if (!res.ok) throw Error('Vapi ' + res.status);

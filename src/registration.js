@@ -3,6 +3,7 @@ import { hashPassword } from './auth.js';
 import { registerRestaurant } from './registration-core.js';
 import { assignRegistrationNumber } from './registration-voice.js';
 import { isBusinessType, saveProfile } from './bookings.js';
+import { syncCallBookingTools } from './voice-bookings.js';
 
 const WINDOW_MS = 60 * 60 * 1000, MAX_PER_WINDOW = 5;
 const attempts = new Map(); // per IP; in-memory like login throttling. Add proxy-level limits in production.
@@ -28,6 +29,8 @@ export function registrationRouter(pool) {
    result.body.voice = process.env.REGISTRATION_VOICE_POOL_ENABLED === '1'
     ? await assignRegistrationNumber(pool, result.body.restaurant_id, result.body.country)
     : { status: 'pending' };
+   // Clinics, salons and hotels: their AI Caller answers as a booking desk from the first call.
+   if (category !== 'restaurant') syncCallBookingTools(pool, result.body.restaurant_id).catch(() => {});
   }
   res.status(result.status).json(result.body);
  });

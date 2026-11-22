@@ -275,3 +275,5 @@ body.mk{margin:0}
 .book-page .book-total{margin:0;font-weight:700;font-size:17px}
 .book-page .book-done{justify-items:center;text-align:center}
 .book-page .book-foot{text-align:center}
+.register-page .hint-error{color:#b42318;font-weight:600}
+.register-page .biz-types{margin-top:6px}

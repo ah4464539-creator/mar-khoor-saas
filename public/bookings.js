@@ -62,7 +62,7 @@
     grid.replaceChildren(...Object.entries(data.types).map(([key, info]) => {
       const label = el('label', 'bk-type');
       const input = el('input'); input.type = 'radio'; input.name = 'bk-category'; input.value = key; input.checked = key === type();
-      input.addEventListener('change', () => { data.profile.category = key; applyLabels(); renderResources(); renderServices(); });
+      input.addEventListener('change', () => { data.profile.category = key; if (key !== 'restaurant') $('bk-enabled').checked = true; applyLabels(); renderResources(); renderServices(); });
       label.append(input, el('span', 'bk-type-icon', TYPE_ICONS[key] || '•'), el('b', null, info.label));
       return label;
     }));

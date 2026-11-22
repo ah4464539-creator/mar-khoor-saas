@@ -184,7 +184,7 @@ export async function getProfile(pool, restaurantId) {
   let hours = DEFAULT_HOURS;
   try { if (r.hours_json) hours = cleanHours(JSON.parse(r.hours_json)); } catch {}
   const category = isBusinessType(r.category) ? r.category : 'restaurant';
-  return { category, type: BUSINESS_TYPES[category], timezone: r.timezone || timezoneFor(r.country_code), hours, slot_minutes: Number(r.slot_minutes) || 30, bookings_enabled: r.bookings_enabled == null ? category !== 'restaurant' : Boolean(r.bookings_enabled) };
+  return { exists: r.category != null, category, type: BUSINESS_TYPES[category], timezone: r.timezone || timezoneFor(r.country_code), hours, slot_minutes: Number(r.slot_minutes) || 30, bookings_enabled: r.bookings_enabled == null ? category !== 'restaurant' : Boolean(r.bookings_enabled) };
 }
 export async function saveProfile(pool, restaurantId, body = {}) {
   await ensureBookingTables(pool);
@@ -192,7 +192,8 @@ export async function saveProfile(pool, restaurantId, body = {}) {
   const category = isBusinessType(body.category) ? body.category : current?.category || 'restaurant';
   const hours = body.hours ? cleanHours(body.hours) : current?.hours || DEFAULT_HOURS;
   const slot = int(body.slot_minutes, 5, 240, current?.slot_minutes || 30);
-  const enabled = typeof body.bookings_enabled === 'boolean' ? body.bookings_enabled : current?.bookings_enabled ?? category !== 'restaurant';
+  // First save (registration): clinics, salons and hotels take bookings from day one; restaurants opt in.
+  const enabled = typeof body.bookings_enabled === 'boolean' ? body.bookings_enabled : current?.exists ? current.bookings_enabled : category !== 'restaurant';
   await pool.execute('INSERT INTO business_profiles(restaurant_id,category,hours_json,slot_minutes,bookings_enabled) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE category=VALUES(category),hours_json=VALUES(hours_json),slot_minutes=VALUES(slot_minutes),bookings_enabled=VALUES(bookings_enabled)',
     [restaurantId, category, JSON.stringify(hours), slot, enabled ? 1 : 0]);
   return getProfile(pool, restaurantId);

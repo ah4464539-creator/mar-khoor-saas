@@ -77,6 +77,8 @@ async function ensureAssistant(pool, restaurant, deps) {
   if (rows.length > 1) throw Object.assign(Error('This restaurant has more than one active voice assistant; keep one in Voice integrations'), { needsReview: true });
   const created = await cloneAssistant({ apiKey: deps.vapiKey, templateId: deps.templateAssistantId, name: 'MarKhoor ' + restaurant.id + ' ' + restaurant.name, restaurantId: restaurant.id, restaurantName: restaurant.name, voice: femaleVoice(restaurant.country_code), fetcher: deps.fetcher });
   await pool.execute('INSERT INTO voice_assistants(assistant_id,restaurant_id,active) VALUES (?,?,TRUE)', [created.id, restaurant.id]);
+  // A clinic, salon or hotel gets its booking tools and type rules on the new assistant right away.
+  import('./voice-bookings.js').then(m => m.syncCallBookingTools(pool, restaurant.id)).catch(() => {});
   return created.id;
 }
 

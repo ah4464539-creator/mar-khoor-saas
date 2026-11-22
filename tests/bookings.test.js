@@ -55,3 +55,23 @@ test('dashboard adapts to the business type; public booking page exists', () => 
   assert.doesNotMatch(book + readFileSync('public/bookings.js', 'utf8'), /innerHTML/);
   assert.match(readFileSync('src/server.js', 'utf8'), /app\.use\(bookingsRouter\(pool\)\)/);
 });
+
+test('onboarding follows the business type', async () => {
+  const reg = readFileSync('public/register.html', 'utf8');
+  assert.match(reg, /name="business_type" value="restaurant" required>/);
+  assert.doesNotMatch(reg, /name="business_type" value="[a-z]+" checked/);
+  assert.match(readFileSync('public/register.js', 'utf8'), /Please choose your type of business first/);
+  assert.match(readFileSync('src/registration.js', 'utf8'), /if \(category !== 'restaurant'\) syncCallBookingTools/);
+  assert.match(readFileSync('src/voice-autoprovision.js', 'utf8'), /syncCallBookingTools\(pool, restaurant\.id\)/);
+  const js = readFileSync('public/restaurant.js', 'utf8');
+  assert.match(js, /cat==='restaurant'\?'menu':'services'/);
+  // first save: clinics take bookings by default, restaurants opt in
+  const { saveProfile } = await import('../src/bookings.js');
+  const writes = [];
+  const pool = { async query() { return [[]]; }, async execute(sql, args) {
+    if (sql.startsWith('SELECT r.country_code')) return [[{ country_code: 'PK', category: writes.length ? 'clinic' : null, timezone: null, hours_json: null, slot_minutes: null, bookings_enabled: writes.length ? 1 : null }]];
+    writes.push(args); return [{ affectedRows: 1 }];
+  } };
+  await saveProfile(pool, 7, { category: 'clinic' });
+  assert.equal(writes[0][4], 1);
+});

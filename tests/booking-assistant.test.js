@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { processWhatsAppAIJobs } from '../src/whatsapp-ai-worker.js';
 import { bookingSummary, bookingButtons, parseBookingReply, hoursText, BOOKING_CHAT_SQL } from '../src/booking-assistant.js';
-import { withBookingTools, BOOKING_CALL_RULE, VOICE_BOOKING_SQL } from '../src/voice-bookings.js';
+import { withBookingTools, BOOKING_CALL_RULE, VOICE_BOOKING_SQL, businessCallRule } from '../src/voice-bookings.js';
 
 const allDay = JSON.stringify(Object.fromEntries([0, 1, 2, 3, 4, 5, 6].map(d => [d, [[540, 1020]]])));
 function clinicPool(job) {
@@ -74,8 +74,14 @@ test('calls: booking tools added once, with the order tool server and the bookin
   const next = withBookingTools(model, server);
   assert.deepEqual(next.tools.map(t => t.function.name), ['place_order', 'get_business_info', 'check_availability', 'book_appointment']);
   assert.ok(next.tools.every(t => t.server === server));
-  assert.ok(next.messages[0].content.endsWith(BOOKING_CALL_RULE));
+  assert.ok(next.messages[0].content.includes(BOOKING_CALL_RULE));
   assert.equal(withBookingTools(next, server), next);
+  // Changing the type replaces the rule instead of adding a second one.
+  const clinic = withBookingTools(next, server, businessCallRule('clinic', 'City Clinic'));
+  assert.match(clinic.messages[0].content, /not a restaurant/);
+  assert.equal(clinic.messages[0].content.split('[[MK-BUSINESS]]').length, 2);
+  assert.ok(clinic.messages[0].content.startsWith('You are a host.'));
+  assert.equal(clinic.tools.length, 4);
   const adapter = readFileSync('src/vapi-adapter.js', 'utf8');
   assert.match(adapter, /VOICE_BOOKING_TOOLS\.includes\(name\)/);
   assert.match(readFileSync('src/integrations.js', 'utf8'), /bconfirm\|bchange/);
