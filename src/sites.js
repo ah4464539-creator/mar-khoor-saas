@@ -82,7 +82,10 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
 
  const icon = path => '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + path + '</svg>';
 
- function assistantControls(slug, recordingAllowed) {
+ function assistantControls(slug, recordingAllowed, category = 'restaurant') {
+  const prompt = category === 'hotel' ? 'Ask about rooms…'
+    : category === 'clinic' ? 'Ask about appointments…'
+    : category === 'salon' ? 'Ask about services…' : 'Ask about the menu…';
   const endpoint = '/r/' + encodeURIComponent(slug) + '/assistant';
   const voiceOn = voiceEnabled();
   const voiceIcon = icon('<path d="M3 10v4m4-7v10m5-14v18m5-14v10m4-7v4"/>');
@@ -96,7 +99,7 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
     : '';
   const voiceStatus = voiceOn ? '<p id="voice-status" role="status"></p><audio id="assistant-audio" controls hidden></audio>' : '';
   const dictation = '';
-  return voiceStatus + '<form class="assistant-composer" method="post" action="' + endpoint + '"><textarea id="message" name="message" aria-label="Message AI Assistant" placeholder="Ask about the menu…" rows="1" required maxlength="1200"></textarea>' +
+  return voiceStatus + '<form class="assistant-composer" method="post" action="' + endpoint + '"><textarea id="message" name="message" aria-label="Message AI Assistant" placeholder="\' + prompt + \'" rows="1" required maxlength="1200"></textarea>' +
     voice + '<button type="submit" class="assistant-send" aria-label="Send message" title="Send message">' + sendIcon + '</button></form>';
  }
 
@@ -340,14 +343,19 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
    if (voiceEnabled()) res.set('Permissions-Policy', 'camera=(), microphone=(self), geolocation=(), payment=()');
    const t = { bg: '#0b0b0d', ink: '#fff8ef', accent: widget.color, accentInk: inkOn(widget.color), card: '#181719', muted: '#bfb6ae' };
    const esc = value => String(value).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-   const greeting = widget.greeting || 'Hi! Welcome to ' + site.restaurant.name + '. What would you like to know about the menu?';
+   const booking = await siteBooking(pool, site.restaurant);
+   const category = booking?.category || 'restaurant';
+   const welcome = category === 'hotel' ? 'What would you like to know about our rooms?'
+     : category === 'clinic' ? 'How can I help with our appointments?'
+     : category === 'salon' ? 'Which service can I help you with?' : 'What would you like to know about the menu?';
+   const greeting = widget.greeting || 'Hi! Welcome to ' + site.restaurant.name + '. ' + welcome;
    res.type('html').send('<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(site.restaurant.name) + ' · AI Assistant</title><style>'
     + 'html,body{margin:0;height:100%;background:' + t.card + ';color:' + t.ink + ';font-family:system-ui,-apple-system,"Segoe UI",sans-serif}'
     + assistantCss(t)
     + '.restaurant-assistant>summary{display:none!important}.restaurant-assistant[open]>.assistant-panel{border-radius:0;border:0;box-shadow:none}'
     + '.assistant-powered{margin:0;text-align:center;font-size:11px;color:' + t.muted + '}.assistant-powered a{color:inherit}'
     + '</style></head><body><details id="assistant" class="restaurant-assistant" open><summary>AI Assistant</summary><div class="assistant-panel"><div class="assistant-heading"><strong>' + esc(site.restaurant.name) + '</strong><button type="button" data-close-assistant aria-label="Close assistant">×</button></div><div class="assistant-body"><div data-assistant-messages role="log" aria-live="polite"><p class="assistant-reply">' + esc(greeting) + '</p></div><section id="assistant-order-card" class="assistant-order-card" aria-label="Order details and live tracking" hidden><strong>Order details &amp; live tracking</strong><div id="assistant-order-details"></div><p id="assistant-order-status" role="status"></p><a id="assistant-order-link" target="_blank" rel="noopener">Full order tracking</a></section>'
-    + assistantControls(req.params.slug, false)
+    + assistantControls(req.params.slug, false, category)
     + '<p class="assistant-powered">Powered by <a href="https://mar-khoor.com" target="_blank" rel="noopener">Mar-Khoor</a></p></div></div></details>'
     + '<script src="/embed-frame.js" defer></script><script src="/restaurant-assistant-panel.js" defer></script>' + (voiceEnabled() ? voiceScript : '') + '</body></html>');
   } catch { res.status(503).type('html').send(notFound); }
@@ -361,16 +369,22 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
    if (!site) return res.status(404).type('html').send(notFound);
    res.set('Cache-Control', 'public, max-age=60');
    const showAssistant = assistantEnabled(site);
+   const booking = await siteBooking(pool, site.restaurant);
+   const category = booking?.category || 'restaurant';
+   const greeting = category === 'hotel' ? 'Hi! Ask me about rooms and reservations.'
+     : category === 'clinic' ? 'Hi! Ask me about services and appointments.'
+     : category === 'salon' ? 'Hi! Ask me about services and appointments.'
+     : 'Hi! What would you like to know about the menu?';
    if (showAssistant) {
     res.set('Content-Security-Policy', assistantCsp);
     if (voiceEnabled()) res.set('Permissions-Policy', 'camera=(), microphone=(self), geolocation=(), payment=()');
    }
    const assistant = showAssistant
-    ? '<details id="assistant" class="restaurant-assistant"><summary>AI Assistant</summary><div class="assistant-panel"><div class="assistant-heading"><strong>AI Assistant</strong><button type="button" data-close-assistant aria-label="Close assistant">×</button></div><div class="assistant-body"><div data-assistant-messages role="log" aria-live="polite"><p class="assistant-reply">Hi! What would you like to know about the menu?</p></div><section id="assistant-order-card" class="assistant-order-card" aria-label="Order details and live tracking" hidden><strong>Order details &amp; live tracking</strong><div id="assistant-order-details"></div><p id="assistant-order-status" role="status"></p><a id="assistant-order-link" target="_self">Full order tracking</a></section>' +
-      assistantControls(req.params.slug, site.config.assistantRecording === true) +
+    ? '<details id="assistant" class="restaurant-assistant"><summary>AI Assistant</summary><div class="assistant-panel"><div class="assistant-heading"><strong>AI Assistant</strong><button type="button" data-close-assistant aria-label="Close assistant">×</button></div><div class="assistant-body"><div data-assistant-messages role="log" aria-live="polite"><p class="assistant-reply">' + greeting + '</p></div><section id="assistant-order-card" class="assistant-order-card" aria-label="Order details and live tracking" hidden><strong>Order details &amp; live tracking</strong><div id="assistant-order-details"></div><p id="assistant-order-status" role="status"></p><a id="assistant-order-link" target="_self">Full order tracking</a></section>' +
+      assistantControls(req.params.slug, site.config.assistantRecording === true, category) +
       '</div></div></details><script src="/restaurant-assistant-panel.js" defer></script>' + (voiceEnabled() ? voiceScript : '')
     : '';
-   res.type('html').send(renderSitePage(site, { assistant, links: await siteLinks(pool, site.restaurant), booking: await siteBooking(pool, site.restaurant) }));
+   res.type('html').send(renderSitePage(site, { assistant, links: await siteLinks(pool, site.restaurant), booking }));
    trackSiteEvent(pool, site.restaurant.id, 'page_views', req);
   } catch { res.status(503).type('html').send(notFound); }
  });
