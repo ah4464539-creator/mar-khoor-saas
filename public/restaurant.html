@@ -6,11 +6,17 @@
 <meta name="robots" content="noindex, nofollow, noarchive">
 <title>Restaurant | Mar-Khoor AI</title>
 <link rel="icon" type="image/svg+xml" href="/assets/markhor-mark-tile.svg">
+<link rel="manifest" href="/owner.webmanifest">
+<meta name="theme-color" content="#16120F">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mar-Khoor">
+<link rel="apple-touch-icon" href="/app-icons/apple-touch-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="/summit.css?v=20261120-s4">
-<link rel="stylesheet" href="/owner.css?v=20261122-s20">
+<link rel="stylesheet" href="/owner.css?v=20261122-s21">
 <script src="/i18n.js?v=20261121-2" data-position="right" defer></script>
 </head>
 <body class="mk owner-app signing-in">
@@ -19,6 +25,7 @@
  <symbol id="i-orders" viewBox="0 0 24 24"><path d="M5 3h14v18H5zM9 8h6M9 12h6M9 16h4"/></symbol>
  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 3v6a3 3 0 0 0 6 0V3M7 3v18M19 21V3c-3 2-4 5-4 9h4"/></symbol>
  <symbol id="i-web" viewBox="0 0 24 24"><path d="M3 4h18v13H3zM8 21h8M12 17v4"/></symbol>
+ <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
  <symbol id="i-blog" viewBox="0 0 24 24"><path d="M4 4h16v16H4zM8 8h8M8 12h8M8 16h5"/></symbol>
  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol>
  <symbol id="i-send" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></symbol>
@@ -121,6 +128,19 @@
 
 <section class="owner-view owner-message-view" id="order-desk" data-title="Live orders" hidden>
  <h2 tabindex="-1" class="visually-hidden">Live orders</h2>
+ <div class="new-order-banner" id="new-order-banner" role="alert" hidden><svg aria-hidden="true" width="20" height="20"><use href="#i-bell"/></svg><span>New order</span><button type="button" class="btn btn-sm btn-primary">View</button></div>
+ <section class="card card-pad app-alerts" id="app-alerts" aria-labelledby="app-alerts-title">
+  <div class="card-head"><div><h2 id="app-alerts-title">Mar-Khoor app &amp; order alerts</h2><p class="small muted">Install the app on the counter phone and get a loud alert for every new order, even when the app is closed.</p></div></div>
+  <div class="app-alerts-actions">
+   <button type="button" class="btn btn-dark" id="app-install" hidden>Install app</button>
+   <button type="button" class="btn btn-primary" id="app-alerts-on">Turn on order alerts</button>
+   <button type="button" class="btn btn-ghost" id="app-alerts-test" hidden>Send test alert</button>
+   <button type="button" class="btn btn-quiet" id="app-alerts-off" hidden>Turn off on this device</button>
+   <label class="check"><input type="checkbox" id="app-sound" checked> Ring when the dashboard is open</label>
+  </div>
+  <p class="small muted" id="app-ios-tip" hidden>iPhone: tap <strong>Share</strong> → <strong>Add to Home Screen</strong>, open Mar-Khoor from your home screen, then turn on order alerts.</p>
+  <p class="small app-alerts-status" id="app-alerts-status" role="status"></p>
+ </section>
  <div class="order-toolbar">
   <p class="muted">New orders appear here automatically from your website, WhatsApp and AI calls.</p>
   <label class="search"><svg aria-hidden="true" width="16" height="16"><use href="#i-search"/></svg><span class="visually-hidden">Search orders</span><input id="owner-order-search" type="search" placeholder="Order ID, customer or phone"></label>
@@ -434,7 +454,8 @@
 <script src="/whatsapp-connect.js?v=20261122-3"></script>
 <script src="/call-forwarding.js?v=20261122-1"></script>
 <script src="/site-content.js?v=20261122-1"></script>
-<script type="module" src="/restaurant.js?v=20261122-s22"></script>
+<script src="/owner-app.js?v=20261122-1"></script>
+<script type="module" src="/restaurant.js?v=20261122-s23"></script>
 <script>document.getElementById("login-show-password")?.addEventListener("change",function(){document.getElementById("password").type=this.checked?"text":"password"});</script>
 </body>
 </html>

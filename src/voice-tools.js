@@ -1,5 +1,6 @@
 import express from 'express';
 import crypto from 'node:crypto';
+import { notifyNewOrder } from './web-push.js';
 
 function authorized(req){
  const secret=process.env.VAPI_TOOL_SECRET;
@@ -68,6 +69,7 @@ export function createVoiceOrderHandler(pool){
    await connection.execute('UPDATE voice_order_requests SET order_id=? WHERE assistant_id=? AND call_id=?',[order.insertId,assistantId,call_id]);
    await connection.commit();
    res.status(201).json({order_id:order.insertId,status:'pending',total_minor:total});
+   notifyNewOrder(pool,{restaurantId,orderId:order.insertId,totalMinor:total,source:'Phone call'});
   }catch{if(connection)await connection.rollback().catch(()=>{});res.status(503).json({error:'Voice order unavailable'});}
   finally{connection?.release();}
  };

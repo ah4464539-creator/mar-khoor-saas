@@ -6,6 +6,7 @@ import { isAllowedImageRef } from './media-store.js';
 import { ensurePaymentTables, loadPaymentSettings, sanitizePaymentSettings, publicPaymentOptions } from './payment-options.js';
 import { audit, rateLimit } from './security.js';
 import { startNumber, verifyNumber, onboardingStatus } from './whatsapp-number-onboarding.js';
+import { vapidKeys, saveSubscription, removeSubscription, deviceCount, pushToRestaurant } from './web-push.js';
 import { getSignupConfig, completeSignup, connectionStatus, tokenForNumber, graphVersion } from './whatsapp-signup-core.js';
 export function operationsRouter(pool) {
  const router=express.Router();
@@ -90,6 +91,23 @@ export function operationsRouter(pool) {
  router.get('/restaurants/:restaurantId/whatsapp/signup',async(req,res)=>{
   const config=await getSignupConfig(pool);
   res.json({enabled:Boolean(config.app_id&&config.config_id&&process.env.META_APP_SECRET),app_id:config.app_id,config_id:config.config_id,graph_version:graphVersion(),numbers:await connectionStatus(pool,req.restaurantId),number_code:{available:Boolean(process.env.WHATSAPP_ACCESS_TOKEN),status:await onboardingStatus(pool,req.restaurantId)}});
+ });
+ // Order alerts on the owner's phone (Web Push).
+ router.get('/restaurants/:restaurantId/push',async(req,res)=>{
+  try{const keys=await vapidKeys(pool);res.json({public_key:keys.publicKey,devices:await deviceCount(pool,req.restaurantId)});}
+  catch{res.status(503).json({error:'Order alerts unavailable'});}
+ });
+ router.post('/restaurants/:restaurantId/push/subscribe',rateLimit({windowMs:10*60000,max:20,name:'push-subscribe'}),express.json({limit:'4kb'}),async(req,res)=>{
+  try{const result=await saveSubscription(pool,req.restaurantId,req.user.id,req.body?.subscription);res.status(result.status).json(result.body);}
+  catch{res.status(503).json({error:'Order alerts unavailable'});}
+ });
+ router.post('/restaurants/:restaurantId/push/unsubscribe',express.json({limit:'4kb'}),async(req,res)=>{
+  try{const result=await removeSubscription(pool,req.restaurantId,req.body?.endpoint);res.status(result.status).json(result.body);}
+  catch{res.status(503).json({error:'Order alerts unavailable'});}
+ });
+ router.post('/restaurants/:restaurantId/push/test',rateLimit({windowMs:60000,max:3,name:'push-test'}),async(req,res)=>{
+  const result=await pushToRestaurant(pool,req.restaurantId,{title:'🛎️ Test alert',body:'Order alerts work on this device.',url:'/restaurant.html#order-desk',tag:'mk-test'});
+  res.json(result);
  });
  // Number + code activation (no Facebook login): Meta sends a code by SMS or call.
  router.post('/restaurants/:restaurantId/whatsapp/number/start',rateLimit({windowMs:10*60000,max:5,name:'wa-number-start'}),express.json({limit:'4kb'}),async(req,res)=>{

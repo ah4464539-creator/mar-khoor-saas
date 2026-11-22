@@ -2,6 +2,7 @@ import { uploadImage, prepareImage } from './image-upload.js?v=20261120-s5';
 const form=document.querySelector('#login'),status=document.querySelector('#status'),target=document.querySelector('#restaurants');
 let token='',restaurantId=null,restaurantCurrency='';
 let refreshing=false;
+window.mkOwnerRefresh=async()=>{if(!restaurantId||!token||refreshing)return;refreshing=true;try{await refresh()}catch{}finally{refreshing=false}};
 setInterval(async()=>{if(!restaurantId||!token||document.hidden||refreshing)return;refreshing=true;try{await refresh()}catch(e){status.textContent='Auto-refresh: '+e.message}finally{refreshing=false}},15000);
 const api=async(path,options={})=>{const r=await fetch(path,{...options,headers:{...options.headers,Authorization:'Bearer '+token}});const data=await r.json();if(!r.ok){const e=Error(data.error||'Request failed');e.code=data.code;e.status=r.status;throw e}return data};
 async function refresh(){
@@ -62,6 +63,7 @@ async function refresh(){
  for(const item of menu.items){const p=document.createElement('p'),button=document.createElement('button');p.className='owner-menu-row'+(item.active?'':' hidden-item');let thumb;try{const u=new URL(item.image_url,location.origin);if(!item.image_url||(u.protocol!=='https:'&&!(u.origin===location.origin&&u.pathname.startsWith('/media/'))))throw 0;thumb=document.createElement('img');thumb.src=u.href;thumb.alt='';thumb.loading='lazy';thumb.className='owner-menu-thumb';}catch{thumb=ownerText('span','No photo','owner-menu-thumb');}const text=ownerText('span','','owner-menu-text');text.append(ownerText('strong',item.name),ownerText('small',ownerMoney(item.price_minor)+' · '+(item.active?'Active':'Hidden')));button.type='button';button.className='btn btn-ghost btn-sm';button.textContent=item.active?'Hide':'Show';button.addEventListener('click',async()=>{try{await api('/api/restaurants/'+restaurantId+'/menu/'+item.id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({...item,active:!item.active})});await refresh()}catch(e){status.textContent=e.message}});const edit=document.createElement('button');edit.type='button';edit.className='btn btn-ghost btn-sm';edit.textContent='Edit';edit.addEventListener('click',()=>editMenuItem(item));const actions=ownerText('span','','owner-menu-actions');actions.append(button,edit);p.append(thumb,text,actions);items.append(p)}
  renderOwnerInsights(analytics, menu.items);
  ownerOrders = orders.orders;
+ window.mkOwnerApp?.orders(ownerOrders);
  renderOwnerOrderActivity(ownerOrders);
  renderOwnerOrders();
 }
@@ -383,6 +385,7 @@ async function openRestaurant(restaurant) {
  restaurantId = restaurant.id;
  window.mkWhatsAppConnect?.init({ restaurantId, api });
  window.mkSiteContent?.init({ restaurantId, api });
+ window.mkOwnerApp?.init({ restaurantId, api });
  restaurantCurrency = restaurant.currency;
  document.querySelector('#owner-tenant-initials').textContent = String(restaurant.name || 'R').split(/\s+/).filter(Boolean).slice(0, 2).map(word => word[0]).join('').toUpperCase() || 'R';
  document.querySelector('#owner-restaurant-label').textContent = restaurant.name;
