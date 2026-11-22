@@ -251,10 +251,20 @@ export function operationsRouter(pool) {
     return orders.map(o=>{const p=map.get(Number(o.id));if(!p)return o;const {order_id,...rest}=p;return {...o,...rest,...(proofs.has(Number(o.id))?{payment_proof:true}:{})};});
    }catch{return orders;}
   };
-  try{const [orders]=await pool.execute(detailed,[req.restaurantId]);res.json({orders:await withPayments(orders)});}
+  // What was ordered, and where the order came from (WhatsApp, phone call or the website).
+  const withDetails=async orders=>{
+   if(!orders.length)return orders;
+   const ids=orders.map(o=>o.id),marks=ids.map(()=>'?').join(',');
+   const items=new Map(),source=new Map();
+   try{const [rows]=await pool.query('SELECT i.order_id,i.name_snapshot AS name,i.quantity,i.unit_price_minor FROM order_items i JOIN orders o ON o.id=i.order_id AND o.restaurant_id=? WHERE i.order_id IN ('+marks+') ORDER BY i.order_id,i.id',[req.restaurantId,...ids]);for(const r of rows){const k=Number(r.order_id);if(!items.has(k))items.set(k,[]);items.get(k).push({name:r.name,quantity:Number(r.quantity),unit_price_minor:Number(r.unit_price_minor)});}}catch{}
+   try{const [rows]=await pool.query('SELECT order_id FROM whatsapp_orders WHERE restaurant_id=? AND order_id IN ('+marks+')',[req.restaurantId,...ids]);for(const r of rows)source.set(Number(r.order_id),'whatsapp');}catch{}
+   try{const [rows]=await pool.query('SELECT order_id FROM voice_order_requests WHERE restaurant_id=? AND order_id IN ('+marks+')',[req.restaurantId,...ids]);for(const r of rows)if(r.order_id)source.set(Number(r.order_id),'call');}catch{}
+   return orders.map(o=>({...o,items:items.get(Number(o.id))||[],source:source.get(Number(o.id))||'website'}));
+  };
+  try{const [orders]=await pool.execute(detailed,[req.restaurantId]);res.json({orders:await withDetails(await withPayments(orders))});}
   catch(error){
    if(!isMissingFulfillmentSchema(error))return res.status(503).json({error:'Database unavailable'});
-   try{const [orders]=await pool.execute(legacy,[req.restaurantId]);res.json({orders});}
+   try{const [orders]=await pool.execute(legacy,[req.restaurantId]);res.json({orders:await withDetails(orders)});}
    catch{res.status(503).json({error:'Database unavailable'});}
   }
  });

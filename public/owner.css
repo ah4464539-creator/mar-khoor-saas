@@ -485,3 +485,66 @@ body.mk{margin:0}
 @media (display-mode: standalone){.owner-app #app-install{display:none!important}}
 .owner-app .app-alert-kinds{border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:12px 0 0;display:flex;flex-wrap:wrap;gap:8px 18px}
 .owner-app .app-alert-kinds legend{padding:0 6px;font-weight:700}
+
+/* ===== Live orders: board + side panel (2026-11-22) ===== */
+.owner-app .order-desk-layout{display:grid;gap:18px;align-items:start}
+@media(min-width:1180px){.owner-app .order-desk-layout{grid-template-columns:minmax(0,1fr) 340px}.owner-app .order-side{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto}}
+@media(max-width:1179px){.owner-app .order-side{order:-1}}
+.owner-app .order-side{display:grid;gap:14px;align-content:start}
+.owner-app .order-side .side-card{margin:0;border-radius:18px;border:1px solid var(--line);box-shadow:0 1px 2px #1c17140a;background:var(--surface)}
+.owner-app .order-side .app-alerts .card-head{margin-bottom:10px}
+.owner-app .order-side .app-alerts h2{font-size:16px}
+.owner-app .order-side .app-alerts-actions{gap:8px}
+.owner-app .order-side .app-alerts-actions .btn{flex:1 1 auto}
+.mk .pay-settings.side-card{margin:0}
+.mk .pay-settings.side-card>summary{list-style:none;display:flex;align-items:center;gap:12px;cursor:pointer}
+.mk .pay-settings.side-card>summary::-webkit-details-marker{display:none}
+.mk .side-card-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:var(--ember-soft);font-size:20px;flex:none}
+.mk .side-card-title{display:grid;gap:2px;flex:1;min-width:0}
+.mk .side-card-title .small{overflow-wrap:anywhere}
+.mk .side-card-edit{font-weight:700;font-size:13px;color:var(--ember-text);padding:6px 12px;border:1px solid var(--ember-line);border-radius:999px;flex:none}
+.mk .pay-settings[open] .side-card-edit{background:var(--ember-soft)}
+.mk .order-side .pay-form{max-width:none}
+.mk .order-side .pay-transfer-row{grid-template-columns:1fr}
+.mk .order-side .pay-transfer-row .pay-wide{grid-column:auto}
+
+/* Toolbar summary chips */
+.owner-app .order-toolbar{align-items:stretch}
+.owner-app .order-summary{display:flex;gap:10px;flex-wrap:wrap;flex:1 1 360px}
+.owner-app .sum-chip{display:grid;gap:2px;min-width:92px;padding:10px 14px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.owner-app .sum-chip strong{font:800 20px/1.1 var(--display)}
+.owner-app .sum-chip span{font-size:12px;color:var(--muted)}
+.owner-app .sum-chip.is-new{background:var(--ember-soft);border-color:var(--ember-line)}
+.owner-app .sum-chip.is-new strong{color:var(--ember-text)}
+.owner-app .order-hint{margin:-6px 0 12px}
+
+/* Order cards */
+.owner-app .order-card{gap:12px;padding:14px 14px 12px;border-radius:16px;box-shadow:0 1px 2px #1c17140a;border-left:4px solid var(--line-strong)}
+.owner-app .order-card[data-status=pending]{border-left-color:var(--ember)}
+.owner-app .order-card[data-status=accepted],.owner-app .order-card[data-status=preparing]{border-left-color:#2C4E9E}
+.owner-app .order-card[data-status=ready]{border-left-color:var(--ok)}
+.owner-app .order-card .head{align-items:center}
+.owner-app .order-id{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.owner-app .order-id strong{font:800 18px var(--display)}
+.owner-app .order-source{font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:999px;background:var(--sunk);color:var(--ink-2)}
+.owner-app .order-source.source-whatsapp{background:#e3f6ea;color:#14633a}
+.owner-app .order-source.source-call{background:#e9eefb;color:#2c4e9e}
+.owner-app .order-card .meta{gap:8px}
+.owner-app .order-who{display:grid;gap:4px}
+.owner-app .order-who strong{font-size:15px;color:var(--ink)}
+.owner-app .order-contact{display:flex;gap:6px;flex-wrap:wrap}
+.owner-app .contact-link{font-size:12.5px;font-weight:600;padding:4px 10px;border:1px solid var(--line);border-radius:999px;color:var(--ink-2);text-decoration:none}
+.owner-app .contact-link:hover{background:var(--sunk)}
+.owner-app .order-how{display:grid;gap:4px;padding:8px 10px;border-radius:10px;background:var(--sunk)}
+.owner-app .how-label{font-weight:700;color:var(--ink)!important;font-size:13px}
+.owner-app .order-address{font-size:13px;color:var(--ink-2);text-decoration:underline;text-decoration-color:var(--line-strong)}
+.owner-app .order-note{margin:0;font-size:13px;color:var(--warn);background:var(--warn-bg);padding:6px 10px;border-radius:10px}
+.owner-app .order-items{list-style:none;margin:0;padding:0;display:grid;gap:6px;border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);padding:10px 0}
+.owner-app .order-items li{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:baseline;font-size:14px}
+.owner-app .order-items .qty{font-weight:800;color:var(--ember-text);min-width:28px}
+.owner-app .order-items .name{color:var(--ink)}
+.owner-app .order-items .price{color:var(--muted);font-variant-numeric:tabular-nums}
+.owner-app .order-card .money{align-items:center}
+.owner-app .order-card .money .total-label{font-size:12px;color:var(--muted);margin-right:auto}
+.owner-app .order-card .money .total{font:800 18px var(--display)}
+.owner-app .order-card .actions .btn{min-height:40px}
