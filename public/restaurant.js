@@ -1675,13 +1675,15 @@ function payTransferRow(t = {}) {
  const name = document.createElement('strong'); name.className = 'pay-row-name';
  const meta = document.createElement('span'); meta.className = 'pay-row-meta';
  const edit = document.createElement('button'); edit.type = 'button'; edit.className = 'btn btn-ghost btn-sm pay-row-edit'; edit.textContent = 'Edit';
+ const badge = document.createElement('span'); badge.className = 'pay-badge'; badge.setAttribute('aria-hidden', 'true');
  const info = document.createElement('span'); info.className = 'pay-row-info'; info.append(name, meta);
- head.append(info, edit);
+ head.append(badge, info, edit);
  const body = document.createElement('div'); body.className = 'pay-row-body';
  body.append(field('Type', select), field('Name shown to customers', input('label', 60, 'e.g. Meezan Bank')), field('Account title', title), field('Account / IBAN / mobile number', number), field('Note for customers (optional)', input('instructions', 200, 'e.g. Write your order number in the payment note'), true), remove);
  row.append(head, body);
  for (const key of ['type','label','account_title','account_number','instructions']) if (t[key]) row.querySelector('[data-f="'+key+'"]').value = t[key];
- const refresh = () => { name.textContent = select.options[select.selectedIndex]?.textContent || 'Account'; const n = number.value.trim(); meta.textContent = n ? '· ' + (n.length > 6 ? n.slice(0, 4) + '…' + n.slice(-3) : n) : ''; };
+const PAY_BADGES = {bank:'🏦', jazzcash:'JC', easypaisa:'EP', raast:'R', other:'•'};
+ const refresh = () => { row.dataset.type = select.value; badge.textContent = PAY_BADGES[select.value] || '•'; name.textContent = select.options[select.selectedIndex]?.textContent || 'Account'; const n = number.value.trim(); meta.textContent = n ? '· ' + (n.length > 6 ? n.slice(0, 4) + '…' + n.slice(-3) : n) : ''; };
  refresh(); select.addEventListener('change', refresh); number.addEventListener('input', refresh);
  const setOpen = open => { row.classList.toggle('collapsed', !open); edit.textContent = open ? 'Done' : 'Edit'; edit.setAttribute('aria-expanded', String(open)); };
  setOpen(!t.id);
@@ -1705,8 +1707,9 @@ payEl('pay-form')?.addEventListener('submit', async event => {
  try { const data = await api('/api/restaurants/' + restaurantId + '/payment-settings', {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({cash:payEl('pay-cash').checked, card_on_delivery:payEl('pay-card').checked, transfers})}); showPaySettings(data); note.textContent = 'Saved. Customers see these options at checkout now.'; }
  catch (error) { note.textContent = error.message; }
 });
-window.addEventListener('hashchange', () => { if (location.hash === '#order-desk' && payLoadedFor !== restaurantId) { payLoadedFor = restaurantId; loadPaySettings().catch(() => {}); } });
-setTimeout(() => { if (location.hash === '#order-desk') { payLoadedFor = restaurantId; loadPaySettings().catch(() => {}); } }, 1500);
+const PAY_VIEWS = ['#order-desk', '#payment-methods'];
+window.addEventListener('hashchange', () => { if (PAY_VIEWS.includes(location.hash) && payLoadedFor !== restaurantId) { payLoadedFor = restaurantId; loadPaySettings().catch(() => {}); } });
+setTimeout(() => { if (PAY_VIEWS.includes(location.hash)) { payLoadedFor = restaurantId; loadPaySettings().catch(() => {}); } }, 1500);
 
 // A visitor who picked a single tool on the landing page lands in the cart with it.
 (function wantTool(tries){
