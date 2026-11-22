@@ -1,5 +1,6 @@
 import express from 'express';
 import { newTrackingToken, hashTrackingToken, getOrderTracking } from './order-tracking.js';
+import { notifyNewOrder } from './web-push.js';
 import { validateFulfillment, isMissingFulfillmentSchema } from './order-fulfillment.js';
 import { ensurePaymentTables, loadPaymentSettings, resolvePaymentOption, normalizeReference, paymentView } from './payment-options.js';
 export function checkoutRouter(pool){
@@ -58,6 +59,7 @@ export function checkoutRouter(pool){
    if(fulfillment.present)Object.assign(receipt,{order_type:fulfillment.value.order_type,payment_method:fulfillment.value.payment_method,payment_status:'unpaid'});
    if(paymentRow)receipt.payment=paymentView(paymentRow,paySettings);
    res.status(201).json(receipt);
+   notifyNewOrder(pool,{restaurantId,orderId:created.insertId,totalMinor:total,source:'Website'});
   }catch(e){if(connection)await connection.rollback().catch(()=>{});if(e?.code==='ER_DUP_ENTRY'&&client_request_id)return res.status(409).json({error:'Order submission already attempted. Check your order history before retrying.'});if(isMissingFulfillmentSchema(e))console.error(JSON.stringify({event:'order_fulfillment_schema_missing'}));res.status(503).json({error:'Order service unavailable'});}
   finally{connection?.release();}
  });

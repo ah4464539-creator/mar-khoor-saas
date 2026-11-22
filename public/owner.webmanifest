@@ -1,0 +1,21 @@
+{
+  "name": "Mar-Khoor Restaurant",
+  "short_name": "Mar-Khoor",
+  "description": "Live orders, WhatsApp, AI calls and your website, with new-order alerts.",
+  "id": "/restaurant.html",
+  "start_url": "/restaurant.html#order-desk",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#16120F",
+  "theme_color": "#16120F",
+  "icons": [
+    { "src": "/app-icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/app-icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/app-icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Live orders", "url": "/restaurant.html#order-desk", "icons": [{ "src": "/app-icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "WhatsApp inbox", "url": "/restaurant.html#whatsapp-inbox-view", "icons": [{ "src": "/app-icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

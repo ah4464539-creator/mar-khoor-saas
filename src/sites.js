@@ -3,7 +3,7 @@ import { createVoiceCalls, minutesLeft, maxMinutes, callIdFrom } from './voice-l
 import { URDU_SPEECH_RULES } from './speech-rules.js';
 import express from 'express';
 import { requireAuth } from './auth.js';
-import { generateSiteConfig, renderSitePage, SITE_CSP, SITE_TEMPLATES, TEMPLATE_INFO, assistantCss } from './site-builder.js';
+import { generateSiteConfig, renderSitePage, siteManifest, SITE_CSP, SITE_TEMPLATES, TEMPLATE_INFO, assistantCss } from './site-builder.js';
 import { loadRestaurant, loadSite, saveSite, canPublish, setPublished, loadPublicSite, loadAssistantSite } from './site-store.js';
 import { audit, rateLimit } from './security.js';
 import { restaurantAssistantInstructions } from './restaurant-assistant-policy.js';
@@ -361,6 +361,15 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
   } catch { res.status(503).type('html').send(notFound); }
  });
 
+ // "Add to Home Screen" for customers: one app identity per restaurant website.
+ router.get('/r/:slug/manifest.webmanifest', async (req, res) => {
+  try {
+   const site = await loadPublicSite(pool, req.params.slug);
+   if (!site) return res.status(404).json({ error: 'Not found' });
+   res.set('Cache-Control', 'public, max-age=3600');
+   res.type('application/manifest+json').send(JSON.stringify(siteManifest(site.restaurant, site.config)));
+  } catch { res.status(503).json({ error: 'Unavailable' }); }
+ });
  // Blog and content pages on the public website (published items only; no assistant here).
  const contentPage = async (req, res, build) => {
   res.set('Content-Security-Policy', SITE_CSP);

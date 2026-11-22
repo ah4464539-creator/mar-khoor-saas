@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { getPilotIds, workerSwitch } from './whatsapp-pilot.js';
 import { tokenForNumber } from './whatsapp-signup-core.js';
 import { ensureToolsTable } from './tools.js';
+import { notifyNewOrder } from './web-push.js';
 import { PROPOSE_ORDER_TOOL, buildDraft, summaryText, buttonsFor, parseReply, findDraft, saveDraft, markDraft, placeOrder, receivedText, changeText, expiredText, unavailableText, sendText, sendButtons, sendVoice, transcribeVoiceNote, speak } from './whatsapp-orders.js';
 import mysql from 'mysql2/promise';
 import {pathToFileURL} from 'node:url';
@@ -93,7 +94,7 @@ export async function processWhatsAppAIJobs(pool,{fetcher=fetch,restaurantId=nul
       const placed=await placeOrder(pool,job,draft);
       if(placed.error==='unavailable')replyText=unavailableText(draft.language);
       else if(placed.error)replyText=expiredText(draft.language);
-      else{replyText=receivedText(placed,draft,job.currency,process.env.PUBLIC_BASE_URL);console.log('WhatsApp order #'+placed.order_id+' placed for restaurant #'+job.restaurant_id+(placed.repeat?' (repeat tap)':''));}
+      else{replyText=receivedText(placed,draft,job.currency,process.env.PUBLIC_BASE_URL);console.log('WhatsApp order #'+placed.order_id+' placed for restaurant #'+job.restaurant_id+(placed.repeat?' (repeat tap)':''));if(!placed.repeat)notifyNewOrder(pool,{restaurantId:job.restaurant_id,orderId:placed.order_id,totalMinor:placed.total_minor,currency:job.currency,source:'WhatsApp'});}
      }else replyText=expiredText(draft.language);
     }else if(answer.draftId)replyText=expiredText('en');
    }
