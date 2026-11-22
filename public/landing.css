@@ -188,3 +188,22 @@
  .lp .foot{padding-bottom:40px}
 }
 .lp .topbar{display:block}
+
+/* Theme: Night Karakoram (owner's choice). Same layout, night palette. */
+.lp{--snow:#0E1620;--glacier:#1A2633;--ice:#2A3A4A;--slate:#EAF0F4;--slate-2:#B8C6D1;--stone:#8C9DAA;--pine:#7FD1B3;--pine-soft:#173A33;--ember:#F08A2E;--ember-deep:#FFB066;color-scheme:dark}
+.lp .topbar{background:#0E1620e6}
+.lp .b-go{color:#140C05}.lp .b-go:hover{background:#FF9F4A}
+.lp .b-line{background:transparent;color:var(--slate)}.lp .b-line:hover{border-color:var(--slate-2)}
+.lp .desk{background:#16212C;border:1px solid #2A3A4A}.lp .lane{background:#1C2A37}.lp .from{background:#24384A}
+.lp .reply{background:#EAF0F4;color:#0E1620}
+.lp .done{background:#173A33;color:#BFEBD9;border-color:#2F6B5B}.lp .done b{color:#E6FFF5}.lp .done small{color:#7FD1B3}
+.lp .switch button[aria-pressed="true"]{background:#2A3A4A;color:#fff;box-shadow:none}
+.lp .col q{background:#1A2633}
+.lp .cols,.lp .biz,.lp .steps li,.lp .tools,.lp .ptable thead th{border-top-color:#EAF0F4}
+.lp .price{background:#121C27;border-color:#1A2633}
+.lp .ptable thead th{border-bottom-color:#EAF0F4}
+.lp .ptable .pick{background:#2A1E12}.lp .flag{color:#140C05}
+.lp .tongues{background:linear-gradient(90deg,#0E1620f5 0%,#0E1620cc 45%,#0E162033 100%),url('/assets/approved-mountain.webp') right 30%/cover no-repeat}
+.lp .demo-wrap{background:#121C27;border-color:#2A3A4A;--surface:#16212C;--line:#2A3A4A;--line-strong:#3A4D5F;--ink:#EAF0F4;--ink-2:#B8C6D1;--muted:#8C9DAA;--sunk:#1C2A37;--ember-soft:#2A1E12;--ember-line:#5A3A1A}
+.lp .demo-wrap .btn-ghost{color:var(--slate);border-color:#3A4D5F;background:transparent}
+.lp .foot{border-color:#1A2633}
