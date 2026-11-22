@@ -8,7 +8,7 @@ import { resetDiscoveredCredential } from '../src/voice-autoprovision.js';
 import { plansRouter } from '../src/plans.js';
 
 const deps = fetcher => ({
-  fetcher, telnyxKey: 'tk', vapiKey: 'vk', credentialId: 'cred', templateAssistantId: 'tmpl-1',
+  fetcher, allowPurchases: true, telnyxKey: 'tk', vapiKey: 'vk', credentialId: 'cred', templateAssistantId: 'tmpl-1',
   maxMonthlyUsd: 15, maxUpfrontUsd: 15, requirementGroup: () => undefined,
 });
 
@@ -62,6 +62,30 @@ function fakeProviders({ numbers = [{ phone_number: '+12025550123', features: [{
   };
   return { fetcher, calls };
 }
+
+test('no automatic number purchase when VOICE_AUTOPROVISION_ENABLED is absent or off', async () => {
+  const old = process.env.VOICE_AUTOPROVISION_ENABLED;
+  try {
+    const { autoProvisionDeps } = await import('../src/voice-autoprovision.js');
+    for (const value of [undefined, '0', 'false', 'on']) {
+      if (value === undefined) delete process.env.VOICE_AUTOPROVISION_ENABLED;
+      else process.env.VOICE_AUTOPROVISION_ENABLED = value;
+      assert.equal(autoProvisionDeps().allowPurchases, false);
+      const db = fakeDb();
+      const { fetcher, calls } = fakeProviders();
+      const result = await provisionSubscriptionNumber(db.pool, 7, { ...deps(fetcher), allowPurchases: false });
+      assert.equal(result.status, 'disabled');
+      assert.equal(db.log.length, 0, 'no database changes or number actions');
+      assert.equal(calls.length, 0, 'no external provider request');
+      assert.deepEqual(await retryPendingSubscriptionNumbers(db.pool, { ...deps(fetcher), allowPurchases: false }), []);
+    }
+    process.env.VOICE_AUTOPROVISION_ENABLED = '1';
+    assert.equal(autoProvisionDeps().allowPurchases, true);
+  } finally {
+    if (old === undefined) delete process.env.VOICE_AUTOPROVISION_ENABLED;
+    else process.env.VOICE_AUTOPROVISION_ENABLED = old;
+  }
+});
 
 test('only Premium and Enterprise include a number; config gaps are reported by name', () => {
   assert.equal(includesNumber('starter'), false);
