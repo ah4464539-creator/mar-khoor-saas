@@ -50,7 +50,9 @@
       });
       const reply = await response.json().catch(() => ({}));
       if (!response.ok || reply.accepted !== true) throw new Error(reply.error || 'Contact form is unavailable');
-      show('Your request has been submitted to Mar-Khoor support. Please check your email for a response.', 'success');
+      show(reply.acknowledgement_sent === true
+        ? 'Message sent to Mar-Khoor support. We have also emailed you an acknowledgement. Our team will reply within 24 hours.'
+        : 'Message sent to Mar-Khoor support. Our team will reply within 24 hours. If you need assistance sooner, email admin@mar-khoor.com.', 'success');
       form.reset();
     } catch {
       show('We could not send your request through the online form. Please contact admin@mar-khoor.com directly.', 'error');
