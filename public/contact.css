@@ -59,3 +59,37 @@ body.mk-contact{margin:0;background:#0e1620;color:#eaf0f4;font-family:Inter,'Seg
 @media(max-width:850px){.ct-nav nav{display:none}.ct-options{grid-template-columns:1fr 1fr}.ct-faq-layout{grid-template-columns:1fr;gap:28px}.ct-faq{margin:70px 0}.ct-hero{padding:68px 0 94px}}
 @media(max-width:600px){.ct-wrap{padding-left:18px;padding-right:18px}.ct-nav{gap:12px;min-height:64px}.ct-brand{font-size:18px}.ct-brand img{width:28px;height:28px}.ct-actions{gap:10px}.ct-signin{font-size:12px}.ct-actions .ct-button{min-height:38px;padding:8px 10px;font-size:12px}.ct-hero{padding:56px 0 89px}.ct-hero h1{font-size:44px}.ct-lead{font-size:16px}.ct-options{grid-template-columns:1fr;gap:12px;margin-top:-35px}.ct-card{padding:23px}.ct-card h2{margin-top:17px}.ct-bottom{display:block;padding-bottom:35px}.ct-bottom .ct-button{margin-top:24px}.ct-footer .ct-wrap{display:block}.ct-footer nav{margin-top:16px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+
+/* Official Mar-Khoor contact form */
+.ct-form-section{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:66px;padding-top:105px;padding-bottom:75px;scroll-margin-top:88px}
+.ct-form-intro h2{font-size:clamp(32px,4.2vw,49px);line-height:1.15;letter-spacing:-.052em;margin:0 0 23px}
+.ct-form-intro p:not(.ct-kicker){color:#b8c6d1;line-height:1.8;font-size:15px}
+.ct-form-intro p a{color:#ffbd88;text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere}
+.ct-form-intro .ct-form-help{margin-top:25px;padding-left:15px;border-left:3px solid #f08a2e;font-size:13px!important}
+.ct-form-card{background:#152431;border:1px solid #344858;border-radius:16px;padding:30px;min-width:0}
+.ct-field{display:flex;flex-direction:column;gap:9px;margin-bottom:20px}
+.ct-field label{font-size:13px;font-weight:700;color:#eaf0f4}
+.ct-field label span{color:#ffac69}
+.ct-field input,.ct-field select,.ct-field textarea{display:block;width:100%;min-height:47px;max-width:100%;border-radius:9px;border:1px solid #45586b;background:#0e1620;color:#fff;padding:12px 13px;font:400 14px/1.5 Inter,system-ui,sans-serif}
+.ct-field textarea{min-height:140px;resize:vertical}
+.ct-field input::placeholder,.ct-field textarea::placeholder{color:#9daebb}
+.ct-field select{cursor:pointer}
+.ct-field :is(input,select,textarea):focus{outline:2px solid #e68b36;outline-offset:1px;border-color:#e68b36}
+.ct-form-pair{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.ct-form-consent{display:flex;align-items:flex-start;gap:11px;font-size:12px;line-height:1.6;color:#b8c6d1;cursor:pointer}
+.ct-form-consent input{width:16px;height:16px;flex:none;margin-top:3px;accent-color:#f08a2e}
+.ct-form-consent a{color:#ffbd88}
+.ct-form-submit{display:flex;align-items:center;gap:15px;flex-wrap:wrap;margin-top:26px}
+.ct-form-submit>span{font-size:12px;line-height:1.5;color:#aebdcb;overflow-wrap:anywhere}
+.ct-form-submit>span strong{font-weight:600;color:#eaf0f4}
+.ct-form-feedback{font-size:13px;line-height:1.6;margin:15px 0 0;min-height:1em}
+.ct-form-feedback[data-type="success"]{color:#a2efd0}
+.ct-form-feedback[data-type="error"]{color:#ffb89e}
+.ct-form-feedback[data-type="pending"]{color:#c8d7e7}
+.ct-form-readiness{padding:12px 15px;margin:0 0 22px;border:1px solid #685331;border-radius:9px;background:#382a1c;color:#ffdfba;font-size:13px;line-height:1.6}
+.ct-form-readiness a{color:#fff3d9}
+.ct-honeypot{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.ct-faq{margin-top:55px}
+@media(max-width:900px){.ct-form-section{grid-template-columns:1fr;gap:27px;padding-top:75px}}
+@media(max-width:600px){.ct-form-section{padding-top:65px;padding-bottom:30px}.ct-form-card{padding:22px 18px}.ct-form-pair{grid-template-columns:1fr;gap:0}.ct-form-submit .ct-button{width:100%}}
