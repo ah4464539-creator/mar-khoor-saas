@@ -26,6 +26,8 @@
 <link rel="stylesheet" href="/summit.css?v=20261122-n3">
 <link rel="stylesheet" href="/demo.css?v=20261122-n2">
 <link rel="stylesheet" href="/landing.css?v=20261122-8">
+<link rel="stylesheet" href="/support-widget.css?v=20261122-1">
+<script src="/website-assistant-new.js?v=20261122-1" defer></script>
 <script src="/i18n.js?v=20261122-n1" defer></script>
 <script src="/demo.js?v=20261121-2" defer></script>
 </head>
@@ -36,7 +38,7 @@
 
 <header class="topbar" id="lp-nav"><div class="wrap">
  <a translate="no" class="logo" href="/"><img src="/assets/markhor-mark-tile.svg" width="32" height="32" alt=""><b>Mar<span>-</span>Khoor</b></a>
- <nav aria-label="Main navigation"><a href="#channels">How it answers</a><a href="#businesses">Businesses</a><a href="#demo">Demo</a><a href="#plans">Pricing</a><a href="#faq">Questions</a></nav>
+ <nav aria-label="Main navigation"><a href="#channels">How it answers</a><a href="#businesses">Businesses</a><a href="#demo">Demo</a><a href="#plans">Pricing</a><a href="#faq">Questions</a><a href="/about.html">About Us</a><a href="/contact.html">Contact Us</a></nav>
  <div class="acts"><a class="b b-line b-sm" href="/restaurant.html">Sign in</a><a class="b b-go b-sm nav-cta" href="/register.html">Get started</a></div>
 </div></header>
 
@@ -180,13 +182,10 @@
 <footer class="foot" id="contact"><div class="wrap">
  <a translate="no" class="logo" href="/"><img src="/assets/markhor-mark-tile.svg" width="26" height="26" alt=""><b>Mar<span>-</span>Khoor</b></a>
  <span>© 2026 Mar-Khoor AI</span>
- <nav aria-label="Footer"><a href="/privacy.html">Privacy Policy</a><a href="/restaurant.html">Business sign-in</a><a href="/track.html">Track an order</a><a href="/orders.html">Order history</a></nav>
+ <nav aria-label="Footer"><a href="/about.html">About Us</a><a href="/contact.html">Contact Us</a><a href="/privacy.html">Privacy Policy</a><a href="/restaurant.html">Business sign-in</a><a href="/track.html">Track an order</a><a href="/orders.html">Order history</a></nav>
 </div></footer>
 
 
-<button id="mk-ai-launch" class="btn btn-dark" hidden type="button" aria-expanded="false" aria-controls="mk-ai-panel"><svg width="18" height="18" aria-hidden="true"><use href="#i-sparkle"/></svg>Ask Mar-Khoor AI</button>
-<section id="mk-ai-panel" class="card" hidden aria-label="Mar-Khoor AI chat"><header><strong>Mar-Khoor AI</strong><button id="mk-ai-close" type="button" aria-label="Close assistant">×</button></header><div id="mk-ai-messages" role="log" aria-live="polite"><p>Ask about Mar-Khoor features, plans or registration. Orders and bookings are not taken in this chat.</p></div><form id="mk-ai-form"><input id="mk-ai-input" class="input" aria-label="Your message" maxlength="1200" required placeholder="Ask a question..." autocomplete="off"><button id="mk-ai-send" class="btn btn-primary" type="submit">Send</button></form></section>
-<script type="module" src="/website-assistant.js"></script>
 <script src="/landing.js?v=20261122-3" defer></script>
 <script>
 // Plan buttons: new visitors go straight to registration with the plan; signed-in owners go to

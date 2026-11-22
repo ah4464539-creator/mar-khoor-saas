@@ -8,7 +8,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = file => readFileSync(path.join(root, 'public', file), 'utf8');
 
 test('public SEO pages have unique canonical URLs', () => {
-  for (const [file, url] of [['index.html', 'https://mar-khoor.com/'], ['build-plan.html', 'https://mar-khoor.com/build-plan.html'], ['privacy.html', 'https://mar-khoor.com/privacy.html']]) {
+  for (const [file, url] of [['index.html', 'https://mar-khoor.com/'], ['build-plan.html', 'https://mar-khoor.com/build-plan.html'], ['privacy.html', 'https://mar-khoor.com/privacy.html'], ['contact.html', 'https://mar-khoor.com/contact.html'], ['about.html', 'https://mar-khoor.com/about.html']]) {
     const html = read(file);
     assert.match(html, /name="description"/);
     assert.ok(html.includes('rel="canonical" href="' + url + '"'), file);
@@ -25,7 +25,7 @@ test('account, ordering, and tracking screens are noindex', () => {
 test('sitemap lists only canonical public platform pages', () => {
   const map = read('sitemap.xml');
   assert.match(map, /<urlset/);
-  for (const url of ['https://mar-khoor.com/', 'https://mar-khoor.com/build-plan.html', 'https://mar-khoor.com/privacy.html']) assert.ok(map.includes('<loc>' + url + '</loc>'));
+  for (const url of ['https://mar-khoor.com/', 'https://mar-khoor.com/build-plan.html', 'https://mar-khoor.com/privacy.html', 'https://mar-khoor.com/contact.html', 'https://mar-khoor.com/about.html']) assert.ok(map.includes('<loc>' + url + '</loc>'));
   assert.doesNotMatch(map, /restaurant\.html|register\.html|track\.html|orders\.html|menu\.html|super-admin/);
   assert.match(read('robots.txt'), /Sitemap: https:\/\/mar-khoor\.com\/sitemap\.xml/);
 });
