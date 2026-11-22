@@ -99,7 +99,7 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
     : '';
   const voiceStatus = voiceOn ? '<p id="voice-status" role="status"></p><audio id="assistant-audio" controls hidden></audio>' : '';
   const dictation = '';
-  return voiceStatus + '<form class="assistant-composer" method="post" action="' + endpoint + '"><textarea id="message" name="message" aria-label="Message AI Assistant" placeholder="\' + prompt + \'" rows="1" required maxlength="1200"></textarea>' +
+  return voiceStatus + '<form class="assistant-composer" method="post" action="' + endpoint + '"><textarea id="message" name="message" aria-label="Message AI Assistant" placeholder="' + prompt + '" rows="1" required maxlength="1200"></textarea>' +
     voice + '<button type="submit" class="assistant-send" aria-label="Send message" title="Send message">' + sendIcon + '</button></form>';
  }
 
