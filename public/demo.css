@@ -17,11 +17,11 @@
 .mk .demo-bar small{display:block;font:400 11px var(--font);opacity:.8}
 .mk .demo-av{width:34px;height:34px;border-radius:50%;background:#ffffff26;display:grid;place-items:center;font:700 13px var(--font);flex:none}
 .mk .demo-log{flex:1;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;gap:8px;padding:12px}
-.mk .demo-msg{max-width:84%;padding:8px 11px;border-radius:14px;font:14px/1.4 var(--font);color:var(--ink);background:#fff;box-shadow:0 1px 1px #0000001a;animation:demoIn .35s ease both;white-space:pre-line}
+.mk .demo-msg{max-width:84%;padding:8px 11px;border-radius:14px;font:14px/1.4 var(--font);color:var(--ink);background:var(--surface);box-shadow:0 1px 1px #0000001a;animation:demoIn .35s ease both;white-space:pre-line}
 .mk .demo-msg.me{align-self:flex-end;background:#dcf8c6;border-bottom-right-radius:4px}
 .mk .demo-msg.ai{align-self:flex-start;border-bottom-left-radius:4px}
 .mk .demo-msg small{display:block;font:600 10px var(--font);color:var(--ember-text);margin-bottom:2px;letter-spacing:.02em}
-.mk .demo-typing{align-self:flex-start;background:#fff;border-radius:14px;padding:10px 12px;display:flex;gap:4px;animation:demoIn .2s both}
+.mk .demo-typing{align-self:flex-start;background:var(--surface);border-radius:14px;padding:10px 12px;display:flex;gap:4px;animation:demoIn .2s both}
 .mk .demo-typing.me{align-self:flex-end;background:#dcf8c6}
 .mk .demo-typing i{width:6px;height:6px;border-radius:50%;background:#9a8f86;animation:demoDot 1s infinite}
 .mk .demo-typing i:nth-child(2){animation-delay:.15s}.mk .demo-typing i:nth-child(3){animation-delay:.3s}
