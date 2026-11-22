@@ -64,12 +64,32 @@
     grid.replaceChildren(...Object.entries(data.types).map(([key, info]) => {
       const label = el('label', 'bk-type');
       const input = el('input'); input.type = 'radio'; input.name = 'bk-category'; input.value = key; input.checked = key === type();
-      input.addEventListener('change', () => { data.profile.category = key; if (key !== 'restaurant') $('bk-enabled').checked = true; applyLabels(); renderResources(); renderServices(); });
+      input.addEventListener('change', () => { data.profile.category = key; if (key !== 'restaurant') $('bk-enabled').checked = true; renderTypeLine(); applyLabels(); renderResources(); renderServices(); });
       label.append(input, el('span', 'bk-type-icon', TYPE_ICONS[key] || '•'), el('b', null, info.label));
       return label;
     }));
+    renderTypeLine();
     $('bk-enabled').checked = Boolean(data.profile.bookings_enabled);
     $('bk-slot').value = String(data.profile.slot_minutes || 30);
+  }
+  function renderTypeLine() {
+    const info = data?.types?.[type()];
+    if ($('bk-type-name')) $('bk-type-name').textContent = info ? info.label : '';
+    if ($('bk-type-icon')) $('bk-type-icon').textContent = TYPE_ICONS[type()] || '';
+  }
+  // Dashboard box for clinics, salons and hotels: the next bookings instead of food sales.
+  async function loadOverview() {
+    if (!ctx || type() === 'restaurant' || !$('bk-overview-list')) return;
+    const t = today();
+    try {
+      const { bookings } = await ctx.api(base() + '/bookings?from=' + t + '&to=' + addDays(t, 6));
+      const live = bookings.filter(b => !['cancelled', 'no_show', 'completed'].includes(b.status));
+      const chip = (n, label, cls) => { const c = el('div', 'bk-chip ' + (cls || '')); c.append(el('b', null, String(n)), el('span', null, label)); return c; };
+      $('bk-overview-summary').replaceChildren(chip(live.filter(b => b.status === 'pending').length, 'New', 'new'), chip(live.filter(b => b.start_at.slice(0, 10) === t).length, 'Today'), chip(live.length, 'Next 7 days'));
+      $('bk-overview-title').textContent = 'Upcoming ' + copy().nav.toLowerCase();
+      const list = live.slice(0, 6).map(card);
+      $('bk-overview-list').replaceChildren(...(list.length ? list : [el('p', 'muted bk-none', data?.services?.length ? 'No upcoming bookings yet.' : 'Add your services first, then customers can book.')]));
+    } catch (error) { $('bk-overview-list').replaceChildren(el('p', 'muted', error.message)); }
   }
   function renderHours() {
     const box = $('bk-hours'); if (!box || !data) return;
@@ -230,7 +250,7 @@
   }
   async function setStatus(id, status, button) {
     button.disabled = true;
-    try { await ctx.api(base() + '/bookings/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) }); loadBoard(); }
+    try { await ctx.api(base() + '/bookings/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) }); if (location.hash === '#bookings') loadBoard(); else loadOverview(); }
     catch (error) { button.disabled = false; alertNote(error.message); }
   }
   const alertNote = msg => { const p = $('bk-public'); if (p) p.textContent = msg; };
@@ -278,6 +298,7 @@
       ctx.category = result.profile.category;
       applyLabels(); renderTypes(); renderHours(); renderResources(); renderServices(); renderBoardHints();
       if (location.hash === '#bookings') loadBoard();
+      if (!location.hash || location.hash === '#owner-overview') loadOverview();
     } catch (error) { const n = $('bk-note'); if (n) n.textContent = error.message; }
   }
 
@@ -296,7 +317,8 @@
     $('bk-form')?.addEventListener('submit', saveBooking);
     $('bk-f-cancel')?.addEventListener('click', () => $('bk-dialog').close());
     for (const id of ['bk-f-service', 'bk-f-date', 'bk-f-out']) $(id)?.addEventListener('change', () => { if (id === 'bk-f-date' && night() && $('bk-f-out').value <= $('bk-f-date').value) $('bk-f-out').value = addDays($('bk-f-date').value, 1); checkAvailability(); });
-    window.addEventListener('hashchange', () => { if (!ctx) return; applyLabels(); if (location.hash === '#bookings') loadBoard(); });
+    window.addEventListener('hashchange', () => { if (!ctx) return; applyLabels(); if (location.hash === '#bookings') loadBoard(); if (!location.hash || location.hash === '#owner-overview') loadOverview(); });
+    $('bk-type-change')?.addEventListener('click', () => { const g = $('bk-type-grid'); g.hidden = !g.hidden; $('bk-type-change').textContent = g.hidden ? 'Wrong type? Change' : 'Keep this type'; });
     setInterval(() => { if (ctx && location.hash === '#bookings' && !document.hidden) loadBoard(); }, 60000);
   }
 

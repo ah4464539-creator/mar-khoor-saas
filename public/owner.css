@@ -705,3 +705,10 @@ body.owner-app:not([data-category]) [data-biz-only],body.owner-app[data-category
 .mk .bk-slot.on{background:#E86A17;border-color:#E86A17;color:#fff}
 .mk .bk-checks{display:flex;flex-wrap:wrap;gap:10px}
 @media(max-width:640px){.mk .bk-hour-row{grid-template-columns:1fr 1fr}.mk .bk-hour-row .muted{display:none}.mk .bk-range{margin-left:0}}
+/* Clinics, salons, hotels: type line and dashboard bookings box */
+.mk .bk-type-current{display:flex;align-items:center;gap:12px;margin:0 0 12px;padding:12px;border-radius:14px;background:var(--surface-2,#faf6f1)}
+.mk .bk-type-current .btn{margin-left:auto}
+.mk .bk-overview{margin:0 0 18px;border-radius:18px;border:1px solid var(--line);background:var(--surface)}
+.mk .bk-overview .card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.mk .bk-overview h2{margin:0 0 4px}
+.mk .bk-overview-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:14px}
