@@ -204,7 +204,7 @@
    <button type="button" class="btn btn-sm btn-ghost" data-bk-range="month">30 days</button>
    <label class="bk-date"><span class="visually-hidden">Pick a day</span><input type="date" class="input" id="bk-day"></label>
   </div>
-  <button type="button" class="btn btn-primary" id="bk-new">+ New booking</button>
+  <button type="button" class="btn btn-primary" id="bk-new" data-food-only>+ New booking</button>
  </div>
  <div class="bk-filters">
   <label class="search"><svg aria-hidden="true" width="16" height="16"><use href="#i-search"/></svg><span class="visually-hidden">Search bookings</span><input id="bk-search" type="search" placeholder="Name, phone or booking #"></label>
@@ -224,7 +224,7 @@
 </section>
 <section class="owner-view owner-message-view" id="reports" data-title="Reports" hidden>
  <h2 tabindex="-1" class="visually-hidden">Reports</h2>
- <div class="bk-filters"><label><span class="visually-hidden">Period</span><select class="input" id="rp-days"><option value="7">Last 7 days</option><option value="30" selected>Last 30 days</option><option value="90">Last 90 days</option><option value="365">Last year</option></select></label></div>
+ <div class="bk-filters"><label><span class="visually-hidden">Period</span><select class="input" id="rp-days"><option value="7">Last 7 days</option><option value="30" selected>Received in the last 30 days</option><option value="90">Last 90 days</option><option value="365">Last year</option></select></label></div>
  <div class="bk-summary rp-kpis" id="rp-kpis"></div>
  <div class="rp-grid">
   <section class="card card-pad cu-card"><h2 class="rp-h">Top services</h2><div id="rp-services" class="rp-bars"></div></section>
@@ -610,7 +610,7 @@
 <script src="/call-forwarding.js?v=20261122-1"></script>
 <script src="/site-content.js?v=20261122-1"></script>
 <script src="/owner-app.js?v=20261122-2"></script>
-<script src="/bookings.js?v=20261122-9"></script>
+<script src="/bookings.js?v=20261122-10"></script>
 <script type="module" src="/restaurant.js?v=20261122-s37"></script>
 <script>document.getElementById("login-show-password")?.addEventListener("change",function(){document.getElementById("password").type=this.checked?"text":"password"});</script>
 </body>
