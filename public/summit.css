@@ -212,3 +212,9 @@
 @media(max-width:959px){.mk .auth-art{min-height:260px;padding:28px 22px}.mk .auth-art .channels{display:none}}
 .mk .auth-logo img{display:block;width:48px;height:48px;border-radius:12px}
 .mk .auth-logo b{font-size:28px}
+/* Wordmark: Mar-Khoor with an ember hyphen and a small AI tag, same on every page. */
+.mk .brand b,.lp .logo b{font-family:'Bricolage Grotesque','Inter',system-ui,sans-serif;font-weight:800;font-size:21px;letter-spacing:-.035em;line-height:1;color:var(--ink);display:inline-flex;align-items:center}
+.mk .brand b span,.lp .logo b span{color:var(--ember);margin:0 .03em}
+.mk .brand b::after,.lp .logo b::after{content:'AI';margin-left:8px;padding:4px 6px 3px;border-radius:6px;font:700 10px/1 'Inter',system-ui,sans-serif;letter-spacing:.06em;color:var(--ember-text);background:var(--ember-soft);border:1px solid var(--ember-line)}
+.mk .brand img,.lp .logo img{border-radius:9px}
+.mk .auth-logo b{font-size:26px}
