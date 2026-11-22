@@ -9,6 +9,7 @@
 // Tenant identity is never taken from the payload: the restaurant is resolved
 // from the server-side voice_assistants mapping.
 
+import { notifyCallEnded } from './web-push.js';
 import crypto from 'node:crypto';
 
 const ASSISTANT_ID = /^[a-zA-Z0-9_-]{1,128}$/;
@@ -70,6 +71,7 @@ export async function processVapiEvent(pool, payload) {
     "ON DUPLICATE KEY UPDATE status='ended',ended_reason=COALESCE(VALUES(ended_reason),ended_reason),transcript=COALESCE(VALUES(transcript),transcript),ended_at=COALESCE(ended_at,NOW())",
     [event.assistantId, event.callId, restaurantId, event.endedReason, event.transcript]
   );
+  notifyCallEnded(pool, { restaurantId, callId: event.callId, reason: event.endedReason });
   return { processed: true };
 }
 

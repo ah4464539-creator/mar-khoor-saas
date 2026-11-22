@@ -1,6 +1,6 @@
 import express from 'express';
 import { newTrackingToken, hashTrackingToken, getOrderTracking } from './order-tracking.js';
-import { notifyNewOrder } from './web-push.js';
+import { notifyNewOrder, notifyPaymentReference } from './web-push.js';
 import { validateFulfillment, isMissingFulfillmentSchema } from './order-fulfillment.js';
 import { ensurePaymentTables, loadPaymentSettings, resolvePaymentOption, normalizeReference, paymentView } from './payment-options.js';
 export function checkoutRouter(pool){
@@ -73,6 +73,7 @@ export function checkoutRouter(pool){
    const [result]=await pool.execute("UPDATE order_payments p JOIN order_tracking t ON t.order_id=p.order_id SET p.reference=?,p.status='submitted' WHERE p.order_id=? AND t.token_hash=? AND p.option_key LIKE 'transfer:%' AND p.status IN ('awaiting','rejected')",[reference.value,orderId,hashTrackingToken(token)]);
    if(!result.affectedRows)return res.status(409).json({error:'This payment cannot be changed now'});
    res.json({status:'submitted'});
+   notifyPaymentReference(pool,{orderId});
   }catch{res.status(503).json({error:'Payment update unavailable'});}
  });
  // The token is sent in a header so it stays out of URLs and logs.

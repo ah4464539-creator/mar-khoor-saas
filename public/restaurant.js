@@ -1199,10 +1199,16 @@ setupForm.addEventListener('submit', event => { event.preventDefault(); advanceS
 
 try { token = localStorage.getItem(sessionKey) || sessionStorage.getItem(sessionKey) || ''; } catch {}
 // Do not auto-open a saved session while someone is completing a password reset link.
-if (token && document.querySelector('#reset-view')?.hidden !== false) loadAccount().catch(() => {
- token = '';
- try { localStorage.removeItem(sessionKey); sessionStorage.removeItem(sessionKey); } catch {}
-});
+// A saved sign-in is only forgotten when the server says it has ended (401), not on a network blip.
+async function resumeSavedSession(tries = 0) {
+ try { await loadAccount(); }
+ catch (error) {
+  if (error.status === 401 || error.status === 403) { token = ''; try { localStorage.removeItem(sessionKey); sessionStorage.removeItem(sessionKey); } catch {} return; }
+  if (tries < 5) setTimeout(() => resumeSavedSession(tries + 1), Math.min(30000, 2000 * 2 ** tries));
+ }
+}
+if (token && document.querySelector('#reset-view')?.hidden !== false) resumeSavedSession();
+window.addEventListener('online', () => { if (token && !restaurantId) resumeSavedSession(); });
 
 
 // AI menu import: draft → owner review → bulk add.

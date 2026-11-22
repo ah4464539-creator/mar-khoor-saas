@@ -97,3 +97,31 @@ test('owner app: manifest, service worker, alerts card and hooks on every order 
   assert.match(html, /rel="manifest" href="\/owner\.webmanifest"/);
   for (const f of ['src/checkout.js', 'src/voice-tools.js', 'src/whatsapp-ai-worker.js']) assert.match(readFileSync(f, 'utf8'), /notifyNewOrder\(pool/, f);
 });
+
+import { shouldAlertWhatsApp, notifyActivity, notifyWhatsAppMessage } from '../src/web-push.js';
+
+test('WhatsApp alerts: one per customer per 10 minutes; button taps never ring', async () => {
+  const t = 1e12;
+  assert.equal(shouldAlertWhatsApp(4, '923001', t), true);
+  assert.equal(shouldAlertWhatsApp(4, '923001', t + 60000), false);
+  assert.equal(shouldAlertWhatsApp(4, '923002', t + 60000), true);
+  assert.equal(shouldAlertWhatsApp(4, '923001', t + 11 * 60000), true);
+  assert.deepEqual(await notifyWhatsAppMessage({}, { restaurantId: 4, sender: '9', type: 'interactive', text: 'mk_confirm:1' }), { sent: 0 });
+});
+
+test('activity alerts respect the restaurant switches', async () => {
+  const pool = { async query() { return [[]]; }, async execute(sql) { if (sql.startsWith('SELECT whatsapp,calls,payments')) return [[{ whatsapp: 0, calls: 1, payments: 1 }]]; if (sql.startsWith('SELECT id,endpoint')) return [[]]; return [{}]; } };
+  assert.equal((await notifyActivity(pool, 4, 'whatsapp', { title: 'x' })).reason, 'off');
+  assert.equal((await notifyActivity(pool, 4, 'calls', { title: 'x' })).sent, 0, 'on, but no devices');
+  assert.equal((await notifyActivity(pool, 4, 'nonsense', { title: 'x' })).sent, 0);
+});
+
+test('alerts are wired to WhatsApp messages, AI calls and payment references; saved login survives network errors', () => {
+  assert.match(readFileSync('src/integrations.js', 'utf8'), /notifyWhatsAppMessage\(pool/);
+  assert.match(readFileSync('src/vapi-events.js', 'utf8'), /notifyCallEnded\(pool/);
+  assert.match(readFileSync('src/checkout.js', 'utf8'), /notifyPaymentReference\(pool/);
+  assert.match(readFileSync('src/operations.js', 'utf8'), /push\/preferences/);
+  const js = readFileSync('public/restaurant.js', 'utf8');
+  assert.match(js, /error\.status === 401 \|\| error\.status === 403/);
+  assert.match(readFileSync('public/restaurant.html', 'utf8'), /data-alert-kind="whatsapp"/);
+});
