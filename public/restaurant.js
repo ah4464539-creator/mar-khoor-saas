@@ -1668,8 +1668,22 @@ function payTransferRow(t = {}) {
  const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'btn btn-ghost btn-sm'; remove.dataset.remove = ''; remove.textContent = 'Remove';
  const title = input('account_title', 80); title.required = true;
  const number = input('account_number', 40); number.required = true;
- row.append(field('Type', select), field('Name shown to customers', input('label', 60, 'e.g. Meezan Bank')), field('Account title', title), field('Account / IBAN / mobile number', number), field('Note for customers (optional)', input('instructions', 200, 'e.g. Write your order number in the payment note'), true), remove);
+ // Saved accounts show as one short line (type + number) with an Edit button; new ones open ready to fill.
+ const head = document.createElement('div'); head.className = 'pay-row-head';
+ const name = document.createElement('strong'); name.className = 'pay-row-name';
+ const meta = document.createElement('span'); meta.className = 'pay-row-meta';
+ const edit = document.createElement('button'); edit.type = 'button'; edit.className = 'btn btn-ghost btn-sm pay-row-edit'; edit.textContent = 'Edit';
+ const info = document.createElement('span'); info.className = 'pay-row-info'; info.append(name, meta);
+ head.append(info, edit);
+ const body = document.createElement('div'); body.className = 'pay-row-body';
+ body.append(field('Type', select), field('Name shown to customers', input('label', 60, 'e.g. Meezan Bank')), field('Account title', title), field('Account / IBAN / mobile number', number), field('Note for customers (optional)', input('instructions', 200, 'e.g. Write your order number in the payment note'), true), remove);
+ row.append(head, body);
  for (const key of ['type','label','account_title','account_number','instructions']) if (t[key]) row.querySelector('[data-f="'+key+'"]').value = t[key];
+ const refresh = () => { name.textContent = select.options[select.selectedIndex]?.textContent || 'Account'; const n = number.value.trim(); meta.textContent = n ? '· ' + (n.length > 6 ? n.slice(0, 4) + '…' + n.slice(-3) : n) : ''; };
+ refresh(); select.addEventListener('change', refresh); number.addEventListener('input', refresh);
+ const setOpen = open => { row.classList.toggle('collapsed', !open); edit.textContent = open ? 'Done' : 'Edit'; edit.setAttribute('aria-expanded', String(open)); };
+ setOpen(!t.id);
+ edit.addEventListener('click', () => { const open = row.classList.contains('collapsed'); setOpen(open); if (open) select.focus(); });
  row.querySelector('[data-remove]').addEventListener('click', () => row.remove());
  return row;
 }
@@ -1682,6 +1696,7 @@ function showPaySettings(data) {
 }
 async function loadPaySettings() { if (!restaurantId || !payEl('pay-form')) return; const id = restaurantId; const data = await api('/api/restaurants/' + id + '/payment-settings'); if (id === restaurantId) showPaySettings(data); }
 payEl('pay-add')?.addEventListener('click', () => { if (payEl('pay-transfers').children.length < 5) payEl('pay-transfers').append(payTransferRow()); });
+payEl('pay-form')?.addEventListener('invalid', event => { const row = event.target.closest?.('.pay-transfer-row.collapsed'); row?.querySelector('.pay-row-edit')?.click(); }, true);
 payEl('pay-form')?.addEventListener('submit', async event => {
  event.preventDefault(); const note = payEl('pay-note'); note.textContent = 'Saving…';
  const transfers = [...payEl('pay-transfers').children].map(row => Object.fromEntries([['id', row.dataset.id], ...[...row.querySelectorAll('[data-f]')].map(el => [el.dataset.f, el.value])]));

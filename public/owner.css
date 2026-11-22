@@ -583,3 +583,13 @@ body.mk{margin:0}
 .owner-app .oc-pay{flex:0 1 auto;min-width:0;max-width:100%}
 .owner-app .oc-acts{display:flex;align-items:center;gap:6px;margin-left:auto;flex:none}
 .owner-app .order-card.compact{min-width:0;overflow:hidden}
+/* Saved payment accounts collapse to one line with Edit */
+.mk .pay-transfer-row{grid-template-columns:1fr}
+.mk .pay-row-head{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
+.mk .pay-row-info{display:flex;align-items:baseline;gap:6px;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.mk .pay-row-meta{color:var(--muted,#7a7069);font-size:13px}
+.mk .pay-row-body{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:end}
+.mk .order-side .pay-row-body{grid-template-columns:1fr}
+.mk .pay-transfer-row.collapsed .pay-row-body{display:none}
+.mk .pay-transfer-row.collapsed{padding:10px 12px}
+@media(max-width:760px){.mk .pay-row-body{grid-template-columns:1fr}}
