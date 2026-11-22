@@ -395,6 +395,7 @@ export async function availability(pool, restaurantId, { serviceId, date, checkO
     return { kind: 'night', service, nights: nightsBetween(date, checkOut), rooms_left: left, room_id: room, total_minor: service.price_minor * nightsBetween(date, checkOut) };
   }
   if (!isDate(date)) return { error: 'Choose a date' };
+  if (date < now.slice(0, 10)) return { error: 'Choose a date from today' };
   const busy = await busyBetween(pool, restaurantId, date + ' 00:00', addDays(date, 1) + ' 00:00');
   const resourceHours = {};
   let useService = service;
@@ -572,10 +573,11 @@ export async function toggleDiscount(pool, restaurantId, id, active) {
 export async function bookingReport(pool, restaurantId, days = 30) {
   await ensureBookingTables(pool);
   const n = int(days, 1, 366, 30);
-  const since = "start_at>=CURDATE()-INTERVAL " + n + " DAY AND start_at<CURDATE()+INTERVAL 1 DAY";
+  // Bookings made in the period (also those for future dates), counted when they were received.
+  const since = "created_at>=CURDATE()-INTERVAL " + n + " DAY";
   const [[t]] = await pool.execute("SELECT COUNT(*) total, SUM(status='completed') done, SUM(status='cancelled') cancelled, SUM(status='no_show') no_show, SUM(CASE WHEN status='completed' THEN price_minor ELSE 0 END) revenue FROM bookings WHERE restaurant_id=? AND " + since, [restaurantId]);
   const [[p]] = await pool.execute("SELECT COALESCE(SUM(CASE WHEN kind='payment' THEN amount_minor ELSE 0 END),0) paid, COALESCE(SUM(CASE WHEN kind='refund' THEN amount_minor ELSE 0 END),0) refunded FROM booking_payments WHERE restaurant_id=? AND status='confirmed' AND created_at>=CURDATE()-INTERVAL " + n + " DAY", [restaurantId]);
-  const [services] = await pool.execute("SELECT COALESCE(s.name,'—') name, COUNT(*) n, SUM(CASE WHEN b.status='completed' THEN b.price_minor ELSE 0 END) revenue FROM bookings b LEFT JOIN booking_services s ON s.id=b.service_id AND s.restaurant_id=b.restaurant_id WHERE b.restaurant_id=? AND " + since.replace(/start_at/g, 'b.start_at') + " GROUP BY s.name ORDER BY n DESC LIMIT 8", [restaurantId]);
+  const [services] = await pool.execute("SELECT COALESCE(s.name,'—') name, COUNT(*) n, SUM(CASE WHEN b.status='completed' THEN b.price_minor ELSE 0 END) revenue FROM bookings b LEFT JOIN booking_services s ON s.id=b.service_id AND s.restaurant_id=b.restaurant_id WHERE b.restaurant_id=? AND " + since.replace(/created_at/g, 'b.created_at') + " GROUP BY s.name ORDER BY n DESC LIMIT 8", [restaurantId]);
   const [sources] = await pool.execute("SELECT source, COUNT(*) n FROM bookings WHERE restaurant_id=? AND " + since + " GROUP BY source", [restaurantId]);
   const [weekdays] = await pool.execute("SELECT DAYOFWEEK(start_at) d, COUNT(*) n FROM bookings WHERE restaurant_id=? AND " + since + " AND status NOT IN ('cancelled') GROUP BY DAYOFWEEK(start_at)", [restaurantId]);
   const total = Number(t.total || 0);
