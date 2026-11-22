@@ -1,6 +1,7 @@
 import express from 'express';
 import crypto from 'node:crypto';
 import {createVoiceOrderHandler} from './voice-tools.js';
+import {VOICE_BOOKING_TOOLS,runVoiceBookingTool} from './voice-bookings.js';
 
 // Adapter for Vapi-style tool-calls payloads. Configure a private server URL
 // and verify the provider's current security options before production.
@@ -37,6 +38,14 @@ export function vapiToolAdapterRouter(pool){
      Promise.resolve(createVoiceOrderHandler(pool)({params:{assistantId},body:payload},mockRes)).catch(()=>resolve({status:503,body:{error:'Order unavailable'}}));
     });
     results.push({toolCallId:id,result:response.body});
+    continue;
+   }
+   if(VOICE_BOOKING_TOOLS.includes(name)){
+    let args=call?.function?.arguments;
+    if(typeof args==='string'){try{args=JSON.parse(args)}catch{args={}}}
+    if(!args||typeof args!=='object'||Array.isArray(args))args={};
+    try{results.push({toolCallId:id,result:await runVoiceBookingTool(pool,{assistantId,name,args,message})})}
+    catch{results.push({toolCallId:id,result:{error:'Booking unavailable'}})}
     continue;
    }
    if(name!=='get_menu'){results.push({toolCallId:id,result:{error:'Unsupported tool'}});continue}

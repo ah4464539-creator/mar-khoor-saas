@@ -1,5 +1,6 @@
 // Business types and bookings (clinics, salons, hotels; restaurants can take table bookings too).
 // Additive tables only (CREATE TABLE IF NOT EXISTS); existing tables are never changed. No express import.
+import { pushToRestaurant } from './web-push.js';
 // Times are stored as the business's local wall-clock time ('YYYY-MM-DD HH:MM:00') in its own time zone.
 
 export const BUSINESS_TYPES = {
@@ -320,4 +321,10 @@ export async function setBookingStatus(pool, restaurantId, id, status) {
   await ensureBookingTables(pool);
   const [r] = await pool.execute('UPDATE bookings SET status=? WHERE id=? AND restaurant_id=?', [status, id, restaurantId]);
   return r.affectedRows > 0;
+}
+
+/** Push alert to the owner's devices for a new booking. Never throws. */
+export async function notifyNewBooking(pool, restaurantId, booking, source) {
+  const when = String(booking.start_at || '').replace(' ', ' at ');
+  return pushToRestaurant(pool, restaurantId, { title: '📅 New booking #' + booking.id, body: [booking.service, when, source].filter(Boolean).join(' · '), url: '/restaurant.html#bookings', tag: 'booking-' + booking.id }).catch(() => ({ sent: 0 }));
 }
