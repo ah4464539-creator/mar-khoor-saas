@@ -19,3 +19,9 @@ test('order cards show items, source, contact links and map', () => {
   assert.match(api, /const withDetails=async orders=>/);
   assert.match(api, /JOIN orders o ON o\.id=i\.order_id AND o\.restaurant_id=\?/);
 });
+
+test('order cards are compact (3 lines) and open on tap', () => {
+  const js = readFileSync('public/restaurant.js', 'utf8');
+  for (const bit of ["'oc-top'", "'oc-mid'", "'oc-bot'", "'order-details'", 'ownerOpenOrders', "aria-expanded"]) assert.ok(js.includes(bit), bit);
+  assert.match(readFileSync('public/owner.css', 'utf8'), /\.order-card\.open \.order-details\{display:grid\}/);
+});

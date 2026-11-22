@@ -551,3 +551,30 @@ body.mk{margin:0}
 .owner-app .order-toolbar>.search,.owner-app .order-toolbar>.order-filter{align-self:center;flex:0 1 280px}
 .owner-app .order-toolbar>.order-filter{flex:0 0 auto}
 @media(max-width:720px){.owner-app .order-toolbar>.search{flex:1 1 100%}.owner-app .sum-chip{flex:1 1 calc(50% - 10px);min-width:0}}
+
+/* Compact order cards (3 lines; tap to open) */
+.owner-app .order-card.compact{gap:6px;padding:10px 12px;border-radius:14px}
+.owner-app .order-column{gap:8px}
+.owner-app .oc-top{display:flex;align-items:center;gap:8px;min-width:0;cursor:pointer}
+.owner-app .oc-id{font:800 15px var(--display);flex:none}
+.owner-app .oc-src{flex:none;font-size:13px;line-height:1;padding:3px 5px;border-radius:7px;background:var(--sunk)}
+.owner-app .oc-src.source-whatsapp{background:#e3f6ea}.owner-app .oc-src.source-call{background:#e9eefb}
+.owner-app .oc-name{flex:1;min-width:0;font-weight:650;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.owner-app .oc-time{flex:none;font-size:12px;color:var(--faint)}
+.owner-app .oc-mid{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.owner-app .oc-bot{display:flex;align-items:center;gap:6px;min-width:0}
+.owner-app .oc-total{font:800 15px var(--display);flex:none}
+.owner-app .oc-pay{font-size:11px;padding:3px 7px;max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.owner-app .oc-pay.needs-check{background:#fde7d3;color:#8a3b06;font-weight:800}
+.owner-app .oc-flag{font-size:13px}
+.owner-app .oc-space{flex:1}
+.owner-app .oc-bot .oc-main{min-height:32px;padding:0 12px;flex:none}
+.owner-app .oc-toggle{flex:none;width:32px;height:32px;border-radius:9px;border:1px solid var(--line);background:var(--surface);cursor:pointer;display:grid;place-items:center}
+.owner-app .oc-toggle::before{content:"";width:8px;height:8px;border-right:2px solid var(--ink-2);border-bottom:2px solid var(--ink-2);transform:translateY(-2px) rotate(45deg);transition:transform .15s}
+.owner-app .order-card.open .oc-toggle::before{transform:translateY(2px) rotate(-135deg)}
+.owner-app .order-details{display:none;gap:10px;padding-top:8px;margin-top:2px;border-top:1px dashed var(--line)}
+.owner-app .order-card.open .order-details{display:grid}
+.owner-app .order-card.open .oc-mid{white-space:normal}
+.owner-app .order-card.needs-check{box-shadow:0 0 0 2px #f6c99e}
+.owner-app .order-details .order-items{border-top:0;padding-top:0}
+.owner-app .order-details .actions .btn{min-height:36px}

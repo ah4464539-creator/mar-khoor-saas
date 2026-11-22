@@ -267,6 +267,7 @@ function ownerAgo(date) {
  if (mins < 24 * 60) return Math.round(mins / 60) + ' h ago';
  return date.toLocaleDateString(undefined, {month:'short', day:'numeric'});
 }
+const ownerOpenOrders = new Set();
 const ORDER_SOURCES = {whatsapp:['💬','WhatsApp'], call:['📞','AI call'], website:['🌐','Website']};
 function orderCard(order, labels, methods, payments) {
  const card = ownerText('article', '', 'order-card');
@@ -354,15 +355,36 @@ function orderCard(order, labels, methods, payments) {
   const pay = ownerText('span', methods[order.payment_method] + ' · ' + (payments[order.payment_status] || 'Unpaid'), 'tag ' + (order.payment_status === 'paid' ? 'tag-ok' : 'tag-warn'));
   money.append(pay);
  }
- card.append(head, meta);
- if (itemsBox) card.append(itemsBox);
- card.append(money);
- if (payBox) card.append(payBox);
+ // Compact card: three lines at a glance; tap to open the full details.
+ card.classList.add('compact');
+ const details = ownerText('div', '', 'order-details');
+ details.id = 'order-details-' + order.id;
+ details.append(meta);
+ if (itemsBox) details.append(itemsBox);
+ if (payBox) details.append(payBox);
+ const top = ownerText('div', '', 'oc-top');
+ top.append(ownerText('strong', '#' + order.id, 'oc-id'), ownerText('span', icon, 'oc-src source-' + (order.source || 'website')), ownerText('span', order.customer_name || 'Customer', 'oc-name'));
+ const ago = Number.isNaN(date.valueOf()) ? '' : ownerAgo(date).replace(' min ago', 'm').replace(' h ago', 'h').replace('just now', 'now');
+ const t = ownerText('time', ago, 'oc-time'); if (!Number.isNaN(date.valueOf())) { t.dateTime = date.toISOString(); t.title = date.toLocaleString(); }
+ top.append(t);
+ top.querySelector('.oc-src').title = sourceLabel;
+ const howText = order.order_type === 'delivery' ? '🛵 ' + (order.delivery_address || 'Delivery') : order.order_type === 'pickup' ? '🛍️ Pickup' : '';
+ const itemsText = (order.items || []).map(i => i.quantity + '× ' + i.name).join(', ');
+ const midLine = ownerText('div', [howText, itemsText].filter(Boolean).join(' · ') || ' ', 'oc-mid');
+ midLine.title = midLine.textContent;
+ const bottom = ownerText('div', '', 'oc-bot');
+ bottom.append(ownerText('strong', ownerMoney(order.total_minor), 'oc-total'));
+ const payTag = money.querySelector('.tag');
+ if (payTag) { const short = payTag.cloneNode(true); short.classList.add('oc-pay'); if (order.payment_state === 'submitted') short.classList.add('needs-check'); bottom.append(short); }
+ if (order.delivery_instructions) bottom.append(ownerText('span', '📝', 'oc-flag'));
+ bottom.append(ownerText('span', '', 'oc-space'));
  const actions = ownerText('div', '', 'actions');
- for (const next of orderTransitions[order.status] ?? []) {
+ const transitions = orderTransitions[order.status] ?? [];
+ for (const next of transitions) {
   const button = ownerText('button', labels[next], 'btn btn-sm ' + (next === 'cancelled' ? 'btn-ghost' : next === 'accepted' ? 'btn-primary' : 'btn-dark'));
   button.type = 'button';
-  button.addEventListener('click', async () => {
+  button.addEventListener('click', async event => {
+   event.stopPropagation();
    const buttons = [...card.querySelectorAll('button')];
    buttons.forEach(control => control.disabled = true);
    try {
@@ -377,8 +399,20 @@ function orderCard(order, labels, methods, payments) {
     buttons.forEach(control => control.disabled = false);
    }
   });
-  actions.append(button);
+  // The main next step stays on the card; cancel and the rest live in the details.
+  if (next !== 'cancelled' && !bottom.querySelector('.oc-main')) { button.classList.add('oc-main'); bottom.append(button); }
+  else actions.append(button);
  }
+ const toggle = ownerText('button', '', 'oc-toggle'); toggle.type = 'button';
+ toggle.setAttribute('aria-controls', details.id);
+ const setOpen = open => { card.classList.toggle('open', open); toggle.setAttribute('aria-expanded', String(open)); toggle.setAttribute('aria-label', (open ? 'Hide' : 'Show') + ' details of order #' + order.id); if (open) ownerOpenOrders.add(order.id); else ownerOpenOrders.delete(order.id); };
+ toggle.addEventListener('click', event => { event.stopPropagation(); setOpen(!card.classList.contains('open')); });
+ top.addEventListener('click', () => setOpen(!card.classList.contains('open')));
+ midLine.addEventListener('click', () => setOpen(!card.classList.contains('open')));
+ bottom.append(toggle);
+ card.replaceChildren(top, midLine, bottom, details);
+ setOpen(ownerOpenOrders.has(order.id));
+ if (order.payment_state === 'submitted') card.classList.add('needs-check');
  if (['pending','accepted','preparing'].includes(order.status)) {
   const eta = ownerText('div', '', 'owner-order-estimate');
   const input = document.createElement('input');
@@ -402,9 +436,9 @@ function orderCard(order, labels, methods, payments) {
   save.addEventListener('click',()=>{if(!input.reportValidity()||!input.value)return;updateEstimate(Number(input.value));});
   clear.addEventListener('click',()=>updateEstimate(null));
   eta.append(ownerText('span','Ready in'), input, ownerText('span','min'), save, clear);
-  card.append(eta);
+  details.append(eta);
  }
- if (actions.childNodes.length) card.append(actions);
+ if (actions.childNodes.length) details.append(actions);
  return card;
 }
 
