@@ -67,10 +67,15 @@ const T = {
     status: { accepted: id => `👍 تم قبول الطلب #${id}.`, preparing: id => `👨‍🍳 جاري تحضير الطلب #${id}.`, ready: (id, t) => t === 'delivery' ? `🛵 الطلب #${id} جاهز وسيصلك قريباً.` : `🛍️ الطلب #${id} جاهز للاستلام.`, completed: id => `🎉 اكتمل الطلب #${id}. شكراً لك!`, cancelled: id => `❌ عذراً، ألغى المطعم الطلب #${id}.` } },
 };
 export const lang = value => (LANGS.includes(value) ? value : 'en');
+/** Price as customers say it: Rs 1,600 / ₹1,600 / $16.50 / AED 1,600 (symbol, not the ISO code, where one exists). */
 export function money(minor, currency) {
-  const code = /^[A-Z]{3}$/.test(String(currency || '')) ? currency + ' ' : '';
   const amount = Number(minor) / 100;
-  return code + (Number.isInteger(amount) ? amount.toLocaleString('en') : amount.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+  const digits = Number.isInteger(amount) ? 0 : 2;
+  if (/^[A-Z]{3}$/.test(String(currency || ''))) {
+    try { return new Intl.NumberFormat('en', { style: 'currency', currency, currencyDisplay: 'narrowSymbol', minimumFractionDigits: digits, maximumFractionDigits: digits }).format(amount).replace(/\u00a0/g, ' '); } catch {}
+    return currency + ' ' + amount.toLocaleString('en', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  }
+  return amount.toLocaleString('en', { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
 
 /** OpenAI tool the WhatsApp AI calls once the order details are complete. */
