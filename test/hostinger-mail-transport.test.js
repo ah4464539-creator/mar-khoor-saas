@@ -54,8 +54,8 @@ test('Hostinger Mail API rejects failed response without revealing the token', a
   }, { to: 'qa@example.org', subject: 'test', text: 'test' }), /ID not configured/);
 });
 
-test('Mailer uses Hostinger token ahead of stale SMTP password and validates recipients', () => {
+test('Mailer uses Hostinger token ahead of stale SMTP password and validates recipients', async () => {
   const sender = mailerFromEnv(env);
   assert.equal(typeof sender, 'function');
-  assert.throws(() => sender({ to: 'invalid\\r\\nBcc:other@example.com', subject: 'a', text: 'b', html: 'c' }), /Invalid recipient/);
+  await assert.rejects(sender({ to: 'invalid\\r\\nBcc:other@example.com', subject: 'a', text: 'b', html: 'c' }), /Invalid recipient/);
 });
