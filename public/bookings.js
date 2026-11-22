@@ -481,6 +481,55 @@
     try { draw((await ctx.api(base() + '/bookings/' + b.id + '/payments')).payments); } catch (error) { box.replaceChildren(el('p', 'small', error.message)); }
   }
   const loadBoardOrOverview = () => { if (location.hash === '#bookings') loadBoard(); else loadOverview(); };
+  async function loadReport() {
+    if (!ctx || !$('rp-kpis')) return;
+    try {
+      const { report: r } = await ctx.api(base() + '/report?days=' + $('rp-days').value);
+      const chip = (n, label, cls) => { const c = el('div', 'bk-chip ' + (cls || '')); c.append(el('b', null, String(n)), el('span', null, label)); return c; };
+      $('rp-kpis').replaceChildren(chip(r.total, 'Bookings'), chip(r.done, 'Completed'), chip(r.cancelled, 'Cancelled'), chip(r.no_show_rate + '%', 'No-show rate', r.no_show_rate > 15 ? 'new' : ''), chip(money(r.revenue_minor), 'Revenue (completed)'), chip(money(r.paid_minor - r.refunded_minor), 'Payments received'));
+      const bars = (box, rows) => {
+        const max = Math.max(1, ...rows.map(x => x[1]));
+        box.replaceChildren(...(rows.length && rows.some(x => x[1]) ? rows.map(([label, n, extra]) => { const row = el('div', 'rp-bar'); const track = el('div', 'rp-track'); const fill = el('div', 'rp-fill'); fill.style.width = Math.round(n * 100 / max) + '%'; track.append(fill); row.append(el('span', null, label), track, el('span', 'muted', String(n) + (extra ? ' · ' + extra : ''))); return row; }) : [el('p', 'small muted', 'No bookings in this period.')]));
+      };
+      bars($('rp-services'), r.services.map(x => [x.name, x.count, x.revenue_minor ? money(x.revenue_minor) : '']));
+      bars($('rp-days-chart'), ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d, i) => [d, r.weekdays[i]]));
+      bars($('rp-sources'), Object.entries({ website: 'Website', whatsapp: 'WhatsApp', call: 'AI calls', owner: 'Added by you' }).map(([k, label]) => [label, r.sources[k] || 0]));
+    } catch (error) { $('rp-kpis').replaceChildren(el('p', 'muted', error.message)); }
+  }
+  async function loadDiscounts() {
+    if (!ctx || !$('dc-list')) return;
+    try { drawDiscounts((await ctx.api(base() + '/discounts')).discounts); } catch {}
+  }
+  function drawDiscounts(list) {
+    $('dc-list').replaceChildren(...list.map(d => {
+      const row = el('div', 'cu-row');
+      const t = el('button', 'btn btn-sm btn-ghost', d.active ? 'Turn off' : 'Turn on'); t.type = 'button';
+      t.addEventListener('click', async () => { t.disabled = true; try { drawDiscounts((await ctx.api(base() + '/discounts/' + d.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ active: !d.active }) })).discounts); } catch { t.disabled = false; } });
+      row.append(el('b', null, d.code), el('span', null, d.percent + '% off'), el('span', 'muted', d.valid_to ? 'until ' + d.valid_to : 'no end date'), el('span', 'muted', d.uses + ' used'), el('span', 'tag' + (d.active ? ' tag-ok' : ''), d.active ? 'On' : 'Off'), t);
+      return row;
+    }));
+  }
+  async function addDiscount() {
+    const note = $('dc-note'); note.textContent = 'Saving…';
+    try { drawDiscounts((await ctx.api(base() + '/discounts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: $('dc-code').value, percent: Number($('dc-percent').value), valid_to: $('dc-to').value }) })).discounts); note.textContent = 'Added.'; $('dc-code').value = ''; $('dc-percent').value = ''; }
+    catch (error) { note.textContent = error.message; }
+  }
+  async function loadTeam() {
+    if (!ctx || !$('tm-list') || document.body.dataset.role === 'staff') return;
+    try {
+      const { team } = await ctx.api(base() + '/team');
+      $('tm-list').replaceChildren(...team.map(m => {
+        const row = el('div', 'cu-row'); row.append(el('b', null, m.email), el('span', 'tag' + (m.role === 'admin' ? ' tag-ok' : ''), m.role === 'admin' ? 'Owner' : 'Staff'));
+        if (m.role === 'staff') { const x = el('button', 'btn btn-sm btn-ghost', 'Remove'); x.type = 'button'; x.addEventListener('click', async () => { if (!window.confirm('Remove ' + m.email + ' from your team?')) return; x.disabled = true; try { await ctx.api(base() + '/team/' + m.id, { method: 'DELETE' }); loadTeam(); } catch { x.disabled = false; } }); row.append(x); }
+        return row;
+      }));
+    } catch {}
+  }
+  async function addStaff() {
+    const note = $('tm-note'); note.textContent = 'Adding…';
+    try { const r = await ctx.api(base() + '/team', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: $('tm-email').value, password: $('tm-pass').value }) }); note.textContent = r.existing ? 'Added. They sign in with their existing password.' : 'Added. Share the email and password with them privately.'; $('tm-email').value = ''; $('tm-pass').value = ''; loadTeam(); }
+    catch (error) { note.textContent = error.message; }
+  }
   async function loadCustomers() {
     if (!ctx || !$('cu-rows')) return;
     const q = $('cu-search').value.trim();
@@ -516,6 +565,8 @@
       if (location.hash === '#bookings') loadBoard();
       if (location.hash === '#customers') loadCustomers();
       if (location.hash === '#housekeeping') renderHousekeeping();
+      if (location.hash === '#reports') loadReport();
+      if (document.body.dataset.role !== 'staff') { loadDiscounts(); loadTeam(); }
       if (location.hash === '#whatsapp-inbox-view') loadHandovers();
       if ($('bk-transfer')) $('bk-transfer').value = result.transfer_phone || '';
       if (!location.hash || location.hash === '#owner-overview') loadOverview();
@@ -541,6 +592,9 @@
     $('cu-detail-close')?.addEventListener('click', () => { $('cu-detail').hidden = true; });
     $('bk-i-delete')?.addEventListener('click', deleteItem);
     $('bk-transfer-save')?.addEventListener('click', saveTransfer);
+    $('rp-days')?.addEventListener('change', loadReport);
+    $('dc-add')?.addEventListener('click', addDiscount);
+    $('tm-add')?.addEventListener('click', addStaff);
     $('bk-i-own-hours')?.addEventListener('change', e => { $('bk-i-hours').hidden = !e.target.checked; });
     $('bk-f-res')?.addEventListener('change', checkAvailability);
     document.querySelector('[data-bk-new-link]')?.addEventListener('click', () => setTimeout(openNew, 50));
@@ -553,7 +607,7 @@
     $('bk-f-cancel')?.addEventListener('click', () => $('bk-dialog').close());
     $('bk-f-service')?.addEventListener('change', fillResources);
     for (const id of ['bk-f-service', 'bk-f-date', 'bk-f-out']) $(id)?.addEventListener('change', () => { if (id === 'bk-f-date' && night() && $('bk-f-out').value <= $('bk-f-date').value) $('bk-f-out').value = addDays($('bk-f-date').value, 1); checkAvailability(); });
-    window.addEventListener('hashchange', () => { if (!ctx) return; applyLabels(); if (location.hash === '#housekeeping') renderHousekeeping(); if (location.hash === '#whatsapp-inbox-view') loadHandovers(); if (location.hash === '#customers') loadCustomers(); if (location.hash === '#bookings') loadBoard(); if (!location.hash || location.hash === '#owner-overview') loadOverview(); });
+    window.addEventListener('hashchange', () => { if (!ctx) return; applyLabels(); if (location.hash === '#housekeeping') renderHousekeeping(); if (location.hash === '#reports') loadReport(); if (location.hash === '#whatsapp-inbox-view') loadHandovers(); if (location.hash === '#customers') loadCustomers(); if (location.hash === '#bookings') loadBoard(); if (!location.hash || location.hash === '#owner-overview') loadOverview(); });
     $('bk-type-change')?.addEventListener('click', () => { const g = $('bk-type-grid'); g.hidden = !g.hidden; $('bk-type-change').textContent = g.hidden ? 'Wrong type? Change' : 'Keep this type'; });
     setInterval(() => { if (ctx && location.hash === '#bookings' && !document.hidden) loadBoard(); }, 60000);
   }

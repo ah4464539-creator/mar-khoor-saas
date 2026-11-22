@@ -1,3 +1,4 @@
+import { getProfile, listServices, BUSINESS_TYPES } from './bookings.js';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { createVoiceCalls, minutesLeft, maxMinutes, callIdFrom } from './voice-limits.js';
 import { URDU_SPEECH_RULES } from './speech-rules.js';
@@ -37,6 +38,19 @@ async function restaurantAiRequest(send) {
  return response;
 }
 
+const BOOK_LABEL = { restaurant: 'Reserve a table', clinic: 'Book an appointment', salon: 'Book an appointment', hotel: 'Book a room' };
+const BOOK_TITLE = { restaurant: 'Reservations', clinic: 'Our services', salon: 'Our services', hotel: 'Rooms' };
+/** Booking info for the public website (null for restaurants without online booking). Never throws. */
+async function siteBooking(pool, restaurant) {
+  try {
+    const profile = await getProfile(pool, restaurant.id);
+    if (!profile) return null;
+    const services = profile.bookings_enabled ? await listServices(pool, restaurant.id, { activeOnly: true }) : [];
+    if (profile.category === 'restaurant' && !services.length) return null;
+    const night = profile.type.booking === 'night';
+    return { category: profile.category, label: BOOK_LABEL[profile.category], title: BOOK_TITLE[profile.category], services: services.map(sv => ({ name: sv.name, description: sv.description, category: sv.category, price_minor: sv.price_minor, duration_min: sv.duration_min, night })) };
+  } catch { return null; }
+}
 export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch } = {}) {
  const voiceCalls = createVoiceCalls({ pool, fetcher: voiceFetch });
  const router = express.Router();
@@ -356,7 +370,7 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
       assistantControls(req.params.slug, site.config.assistantRecording === true) +
       '</div></div></details><script src="/restaurant-assistant-panel.js" defer></script>' + (voiceEnabled() ? voiceScript : '')
     : '';
-   res.type('html').send(renderSitePage(site, { assistant, links: await siteLinks(pool, site.restaurant) }));
+   res.type('html').send(renderSitePage(site, { assistant, links: await siteLinks(pool, site.restaurant), booking: await siteBooking(pool, site.restaurant) }));
    trackSiteEvent(pool, site.restaurant.id, 'page_views', req);
   } catch { res.status(503).type('html').send(notFound); }
  });
@@ -379,7 +393,7 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
    const page = await build(site);
    if (!page) return res.status(404).type('html').send(notFound);
    res.set('Cache-Control', 'public, max-age=60');
-   res.type('html').send(renderSitePage(site, { links: await siteLinks(pool, site.restaurant), page }));
+   res.type('html').send(renderSitePage(site, { links: await siteLinks(pool, site.restaurant), page, booking: await siteBooking(pool, site.restaurant) }));
    trackSiteEvent(pool, site.restaurant.id, 'page_views', req);
   } catch { res.status(503).type('html').send(notFound); }
  };
@@ -457,7 +471,7 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
    const [items] = await pool.execute('SELECT id,name,description,price_minor,category,image_url FROM menu_items WHERE restaurant_id=? AND active=1 ORDER BY id LIMIT 100', [req.restaurant.id]);
    res.set('Content-Security-Policy', SITE_CSP);
    res.set('Cache-Control', 'no-store, private');
-   res.type('html').send(renderSitePage({ restaurant:req.restaurant, config:req.body.config, items }));
+   res.type('html').send(renderSitePage({ restaurant:req.restaurant, config:req.body.config, items }, { booking: await siteBooking(pool, req.restaurant) }));
   } catch { res.status(503).json({ error: 'Website preview unavailable' }); }
  });
  router.post('/api/restaurants/:restaurantId/site/generate', requireAuth, restaurantAdmin, async (req, res) => {
@@ -465,7 +479,9 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
    const current = await loadSite(pool, req.restaurant);
    const description = typeof req.body?.description === 'string' ? req.body.description : current.description;
    const [menuItems] = await pool.execute('SELECT name FROM menu_items WHERE restaurant_id=? AND active=1 ORDER BY id LIMIT 30', [req.restaurant.id]);
-   const generated = await generateSiteConfig({ restaurant: req.restaurant, menuItems, description, current: current.config });
+   let businessLabel = 'restaurant';
+   try { const prof = await getProfile(pool, req.restaurant.id); businessLabel = BUSINESS_TYPES[prof?.category]?.label.toLowerCase() || 'restaurant'; } catch {}
+   const generated = await generateSiteConfig({ restaurant: { ...req.restaurant, business_label: businessLabel }, menuItems, description, current: current.config });
    // AI text is a draft: never change a published website until its owner reviews and saves.
    res.set('Cache-Control', 'no-store, private');
    res.json({ config: generated.config, description, slug: req.restaurant.slug, source: generated.source, published: current.published });

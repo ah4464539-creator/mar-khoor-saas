@@ -507,7 +507,10 @@ async function openRestaurant(restaurant) {
  document.querySelector('#owner-switch-name').textContent = restaurant.name;
  document.querySelector('#owner-restaurant-switch').hidden = false;
  document.querySelector('#management').hidden = false;
- ownerNavigation.hidden = restaurant.role !== 'admin';
+ ownerNavigation.hidden = !['admin', 'staff'].includes(restaurant.role);
+ document.body.dataset.role = restaurant.role || 'admin';
+ // Staff start on their work page, not the owner's dashboard.
+ if (restaurant.role === 'staff' && (!location.hash || location.hash === '#owner-overview')) history.replaceState(null, '', location.pathname + location.search + ((restaurant.category || 'restaurant') === 'restaurant' ? '#order-desk' : '#bookings'));
  updateWorkspaceView();
  loadSetup(restaurant);
  try { await refresh(); } catch (error) { status.textContent = error.message; }

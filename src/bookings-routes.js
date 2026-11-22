@@ -1,11 +1,12 @@
 // HTTP routes for business type and bookings: owner management + public booking.
 import express from 'express';
-import { requireAuth } from './auth.js';
+import { requireAuth, hashPassword } from './auth.js';
 import { rateLimit, audit } from './security.js';
 import {
   BUSINESS_TYPES, getProfile, saveProfile, listServices, listResources, saveService, saveResource,
   cleanService, cleanResource, availability, createBooking, listBookings, setBookingStatus, isDate, notifyNewBooking,
   rescheduleBooking, deleteService, deleteResource, setRoomStatus, listCustomers, customerBookings, bookingEvents, toCsv,
+  listDiscounts, saveDiscount, toggleDiscount, bookingReport,
 } from './bookings.js';
 import { notifyBookingStatus } from './booking-assistant.js';
 import { syncCallBookingTools } from './voice-bookings.js';
@@ -15,6 +16,14 @@ import { tokenForNumber } from './whatsapp-signup-core.js';
 
 const idParam = v => { const n = Number(v); return Number.isSafeInteger(n) && n > 0 ? n : 0; };
 
+const STAFF_PATHS = [/^\/?$/, /^\/bookings(\.csv)?$/, /^\/bookings\/\d+(\/(reschedule|history|payments(\/\d+)?))?$/, /^\/availability$/, /^\/customers(\.csv|\/[^/]+)?$/, /^\/handovers(\/[^/]+)?$/, /^\/resources\/\d+\/room-status$/];
+function staffAllowed(req) {
+  const path = req.path.replace(/^\/api\/restaurants\/\d+\/business/, '');
+  if (!STAFF_PATHS.some(rx => rx.test(path))) return false;
+  if (req.method === 'POST' && /\/payments$/.test(path) && req.body?.kind === 'refund') return false; // refunds: owner only
+  return true;
+}
+
 export function bookingsRouter(pool) {
   const router = express.Router();
   const access = async (req, res, next) => {
@@ -22,8 +31,11 @@ export function bookingsRouter(pool) {
     if (!id) return res.status(400).json({ error: 'Invalid business' });
     try {
       if (req.user.platformRole !== 'super_admin') {
-        const [rows] = await pool.execute("SELECT 1 FROM restaurant_members WHERE restaurant_id=? AND user_id=? AND role='admin' LIMIT 1", [id, req.user.id]);
+        const [rows] = await pool.execute('SELECT role FROM restaurant_members WHERE restaurant_id=? AND user_id=? LIMIT 1', [id, req.user.id]);
         if (!rows.length) return res.status(403).json({ error: 'Forbidden' });
+        // Staff work the front desk: bookings, customers, payments in, housekeeping. Settings stay admin-only.
+        if (rows[0].role !== 'admin' && !staffAllowed(req)) return res.status(403).json({ error: 'Only the owner can change this' });
+        req.memberRole = rows[0].role;
       }
       req.restaurantId = id; next();
     } catch { res.status(503).json({ error: 'Database unavailable' }); }
@@ -98,6 +110,49 @@ export function bookingsRouter(pool) {
     } catch (e) { fail(res, e); }
   });
 
+  router.get(base + '/report', async (req, res) => {
+    try { res.json({ report: await bookingReport(pool, req.restaurantId, Number(req.query.days) || 30) }); } catch (e) { fail(res, e); }
+  });
+  router.get(base + '/discounts', async (req, res) => {
+    try { res.json({ discounts: await listDiscounts(pool, req.restaurantId) }); } catch (e) { fail(res, e); }
+  });
+  router.post(base + '/discounts', async (req, res) => {
+    try { const r = await saveDiscount(pool, req.restaurantId, req.body || {}); if (r.error) return res.status(400).json(r); res.status(201).json(r); } catch (e) { fail(res, e); }
+  });
+  router.patch(base + '/discounts/:id', async (req, res) => {
+    try { res.json(await toggleDiscount(pool, req.restaurantId, idParam(req.params.id), req.body?.active === true)); } catch (e) { fail(res, e); }
+  });
+  router.get(base + '/team', async (req, res) => {
+    try {
+      const [rows] = await pool.execute("SELECT u.id,u.email,m.role FROM restaurant_members m JOIN users u ON u.id=m.user_id WHERE m.restaurant_id=? ORDER BY m.role, u.id", [req.restaurantId]);
+      res.json({ team: rows.map(r => ({ id: Number(r.id), email: r.email, role: r.role })) });
+    } catch (e) { fail(res, e); }
+  });
+  router.post(base + '/team', async (req, res) => {
+    const email = String(req.body?.email || '').trim().toLowerCase(), password = String(req.body?.password || '');
+    if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return res.status(400).json({ error: 'Enter a valid email' });
+    try {
+      const [[existing]] = await pool.execute('SELECT id FROM users WHERE email=? LIMIT 1', [email]);
+      let userId = existing?.id;
+      if (!userId) {
+        if (password.length < 12 || password.length > 1024) return res.status(400).json({ error: 'Give the new staff member a password of at least 12 characters' });
+        const [u] = await pool.execute('INSERT INTO users(email,password_hash) VALUES (?,?)', [email, await hashPassword(password)]);
+        userId = u.insertId;
+      }
+      const [[member]] = await pool.execute('SELECT role FROM restaurant_members WHERE restaurant_id=? AND user_id=?', [req.restaurantId, userId]);
+      if (member) return res.status(409).json({ error: 'This person is already on your team' });
+      await pool.execute("INSERT INTO restaurant_members(restaurant_id,user_id,role) VALUES (?,?,'staff')", [req.restaurantId, userId]);
+      await audit(pool, { actorUserId: req.user.id, restaurantId: req.restaurantId, action: 'team.add_staff' }).catch(() => {});
+      res.status(201).json({ ok: true, existing: Boolean(existing) });
+    } catch (e) { fail(res, e); }
+  });
+  router.delete(base + '/team/:userId', async (req, res) => {
+    try {
+      const [r] = await pool.execute("DELETE FROM restaurant_members WHERE restaurant_id=? AND user_id=? AND role='staff'", [req.restaurantId, idParam(req.params.userId)]);
+      if (r.affectedRows) await audit(pool, { actorUserId: req.user.id, restaurantId: req.restaurantId, action: 'team.remove_staff' }).catch(() => {});
+      res.json({ removed: r.affectedRows > 0 });
+    } catch (e) { fail(res, e); }
+  });
   router.put(base + '/contacts', async (req, res) => {
     try {
       const result = await setTransferPhone(pool, req.restaurantId, req.body?.transfer_phone);
@@ -220,7 +275,7 @@ export function bookingsRouter(pool) {
     try {
       const b = req.body || {};
       if (!isDate(b.date)) return res.status(400).json({ error: 'Choose a date' });
-      const result = await createBooking(pool, req.business.id, { service_id: b.service_id, date: b.date, time: b.time, check_out: b.check_out, resource_id: b.resource_id, customer_name: b.customer_name, customer_phone: b.customer_phone, guests: b.guests, note: b.note, source: 'website' });
+      const result = await createBooking(pool, req.business.id, { service_id: b.service_id, date: b.date, time: b.time, check_out: b.check_out, resource_id: b.resource_id, customer_name: b.customer_name, customer_phone: b.customer_phone, guests: b.guests, note: b.note, discount_code: b.discount_code, source: 'website' });
       if (result.error) return res.status(409).json({ error: result.error });
       notifyNewBooking(pool, req.business.id, result.booking, 'Website');
       const token = await bookingToken(pool, req.business.id, result.booking.id);

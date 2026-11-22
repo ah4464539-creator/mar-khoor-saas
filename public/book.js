@@ -85,7 +85,7 @@
     if (!night() && !picked) { status.textContent = 'Please pick a time.'; return; }
     $('book-submit').disabled = true; status.textContent = 'Booking…';
     try {
-      const { booking, token, deposit_minor: deposit, pay_options: payOptions } = await api('/bookings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ service_id: service.id, resource_id: $('book-res').value ? Number($('book-res').value) : null, date: $('book-date').value, time: picked, check_out: $('book-out').value, customer_name: $('book-cname').value, customer_phone: $('book-phone').value, guests: Number($('book-guests').value), note: $('book-note').value }) });
+      const { booking, token, deposit_minor: deposit, pay_options: payOptions } = await api('/bookings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ service_id: service.id, resource_id: $('book-res').value ? Number($('book-res').value) : null, date: $('book-date').value, time: picked, check_out: $('book-out').value, customer_name: $('book-cname').value, customer_phone: $('book-phone').value, guests: Number($('book-guests').value), note: $('book-note').value, discount_code: $('book-code').value }) });
       $('book-form').hidden = true; $('book-done').hidden = false;
       const when = night() ? booking.start_at.slice(0, 10) + ' to ' + booking.end_at.slice(0, 10) : booking.start_at.slice(0, 10) + ' at ' + booking.start_at.slice(11, 16);
       $('book-done-text').textContent = booking.service + ' · ' + when + ' · booking #' + booking.id;
