@@ -6,7 +6,7 @@ body.mk{margin:0}
 @media(max-width:820px){.mk .site-nav nav{display:none}}
 
 /* Auth-style pages (registration) */
-.mk .auth-chef{background:linear-gradient(160deg,#16120ff0 10%,#16120f99 60%,#16120fd9),url('/assets/chef.webp') center 25%/cover no-repeat}
+.mk .auth-chef{background:linear-gradient(160deg,#16120ff0 10%,#16120f99 60%,#16120fd9),url('/assets/approved-mountain.webp') center/cover no-repeat}
 .mk .auth-copy{display:grid;gap:16px;max-width:520px}
 .mk .auth-copy .eyebrow{color:#FFC48A}
 .mk .auth-points{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:10px 22px;color:#EFE6DD;font-size:14px}
@@ -89,7 +89,7 @@ body.mk{margin:0}
 .home-page .feature h3{font-size:19px}
 .home-page .feature-icon{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--ember-soft);color:var(--ember-text)}
 .home-page .how{display:flex;flex-wrap:wrap;gap:48px;align-items:center}
-.home-page .chef-art{flex:1 1 360px;min-height:460px;border-radius:28px;background:url('/assets/chef.webp') center 30%/cover no-repeat}
+.home-page .chef-art{flex:1 1 360px;min-height:460px;border-radius:28px;background:url('/assets/burger.webp') center/cover no-repeat}
 .home-page .how-steps{flex:1 1 460px;display:grid;gap:22px}
 .home-page .how-steps ol{list-style:none;margin:0;padding:0;display:grid;gap:22px}
 .home-page .how-steps li{display:flex;gap:18px}
