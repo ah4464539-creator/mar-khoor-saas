@@ -173,7 +173,9 @@ function syncOrderType() {
   document.querySelector('#pay-transfer').hidden = !transfer;
   if (transfer) {
     document.querySelector('#pay-title').textContent = option.account_title;
-    document.querySelector('#pay-number').textContent = option.account_number;
+    const num = document.querySelector('#pay-number');
+    if (option.type === 'link' && /^https:\/\//.test(option.account_number || '')) { const link = document.createElement('a'); link.href = option.account_number; link.target = '_blank'; link.rel = 'noopener noreferrer'; link.textContent = 'Pay online'; num.replaceChildren(link); }
+    else num.textContent = option.account_number;
     document.querySelector('#pay-instructions').textContent = option.instructions || '';
     document.querySelector('#pay-amount').textContent = document.querySelector('#cart-subtotal').textContent || 'the total';
   }

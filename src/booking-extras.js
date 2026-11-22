@@ -31,7 +31,7 @@ const digits = v => String(v || '').replace(/\D/g, '');
 const clean = (v, max) => String(v ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, max);
 
 // ---------- Payments ----------
-export const PAY_METHODS = ['cash', 'card', 'jazzcash', 'easypaisa', 'raast', 'bank', 'other'];
+export const PAY_METHODS = ['cash', 'card', 'bank', 'wallet', 'link', 'paypal', 'upi', 'jazzcash', 'easypaisa', 'raast', 'other'];
 export async function bookingPayments(pool, restaurantId, bookingId) {
   await ensureBookingTables(pool);
   const [rows] = await pool.execute('SELECT id,kind,amount_minor,method,reference,status,actor,created_at FROM booking_payments WHERE restaurant_id=? AND booking_id=? ORDER BY id', [restaurantId, bookingId]);

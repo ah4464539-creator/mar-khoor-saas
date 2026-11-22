@@ -5,8 +5,8 @@ import { SITE_TEMPLATES, TEMPLATE_INFO, sanitizeSiteConfig, renderSitePage, gene
 
 const restaurant = { id: 4, name: 'Urban Cafe', slug: 'urban-cafe', currency: 'PKR', locale: 'en' };
 
-test('11 templates, each with gallery info and its own CSS', () => {
-  assert.equal(Object.keys(SITE_TEMPLATES).length, 11);
+test('14 templates, each with gallery info and its own CSS', () => {
+  assert.equal(Object.keys(SITE_TEMPLATES).length, 14);
   for (const id of Object.keys(SITE_TEMPLATES)) {
     assert.ok(TEMPLATE_INFO[id]?.blurb && TEMPLATE_INFO[id].colors.length === 3, id);
     const html = renderSitePage({ restaurant, config: { template: id }, items: [] });

@@ -92,7 +92,7 @@ test('templates are allowlisted, existing sites stay classic and each preset has
  assert.equal(defaultSiteConfig(restaurant).template,'classic');
  assert.equal(sanitizeSiteConfig({template:'constructor'},restaurant).template,'classic');
  assert.equal(sanitizeSiteConfig({template:'" onload="alert(1)'},restaurant).template,'classic');
- assert.deepEqual(Object.keys(SITE_TEMPLATES),['classic','bistro','minimal','midnight','summit','street','cafe','desi','bakery','fresh','noir']);
+ assert.deepEqual(Object.keys(SITE_TEMPLATES),['classic','bistro','minimal','midnight','summit','street','cafe','desi','bakery','fresh','noir','care','resort','blush']);
  for(const id of Object.keys(SITE_TEMPLATES)){
   const config=sanitizeSiteConfig({template:id,headline:'Hello'},restaurant);
   assert.equal(config.template,id);

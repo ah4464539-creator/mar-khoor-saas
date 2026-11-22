@@ -39,7 +39,7 @@ test('site preview is read-only, scoped to the authorized restaurant and never p
   assert.match(html,/&lt;script&gt;/);
   const templates=await fetch(base+'/api/restaurants/9/site/templates',{headers:{Authorization:'Bearer '+token}});
   assert.equal(templates.status,200);
-  assert.deepEqual((await templates.json()).templates.map(x=>x.id),['classic','bistro','minimal','midnight','summit','street','cafe','desi','bakery','fresh','noir']);
+  assert.deepEqual((await templates.json()).templates.map(x=>x.id),['classic','bistro','minimal','midnight','summit','street','cafe','desi','bakery','fresh','noir','care','resort','blush']);
   assert.ok(queries.every(q=>!/INSERT|UPDATE|DELETE/i.test(q.sql)),'preview must never mutate database');
   assert.ok(queries.filter(q=>/FROM menu_items/.test(q.sql)).every(q=>Number(q.args[0])===9),'only current tenant menu can be read');
  } finally {await new Promise(resolve=>server.close(resolve))}

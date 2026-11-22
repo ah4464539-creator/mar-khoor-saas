@@ -40,7 +40,7 @@ test('analytics fills 30 days and computes totals and menu open rate', async () 
 test('website language changes labels, lang and direction; unknown languages are ignored', () => {
   const restaurant = { name: 'Cheema Cafe', slug: 'cheema-cafe', currency: 'PKR', locale: 'en' };
   const items = [{ name: 'Tea', price_minor: 100 }];
-  assert.deepEqual(Object.keys(SITE_LANGUAGES), ['en', 'ur', 'roman', 'ar']);
+  assert.deepEqual(Object.keys(SITE_LANGUAGES), ['en', 'ur', 'roman', 'ar', 'es', 'fr', 'de', 'tr', 'hi']);
   assert.ok(!('language' in sanitizeSiteConfig({ language: 'en' }, restaurant)));
   assert.ok(!('language' in sanitizeSiteConfig({ language: '"><script>' }, restaurant)));
   const urdu = renderSitePage({ restaurant, config: sanitizeSiteConfig({ language: 'ur', hours: '12-1' }, restaurant), items });

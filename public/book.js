@@ -92,13 +92,13 @@
       showPay(booking, token, deposit, payOptions || []);
     } catch (error) { status.textContent = error.message; $('book-submit').disabled = false; check(); }
   }
-  const TYPE_KEY = { jazzcash: 'jazzcash', easypaisa: 'easypaisa', raast: 'raast', bank: 'bank' };
+  const TYPE_KEY = { jazzcash: 'jazzcash', easypaisa: 'easypaisa', raast: 'raast', bank: 'bank', wallet: 'wallet', link: 'link', paypal: 'paypal', upi: 'upi' };
   function showPay(booking, token, deposit, options) {
     if (!options.length || !token) return;
     const amount = deposit || booking.price_minor;
     $('book-pay').hidden = false;
     $('book-pay-title').textContent = deposit ? 'Advance payment: ' + money(deposit) : amount ? 'Pay now (optional): ' + money(amount) : 'Pay now (optional)';
-    $('book-pay-methods').replaceChildren(...options.map(o => { const d = el('div', 'book-pay-method'); d.append(el('b', null, o.label), el('span', null, [o.account_title, o.account_number].filter(Boolean).join(' · '))); if (o.instructions) d.append(el('small', 'muted', o.instructions)); return d; }));
+    $('book-pay-methods').replaceChildren(...options.map(o => { const d = el('div', 'book-pay-method'); d.append(el('b', null, o.label)); if (o.type === 'link' && /^https:\/\//.test(o.account_number || '')) { const a = el('a', 'btn btn-primary', 'Pay online'); a.href = o.account_number; a.target = '_blank'; a.rel = 'noopener noreferrer'; d.append(a); } else d.append(el('span', null, [o.account_title, o.account_number].filter(Boolean).join(' · '))); if (o.instructions) d.append(el('small', 'muted', o.instructions)); return d; }));
     $('book-pay-method').replaceChildren(...options.map(o => { const op = el('option', null, o.label); op.value = TYPE_KEY[o.type] || 'other'; return op; }));
     $('book-pay-send').onclick = async () => {
       const st = $('book-pay-status'); $('book-pay-send').disabled = true; st.textContent = 'Sending…';

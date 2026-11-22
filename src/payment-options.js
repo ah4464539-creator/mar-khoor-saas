@@ -34,9 +34,14 @@ export function ensurePaymentTables(pool) {
   return ensured.get(pool);
 }
 
+// Works in any country: bank (IBAN/SWIFT), any mobile wallet, a payment link (Stripe, PayPal,
+// Razorpay… created by the business), UPI, PayPal; plus local Pakistani wallets.
 export const TRANSFER_TYPES = Object.freeze({
-  bank: 'Bank transfer', jazzcash: 'JazzCash', easypaisa: 'Easypaisa', raast: 'Raast', other: 'Transfer',
+  bank: 'Bank transfer', wallet: 'Mobile wallet', link: 'Pay online (link)', paypal: 'PayPal', upi: 'UPI',
+  jazzcash: 'JazzCash', easypaisa: 'Easypaisa', raast: 'Raast', other: 'Transfer',
 });
+/** A payment link must be a plain https URL. */
+export const cleanPayLink = value => { try { const u = new URL(String(value || '').trim()); return u.protocol === 'https:' && !u.username && !u.password ? u.href.slice(0, 300) : ''; } catch { return ''; } };
 export const DEFAULT_PAYMENT_SETTINGS = Object.freeze({ cash: true, card_on_delivery: false, transfers: [] });
 
 const clean = (value, max) => typeof value === 'string' ? value.replace(/[\u0000-\u001f<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max) : '';
@@ -47,8 +52,8 @@ export function sanitizePaymentSettings(source = {}) {
   const ids = new Set();
   for (const raw of Array.isArray(s.transfers) ? s.transfers.slice(0, 5) : []) {
     const type = Object.hasOwn(TRANSFER_TYPES, raw?.type) ? raw.type : 'other';
-    const account_number = clean(raw?.account_number, 40);
-    const account_title = clean(raw?.account_title, 80);
+    const account_number = type === 'link' ? cleanPayLink(raw?.account_number) : clean(raw?.account_number, 60);
+    const account_title = clean(raw?.account_title, 80) || (type === 'link' ? clean(raw?.label, 60) || 'Online payment' : '');
     if (!account_number || !account_title) continue;
     let id = /^[a-z0-9]{4,12}$/.test(raw?.id) ? raw.id : Math.random().toString(36).slice(2, 10);
     while (ids.has(id)) id = Math.random().toString(36).slice(2, 10);

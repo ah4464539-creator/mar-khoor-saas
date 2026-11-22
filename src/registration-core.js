@@ -4,7 +4,7 @@ import { audit } from './security.js';
 
 const RESERVED = new Set(['admin', 'api', 'auth', 'r', 'public', 'health', 'integrations', 'voice-tools', 'login', 'register', 'super-admin', 'menu', 'restaurant', 'build-plan', 'www']);
 const EUR = new Set('AT BE CY DE EE ES FI FR GR HR IE IT LT LU LV MT NL PT SI SK'.split(' '));
-const CURRENCIES = { PK: 'PKR', AE: 'AED', SA: 'SAR', QA: 'QAR', KW: 'KWD', BH: 'BHD', OM: 'OMR', GB: 'GBP', US: 'USD', IN: 'INR', BD: 'BDT', MY: 'MYR', SG: 'SGD', TR: 'TRY', CH: 'CHF', SE: 'SEK', NO: 'NOK', DK: 'DKK', PL: 'PLN', CZ: 'CZK', EG: 'EGP', JO: 'JOD', LK: 'LKR', ID: 'IDR', TH: 'THB', PH: 'PHP', CA: 'CAD', AU: 'AUD' };
+const CURRENCIES = { PK: 'PKR', AE: 'AED', SA: 'SAR', QA: 'QAR', KW: 'KWD', BH: 'BHD', OM: 'OMR', GB: 'GBP', US: 'USD', IN: 'INR', BD: 'BDT', MY: 'MYR', SG: 'SGD', TR: 'TRY', CH: 'CHF', SE: 'SEK', NO: 'NOK', DK: 'DKK', PL: 'PLN', CZ: 'CZK', EG: 'EGP', JO: 'JOD', LK: 'LKR', ID: 'IDR', TH: 'THB', PH: 'PHP', CA: 'CAD', AU: 'AUD', NZ: 'NZD', MX: 'MXN', BR: 'BRL', ZA: 'ZAR', NG: 'NGN', KE: 'KES', MA: 'MAD', NP: 'NPR', HK: 'HKD', CN: 'CNY', IL: 'ILS', RO: 'RON', HU: 'HUF', CO: 'COP', PE: 'PEN', AR: 'ARS', GH: 'GHS', TZ: 'TZS', ET: 'ETB', MV: 'MVR' }; // two-decimal currencies only; others bill in USD
 
 export const defaultCurrency = country => EUR.has(country) ? 'EUR' : CURRENCIES[country] ?? 'USD';
 

@@ -11,8 +11,9 @@ export const BUSINESS_TYPES = {
 };
 export const isBusinessType = value => Object.hasOwn(BUSINESS_TYPES, value);
 
-const TZ = { PK: 'Asia/Karachi', AE: 'Asia/Dubai', SA: 'Asia/Riyadh', QA: 'Asia/Qatar', KW: 'Asia/Kuwait', BH: 'Asia/Bahrain', OM: 'Asia/Muscat', GB: 'Europe/London', IN: 'Asia/Kolkata', BD: 'Asia/Dhaka', MY: 'Asia/Kuala_Lumpur', SG: 'Asia/Singapore', TR: 'Europe/Istanbul', US: 'America/New_York', DE: 'Europe/Berlin', FR: 'Europe/Paris', GR: 'Europe/Athens' };
+const TZ = { PK: 'Asia/Karachi', AE: 'Asia/Dubai', SA: 'Asia/Riyadh', QA: 'Asia/Qatar', KW: 'Asia/Kuwait', BH: 'Asia/Bahrain', OM: 'Asia/Muscat', GB: 'Europe/London', IE: 'Europe/Dublin', IN: 'Asia/Kolkata', BD: 'Asia/Dhaka', LK: 'Asia/Colombo', NP: 'Asia/Kathmandu', MY: 'Asia/Kuala_Lumpur', SG: 'Asia/Singapore', ID: 'Asia/Jakarta', PH: 'Asia/Manila', TH: 'Asia/Bangkok', VN: 'Asia/Ho_Chi_Minh', CN: 'Asia/Shanghai', HK: 'Asia/Hong_Kong', JP: 'Asia/Tokyo', KR: 'Asia/Seoul', TR: 'Europe/Istanbul', EG: 'Africa/Cairo', MA: 'Africa/Casablanca', NG: 'Africa/Lagos', KE: 'Africa/Nairobi', ZA: 'Africa/Johannesburg', DE: 'Europe/Berlin', FR: 'Europe/Paris', ES: 'Europe/Madrid', IT: 'Europe/Rome', NL: 'Europe/Amsterdam', BE: 'Europe/Brussels', CH: 'Europe/Zurich', AT: 'Europe/Vienna', SE: 'Europe/Stockholm', NO: 'Europe/Oslo', DK: 'Europe/Copenhagen', FI: 'Europe/Helsinki', PL: 'Europe/Warsaw', CZ: 'Europe/Prague', GR: 'Europe/Athens', PT: 'Europe/Lisbon', US: 'America/New_York', CA: 'America/Toronto', MX: 'America/Mexico_City', BR: 'America/Sao_Paulo', AR: 'America/Argentina/Buenos_Aires', AU: 'Australia/Sydney', NZ: 'Pacific/Auckland' };
 export const timezoneFor = country => TZ[country] || 'UTC';
+export function isTimezone(value) { if (typeof value !== 'string' || !/^[A-Za-z_]+(\/[A-Za-z0-9_+-]+){0,2}$/.test(value)) return false; try { new Intl.DateTimeFormat('en', { timeZone: value }); return true; } catch { return false; } }
 
 export const BOOKING_SQL = [
   `CREATE TABLE IF NOT EXISTS business_profiles (
@@ -277,11 +278,13 @@ export async function saveProfile(pool, restaurantId, body = {}) {
   const hours = body.hours ? cleanHours(body.hours) : current?.hours || DEFAULT_HOURS;
   const slot = int(body.slot_minutes, 5, 240, current?.slot_minutes || 30);
   // First save (registration): clinics, salons and hotels take bookings from day one; restaurants opt in.
+  const timezone = isTimezone(body.timezone) ? body.timezone : current?.exists ? (await rawTimezone(pool, restaurantId)) : null;
   const enabled = typeof body.bookings_enabled === 'boolean' ? body.bookings_enabled : current?.exists ? current.bookings_enabled : category !== 'restaurant';
-  await pool.execute('INSERT INTO business_profiles(restaurant_id,category,hours_json,slot_minutes,bookings_enabled) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE category=VALUES(category),hours_json=VALUES(hours_json),slot_minutes=VALUES(slot_minutes),bookings_enabled=VALUES(bookings_enabled)',
-    [restaurantId, category, JSON.stringify(hours), slot, enabled ? 1 : 0]);
+  await pool.execute('INSERT INTO business_profiles(restaurant_id,category,timezone,hours_json,slot_minutes,bookings_enabled) VALUES (?,?,?,?,?,?) ON DUPLICATE KEY UPDATE category=VALUES(category),timezone=VALUES(timezone),hours_json=VALUES(hours_json),slot_minutes=VALUES(slot_minutes),bookings_enabled=VALUES(bookings_enabled)',
+    [restaurantId, category, timezone, JSON.stringify(hours), slot, enabled ? 1 : 0]);
   return getProfile(pool, restaurantId);
 }
+async function rawTimezone(pool, restaurantId) { try { const [[r]] = await pool.execute('SELECT timezone FROM business_profiles WHERE restaurant_id=?', [restaurantId]); return r?.timezone || null; } catch { return null; } }
 /** Categories for many restaurants at once; missing = restaurant. Never throws. */
 export async function categoriesFor(pool, ids) {
   const out = new Map(ids.map(id => [Number(id), 'restaurant']));
