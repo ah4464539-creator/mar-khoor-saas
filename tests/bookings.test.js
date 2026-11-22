@@ -142,3 +142,20 @@ test('calls: transfer tool added and removed with the reception number', () => {
   const worker = readFileSync('src/whatsapp-ai-worker.js', 'utf8');
   for (const bit of ['handoverActive(pool,job)', "name==='cancel_booking'", "name==='reschedule_booking'", "name==='talk_to_staff'"]) assert.ok(worker.includes(bit), bit);
 });
+
+test('batch C: website booking button, discounts, reports, staff role', async () => {
+  const { renderSitePage } = await import('../src/site-builder.js');
+  const html = renderSitePage({ restaurant: { id: 1, name: 'City Clinic', slug: 'city-clinic', currency: 'PKR' }, config: {}, items: [] }, { booking: { category: 'clinic', label: 'Book an appointment', title: 'Our services', services: [{ name: 'Check-up', price_minor: 150000, duration_min: 30 }] } });
+  assert.match(html, /href="\/book\.html\?b=city-clinic">Book an appointment/);
+  assert.match(html, /Check-up/);
+  assert.doesNotMatch(html, /Track order/);
+  const plain = renderSitePage({ restaurant: { id: 1, name: 'Cafe', slug: 'cafe', currency: 'PKR' }, config: {}, items: [] });
+  assert.match(plain, /Track order/);
+  const src = readFileSync('src/bookings.js', 'utf8');
+  for (const bit of ['booking_discounts', 'export async function bookingReport', "'Code ' + d.code"]) assert.ok(src.includes(bit), bit);
+  const routes = readFileSync('src/bookings-routes.js', 'utf8');
+  assert.match(routes, /STAFF_PATHS/);
+  assert.match(routes, /kind === 'refund'\) return false/);
+  assert.match(readFileSync('src/operations.js', 'utf8'), /staffOk=rows\[0\]\?\.role==='staff'/);
+  assert.match(readFileSync('public/owner.css', 'utf8'), /\[data-role="staff"\] \[data-admin-only\]\{display:none!important\}/);
+});

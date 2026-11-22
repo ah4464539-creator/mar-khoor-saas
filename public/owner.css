@@ -748,3 +748,14 @@ body.owner-app:not([data-category="hotel"]) [data-hotel-only]{display:none!impor
 .mk .wa-handover h2{margin:0 0 4px;font-size:16px}
 .mk .wa-handover-list{display:grid;gap:8px;margin-top:10px}
 .mk .wa-handover-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px;border-radius:12px;background:var(--surface)}
+/* Batch C: reports */
+.mk .rp-kpis{margin-bottom:14px}
+.mk .rp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.mk .rp-h{margin:0 0 12px;font-size:16px}
+.mk .rp-bars{display:grid;gap:8px}
+.mk .rp-bar{display:grid;grid-template-columns:110px 1fr auto;gap:10px;align-items:center;font-size:13px}
+.mk .rp-bar span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mk .rp-track{height:10px;border-radius:999px;background:var(--surface-2,#f1ebe3);overflow:hidden}
+.mk .rp-fill{height:100%;border-radius:999px;background:#E86A17}
+body.owner-app[data-role="staff"] [data-admin-only]{display:none!important}
+body.owner-app[data-role="staff"] #bk-new{display:inline-flex}

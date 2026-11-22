@@ -15,8 +15,10 @@ export function operationsRouter(pool) {
   if(!Number.isSafeInteger(id)||id<1)return res.status(400).json({error:'Invalid restaurant'});
   try {
    if(req.user.platformRole==='super_admin'){req.restaurantId=id;return next();}
-   const [rows]=await pool.execute("SELECT role FROM restaurant_members WHERE restaurant_id=? AND user_id=? AND role='admin' LIMIT 1",[id,req.user.id]);
-   if(!rows.length)return res.status(403).json({error:'Forbidden'});
+   const [rows]=await pool.execute("SELECT role FROM restaurant_members WHERE restaurant_id=? AND user_id=? LIMIT 1",[id,req.user.id]);
+   // Staff (counter / reception) may work the live orders desk only; everything else stays admin-only.
+   const staffOk=rows[0]?.role==='staff'&&/^\/orders(\/|$)/.test(req.path);
+   if(!rows.length||(rows[0].role!=='admin'&&!staffOk))return res.status(403).json({error:'Forbidden'});
    req.restaurantId=id;next();
   }catch{res.status(503).json({error:'Database unavailable'});}
  };

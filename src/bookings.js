@@ -117,6 +117,18 @@ export const BOOKING_SQL = [
  token CHAR(32) NOT NULL,
  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
 ) ENGINE=InnoDB`,
+  `CREATE TABLE IF NOT EXISTS booking_discounts (
+ id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+ restaurant_id BIGINT UNSIGNED NOT NULL,
+ code VARCHAR(30) NOT NULL,
+ percent TINYINT UNSIGNED NOT NULL,
+ valid_to DATE NULL,
+ active TINYINT(1) NOT NULL DEFAULT 1,
+ uses INT UNSIGNED NOT NULL DEFAULT 0,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ UNIQUE KEY uq_booking_discount (restaurant_id, code),
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+) ENGINE=InnoDB`,
 ];
 
 const ready = new WeakMap();
@@ -419,9 +431,18 @@ export async function createBooking(pool, restaurantId, input) {
     const startMin = toMin(input.date + ' ' + time);
     start = input.date + ' ' + time; end = stamp(input.date, startMin + service.duration_min); resourceId = chosen.resource_id; price = service.price_minor;
   }
+  let note = text(input.note, 500) || null;
+  const code = text(input.discount_code, 30).toUpperCase().replace(/[^A-Z0-9-]/g, '');
+  if (code) {
+    const d = await findDiscount(pool, restaurantId, code);
+    if (!d) return { error: 'That discount code is not valid' };
+    price = Math.round(price * (100 - d.percent) / 100);
+    note = ((note ? note + ' · ' : '') + 'Code ' + d.code + ' −' + d.percent + '%').slice(0, 500);
+    await pool.execute('UPDATE booking_discounts SET uses=uses+1 WHERE id=?', [d.id]);
+  }
   const status = input.status === 'confirmed' ? 'confirmed' : 'pending';
   const [r] = await pool.execute('INSERT INTO bookings(restaurant_id,service_id,resource_id,customer_name,customer_phone,start_at,end_at,guests,price_minor,status,source,note) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
-    [restaurantId, service.id, resourceId, name, phone, start + ':00', end + ':00', int(input.guests, 1, 50, 1), price, status, source, text(input.note, 500) || null]);
+    [restaurantId, service.id, resourceId, name, phone, start + ':00', end + ':00', int(input.guests, 1, 50, 1), price, status, source, note]);
   await logEvent(pool, restaurantId, Number(r.insertId), 'created', source);
   return { booking: { id: Number(r.insertId), service: service.name, start_at: start, end_at: end, resource_id: resourceId, price_minor: price, status } };
 }
@@ -514,4 +535,53 @@ export async function setBookingStatus(pool, restaurantId, id, status, actor = '
 export async function notifyNewBooking(pool, restaurantId, booking, source) {
   const when = String(booking.start_at || '').replace(' ', ' at ');
   return pushToRestaurant(pool, restaurantId, { title: '📅 New booking #' + booking.id, body: [booking.service, when, source].filter(Boolean).join(' · '), url: '/restaurant.html#bookings', tag: 'booking-' + booking.id }).catch(() => ({ sent: 0 }));
+}
+
+// ---- Discount codes ----
+export async function findDiscount(pool, restaurantId, code) {
+  await ensureBookingTables(pool);
+  const [[d]] = await pool.execute('SELECT id,code,percent,valid_to FROM booking_discounts WHERE restaurant_id=? AND code=? AND active=1 AND (valid_to IS NULL OR valid_to>=CURDATE()) LIMIT 1', [restaurantId, code]);
+  return d ? { id: Number(d.id), code: d.code, percent: Number(d.percent) } : null;
+}
+export async function listDiscounts(pool, restaurantId) {
+  await ensureBookingTables(pool);
+  const [rows] = await pool.execute('SELECT id,code,percent,valid_to,active,uses FROM booking_discounts WHERE restaurant_id=? ORDER BY id DESC LIMIT 100', [restaurantId]);
+  return rows.map(d => ({ id: Number(d.id), code: d.code, percent: Number(d.percent), valid_to: d.valid_to ? norm(d.valid_to).slice(0, 10) : null, active: Boolean(d.active), uses: Number(d.uses) }));
+}
+export async function saveDiscount(pool, restaurantId, body) {
+  await ensureBookingTables(pool);
+  const code = text(body?.code, 30).toUpperCase().replace(/[^A-Z0-9-]/g, '');
+  const percent = int(body?.percent, 1, 90, 0);
+  if (code.length < 3) return { error: 'Code needs at least 3 letters or numbers' };
+  if (!percent) return { error: 'Discount must be 1–90%' };
+  const validTo = isDate(body?.valid_to) ? body.valid_to : null;
+  try { await pool.execute('INSERT INTO booking_discounts(restaurant_id,code,percent,valid_to) VALUES (?,?,?,?)', [restaurantId, code, percent, validTo]); }
+  catch (e) { if (e?.code === 'ER_DUP_ENTRY') return { error: 'That code already exists' }; throw e; }
+  return { discounts: await listDiscounts(pool, restaurantId) };
+}
+export async function toggleDiscount(pool, restaurantId, id, active) {
+  await ensureBookingTables(pool);
+  await pool.execute('UPDATE booking_discounts SET active=? WHERE id=? AND restaurant_id=?', [active ? 1 : 0, id, restaurantId]);
+  return { discounts: await listDiscounts(pool, restaurantId) };
+}
+
+// ---- Reports ----
+export async function bookingReport(pool, restaurantId, days = 30) {
+  await ensureBookingTables(pool);
+  const n = int(days, 1, 366, 30);
+  const since = "start_at>=CURDATE()-INTERVAL " + n + " DAY AND start_at<CURDATE()+INTERVAL 1 DAY";
+  const [[t]] = await pool.execute("SELECT COUNT(*) total, SUM(status='completed') done, SUM(status='cancelled') cancelled, SUM(status='no_show') no_show, SUM(CASE WHEN status='completed' THEN price_minor ELSE 0 END) revenue FROM bookings WHERE restaurant_id=? AND " + since, [restaurantId]);
+  const [[p]] = await pool.execute("SELECT COALESCE(SUM(CASE WHEN kind='payment' THEN amount_minor ELSE 0 END),0) paid, COALESCE(SUM(CASE WHEN kind='refund' THEN amount_minor ELSE 0 END),0) refunded FROM booking_payments WHERE restaurant_id=? AND status='confirmed' AND created_at>=CURDATE()-INTERVAL " + n + " DAY", [restaurantId]);
+  const [services] = await pool.execute("SELECT COALESCE(s.name,'—') name, COUNT(*) n, SUM(CASE WHEN b.status='completed' THEN b.price_minor ELSE 0 END) revenue FROM bookings b LEFT JOIN booking_services s ON s.id=b.service_id AND s.restaurant_id=b.restaurant_id WHERE b.restaurant_id=? AND " + since.replace(/start_at/g, 'b.start_at') + " GROUP BY s.name ORDER BY n DESC LIMIT 8", [restaurantId]);
+  const [sources] = await pool.execute("SELECT source, COUNT(*) n FROM bookings WHERE restaurant_id=? AND " + since + " GROUP BY source", [restaurantId]);
+  const [weekdays] = await pool.execute("SELECT DAYOFWEEK(start_at) d, COUNT(*) n FROM bookings WHERE restaurant_id=? AND " + since + " AND status NOT IN ('cancelled') GROUP BY DAYOFWEEK(start_at)", [restaurantId]);
+  const total = Number(t.total || 0);
+  return {
+    days: n, total, done: Number(t.done || 0), cancelled: Number(t.cancelled || 0), no_show: Number(t.no_show || 0),
+    no_show_rate: total ? Math.round(Number(t.no_show || 0) * 100 / total) : 0,
+    revenue_minor: Number(t.revenue || 0), paid_minor: Number(p.paid || 0), refunded_minor: Number(p.refunded || 0),
+    services: services.map(r => ({ name: r.name, count: Number(r.n), revenue_minor: Number(r.revenue || 0) })),
+    sources: Object.fromEntries(sources.map(r => [r.source, Number(r.n)])),
+    weekdays: Array.from({ length: 7 }, (_, i) => Number(weekdays.find(w => Number(w.d) === i + 1)?.n || 0)),
+  };
 }

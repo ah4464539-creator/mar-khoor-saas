@@ -15,7 +15,7 @@ test('Live orders: board left, side panel with payment methods and app alerts', 
 
 test('payment methods have their own page in the left menu', () => {
   const html = readFileSync('public/restaurant.html', 'utf8');
-  assert.match(html, /<a href="#payment-methods">/);
+  assert.match(html, /<a data-admin-only href="#payment-methods">/);
   const page = html.slice(html.indexOf('id="payment-methods"'), html.indexOf('id="menu-management"'));
   for (const id of ['pay-form', 'pay-cash', 'pay-card', 'pay-transfers', 'pay-add', 'pay-preview', 'pay-note']) assert.match(page, new RegExp('id="' + id + '"'), id);
 });
