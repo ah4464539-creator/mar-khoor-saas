@@ -637,3 +637,12 @@ html.resuming .owner-app.signing-in::after{content:"";position:fixed;top:50%;lef
 .mk .pay-link{display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit}
 .mk .pay-link:hover .side-card-edit{background:var(--ember-soft)}
 @media(max-width:760px){.mk .pay-accounts .card-head{flex-direction:column}.mk .pay-savebar{bottom:8px}}
+/* Plans & billing: connect your tools after payment */
+.mk .plan-integrations{margin:0 0 18px;border-radius:18px;border:1px solid var(--line);background:var(--surface)}
+.mk .plan-integrations.just-paid{border-color:var(--ember-line);box-shadow:0 0 0 3px var(--ember-soft)}
+.mk .plan-integrations h2{margin:0 0 4px;font-size:18px}
+.mk .integration-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;margin-top:14px}
+.mk .integration-box{display:grid;gap:12px;align-content:start;padding:16px;border:1px solid var(--line);border-radius:16px;background:var(--surface-2,#faf6f1)}
+.mk .integration-icon{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:var(--ember-soft);font-size:21px}
+.mk .integration-text{display:grid;gap:4px}
+.mk .integration-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto}

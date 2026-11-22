@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="/summit.css?v=20261120-s4">
-<link rel="stylesheet" href="/owner.css?v=20261122-s29">
+<link rel="stylesheet" href="/owner.css?v=20261122-s30">
 <script src="/session-guard.js?v=20261122-1"></script>
 <script src="/i18n.js?v=20261121-2" data-position="right" defer></script>
 </head>
@@ -213,6 +213,10 @@
 
 <section class="owner-view owner-message-view" id="plan" data-title="Plans &amp; billing" hidden>
  <h2 tabindex="-1" class="visually-hidden">Plans and billing</h2>
+ <section class="card card-pad plan-integrations" id="plan-integrations" aria-labelledby="plan-integrations-title" hidden>
+  <div class="card-head"><div><h2 id="plan-integrations-title">Connect your tools</h2><p class="small muted" id="plan-integrations-sub">Set up each tool you paid for. Each one takes a few minutes.</p></div></div>
+  <div class="integration-grid" id="plan-integrations-list"></div>
+ </section>
  <div class="split billing-layout">
   <section class="grow card card-pad billing-card" id="billing" aria-labelledby="billing-title">
    <div class="card-head"><div><h2 id="billing-title">Choose your plan and tools</h2><p class="small muted" id="billing-summary">Loading…</p></div><span id="billing-status" class="tag" hidden></span></div>
@@ -474,7 +478,7 @@
 <script src="/call-forwarding.js?v=20261122-1"></script>
 <script src="/site-content.js?v=20261122-1"></script>
 <script src="/owner-app.js?v=20261122-2"></script>
-<script type="module" src="/restaurant.js?v=20261122-s31"></script>
+<script type="module" src="/restaurant.js?v=20261122-s32"></script>
 <script>document.getElementById("login-show-password")?.addEventListener("change",function(){document.getElementById("password").type=this.checked?"text":"password"});</script>
 </body>
 </html>
