@@ -593,3 +593,7 @@ body.mk{margin:0}
 .mk .pay-transfer-row.collapsed .pay-row-body{display:none}
 .mk .pay-transfer-row.collapsed{padding:10px 12px}
 @media(max-width:760px){.mk .pay-row-body{grid-template-columns:1fr}}
+/* Saved sign-in: show a short loader instead of flashing the login form on refresh */
+html.resuming .owner-app.signing-in .mk-login-grid{visibility:hidden}
+html.resuming .owner-app.signing-in::after{content:"";position:fixed;top:50%;left:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border:3px solid rgba(232,106,23,.2);border-top-color:#E86A17;border-radius:50%;animation:mk-resume-spin .8s linear infinite}
+@keyframes mk-resume-spin{to{transform:rotate(360deg)}}
