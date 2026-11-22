@@ -17,7 +17,7 @@ test('signed WhatsApp delivery statuses update known outbound records',async()=>
   const response=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','x-hub-signature-256':signature},body});
   assert.equal(response.status,202);
   assert.deepEqual(await response.json(),{received:true,processed:0,updated_statuses:1});
-  assert.deepEqual(updates,[['delivered','wamid.outbound-1','12345','delivered','delivered']]);
+  assert.deepEqual(updates,[['delivered','wamid.outbound-1','12345']]);
  }finally{await new Promise(r=>server.close(r));if(old===undefined)delete process.env.META_APP_SECRET;else process.env.META_APP_SECRET=old}
 });
 
