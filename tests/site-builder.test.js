@@ -44,6 +44,31 @@ test('renderSitePage shows menu with formatted prices and skips empty sections',
  assert.ok(!badSlug.includes('x"y'));
 });
 
+
+test('clinic, salon and hotel show booking services without an empty food menu', () => {
+ const base = { ...restaurant, name: 'Mar-Khoor QA', currency: 'EUR' };
+ for (const [category, title, label, service] of [
+  ['clinic','Our services','Book an appointment','General Consultation'],
+  ['salon','Our services','Book an appointment','Haircut'],
+  ['hotel','Rooms','Book a room','Standard Double Room'],
+ ]) {
+  const html = renderSitePage({
+   restaurant: base,
+   config: defaultSiteConfig(base),
+   items: [],
+  }, { booking: { category, title, label, services: [{name:service,description:'QA only',price_minor:4500,duration_min:30,night:category==='hotel'}] } });
+  assert.match(html, new RegExp(service), category + ' service');
+  assert.match(html, /href="\/book\.html\?b=cheema-cafe"/);
+  assert.doesNotMatch(html, /id="menu"/, category + ' should not show food menu');
+  assert.doesNotMatch(html, /No menu items available yet/, category + ' should not show empty food state');
+  assert.doesNotMatch(html, /href="\/menu\.html\?restaurant=/);
+ }
+ const food = renderSitePage({restaurant:base,config:defaultSiteConfig(base),items:[]}, {
+  booking:{category:'restaurant',title:'Reservations',label:'Reserve a table',services:[]},
+ });
+ assert.match(food,/id="menu"/,'restaurant keeps its food menu section');
+});
+
 test('CSP blocks scripts and frames and allows HTTPS dish photos',()=>{
  assert.match(SITE_CSP,/default-src 'none'/);
  assert.ok(!SITE_CSP.includes('script-src'));
