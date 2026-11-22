@@ -170,3 +170,4 @@
  .lp .lp-nav .nav-signin{display:none}
 }
 @media (prefers-reduced-motion:reduce){.lp .msg{animation:none}.lp .typing i{animation:none}}
+.lp .brand b{font:inherit}
