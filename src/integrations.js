@@ -108,9 +108,12 @@ export function integrationRouter(pool){
    // does not retry them for hours (and never disables the webhook over receipts).
    try{
    for(const event of statuses){
+    // Which earlier statuses this event may replace, decided here (fixed literals) rather than
+    // comparing a bound value IN a literal list, which MariaDB rejects on mixed collations.
+    const from={sent:"'accepted'",delivered:"'accepted','sent'",failed:"'accepted','sent'",read:"'accepted','sent','delivered'"}[event.status];
     const applyStatus=()=>pool.execute(
-     "UPDATE whatsapp_outbound_messages o JOIN whatsapp_numbers w ON w.phone_number_id=o.phone_number_id AND w.restaurant_id=o.restaurant_id AND w.active=1 SET o.status=?,o.status_at=NOW() WHERE o.message_id=? AND o.phone_number_id=? AND (o.status='accepted' OR (o.status='sent' AND ? IN ('delivered','read','failed')) OR (o.status='delivered' AND ?='read'))",
-     [event.status,event.id,event.phoneId,event.status,event.status]
+     "UPDATE whatsapp_outbound_messages o JOIN whatsapp_numbers w ON w.phone_number_id=o.phone_number_id AND w.restaurant_id=o.restaurant_id AND w.active=1 SET o.status=?,o.status_at=NOW() WHERE o.message_id=? AND o.phone_number_id=? AND o.status IN ("+from+")",
+     [event.status,event.id,event.phoneId]
     );
     const [result]=await applyStatus();
     updated_statuses+=result.affectedRows;
