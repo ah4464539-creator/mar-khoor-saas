@@ -10,13 +10,13 @@ import {
 } from './bookings.js';
 import { notifyBookingStatus } from './booking-assistant.js';
 import { syncCallBookingTools } from './voice-bookings.js';
-import { bookingPayments, recordPayment, decidePayment, bookingToken, customerPaymentReference, listHandovers, endHandover, getTransferPhone, setTransferPhone } from './booking-extras.js';
+import { bookingPayments, recordPayment, decidePayment, bookingToken, customerPaymentReference, listHandovers, endHandover, getTransferPhone, setTransferPhone, getAiNotes, setAiNotes, orderCustomers, customerOrders } from './booking-extras.js';
 import { loadPaymentSettings, publicPaymentOptions } from './payment-options.js';
 import { tokenForNumber } from './whatsapp-signup-core.js';
 
 const idParam = v => { const n = Number(v); return Number.isSafeInteger(n) && n > 0 ? n : 0; };
 
-const STAFF_PATHS = [/^\/?$/, /^\/bookings(\.csv)?$/, /^\/bookings\/\d+(\/(reschedule|history|payments(\/\d+)?))?$/, /^\/availability$/, /^\/customers(\.csv|\/[^/]+)?$/, /^\/handovers(\/[^/]+)?$/, /^\/resources\/\d+\/room-status$/];
+const STAFF_PATHS = [/^\/?$/, /^\/order-customers(\/[^/]+)?$/, /^\/bookings(\.csv)?$/, /^\/bookings\/\d+(\/(reschedule|history|payments(\/\d+)?))?$/, /^\/availability$/, /^\/customers(\.csv|\/[^/]+)?$/, /^\/handovers(\/[^/]+)?$/, /^\/resources\/\d+\/room-status$/];
 function staffAllowed(req) {
   const path = req.path.replace(/^\/api\/restaurants\/\d+\/business/, '');
   if (!STAFF_PATHS.some(rx => rx.test(path))) return false;
@@ -121,6 +121,22 @@ export function bookingsRouter(pool) {
   });
   router.patch(base + '/discounts/:id', async (req, res) => {
     try { res.json(await toggleDiscount(pool, req.restaurantId, idParam(req.params.id), req.body?.active === true)); } catch (e) { fail(res, e); }
+  });
+  router.get(base + '/ai', async (req, res) => {
+    try { res.json({ notes: await getAiNotes(pool, req.restaurantId), transfer_phone: await getTransferPhone(pool, req.restaurantId) }); } catch (e) { fail(res, e); }
+  });
+  router.put(base + '/ai', async (req, res) => {
+    try {
+      const notes = await setAiNotes(pool, req.restaurantId, req.body?.notes);
+      syncCallBookingTools(pool, req.restaurantId).catch(() => {});
+      res.json({ notes });
+    } catch (e) { fail(res, e); }
+  });
+  router.get(base + '/order-customers', async (req, res) => {
+    try { res.json({ customers: await orderCustomers(pool, req.restaurantId, { q: req.query.q }) }); } catch (e) { fail(res, e); }
+  });
+  router.get(base + '/order-customers/:phone', async (req, res) => {
+    try { res.json({ orders: await customerOrders(pool, req.restaurantId, req.params.phone) }); } catch (e) { fail(res, e); }
   });
   router.get(base + '/team', async (req, res) => {
     try {

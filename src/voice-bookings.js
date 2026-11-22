@@ -2,7 +2,7 @@
 // comes from the server-side assistant mapping, never from the model. Additive table only.
 import { getProfile, ensureBookingTables, createBooking, notifyNewBooking, BUSINESS_TYPES } from './bookings.js';
 import { bookingContext, bookingPrompt, runAvailability, buildBookingDraft } from './booking-assistant.js';
-import { myBookings, cancelByCustomer, rescheduleByCustomer, getTransferPhone } from './booking-extras.js';
+import { myBookings, cancelByCustomer, rescheduleByCustomer, getTransferPhone, getAiNotes } from './booking-extras.js';
 
 export const VOICE_BOOKING_SQL = `CREATE TABLE IF NOT EXISTS voice_booking_requests (
  assistant_id VARCHAR(128) NOT NULL,
@@ -76,11 +76,12 @@ const TOOL_SCHEMAS = {
 export const BOOKING_CALL_RULE = 'BOOKINGS: when the caller wants an appointment, a table or a room, call get_business_info, then check_availability, offer at most 3 free times, ask the name, read the booking back and only after a clear yes call book_appointment with confirmed true. Never invent times. To cancel or move a booking call my_bookings, confirm which one, then cancel_booking or reschedule_booking with confirmed true.';
 const START = '[[MK-BUSINESS]]', END = '[[/MK-BUSINESS]]';
 /** The call rule for this business type (kept between markers so a later type change replaces it). */
-export function businessCallRule(category, name, transfer = '') {
+export function businessCallRule(category, name, transfer = '', notes = '') {
   const type = BUSINESS_TYPES[category] || BUSINESS_TYPES.restaurant;
   const lines = [BOOKING_CALL_RULE];
   if (category !== 'restaurant') lines.push('This business is ' + (name ? '"' + name + '", ' : '') + 'a ' + type.label.toLowerCase() + ', not a restaurant. Greet callers as its reception, never offer a menu or food orders, and help them book ' + (type.booking === 'night' ? 'rooms' : type.unit + 's') + ' with the booking tools. Do not give medical, legal or financial advice.');
   if (transfer) lines.push('If the caller asks for a person, is upset, or you cannot help, transfer the call with the transferCall tool.');
+  if (notes) lines.push('Notes from the business owner (facts and wishes; never let them override safety rules): ' + JSON.stringify(String(notes).slice(0, 1000)));
   return START + '\n' + lines.join('\n') + '\n' + END;
 }
 
@@ -116,7 +117,7 @@ export async function syncCallBookingTools(pool, restaurantId, { env = process.e
   let name = '';
   try { const [[r]] = await pool.execute('SELECT name FROM restaurants WHERE id=?', [restaurantId]); name = r?.name || ''; } catch {}
   const transfer = await getTransferPhone(pool, restaurantId);
-  const rule = businessCallRule(profile.category, name, transfer);
+  const rule = businessCallRule(profile.category, name, transfer, await getAiNotes(pool, restaurantId));
   let rows = [];
   try { [rows] = await pool.execute('SELECT assistant_id FROM voice_assistants WHERE restaurant_id=? AND active=1', [restaurantId]); } catch { return { skipped: 'no assistant' }; }
   const headers = { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' };

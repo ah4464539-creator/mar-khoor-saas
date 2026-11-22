@@ -759,3 +759,24 @@ body.owner-app:not([data-category="hotel"]) [data-hotel-only]{display:none!impor
 .mk .rp-fill{height:100%;border-radius:999px;background:#E86A17}
 body.owner-app[data-role="staff"] [data-admin-only]{display:none!important}
 body.owner-app[data-role="staff"] #bk-new{display:inline-flex}
+/* Today, calendar, deals, AI receptionist */
+.mk .td-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.mk .td-clock{margin-left:auto}
+.mk .av-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:16px;background:var(--surface)}
+.mk .av-grid{border-collapse:separate;border-spacing:0;width:100%;font-size:12px}
+.mk .av-grid th,.mk .av-grid td{padding:8px 6px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);text-align:center;white-space:nowrap;min-width:64px}
+.mk .av-grid thead th{position:sticky;top:0;background:var(--surface-2,#faf6f1);font-weight:600}
+.mk .av-grid tbody th{text-align:left;background:var(--surface-2,#faf6f1);position:sticky;left:0;min-width:90px}
+.mk .av-grid th.is-today{color:#E86A17}
+.mk .av-grid td.free{background:#f3faf5}
+.mk .av-grid td.booked{background:#dfe8f7;color:#1d3e72;font-weight:600;cursor:pointer}
+.mk .av-grid td.booked.status-pending{background:#fde6d3;color:#8a3d0a}
+.mk .av-grid td.booked.status-checked_in{background:#cfe3fb}
+.mk .av-grid td.booked.status-completed{background:#e5e1dc;color:#6b6058}
+.mk .av-grid td.ooo{background:repeating-linear-gradient(45deg,#f6dede,#f6dede 6px,#fff 6px,#fff 12px)}
+.mk .av-legend{margin-top:8px}
+.mk .dl-form{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.mk .dl-form .input{flex:1 1 180px;width:auto}
+.mk .dl-list{margin-top:14px}
+.mk .ai-save{justify-content:space-between;align-items:center;margin-top:8px}
+.mk #ai-notes{width:100%;min-height:120px}

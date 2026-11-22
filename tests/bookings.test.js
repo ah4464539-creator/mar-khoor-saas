@@ -185,3 +185,14 @@ test('super admin: one page per type of business', () => {
   const api = readFileSync('src/api.js', 'utf8');
   assert.match(api, /category:cats\.get\(id\)\|\|'restaurant'/);
 });
+
+test('pages batch: today, calendar, deals, AI receptionist, restaurant customers', () => {
+  const html = readFileSync('public/restaurant.html', 'utf8');
+  for (const id of ['id="today"', 'id="calendar"', 'id="deals"', 'id="ai-receptionist"', 'href="#today"', 'href="#calendar"', 'href="#ai-receptionist"']) assert.ok(html.includes(id), id);
+  assert.match(html, /<a href="#customers">/);
+  const ui = readFileSync('public/bookings.js', 'utf8');
+  for (const bit of ['loadToday', 'loadCalendar', 'av-grid', 'loadDeals', "category: 'Deals'", 'loadAi', 'order-customers']) assert.ok(ui.includes(bit), bit);
+  const routes = readFileSync('src/bookings-routes.js', 'utf8');
+  for (const bit of ["base + '/ai'", "base + '/order-customers'"]) assert.ok(routes.includes(bit), bit);
+  assert.match(readFileSync('src/whatsapp-ai-worker.js', 'utf8'), /aiNotesPrompt\(await getAiNotes/);
+});
