@@ -33,3 +33,10 @@ test('order cards are compact (3 lines) and open on tap', () => {
   for (const bit of ["'oc-top'", "'oc-mid'", "'oc-bot'", "'order-details'", 'ownerOpenOrders', "aria-expanded"]) assert.ok(js.includes(bit), bit);
   assert.match(readFileSync('public/owner.css', 'utf8'), /\.order-card\.open \.order-details\{display:grid\}/);
 });
+
+test('new owners land on Plans & billing; paid tools show their setup', () => {
+  const js = readFileSync('public/restaurant.js', 'utf8');
+  assert.match(js, /goToCart\(remembered\?\.plan \|\| null, remembered\?\.cycle \|\| null, billingWelcome\)/);
+  for (const bit of ['function renderPlanIntegrations', 'PLAN_INTEGRATIONS', "'#whatsapp-inbox-view'", "'#site-widget'"]) assert.ok(js.includes(bit), bit);
+  assert.match(readFileSync('public/restaurant.html', 'utf8'), /id="plan-integrations"/);
+});

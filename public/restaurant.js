@@ -1197,13 +1197,12 @@ async function loadSetup(restaurant) {
   try { alreadyPrompted = localStorage.getItem(firstPromptKey) === '1'; } catch {}
   if ((!setupData.subscription && !location.hash && !alreadyPrompted) || wantsChange) {
    if (!wantsChange) { try { localStorage.setItem(firstPromptKey,'1'); } catch {} }
-   showSetupStep(0); setupDialog.showModal();
-   // A plan already picked on the landing page / registration is not asked again: save it and
-   // go straight to connecting channels (Back still lets the owner change it).
-   if (remembered && setupData.subscription?.status !== 'active' && setupForm.querySelector('input[name="plan"][value="' + remembered.plan + '"]')?.checked) {
-    await advanceSetup();
-    if (setupStep === 1) setupStatus.textContent = remembered.plan[0].toUpperCase() + remembered.plan.slice(1) + ' plan (' + remembered.cycle + ') selected. Use Back to change it.';
-   }
+   // New owners start on Plans & billing: buy a complete plan or a single tool, then connect it.
+   const planName = remembered ? remembered.plan[0].toUpperCase() + remembered.plan.slice(1) : '';
+   billingWelcome = remembered
+    ? 'Welcome to Mar-Khoor! Your ' + planName + ' plan (' + remembered.cycle + ') is in the cart. Pay to start, or switch to “Single tools” to buy just one tool.'
+    : 'Welcome to Mar-Khoor! Choose a complete plan, or “Single tools” to buy just the tool you need. After payment we show you how to connect it.';
+   goToCart(remembered?.plan || null, remembered?.cycle || null, billingWelcome);
   }
   planIntent = false;
  } catch (error) {
@@ -1472,7 +1471,7 @@ if(location.hash==='#website')setTimeout(()=>loadWidget().catch(()=>{}),1500);
 // Plans & billing: plan + tools go into a cart, then card payment (Stripe Checkout).
 // Activation happens only through Stripe's webhook.
 const billingEl=id=>document.getElementById(id);
-var billingLoadedFor=null;let billingData=null,billingPlans=[];
+var billingLoadedFor=null;let billingData=null,billingPlans=[];var billingWelcome='';
 const TOOL_NAMES={website:'Website Builder',ai_assistant:'Web AI Assistant',whatsapp:'WhatsApp Business',ai_caller:'AI Call Assistant'};
 const billingMoney=(minor,currency)=>{try{return new Intl.NumberFormat(undefined,{style:'currency',currency,maximumFractionDigits:minor%100?2:0}).format(minor/100)}catch{return currency+' '+(minor/100)}};
 const billingForm=billingEl('billing-form');
@@ -1537,11 +1536,41 @@ function showBilling(data,plans){
  if(!data.enabled){notice.hidden=false;notice.className='notice notice-info';notice.textContent='Card payment is not switched on yet. The platform confirms your payment manually.'}
  else if(sub?.status==='past_due'){notice.hidden=false;notice.className='notice notice-warn';notice.textContent='Your last payment failed. Update your card in “Manage billing” to keep your plan.'}
  else if(data.test_mode){notice.hidden=false;notice.className='notice notice-info';notice.textContent='Test mode: use card 4242 4242 4242 4242, any future date and any CVC.'}
+ else if(billingWelcome&&!sub){notice.hidden=false;notice.className='notice notice-info';notice.textContent=billingWelcome}
  else notice.hidden=true;
  renderBillingPlans();
+ renderPlanIntegrations(data);
  if(buyMode()==='tools')syncBuyMode();
  const myTools=(data.my_tools||[]).filter(t=>t.status==='active');
  if(myTools.length&&!sub)billingEl('billing-summary').textContent='Active tools: '+myTools.map(t=>({website:'AI Website Builder',whatsapp:'WhatsApp Business AI',calling:'AI Calling'})[t.tool_key]||t.tool_key).join(', ');
+}
+// After payment: one box per paid tool with its status and a button that opens its setup.
+const PLAN_INTEGRATIONS={
+ website:{icon:'🌐',title:'AI Website',desc:'Pick a template, let AI write it, then publish.',kind:'website',action:'Build website',go:()=>{location.hash='#website'}},
+ ai_assistant:{icon:'💬',title:'Web AI Assistant',desc:'Add the chat and voice assistant to your website.',kind:'ai_assistant',action:'Add assistant',go:()=>{location.hash='#website';setTimeout(()=>document.querySelector('#site-widget')?.scrollIntoView({behavior:'smooth',block:'start'}),500)}},
+ whatsapp:{icon:'🟢',title:'WhatsApp Business',desc:'Activate your number with a code, or connect with Facebook.',kind:'whatsapp',action:'Connect WhatsApp',go:()=>{location.hash='#whatsapp-inbox-view'}},
+ calling:{icon:'📞',title:'AI Calling',desc:'Add the number customers call. The AI answers and takes orders.',kind:'ai_caller',action:'Set up calling',go:()=>{showSetupStep(1);renderPlans();fillConnectStep();setupDialog.showModal()}}
+};
+function renderPlanIntegrations(data){
+ const card=billingEl('plan-integrations'),list=billingEl('plan-integrations-list');if(!card||!list)return;
+ const planActive=data.subscription?.status==='active';
+ const keys=planActive?['website','ai_assistant','whatsapp','calling']:[...new Set((data.my_tools||[]).filter(t=>t.status==='active').map(t=>t.tool_key))].filter(k=>PLAN_INTEGRATIONS[k]);
+ card.hidden=!keys.length;if(!keys.length)return;
+ const done={connected:'Connected',active:'Connected',live:'Connected',published:'Live',skipped:'Skipped',pending:'In progress',requested:'In progress'};
+ list.replaceChildren(...keys.map(key=>{
+  const info=PLAN_INTEGRATIONS[key],item=(setupData.integrations||[]).find(i=>i.kind===info.kind);
+  const box=document.createElement('div');box.className='integration-box';
+  const icon=document.createElement('span');icon.className='integration-icon';icon.setAttribute('aria-hidden','true');icon.textContent=info.icon;
+  const text=document.createElement('div');text.className='integration-text';
+  const h=document.createElement('strong');h.textContent=info.title;
+  const p=document.createElement('span');p.className='small muted';p.textContent=info.desc;
+  text.append(h,p);
+  const label=item&&done[item.status];
+  const tag=document.createElement('span');tag.className='tag '+(label==='Connected'||label==='Live'?'tag-ok':'tag-ember');tag.textContent=label||'Not set up';
+  const btn=document.createElement('button');btn.type='button';btn.className='btn btn-sm '+(label==='Connected'||label==='Live'?'btn-ghost':'btn-primary');btn.textContent=label==='Connected'||label==='Live'?'Open':info.action;btn.addEventListener('click',info.go);
+  const foot=document.createElement('div');foot.className='integration-foot';foot.append(tag,btn);
+  box.append(icon,text,foot);return box;
+ }));
 }
 async function loadBilling(){
  if(!restaurantId||!billingEl('billing'))return;const id=restaurantId;
@@ -1644,9 +1673,12 @@ billingEl('billing-manage')?.addEventListener('click',async()=>{const note=billi
   const notice=billingEl('billing-notice');
   if(result==='cancelled'){await loadBilling().catch(()=>{});notice.hidden=false;notice.className='notice notice-info';notice.textContent='Payment cancelled. Nothing was charged.';return}
   const data=await loadBilling().catch(()=>null);
-  if(data?.subscription?.status==='active'&&data.stripe?.has_customer){
+  if((data?.subscription?.status==='active'&&data.stripe?.has_customer)||(data?.my_tools||[]).some(t=>t.status==='active')){
    notice.hidden=false;notice.className='notice notice-ok';notice.textContent='Payment received. Your plan is active.';
+   billingWelcome='';
    let next=null;try{next=localStorage.getItem('mar-khoor.after-pay.'+restaurantId);localStorage.removeItem('mar-khoor.after-pay.'+restaurantId)}catch{}
+   const card=billingEl('plan-integrations');
+   if(card&&!card.hidden){notice.textContent='Payment received. Your tools are active: connect them below.';billingEl('plan-integrations-title').textContent='Payment done: now connect your tools';card.classList.add('just-paid');card.scrollIntoView({behavior:'smooth',block:'start'});return}
    if(next==='website'){notice.textContent+=' Opening your AI Website Builder…';setTimeout(()=>{location.hash='#website';loadSite().catch(()=>{});siteStatus.textContent='Your plan is active. Describe your restaurant and press “Write with AI”, then Save and Publish.';document.querySelector('#site-description')?.focus()},2500)}
    return}
   notice.hidden=false;notice.className='notice notice-info';notice.textContent='Payment received. Activating your plan…';
