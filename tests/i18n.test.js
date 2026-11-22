@@ -25,7 +25,7 @@ test('extracts interface text, placeholders and JS labels, not code', () => {
 
 test('allowlist covers the landing page, register and dashboard', () => {
   const allow = buildAllowlist('public');
-  for (const text of ['Live orders', 'Checkout & pay', 'How customers can pay']) assert.ok(allow.has(hashText(text)), text);
+  for (const text of ['Live orders', 'Checkout & pay', 'Payment methods']) assert.ok(allow.has(hashText(text)), text);
 });
 
 test('only allowlisted text is translated, then served from cache', async () => {

@@ -244,19 +244,77 @@ function renderOwnerOrders() {
   return column;
  }).filter(Boolean);
  root.replaceChildren(...board);
+ const summary = document.querySelector('#order-summary');
+ if (summary) {
+  const today = new Date().toDateString();
+  const all = ownerOrders || [];
+  const todays = all.filter(o => new Date(o.created_at).toDateString() === today && o.status !== 'cancelled');
+  const chip = (label, value, cls) => { const c = ownerText('div', '', 'sum-chip ' + (cls || '')); c.append(ownerText('strong', value), ownerText('span', label)); return c; };
+  summary.replaceChildren(
+   chip('New', String(all.filter(o => (o.status || 'pending') === 'pending').length), 'is-new'),
+   chip('In kitchen', String(all.filter(o => ['accepted', 'preparing'].includes(o.status)).length)),
+   chip('Ready', String(all.filter(o => o.status === 'ready').length)),
+   chip('Today', ownerMoney(todays.reduce((a, o) => a + Number(o.total_minor || 0), 0)), 'is-money'),
+  );
+ }
 }
 
+function ownerAgo(date) {
+ const mins = Math.round((Date.now() - date.valueOf()) / 60000);
+ if (!Number.isFinite(mins)) return '';
+ if (mins < 1) return 'just now';
+ if (mins < 60) return mins + ' min ago';
+ if (mins < 24 * 60) return Math.round(mins / 60) + ' h ago';
+ return date.toLocaleDateString(undefined, {month:'short', day:'numeric'});
+}
+const ORDER_SOURCES = {whatsapp:['💬','WhatsApp'], call:['📞','AI call'], website:['🌐','Website']};
 function orderCard(order, labels, methods, payments) {
  const card = ownerText('article', '', 'order-card');
+ card.dataset.status = order.status || 'pending';
  const head = ownerText('div', '', 'head');
  const date = new Date(order.created_at);
- head.append(ownerText('strong', '#' + order.id), ownerText('time', Number.isNaN(date.valueOf()) ? '' : date.toLocaleString(undefined, {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'})));
+ const [icon, sourceLabel] = ORDER_SOURCES[order.source] || ORDER_SOURCES.website;
+ const idWrap = ownerText('div', '', 'order-id');
+ idWrap.append(ownerText('strong', '#' + order.id), ownerText('span', icon + ' ' + sourceLabel, 'order-source source-' + (order.source || 'website')));
+ const when = ownerText('time', Number.isNaN(date.valueOf()) ? '' : ownerAgo(date));
+ if (!Number.isNaN(date.valueOf())) { when.dateTime = date.toISOString(); when.title = date.toLocaleString(); }
+ head.append(idWrap, when);
+ // Customer and how they get the food.
  const meta = ownerText('div', '', 'meta');
- meta.append(ownerText('strong', order.customer_name || 'Customer'));
- if (order.order_type === 'delivery' || order.order_type === 'pickup') meta.append(ownerText('span', order.order_type === 'delivery' ? 'Delivery' : 'Pickup'));
- for (const detail of [order.customer_phone, order.delivery_address, order.delivery_instructions && 'Note: ' + order.delivery_instructions]) if (detail) meta.append(ownerText('span', detail));
+ const who = ownerText('div', '', 'order-who');
+ who.append(ownerText('strong', order.customer_name || 'Customer'));
+ const phone = String(order.customer_phone || '').trim();
+ if (phone) {
+  const digits = phone.replace(/[^0-9]/g, '');
+  const contact = ownerText('div', '', 'order-contact');
+  const call = ownerText('a', '📞 ' + phone, 'contact-link'); call.href = 'tel:' + phone.replace(/[^0-9+]/g, '');
+  contact.append(call);
+  if (digits.length >= 8) { const wa = ownerText('a', '💬 WhatsApp', 'contact-link'); wa.href = 'https://wa.me/' + digits; wa.target = '_blank'; wa.rel = 'noopener'; contact.append(wa); }
+  who.append(contact);
+ }
+ meta.append(who);
+ if (order.order_type === 'delivery' || order.order_type === 'pickup') {
+  const how = ownerText('div', '', 'order-how ' + order.order_type);
+  how.append(ownerText('span', order.order_type === 'delivery' ? '🛵 Delivery' : '🛍️ Pickup', 'how-label'));
+  if (order.order_type === 'delivery' && order.delivery_address) {
+   const map = ownerText('a', order.delivery_address, 'order-address'); map.href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(order.delivery_address); map.target = '_blank'; map.rel = 'noopener'; map.title = 'Open in Google Maps';
+   how.append(map);
+  }
+  meta.append(how);
+ }
+ if (order.delivery_instructions) meta.append(ownerText('p', '📝 ' + order.delivery_instructions, 'order-note'));
+ // What was ordered.
+ let itemsBox = null;
+ if (Array.isArray(order.items) && order.items.length) {
+  itemsBox = ownerText('ul', '', 'order-items');
+  for (const item of order.items) {
+   const li = ownerText('li', '');
+   li.append(ownerText('span', item.quantity + '×', 'qty'), ownerText('span', item.name, 'name'), ownerText('span', ownerMoney(item.unit_price_minor * item.quantity), 'price'));
+   itemsBox.append(li);
+  }
+ }
  const money = ownerText('div', '', 'money');
- money.append(ownerText('strong', ownerMoney(order.total_minor)));
+ money.append(ownerText('span', 'Total', 'total-label'), ownerText('strong', ownerMoney(order.total_minor), 'total'));
  let payBox = null;
  if (order.payment_type) {
   const states = {awaiting:'Not paid yet',submitted:'Check payment',confirmed:'Paid',rejected:'Not received'};
@@ -296,7 +354,9 @@ function orderCard(order, labels, methods, payments) {
   const pay = ownerText('span', methods[order.payment_method] + ' · ' + (payments[order.payment_status] || 'Unpaid'), 'tag ' + (order.payment_status === 'paid' ? 'tag-ok' : 'tag-warn'));
   money.append(pay);
  }
- card.append(head, meta, money);
+ card.append(head, meta);
+ if (itemsBox) card.append(itemsBox);
+ card.append(money);
  if (payBox) card.append(payBox);
  const actions = ownerText('div', '', 'actions');
  for (const next of orderTransitions[order.status] ?? []) {
@@ -1583,6 +1643,7 @@ function showPaySettings(data) {
  payEl('pay-cash').checked = s.cash; payEl('pay-card').checked = s.card_on_delivery;
  const list = payEl('pay-transfers'); list.replaceChildren(...s.transfers.map(payTransferRow));
  payEl('pay-preview').textContent = 'Customers see: ' + data.preview.map(o => o.label).join(' · ');
+ const sum = payEl('pay-summary'); if (sum) sum.textContent = data.preview.map(o => o.label).join(' · ') || 'Cash';
 }
 async function loadPaySettings() { if (!restaurantId || !payEl('pay-form')) return; const id = restaurantId; const data = await api('/api/restaurants/' + id + '/payment-settings'); if (id === restaurantId) showPaySettings(data); }
 payEl('pay-add')?.addEventListener('click', () => { if (payEl('pay-transfers').children.length < 5) payEl('pay-transfers').append(payTransferRow()); });
