@@ -26,10 +26,10 @@ const pool = {
 const keys = ['OPENAI_API_KEY', 'REGISTRATION_WEBSITE_ASSISTANT_ENABLED', 'RESTAURANT_WEBSITE_ASSISTANT_ENABLED'];
 const prev = new Map(keys.map(k => [k, process.env[k]]));
 const restore = () => { for (const [k,v] of prev) { if (v === undefined) delete process.env[k]; else process.env[k] = v; } };
-async function withApp(fetcher, run) {
+async function withApp(fetcher, run, db = pool) {
   const app = express();
   app.use(express.json());
-  app.use(sitesRouter(pool, { assistantFetch: fetcher }));
+  app.use(sitesRouter(db, { assistantFetch: fetcher }));
   const server = app.listen(0);
   try {
     await new Promise(resolve => server.once('listening',resolve));
@@ -170,3 +170,68 @@ test('text assistant rejects AI-invented menu item from draft',async()=>{
     assert.equal((await response.json()).draft,null);
   });
 });
+
+
+test('non-food public AI uses only this business verified services and cannot prepare food orders', async () => {
+ process.env.OPENAI_API_KEY='test-only-not-real';
+ const businessPool = {
+  async query(sql) {
+   assert.match(sql, /^CREATE TABLE IF NOT EXISTS /);
+   return [];
+  },
+  async execute(sql, args = []) {
+   if (sql.includes('FROM restaurants r JOIN restaurant_sites')) {
+    return [[{id:44,name:'QA Clinic',slug:'qa-clinic',country_code:'GR',currency:'EUR',locale:'en',website_assistant_provisioned:1,config:'{}'}]];
+   }
+   if (sql.includes('FROM menu_items WHERE restaurant_id=')) return [[]];
+   if (sql.includes('FROM restaurants r LEFT JOIN business_profiles')) {
+    assert.deepEqual(args,[44]);
+    return [[{country_code:'GR',category:'clinic',timezone:'Europe/Athens',slot_minutes:30,bookings_enabled:1}]];
+   }
+   if (sql.includes('FROM booking_services s LEFT JOIN booking_service_meta')) {
+    assert.deepEqual(args,[44]);
+    return [[{id:90,name:'General Consultation',description:'QA service',duration_min:30,price_minor:4000,capacity:1,resource_ids:'[]',active:1}]];
+   }
+   throw Error('unexpected booking test SQL: '+sql);
+  },
+ };
+ let instructions = '';
+ const provider = async (_url,opts) => {
+  instructions=JSON.parse(opts.body).instructions;
+  return {ok:true,status:200,json:async()=>({output:[{content:[{type:'output_text',text:JSON.stringify({
+   reply:'General Consultation costs 40 EUR. Please check availability on the clinic booking page.',
+   draft:{customer_name:'Invalid Order',items:[{menu_item_id:90,quantity:1}]},
+  })}]}]})};
+ };
+ await withApp(provider,async base => {
+  const response=await chat(base,'qa-clinic',{message:'How much is General Consultation?'});
+  assert.equal(response.status,200);
+  const body=await response.json();
+  assert.equal(body.source,'ai');
+  assert.equal(body.draft,null,'a booking assistant never creates a fake food order');
+  assert.match(body.reply,/General Consultation/);
+  assert.match(instructions,/General Consultation/);
+  assert.match(instructions,/"price_minor":4000/);
+  assert.match(instructions,/\/book\.html\?b=qa-clinic/);
+  assert.doesNotMatch(instructions,/Alpha Soup|Beta Burger/);
+  assert.doesNotMatch(instructions,/You are also the restaurant ordering assistant/);
+  const page=await fetch(base+'/r/qa-clinic');
+  assert.equal(page.status,200);
+  const html=await page.text();
+  assert.match(html,/Ask me about services and appointments/);
+  assert.match(html,/placeholder="Ask about appointments…"/);
+  assert.doesNotMatch(html,/No menu items available yet/);
+  assert.match(html,/General Consultation/);
+ },businessPool);
+ delete process.env.OPENAI_API_KEY;
+ await withApp(async()=>{throw Error('No API call expected')},async base=>{
+  const response=await chat(base,'qa-clinic',{message:'What can I book?'});
+  assert.equal(response.status,200);
+  const body=await response.json();
+  assert.equal(body.source,'menu_fallback');
+  assert.match(body.reply,/General Consultation/);
+  assert.match(body.reply,/40\.00/);
+  assert.match(body.reply,/\/book\.html\?b=qa-clinic/);
+ },businessPool);
+});
+
