@@ -12,7 +12,7 @@ test('schema has number routing and plan order tables',()=>{const sql=read('db/s
 test('plan order and number routes are limited to the right roles',()=>{const src=read('src/plans.js');assert.match(src,/superOnly/);assert.match(src,/role='admin'/);assert.match(src,/onlyFrom: 'pending_payment'/)});
 test('homepage has a clear registration button and the new panels render text safely',()=>{
  const home=read('public/index.html');
- assert.match(home,/class="[^"]*\bbutton\b[^"]*" href="\/register\.html">Register your restaurant/);
+ assert.match(home,/class="[^"]*\bbutton\b[^"]*" href="\/register\.html">Register your business/);
  assert.match(home,/class="[^"]*\bnav-cta\b[^"]*" href="\/register\.html"/);
  for(const file of ['public/register.js','public/restaurant.js','public/platform.js'])assert.ok(!/innerHTML/.test(read(file)),file+' must not use innerHTML');
  assert.match(read('public/restaurant.html'),/id="billing-form"[\s\S]*id="billing-cart"/);
