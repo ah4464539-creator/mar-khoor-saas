@@ -178,3 +178,12 @@
  .lp .ptable .b{height:36px;padding:0 10px;font-size:13px}
  .lp h1{font-size:44px}
 }
+/* Full-width wrap on small screens (summit.css narrows .mk .wrap a second time) */
+.lp .wrap{width:auto}
+@media (max-width:600px){
+ .lp .topbar .wrap{height:60px;gap:12px}
+ .lp .topbar .acts{gap:6px;align-items:center}
+ .lp .topbar .acts .b-line{display:inline-flex;border:0;background:transparent;padding:0 8px;height:36px;font-size:14px}
+ .lp .topbar .acts .b-go{height:36px;padding:0 14px;font-size:14px;border-radius:9px}
+ .lp .foot{padding-bottom:40px}
+}
