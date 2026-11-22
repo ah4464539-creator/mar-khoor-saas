@@ -74,11 +74,13 @@ export function integrationRouter(pool){
      const type=typeof msg.type==='string'?msg.type.slice(0,32):'unknown';
      let body=type==='text'&&typeof msg.text?.body==='string'?msg.text.body.slice(0,10000):null;
      // Order summary buttons: keep our own button id (mk_confirm:12) so the worker knows which summary.
-     if(type==='interactive'&&msg.interactive?.type==='button_reply'){const reply=msg.interactive.button_reply||{};body=/^mk_(confirm|change):[0-9]{1,12}$/.test(String(reply.id||''))?reply.id:(typeof reply.title==='string'?reply.title.slice(0,100):null);}
+     if(type==='interactive'&&(msg.interactive?.type==='button_reply'||msg.interactive?.type==='list_reply')){const reply=msg.interactive.button_reply||msg.interactive.list_reply||{};body=/^mk_(confirm|change):[0-9]{1,12}$|^mk_pay:[0-9]{1,12}:(cash|card|transfer:[a-z0-9]{4,12})$/.test(String(reply.id||''))?reply.id:(typeof reply.title==='string'?reply.title.slice(0,100):null);}
      if(type==='button'&&typeof msg.button?.text==='string')body=msg.button.text.slice(0,100);
      // Voice notes: remember the media id; the worker downloads and transcribes it.
-     const mediaId=type==='audio'&&typeof msg.audio?.id==='string'&&/^[0-9]{1,64}$/.test(msg.audio.id)?msg.audio.id:null;
-     const mime=mediaId&&typeof msg.audio?.mime_type==='string'?msg.audio.mime_type.slice(0,100):null;
+     // Voice notes and pictures (payment screenshots): remember the media id for the worker.
+     const media=type==='audio'?msg.audio:type==='image'?msg.image:null;
+     const mediaId=media&&typeof media.id==='string'&&/^[0-9]{1,64}$/.test(media.id)?media.id:null;
+     const mime=mediaId&&typeof media.mime_type==='string'?media.mime_type.slice(0,100):null;
      messages.push({phoneId,id:msg.id,from:msg.from,type,body,mediaId,mime});
     }
    }

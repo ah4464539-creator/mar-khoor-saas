@@ -1,5 +1,5 @@
 import express from 'express';
-import { notifyOrderStatus } from './whatsapp-orders.js';
+import { notifyOrderStatus, notifyPaymentStatus, proofMedia } from './whatsapp-orders.js';
 import { requireAuth } from './auth.js';
 import { isMissingFulfillmentSchema } from './order-fulfillment.js';
 import { isAllowedImageRef } from './media-store.js';
@@ -213,7 +213,28 @@ export function operationsRouter(pool) {
    await pool.execute("UPDATE order_fulfillment SET payment_status=? WHERE order_id=? AND restaurant_id=?",[action==='confirm'?'paid':'unpaid',orderId,req.restaurantId]).catch(()=>{});
    await audit(pool,{actorUserId:req.user.id,restaurantId:req.restaurantId,action:'order_payment.'+next+':'+orderId});
    res.json({order_id:orderId,status:next});
+   notifyPaymentStatus(pool,req.restaurantId,orderId,next,{tokenFor:phoneId=>tokenForNumber(pool,phoneId)}).catch(()=>{});
   }catch{res.status(503).json({error:'Payment update unavailable'});}
+ });
+ // Payment screenshot that a customer sent on WhatsApp (streamed from Meta; never stored by us).
+ router.get('/restaurants/:restaurantId/orders/:orderId/payment-proof',async(req,res)=>{
+  const orderId=Number(req.params.orderId);
+  if(!Number.isSafeInteger(orderId)||orderId<1)return res.status(400).json({error:'Invalid order'});
+  try{
+   const proof=await proofMedia(pool,req.restaurantId,orderId);
+   if(!proof)return res.status(404).json({error:'No screenshot for this order'});
+   const token=(await tokenForNumber(pool,proof.phone_number_id))||process.env.WHATSAPP_ACCESS_TOKEN;
+   const v=/^v[0-9]{1,2}[.][0-9]{1,2}$/.test(process.env.WHATSAPP_GRAPH_VERSION||'')?process.env.WHATSAPP_GRAPH_VERSION:'v23.0';
+   const info=await fetch('https://graph.facebook.com/'+v+'/'+encodeURIComponent(proof.media_id),{headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(10000)});
+   const meta=await info.json().catch(()=>({}));
+   if(!info.ok||typeof meta.url!=='string'||!/^https:[/][/][a-z0-9.-]+[.](fbsbx|facebook|whatsapp)[.](com|net)[/]/i.test(meta.url))return res.status(410).json({error:'WhatsApp no longer has this screenshot (Meta keeps media for a limited time)'});
+   const file=await fetch(meta.url,{headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(20000)});
+   const type=String(meta.mime_type||proof.mime_type||'image/jpeg').split(';')[0];
+   if(!file.ok||!/^image[/](jpeg|png|webp)$/.test(type))return res.status(410).json({error:'Screenshot unavailable'});
+   const bytes=Buffer.from(await file.arrayBuffer());
+   if(bytes.length>8*1024*1024)return res.status(413).json({error:'Screenshot too large'});
+   res.set({'Content-Type':type,'Cache-Control':'private, no-store','Content-Security-Policy':"default-src 'none'; sandbox",'X-Content-Type-Options':'nosniff'}).send(bytes);
+  }catch{res.status(503).json({error:'Screenshot unavailable'});}
  });
  router.get('/restaurants/:restaurantId/orders',async(req,res)=>{
   // Fulfilment rows are joined on both order and restaurant so one tenant never sees another's details.
@@ -225,7 +246,9 @@ export function operationsRouter(pool) {
     const ids=orders.map(o=>o.id);
     const [pays]=await pool.query('SELECT order_id,method_type AS payment_type,method_label AS payment_label,reference AS payment_reference,status AS payment_state FROM order_payments WHERE restaurant_id=? AND order_id IN ('+ids.map(()=>'?').join(',')+')',[req.restaurantId,...ids]);
     const map=new Map(pays.map(p=>[Number(p.order_id),p]));
-    return orders.map(o=>{const p=map.get(Number(o.id));if(!p)return o;const {order_id,...rest}=p;return {...o,...rest};});
+    let proofs=new Set();
+    try{const [rows]=await pool.query('SELECT order_id FROM whatsapp_payment_proofs WHERE restaurant_id=? AND order_id IN ('+ids.map(()=>'?').join(',')+')',[req.restaurantId,...ids]);proofs=new Set(rows.map(r=>Number(r.order_id)));}catch{}
+    return orders.map(o=>{const p=map.get(Number(o.id));if(!p)return o;const {order_id,...rest}=p;return {...o,...rest,...(proofs.has(Number(o.id))?{payment_proof:true}:{})};});
    }catch{return orders;}
   };
   try{const [orders]=await pool.execute(detailed,[req.restaurantId]);res.json({orders:await withPayments(orders)});}
