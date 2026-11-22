@@ -47,7 +47,7 @@
  <a class="brand" href="/"><img src="/assets/markhor-mark-tile.svg" width="34" height="34" alt=""><b>Mar<span>-</span>Khoor</b></a>
  <div class="side-tenant" id="owner-restaurant-switch" hidden><div class="avatar" id="owner-tenant-initials" aria-hidden="true">R</div><div><strong id="owner-switch-name" translate="no">Restaurant</strong><small>Admin</small></div></div>
  <nav class="nav" aria-label="Workspace">
-  <span class="nav-label">Restaurant</span>
+  <span class="nav-label" data-biz-label="group">Restaurant</span>
   <a class="selected" aria-current="page" href="#owner-overview"><svg aria-hidden="true"><use href="#i-home"/></svg><span>Dashboard</span></a>
   <div id="owner-navigation" class="nav-group" hidden>
    <a href="#order-desk" data-food-only><svg aria-hidden="true"><use href="#i-orders"/></svg><span>Live orders</span><span class="count" id="nav-pending-count" hidden></span></a>
@@ -206,7 +206,7 @@
   <section class="card card-pad bk-card" aria-labelledby="bk-type-title">
    <div class="card-head"><div><h2 id="bk-type-title">Your business</h2><p class="small muted">Your dashboard, website and AI assistants adapt to your type of business.</p></div></div>
    <div class="bk-type-grid" id="bk-type-grid" role="radiogroup" aria-label="Type of business"></div>
-   <label class="check bk-online"><input type="checkbox" id="bk-enabled"> <span>Take bookings online (website, WhatsApp and AI calls)</span></label>
+   <label class="check bk-online"><input type="checkbox" id="bk-enabled"> <span id="bk-enabled-text">Take bookings online (website, WhatsApp and AI calls)</span></label>
    <p class="small" id="bk-link"></p>
   </section>
   <section class="card card-pad bk-card" aria-labelledby="bk-hours-title" id="bk-hours-card">
@@ -550,7 +550,7 @@
 <script src="/call-forwarding.js?v=20261122-1"></script>
 <script src="/site-content.js?v=20261122-1"></script>
 <script src="/owner-app.js?v=20261122-2"></script>
-<script src="/bookings.js?v=20261122-2"></script>
+<script src="/bookings.js?v=20261122-3"></script>
 <script type="module" src="/restaurant.js?v=20261122-s34"></script>
 <script>document.getElementById("login-show-password")?.addEventListener("change",function(){document.getElementById("password").type=this.checked?"text":"password"});</script>
 </body>

@@ -6,10 +6,10 @@
   const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const TYPE_ICONS = { restaurant: '🍽️', clinic: '🩺', hotel: '🏨', salon: '✂️' };
   const COPY = {
-    restaurant: { nav: 'Table bookings', setup: 'Tables & hours', resHint: 'Tables or areas guests can book (optional).', svcHint: 'For example: Table for 2, Family table, Private room.', capacity: 'Tables of this kind', resLegend: 'Which tables', guests: 'Guests' },
-    clinic: { nav: 'Appointments', setup: 'Doctors & services', resHint: 'Doctors or specialists who see patients.', svcHint: 'For example: General check-up, Dental cleaning, Follow-up visit.', capacity: 'Patients at the same time', resLegend: 'Which doctors', guests: 'Patients' },
-    salon: { nav: 'Appointments', setup: 'Services & staff', resHint: 'Stylists or staff who do the work.', svcHint: 'For example: Haircut, Facial, Bridal makeup.', capacity: 'Clients at the same time', resLegend: 'Who does it', guests: 'People' },
-    hotel: { nav: 'Reservations', setup: 'Rooms & rates', resHint: '', svcHint: 'Each room type with its price per night and how many rooms you have.', capacity: 'Rooms of this type', resLegend: '', guests: 'Guests' },
+    restaurant: { group: 'Restaurant', online: 'Take table bookings online (website, WhatsApp and AI calls)', nav: 'Table bookings', setup: 'Tables & hours', resHint: 'Tables or areas guests can book (optional).', svcHint: 'For example: Table for 2, Family table, Private room.', capacity: 'Tables of this kind', resLegend: 'Which tables', guests: 'Guests' },
+    clinic: { group: 'Clinic', online: 'Patients can book appointments online (website, WhatsApp and AI calls)', nav: 'Appointments', setup: 'Doctors & services', resHint: 'Doctors or specialists who see patients.', svcHint: 'For example: General check-up, Dental cleaning, Follow-up visit.', capacity: 'Patients at the same time', resLegend: 'Which doctors', guests: 'Patients' },
+    salon: { group: 'Salon', online: 'Clients can book appointments online (website, WhatsApp and AI calls)', nav: 'Appointments', setup: 'Services & staff', resHint: 'Stylists or staff who do the work.', svcHint: 'For example: Haircut, Facial, Bridal makeup.', capacity: 'Clients at the same time', resLegend: 'Who does it', guests: 'People' },
+    hotel: { group: 'Hotel', online: 'Guests can book rooms online (website, WhatsApp and AI calls)', nav: 'Reservations', setup: 'Rooms & rates', resHint: '', svcHint: 'Each room type with its price per night and how many rooms you have.', capacity: 'Rooms of this type', resLegend: '', guests: 'Guests' },
   };
   const STATUS = { pending: 'New', confirmed: 'Confirmed', completed: 'Done', cancelled: 'Cancelled', no_show: 'No-show' };
   const SOURCE = { owner: '🧑‍💼', website: '🌐', whatsapp: '💬', call: '📞' };
@@ -31,6 +31,8 @@
     const c = copy();
     document.querySelectorAll('[data-biz-label="bookings"]').forEach(n => { n.textContent = c.nav; });
     document.querySelectorAll('[data-biz-label="setup"]').forEach(n => { n.textContent = c.setup; });
+    document.querySelectorAll('[data-biz-label="group"]').forEach(n => { n.textContent = c.group; });
+    if ($('bk-enabled-text')) $('bk-enabled-text').textContent = c.online;
     $('bookings')?.setAttribute('data-title', c.nav);
     $('booking-setup')?.setAttribute('data-title', c.setup);
     if (location.hash === '#bookings' || location.hash === '#booking-setup') { const h = document.querySelector('#owner-heading'); if (h) h.textContent = location.hash === '#bookings' ? c.nav : c.setup; }
