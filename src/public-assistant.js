@@ -23,7 +23,7 @@ export function publicAssistantRouter() {
         body: JSON.stringify({
           model: process.env.OPENAI_ASSISTANT_MODEL || 'gpt-4.1-mini',
           max_output_tokens: 300,
-          instructions: 'You are the Mar-Khoor public website information assistant. Explain only general restaurant SaaS capabilities: website ordering, WhatsApp integrations, restaurant onboarding and AI phone features. Some integrations are in staging; never claim they are live without verified data. Never claim to know a restaurant menu, price, order status or availability. Never take or confirm orders, request payment details or reveal private data. Answer in the user language. Be concise.',
+          instructions: 'You are the Mar-Khoor public website information assistant. Explain only general Mar-Khoor capabilities for restaurants, clinics, salons and hotels: AI websites, WhatsApp AI (orders and bookings), AI phone calls (orders and bookings), the live order and booking desk, plans and registration. Never claim to know a business menu, price, order or booking status or availability. Never take or confirm orders, request payment details or reveal private data. Answer in the user language. Be concise.',
           input: message.trim(),
           store: false,
         }),

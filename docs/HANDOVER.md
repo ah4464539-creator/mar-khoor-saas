@@ -1,7 +1,7 @@
 # Mar-Khoor — handover for the next work session
 
 Give this file to any new Claude session (or developer) so work can continue without re-explaining.
-Last updated: 2026-11-22 (after PR #123).
+Last updated: 2026-11-22 (after PR #124).
 
 ## 1. What the project is
 - Multi-business SaaS: restaurants (orders), clinics / salons (appointments), hotels (rooms).
@@ -44,8 +44,7 @@ Last updated: 2026-11-22 (after PR #123).
 
 ## 5. Not finished / waiting
 - **Owner tests needed:** WhatsApp booking and call booking end to end (suggested: Urban Cafe → Tables & hours → enable bookings → add "Table for 2" → book on WhatsApp). Note: saving services adds booking tools to Urban Cafe's Vapi assistant (order flow unchanged).
-- **Landing page for all business types:** hero, title and pricing text still say "restaurant"; remove "Soon" labels on the businesses panel (`index.html`, `.sector-soon`).
-- Setup dialog (Start setup) texts still mention the menu for every type.
+- Landing page, setup dialog and login now speak to every business type (PR #124).
 - Reminders before appointments need an approved Meta message template (not built).
 - WhatsApp calling: needs a VPS media bridge (Opus/SDES). Waiting for the owner's yes and monthly vs. yearly choice (KVM1 ~$9.99 first month, then $19.49/month). Calling pilot is still ON for Urban Cafe and failing.
 - New plan prices (Starter $299 / Premium $599 / Unlimited $1,299) — awaiting approval.
