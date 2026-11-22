@@ -104,6 +104,9 @@ export function integrationRouter(pool){
    }
    let updated_statuses=0;
    let retryRecentStatus=false;
+   // Delivery receipts are bookkeeping only: a failure here is logged and acknowledged so Meta
+   // does not retry them for hours (and never disables the webhook over receipts).
+   try{
    for(const event of statuses){
     const applyStatus=()=>pool.execute(
      "UPDATE whatsapp_outbound_messages o JOIN whatsapp_numbers w ON w.phone_number_id=o.phone_number_id AND w.restaurant_id=o.restaurant_id AND w.active=1 SET o.status=?,o.status_at=NOW() WHERE o.message_id=? AND o.phone_number_id=? AND (o.status='accepted' OR (o.status='sent' AND ? IN ('delivered','read','failed')) OR (o.status='delivered' AND ?='read'))",
@@ -134,9 +137,10 @@ export function integrationRouter(pool){
      }
     }
    }
-   if(retryRecentStatus)return res.status(503).json({error:'Outbound message not recorded yet'});
+   }catch(error){console.warn('WhatsApp webhook: status update skipped:',/^[A-Z][A-Z0-9_]{1,63}$/.test(error?.code??'')?error.code:'UNKNOWN');retryRecentStatus=false;}
+   if(retryRecentStatus&&!messages.length){console.log('WhatsApp webhook: receipt arrived before our send was saved; asking Meta to replay');return res.status(503).json({error:'Outbound message not recorded yet'});}
    return res.status(202).json({received:true,processed,updated_statuses});
-  }catch{return res.status(503).json({error:'Message storage unavailable'});}
+  }catch(error){console.warn('WhatsApp webhook: message storage failed:',/^[A-Z][A-Z0-9_]{1,63}$/.test(error?.code??'')?error.code:'UNKNOWN');return res.status(503).json({error:'Message storage unavailable'});}
 
  });
  return router;
