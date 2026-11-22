@@ -175,3 +175,13 @@ test('multinational: payment links, global time zones, more website languages', 
   assert.equal(templatesFor('hotel')[0], 'resort');
   assert.equal(templatesFor('restaurant')[0], 'classic');
 });
+
+test('super admin: one page per type of business', () => {
+  const html = readFileSync('src/views/super-admin.html', 'utf8');
+  for (const t of ['restaurant', 'clinic', 'hotel', 'salon']) assert.match(html, new RegExp('href="#biz-' + t + '"'));
+  assert.match(html, /id="biz-page"/);
+  const js = readFileSync('public/platform.js', 'utf8');
+  assert.ok(js.includes('window.mkBizPage') && !js.includes('innerHTML'));
+  const api = readFileSync('src/api.js', 'utf8');
+  assert.match(api, /category:cats\.get\(id\)\|\|'restaurant'/);
+});

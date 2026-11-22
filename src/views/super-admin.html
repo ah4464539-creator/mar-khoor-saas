@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="/summit.css?v=20261122-s5">
-<link rel="stylesheet" href="/platform.css?v=20261122-s10">
+<link rel="stylesheet" href="/platform.css?v=20261122-s11">
 </head>
 <body class="mk platform platform-app">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -49,7 +49,10 @@
  <nav class="nav" aria-label="Platform sections">
   <span class="nav-label">Business</span>
   <a class="selected" aria-current="page" href="#overview"><svg aria-hidden="true"><use href="#i-home"/></svg><span>Overview</span></a>
-  <a href="#directory"><svg aria-hidden="true"><use href="#i-store"/></svg><span>Restaurants</span></a>
+  <a href="#biz-restaurant"><svg aria-hidden="true"><use href="#i-store"/></svg><span>Restaurants</span><span class="nav-count" data-type-count="restaurant"></span></a>
+  <a href="#biz-clinic"><svg aria-hidden="true"><use href="#i-shield"/></svg><span>Clinics</span><span class="nav-count" data-type-count="clinic"></span></a>
+  <a href="#biz-hotel"><svg aria-hidden="true"><use href="#i-home"/></svg><span>Hotels</span><span class="nav-count" data-type-count="hotel"></span></a>
+  <a href="#biz-salon"><svg aria-hidden="true"><use href="#i-users"/></svg><span>Salons</span><span class="nav-count" data-type-count="salon"></span></a>
   <a href="#subscriptions"><svg aria-hidden="true"><use href="#i-layers"/></svg><span>Subscriptions</span></a>
   <a href="#plan-orders"><svg aria-hidden="true"><use href="#i-card"/></svg><span>Plan orders</span></a>
   <span class="nav-label">Integrations</span>
@@ -79,7 +82,10 @@
   <section class="card card-pad overview-tiles-card" aria-labelledby="overview-tiles-title">
    <div class="card-head"><h2 id="overview-tiles-title">Go to</h2></div>
    <nav class="overview-tiles" aria-label="Platform sections">
-   <a class="overview-tile" href="#directory"><span class="tile-icon"><svg width="20" height="20" aria-hidden="true"><use href="#i-store"/></svg></span><span><strong>Restaurants</strong><small>Accounts, owners and deleting test restaurants</small></span></a>
+   <a class="overview-tile" href="#biz-clinic"><span class="tile-icon"><svg width="20" height="20" aria-hidden="true"><use href="#i-shield"/></svg></span><span><strong>Clinics</strong><small>Clinic accounts, owners and bookings</small></span></a>
+   <a class="overview-tile" href="#biz-hotel"><span class="tile-icon"><svg width="20" height="20" aria-hidden="true"><use href="#i-home"/></svg></span><span><strong>Hotels</strong><small>Hotel accounts, owners and reservations</small></span></a>
+   <a class="overview-tile" href="#biz-salon"><span class="tile-icon"><svg width="20" height="20" aria-hidden="true"><use href="#i-users"/></svg></span><span><strong>Salons</strong><small>Salon accounts, owners and appointments</small></span></a>
+   <a class="overview-tile" href="#biz-restaurant"><span class="tile-icon"><svg width="20" height="20" aria-hidden="true"><use href="#i-store"/></svg></span><span><strong>Restaurants</strong><small>Restaurant accounts, owners and deleting test restaurants</small></span></a>
    <a class="overview-tile" href="#subscriptions"><span class="tile-icon"><svg width="20" height="20" aria-hidden="true"><use href="#i-layers"/></svg></span><span><strong>Subscriptions</strong><small>Who is on Starter, Premium or Enterprise</small></span></a>
    <a class="overview-tile" href="#plan-orders"><span class="tile-icon"><svg width="20" height="20" aria-hidden="true"><use href="#i-card"/></svg></span><span><strong>Plan orders</strong><small>Confirm payments and move orders forward</small></span></a>
    <a class="overview-tile" href="#integration-health"><span class="tile-icon"><svg width="20" height="20" aria-hidden="true"><use href="#i-shield"/></svg></span><span><strong>Integration health</strong><small>Which services are set up and working</small></span></a>
@@ -93,8 +99,15 @@
   </section>
  </div>
 
+ <section class="card card-pad biz-page" id="biz-page" tabindex="-1" hidden>
+  <div class="card-head biz-head"><div><h2 id="biz-title">Businesses</h2><p class="small muted" id="biz-sub"></p></div>
+   <div class="biz-tools"><label class="search"><span class="visually-hidden">Search</span><input id="biz-search" class="input" type="search" placeholder="Name, address, owner email or #ID"></label>
+   <select id="biz-filter" class="input" aria-label="Filter"><option value="">All</option><option value="active">Paid plan</option><option value="none">No plan yet</option><option value="whatsapp">WhatsApp connected</option></select></div></div>
+  <div class="biz-kpis" id="biz-kpis"></div>
+  <div class="biz-grid" id="biz-list"></div>
+ </section>
  <div class="split">
-  <section class="card card-pad grow" id="directory" tabindex="-1"><div class="card-head"><h2>Restaurants directory</h2></div><div id="tenant-list" class="row-list muted">Loading…</div></section>
+  <section class="card card-pad grow" id="directory" tabindex="-1"><div class="card-head"><h2>All businesses</h2></div><div id="tenant-list" class="row-list muted">Loading…</div></section>
   <section class="card card-pad rail" id="whatsapp-worker" tabindex="-1"><div class="card-head"><h2>WhatsApp worker</h2></div><div class="worker-switch"><p id="worker-switch-status" class="small">AI replies: …</p><button type="button" id="worker-switch" class="btn btn-sm btn-dark" disabled>…</button></div><p id="worker-status" role="status" class="small muted">Loading…</p><dl id="worker-metrics" class="worker-metrics"></dl></section>
  </div>
 
@@ -195,7 +208,7 @@
 <script>
 (() => {
  // One section at a time: the left menu picks which card is shown.
- const VIEWS = ['overview','directory','subscriptions','plan-orders','integration-health','custom-domains','phone-numbers','number-routes','whatsapp-worker','whatsapp-numbers','voice-assistants'];
+ const VIEWS = ['overview','directory','biz-restaurant','biz-clinic','biz-hotel','biz-salon','subscriptions','plan-orders','integration-health','custom-domains','phone-numbers','number-routes','whatsapp-worker','whatsapp-numbers','voice-assistants'];
  const side = document.getElementById('platform-side'), backdrop = document.getElementById('side-backdrop'), toggle = document.getElementById('menu-toggle');
  const heading = document.getElementById('platform-heading'), sub = document.querySelector('#overview .sub');
  const links = [...document.querySelectorAll('#platform-workspace .nav a')];
@@ -205,12 +218,14 @@
  }
  function show(view) {
   if (!VIEWS.includes(view)) view = 'overview';
-  for (const id of VIEWS) { const el = id === 'overview' ? document.getElementById('overview-kpis') : document.getElementById(id); if (el) el.hidden = id !== view; }
+  for (const id of VIEWS) { if (id.startsWith('biz-')) continue; const el = id === 'overview' ? document.getElementById('overview-kpis') : document.getElementById(id); if (el) el.hidden = id !== view; }
+  const bizPage = document.getElementById('biz-page');
+  if (bizPage) { bizPage.hidden = !view.startsWith('biz-'); if (view.startsWith('biz-')) window.mkBizPage?.show(view.slice(4)); }
   const split = document.querySelector('.main .split');
   if (split) split.hidden = view !== 'directory' && view !== 'whatsapp-worker';
   const link = links.find(a => a.getAttribute('href') === '#' + view);
   for (const a of links) { a.classList.toggle('selected', a === link); if (a === link) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); }
-  heading.textContent = view === 'overview' ? 'Platform overview' : (link?.textContent.trim() || 'Platform');
+  heading.textContent = view === 'overview' ? 'Platform overview' : ((link?.querySelector('span')?.textContent || link?.textContent || '').trim() || 'Platform');
   if (sub) sub.hidden = view !== 'overview';
   window.scrollTo(0, 0);
  }
@@ -230,6 +245,6 @@
  show(location.hash.slice(1));
 })();
 </script>
-<script type="module" src="/platform.js?v=20261122-s15"></script>
+<script type="module" src="/platform.js?v=20261122-s16"></script>
 </body>
 </html>
