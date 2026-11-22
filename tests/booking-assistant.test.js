@@ -39,7 +39,7 @@ test('clinic on WhatsApp: AI checks free times, proposes, customer gets a bookin
       calls++;
       if (calls === 1) {
         const names = body.tools.map(t => t.function.name);
-        assert.deepEqual(names, ['check_availability', 'propose_booking']);
+        assert.deepEqual(names, ['check_availability', 'propose_booking', 'my_bookings', 'cancel_booking', 'reschedule_booking', 'talk_to_staff']);
         assert.match(body.messages[0].content, /clinic/);
         assert.match(body.messages[0].content, /Check-up/);
         return { ok: true, json: async () => ({ choices: [{ message: { content: null, tool_calls: [{ id: 't1', type: 'function', function: { name: 'check_availability', arguments: JSON.stringify({ service_id: 9, date: '2030-01-07' }) } }] } }] }) };
@@ -72,7 +72,7 @@ test('calls: booking tools added once, with the order tool server and the bookin
   const server = { url: 'https://mar-khoor.com/integrations/vapi/tools' };
   const model = { messages: [{ role: 'system', content: 'You are a host.' }], tools: [{ type: 'function', function: { name: 'place_order' }, server }] };
   const next = withBookingTools(model, server);
-  assert.deepEqual(next.tools.map(t => t.function.name), ['place_order', 'get_business_info', 'check_availability', 'book_appointment']);
+  assert.deepEqual(next.tools.map(t => t.function.name), ['place_order', 'get_business_info', 'check_availability', 'book_appointment', 'my_bookings', 'cancel_booking', 'reschedule_booking']);
   assert.ok(next.tools.every(t => t.server === server));
   assert.ok(next.messages[0].content.includes(BOOKING_CALL_RULE));
   assert.equal(withBookingTools(next, server), next);
@@ -81,7 +81,7 @@ test('calls: booking tools added once, with the order tool server and the bookin
   assert.match(clinic.messages[0].content, /not a restaurant/);
   assert.equal(clinic.messages[0].content.split('[[MK-BUSINESS]]').length, 2);
   assert.ok(clinic.messages[0].content.startsWith('You are a host.'));
-  assert.equal(clinic.tools.length, 4);
+  assert.equal(clinic.tools.length, 7);
   const adapter = readFileSync('src/vapi-adapter.js', 'utf8');
   assert.match(adapter, /VOICE_BOOKING_TOOLS\.includes\(name\)/);
   assert.match(readFileSync('src/integrations.js', 'utf8'), /bconfirm\|bchange/);

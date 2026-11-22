@@ -7,6 +7,8 @@ import { PROPOSE_ORDER_TOOL, buildDraft, summaryText, buttonsFor, parseReply, fi
 import { loadPaymentSettings } from './payment-options.js';
 import { bookingContext, bookingPrompt, CHECK_AVAILABILITY_TOOL, PROPOSE_BOOKING_TOOL, runAvailability, buildBookingDraft, saveBookingDraft, bookingSummary, bookingButtons, parseBookingReply, findBookingDraft, markBookingDraft, placeBooking, bookingReceivedText, bookingChangeText, bookingExpiredText } from './booking-assistant.js';
 import { BUSINESS_TYPES, notifyNewBooking } from './bookings.js';
+import { MY_BOOKINGS_TOOL, CANCEL_BOOKING_TOOL, RESCHEDULE_BOOKING_TOOL, TALK_TO_STAFF_TOOL } from './booking-assistant.js';
+import { myBookings, cancelByCustomer, rescheduleByCustomer, startHandover, handoverActive } from './booking-extras.js';
 import { notifyPaymentReference } from './web-push.js';
 import mysql from 'mysql2/promise';
 import {pathToFileURL} from 'node:url';
@@ -69,6 +71,8 @@ export async function processWhatsAppAIJobs(pool,{fetcher=fetch,restaurantId=nul
   const [claimed]=await pool.execute("UPDATE whatsapp_ai_jobs j JOIN whatsapp_ai_settings s ON s.restaurant_id=j.restaurant_id AND s.enabled=1 SET j.status='processing' WHERE j.inbound_message_id=? AND j.restaurant_id=? AND j.status='pending'",[job.inbound_message_id,job.restaurant_id]);
   if(!claimed.affectedRows)continue;
   claimedCount++;
+  // A person at the business is answering this customer: the AI stays quiet.
+  if(typeof pool.query==='function'&&await handoverActive(pool,job)){await pool.execute("UPDATE whatsapp_ai_jobs SET status='sent',last_error=? WHERE inbound_message_id=? AND restaurant_id=?",['handover: staff is replying',job.inbound_message_id,job.restaurant_id]);continue;}
   let outboundId;
   try{
    const version=process.env.WHATSAPP_GRAPH_VERSION||'v23.0';
@@ -151,7 +155,7 @@ export async function processWhatsAppAIJobs(pool,{fetcher=fetch,restaurantId=nul
     };
     // Tools: food orders (restaurants), and bookings when the business takes them. The AI may check
     // free times a few times before it proposes; every proposal is re-checked by the system.
-    const tools=[...(food?[PROPOSE_ORDER_TOOL]:[]),...(bctx?.ready?[CHECK_AVAILABILITY_TOOL,PROPOSE_BOOKING_TOOL]:[])];
+    const tools=[...(food?[PROPOSE_ORDER_TOOL]:[]),...(bctx?.ready?[CHECK_AVAILABILITY_TOOL,PROPOSE_BOOKING_TOOL,MY_BOOKINGS_TOOL,CANCEL_BOOKING_TOOL,RESCHEDULE_BOOKING_TOOL]:[]),...(typeof pool.query==='function'?[TALK_TO_STAFF_TOOL]:[])];
     let convo=messages;
     for(let round=0;round<4&&replyText===null;round++){
      const out=await ask({messages:convo,tools,tool_choice:'auto'});
@@ -170,6 +174,10 @@ export async function processWhatsAppAIJobs(pool,{fetcher=fetch,restaurantId=nul
        if(built.value){await checkStillEnabled();const draftId=await saveBookingDraft(pool,job,built.value);replyText=bookingSummary(built.value,job.currency);replyButtons=bookingButtons(draftId,built.value.language);break;}
        results.push({id:call.id,content:{error:built.error}});
       }else if(name==='check_availability'&&bctx?.ready)results.push({id:call.id,content:await runAvailability(pool,job.restaurant_id,args)});
+      else if(name==='my_bookings'&&bctx?.ready)results.push({id:call.id,content:{bookings:await myBookings(pool,job.restaurant_id,job.sender)}});
+      else if(name==='cancel_booking'&&bctx?.ready)results.push({id:call.id,content:args.confirmed===true?await cancelByCustomer(pool,job.restaurant_id,job.sender,args.booking_id,'WhatsApp'):{error:'Ask the customer to confirm first'}});
+      else if(name==='reschedule_booking'&&bctx?.ready)results.push({id:call.id,content:args.confirmed===true?await rescheduleByCustomer(pool,job.restaurant_id,job.sender,args,'WhatsApp'):{error:'Ask the customer to confirm first'}});
+      else if(name==='talk_to_staff'){await startHandover(pool,job,args.reason);results.push({id:call.id,content:{ok:true,say:'Tell the customer a person from the business will reply here shortly.'}});}
       else results.push({id:call.id,content:{error:'Unknown tool'}});
      }
      if(replyText!==null)break;

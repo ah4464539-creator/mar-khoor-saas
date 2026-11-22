@@ -2,6 +2,7 @@
 // comes from the server-side assistant mapping, never from the model. Additive table only.
 import { getProfile, ensureBookingTables, createBooking, notifyNewBooking, BUSINESS_TYPES } from './bookings.js';
 import { bookingContext, bookingPrompt, runAvailability, buildBookingDraft } from './booking-assistant.js';
+import { myBookings, cancelByCustomer, rescheduleByCustomer, getTransferPhone } from './booking-extras.js';
 
 export const VOICE_BOOKING_SQL = `CREATE TABLE IF NOT EXISTS voice_booking_requests (
  assistant_id VARCHAR(128) NOT NULL,
@@ -13,7 +14,7 @@ export const VOICE_BOOKING_SQL = `CREATE TABLE IF NOT EXISTS voice_booking_reque
  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
 ) ENGINE=InnoDB`;
 
-export const VOICE_BOOKING_TOOLS = ['get_business_info', 'check_availability', 'book_appointment'];
+export const VOICE_BOOKING_TOOLS = ['get_business_info', 'check_availability', 'book_appointment', 'my_bookings', 'cancel_booking', 'reschedule_booking'];
 
 async function mappedBusiness(pool, assistantId) {
   const [rows] = await pool.execute('SELECT r.id,r.name,r.currency FROM voice_assistants v JOIN restaurants r ON r.id=v.restaurant_id WHERE v.assistant_id=? AND v.active=1 LIMIT 1', [assistantId]);
@@ -32,6 +33,13 @@ export async function runVoiceBookingTool(pool, { assistantId, name, args, messa
   if (!ctx?.ready) return { error: 'This business does not take bookings by phone yet. Take the caller name and need, and say the business will call back.' };
   if (name === 'get_business_info') return { business: business.name, kind: BUSINESS_TYPES[ctx.profile.category].label, instructions: bookingPrompt(ctx, business.currency) };
   if (name === 'check_availability') return runAvailability(pool, business.id, args || {});
+  if (['my_bookings', 'cancel_booking', 'reschedule_booking'].includes(name)) {
+    const caller = phoneOf(message);
+    if (!caller) return { error: 'The caller number is hidden; ask them to call from the number they booked with, or offer a transfer to staff.' };
+    if (name === 'my_bookings') return { bookings: await myBookings(pool, business.id, caller) };
+    if (args?.confirmed !== true) return { error: 'Read it back and get a clear yes, then call again with confirmed true' };
+    return name === 'cancel_booking' ? cancelByCustomer(pool, business.id, caller, args.booking_id, 'Phone call') : rescheduleByCustomer(pool, business.id, caller, args, 'Phone call');
+  }
   if (name !== 'book_appointment') return { error: 'Unsupported tool' };
   if (args?.confirmed !== true) return { error: 'Read the booking back to the caller and get a clear yes, then call again with confirmed true' };
   const callId = message?.call?.id;
@@ -60,22 +68,32 @@ export async function runVoiceBookingTool(pool, { assistantId, name, args, messa
 const TOOL_SCHEMAS = {
   get_business_info: { description: 'Services, prices, staff, opening hours and today\'s date for booking. Call at the start when the caller wants an appointment or a room.', parameters: { type: 'object', properties: {} } },
   check_availability: { description: 'Free times (or rooms) for one service on a date. Call before offering any time.', parameters: { type: 'object', required: ['service_id', 'date'], properties: { service_id: { type: 'integer' }, date: { type: 'string', description: 'YYYY-MM-DD' }, check_out: { type: 'string', description: 'YYYY-MM-DD, rooms only' }, staff_id: { type: 'integer' } } } },
+  my_bookings: { description: "The caller's own upcoming bookings (from their phone number).", parameters: { type: 'object', properties: {} } },
+  cancel_booking: { description: 'Cancel one of the caller\'s bookings after they confirmed which one.', parameters: { type: 'object', required: ['booking_id', 'confirmed'], properties: { booking_id: { type: 'integer' }, confirmed: { type: 'boolean' } } } },
+  reschedule_booking: { description: 'Move one of the caller\'s bookings to a free time from check_availability, after they confirmed.', parameters: { type: 'object', required: ['booking_id', 'date', 'confirmed'], properties: { booking_id: { type: 'integer' }, date: { type: 'string' }, time: { type: 'string' }, check_out: { type: 'string' }, confirmed: { type: 'boolean' } } } },
   book_appointment: { description: 'Create the booking after reading it back and the caller clearly said yes.', parameters: { type: 'object', required: ['service_id', 'date', 'customer_name', 'confirmed'], properties: { service_id: { type: 'integer' }, date: { type: 'string' }, time: { type: 'string', description: 'HH:MM from check_availability' }, check_out: { type: 'string' }, staff_id: { type: 'integer' }, customer_name: { type: 'string' }, guests: { type: 'integer' }, note: { type: 'string' }, confirmed: { type: 'boolean' } } } },
 };
-export const BOOKING_CALL_RULE = 'BOOKINGS: when the caller wants an appointment, a table or a room, call get_business_info, then check_availability, offer at most 3 free times, ask the name, read the booking back and only after a clear yes call book_appointment with confirmed true. Never invent times.';
+export const BOOKING_CALL_RULE = 'BOOKINGS: when the caller wants an appointment, a table or a room, call get_business_info, then check_availability, offer at most 3 free times, ask the name, read the booking back and only after a clear yes call book_appointment with confirmed true. Never invent times. To cancel or move a booking call my_bookings, confirm which one, then cancel_booking or reschedule_booking with confirmed true.';
 const START = '[[MK-BUSINESS]]', END = '[[/MK-BUSINESS]]';
 /** The call rule for this business type (kept between markers so a later type change replaces it). */
-export function businessCallRule(category, name) {
+export function businessCallRule(category, name, transfer = '') {
   const type = BUSINESS_TYPES[category] || BUSINESS_TYPES.restaurant;
   const lines = [BOOKING_CALL_RULE];
   if (category !== 'restaurant') lines.push('This business is ' + (name ? '"' + name + '", ' : '') + 'a ' + type.label.toLowerCase() + ', not a restaurant. Greet callers as its reception, never offer a menu or food orders, and help them book ' + (type.booking === 'night' ? 'rooms' : type.unit + 's') + ' with the booking tools. Do not give medical, legal or financial advice.');
+  if (transfer) lines.push('If the caller asks for a person, is upset, or you cannot help, transfer the call with the transferCall tool.');
   return START + '\n' + lines.join('\n') + '\n' + END;
 }
 
 /** Adds the three booking tools (same server settings as the existing place_order tool) and the type rule. */
-export function withBookingTools(model, server, rule = businessCallRule('restaurant')) {
+export function withBookingTools(model, server, rule = businessCallRule('restaurant'), transfer = '') {
   if (!model || typeof model !== 'object') return model;
-  const tools = Array.isArray(model.tools) ? model.tools : [];
+  // Our transfer tool is recognised by its marker message and replaced (or removed) each sync.
+  const MARK = 'Connecting you to our staff now.';
+  const own = t => t?.type === 'transferCall' && (t.destinations || []).some(d => d?.message === MARK);
+  const original = Array.isArray(model.tools) ? model.tools : [];
+  const tools = original.filter(t => !own(t));
+  if (transfer) tools.push({ type: 'transferCall', destinations: [{ type: 'number', number: transfer, message: MARK, description: 'Reception / staff' }] });
+  const toolsChanged = JSON.stringify(tools) !== JSON.stringify(original);
   const have = new Set(tools.map(t => t?.function?.name));
   const extra = VOICE_BOOKING_TOOLS.filter(n => !have.has(n)).map(name => ({ type: 'function', function: { name, ...TOOL_SCHEMAS[name] }, ...(server ? { server } : {}) }));
   const messages = Array.isArray(model.messages) ? model.messages : [];
@@ -84,7 +102,7 @@ export function withBookingTools(model, server, rule = businessCallRule('restaur
   const a = current.indexOf(START), b = current.indexOf(END);
   const base = a >= 0 && b > a ? (current.slice(0, a) + current.slice(b + END.length)).trimEnd() : current;
   const content = (base ? base + '\n\n' : '') + rule;
-  if (!extra.length && content === current) return model;
+  if (!extra.length && content === current && !toolsChanged) return model;
   const next = { ...model, tools: [...tools, ...extra] };
   next.messages = i >= 0 ? messages.map((m, k) => k === i ? { ...m, content } : m) : [{ role: 'system', content: rule }, ...messages];
   return next;
@@ -97,7 +115,8 @@ export async function syncCallBookingTools(pool, restaurantId, { env = process.e
   if (!profile?.bookings_enabled) return { skipped: 'bookings off' };
   let name = '';
   try { const [[r]] = await pool.execute('SELECT name FROM restaurants WHERE id=?', [restaurantId]); name = r?.name || ''; } catch {}
-  const rule = businessCallRule(profile.category, name);
+  const transfer = await getTransferPhone(pool, restaurantId);
+  const rule = businessCallRule(profile.category, name, transfer);
   let rows = [];
   try { [rows] = await pool.execute('SELECT assistant_id FROM voice_assistants WHERE restaurant_id=? AND active=1', [restaurantId]); } catch { return { skipped: 'no assistant' }; }
   const headers = { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' };
@@ -121,7 +140,7 @@ export async function syncCallBookingTools(pool, restaurantId, { env = process.e
         }
       }
       if (!server?.url) throw Error('order tool server not found');
-      const model = withBookingTools(assistant.model, server, rule);
+      const model = withBookingTools(assistant.model, server, rule, transfer);
       if (model === assistant.model) continue;
       const res = await fetcher('https://api.vapi.ai/assistant/' + id, { method: 'PATCH', headers, redirect: 'error', signal: AbortSignal.timeout(20000), body: JSON.stringify({ model }) });
       if (!res.ok) throw Error('Vapi ' + res.status);

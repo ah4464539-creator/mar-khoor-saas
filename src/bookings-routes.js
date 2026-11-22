@@ -9,6 +9,8 @@ import {
 } from './bookings.js';
 import { notifyBookingStatus } from './booking-assistant.js';
 import { syncCallBookingTools } from './voice-bookings.js';
+import { bookingPayments, recordPayment, decidePayment, bookingToken, customerPaymentReference, listHandovers, endHandover, getTransferPhone, setTransferPhone } from './booking-extras.js';
+import { loadPaymentSettings, publicPaymentOptions } from './payment-options.js';
 import { tokenForNumber } from './whatsapp-signup-core.js';
 
 const idParam = v => { const n = Number(v); return Number.isSafeInteger(n) && n > 0 ? n : 0; };
@@ -33,7 +35,7 @@ export function bookingsRouter(pool) {
   router.get(base, async (req, res) => {
     try {
       const [profile, services, resources] = await Promise.all([getProfile(pool, req.restaurantId), listServices(pool, req.restaurantId), listResources(pool, req.restaurantId)]);
-      res.json({ profile, services, resources, types: BUSINESS_TYPES });
+      res.json({ profile, services, resources, types: BUSINESS_TYPES, transfer_phone: await getTransferPhone(pool, req.restaurantId) });
     } catch (e) { fail(res, e); }
   });
   router.put(base + '/profile', async (req, res) => {
@@ -96,6 +98,37 @@ export function bookingsRouter(pool) {
     } catch (e) { fail(res, e); }
   });
 
+  router.put(base + '/contacts', async (req, res) => {
+    try {
+      const result = await setTransferPhone(pool, req.restaurantId, req.body?.transfer_phone);
+      if (result.error) return res.status(400).json(result);
+      syncCallBookingTools(pool, req.restaurantId).catch(() => {});
+      res.json(result);
+    } catch (e) { fail(res, e); }
+  });
+  router.get(base + '/bookings/:id/payments', async (req, res) => {
+    try { res.json({ payments: await bookingPayments(pool, req.restaurantId, idParam(req.params.id)) }); } catch (e) { fail(res, e); }
+  });
+  router.post(base + '/bookings/:id/payments', async (req, res) => {
+    try {
+      const result = await recordPayment(pool, req.restaurantId, idParam(req.params.id), req.body || {}, 'owner:' + req.user.id);
+      if (result.error) return res.status(400).json(result);
+      res.status(201).json(result);
+    } catch (e) { fail(res, e); }
+  });
+  router.patch(base + '/bookings/:id/payments/:pid', async (req, res) => {
+    try {
+      const result = await decidePayment(pool, req.restaurantId, idParam(req.params.id), idParam(req.params.pid), req.body?.status, 'owner:' + req.user.id);
+      if (result.error) return res.status(400).json(result);
+      res.json(result);
+    } catch (e) { fail(res, e); }
+  });
+  router.get(base + '/handovers', async (req, res) => {
+    try { res.json({ handovers: await listHandovers(pool, req.restaurantId) }); } catch (e) { fail(res, e); }
+  });
+  router.delete(base + '/handovers/:customer', async (req, res) => {
+    try { res.json({ ended: await endHandover(pool, req.restaurantId, req.params.customer) }); } catch (e) { fail(res, e); }
+  });
   router.delete(base + '/services/:id', async (req, res) => {
     try {
       const done = await deleteService(pool, req.restaurantId, idParam(req.params.id));
@@ -190,7 +223,17 @@ export function bookingsRouter(pool) {
       const result = await createBooking(pool, req.business.id, { service_id: b.service_id, date: b.date, time: b.time, check_out: b.check_out, resource_id: b.resource_id, customer_name: b.customer_name, customer_phone: b.customer_phone, guests: b.guests, note: b.note, source: 'website' });
       if (result.error) return res.status(409).json({ error: result.error });
       notifyNewBooking(pool, req.business.id, result.booking, 'Website');
-      res.status(201).json({ booking: { id: result.booking.id, service: result.booking.service, start_at: result.booking.start_at, end_at: result.booking.end_at, price_minor: result.booking.price_minor, status: result.booking.status } });
+      const token = await bookingToken(pool, req.business.id, result.booking.id);
+      const svc = (await listServices(pool, req.business.id, { activeOnly: true })).find(x => x.id === Number(b.service_id));
+      const pay = publicPaymentOptions(await loadPaymentSettings(pool, req.business.id)).filter(o => o.type !== 'cash' && o.type !== 'card_on_delivery');
+      res.status(201).json({ booking: { id: result.booking.id, service: result.booking.service, start_at: result.booking.start_at, end_at: result.booking.end_at, price_minor: result.booking.price_minor, status: result.booking.status }, token, deposit_minor: svc?.deposit_minor || 0, pay_options: pay });
+    } catch (e) { fail(res, e); }
+  });
+  router.post(pub + '/bookings/:id/payment', rateLimit({ windowMs: 10 * 60 * 1000, max: 10, methods: ['POST'], name: 'public-booking-pay' }), bySlug, async (req, res) => {
+    try {
+      const result = await customerPaymentReference(pool, req.business.id, idParam(req.params.id), req.body?.token, req.body || {});
+      if (result.error) return res.status(400).json(result);
+      res.json(result);
     } catch (e) { fail(res, e); }
   });
   return router;

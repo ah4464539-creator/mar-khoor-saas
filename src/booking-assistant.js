@@ -67,7 +67,7 @@ export function bookingPrompt(ctx, currency) {
     + 'To book: find out which ' + type.service.toLowerCase() + ', which day' + (night ? ' and check-out day' : ' and a preferred time') + ', then call check_availability. '
     + 'Offer at most 3 free times from its answer, never times it did not return. Then ask the customer name (and number of people if relevant). '
     + 'When the customer has chosen, call propose_booking; the system sends a summary with Confirm/Change buttons. Never say a booking is confirmed yourself. '
-    + 'Convert words like "tomorrow" or "next Monday" to YYYY-MM-DD dates.';
+    + 'Convert words like "tomorrow" or "next Monday" to YYYY-MM-DD dates.' + SELF_SERVICE_RULE;
 }
 
 export const CHECK_AVAILABILITY_TOOL = { type: 'function', function: {
@@ -95,6 +95,12 @@ export const PROPOSE_BOOKING_TOOL = { type: 'function', function: {
     language: { type: 'string', enum: LANGS, description: 'Language the customer writes in: en, roman (Roman Urdu), ur (Urdu script), ar.' },
   } },
 } };
+
+export const MY_BOOKINGS_TOOL = { type: 'function', function: { name: 'my_bookings', description: "The customer's own upcoming bookings (from their phone number). Call before cancelling or moving a booking.", parameters: { type: 'object', additionalProperties: false, properties: {} } } };
+export const CANCEL_BOOKING_TOOL = { type: 'function', function: { name: 'cancel_booking', description: 'Cancel one of the customer\'s own bookings, only after they clearly confirmed which one.', parameters: { type: 'object', additionalProperties: false, required: ['booking_id', 'confirmed'], properties: { booking_id: { type: 'integer' }, confirmed: { type: 'boolean' } } } } };
+export const RESCHEDULE_BOOKING_TOOL = { type: 'function', function: { name: 'reschedule_booking', description: 'Move one of the customer\'s own bookings to a free time from check_availability, after they confirmed.', parameters: { type: 'object', additionalProperties: false, required: ['booking_id', 'date', 'confirmed'], properties: { booking_id: { type: 'integer' }, date: { type: 'string' }, time: { type: 'string' }, check_out: { type: 'string' }, confirmed: { type: 'boolean' } } } } };
+export const TALK_TO_STAFF_TOOL = { type: 'function', function: { name: 'talk_to_staff', description: 'Hand the chat to a person at the business when the customer asks for a human, complains, or you cannot help. The AI then stays quiet for this customer for 2 hours.', parameters: { type: 'object', additionalProperties: false, properties: { reason: { type: 'string' } } } } };
+export const SELF_SERVICE_RULE = ' Customers can cancel or move their own bookings: call my_bookings, confirm which one, then cancel_booking or (after check_availability) reschedule_booking with confirmed true. If the customer asks for a person, is unhappy, or you cannot help, call talk_to_staff.';
 
 /** Runs check_availability for the AI; returns a small JSON-able answer. */
 export async function runAvailability(pool, restaurantId, args) {
