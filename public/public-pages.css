@@ -279,3 +279,7 @@ body.mk{margin:0}
 .register-page .biz-types{margin-top:6px}
 .home-page a.sector-tile{color:#fff;text-decoration:none;transition:background .15s,transform .15s}
 .home-page a.sector-tile:hover{background:#ffffff26;transform:translateY(-2px)}
+.book-page .book-cats{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.book-page .book-cat{padding:7px 12px;border-radius:999px;border:1px solid var(--line,#e6e0d8);background:#fff;cursor:pointer;font-weight:600;font-size:13px}
+.book-page .book-cat.on{background:#16120f;color:#fff;border-color:#16120f}
+.book-page #book-res-field{display:grid;gap:6px;font-size:14px;font-weight:600;max-width:360px}

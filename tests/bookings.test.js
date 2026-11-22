@@ -75,3 +75,32 @@ test('onboarding follows the business type', async () => {
   await saveProfile(pool, 7, { category: 'clinic' });
   assert.equal(writes[0][4], 1);
 });
+
+import { toCsv, BOOKING_STATUSES } from '../src/bookings.js';
+import { dueForReminder, REMINDER_SQL } from '../src/booking-reminders.js';
+
+test('each doctor works their own hours; a booking can be moved without clashing with itself', () => {
+  const service = { id: 1, duration_min: 30, resource_ids: [5, 6] };
+  const hours = { 1: [[540, 600]] }; // business 09:00-10:00
+  const resourceHours = { 6: { 1: [[600, 660]] } }; // doctor 6 works 10:00-11:00
+  const slots = freeSlots({ date: '2026-11-23', hours, step: 30, service, resourceHours });
+  assert.deepEqual(slots, [{ time: '09:00', resource_id: 5 }, { time: '09:30', resource_id: 5 }, { time: '10:00', resource_id: 6 }, { time: '10:30', resource_id: 6 }]);
+  const mine = [{ id: 9, resource_id: 5, start_at: '2026-11-23 09:00', end_at: '2026-11-23 09:30' }];
+  assert.equal(freeSlots({ date: '2026-11-23', hours, step: 30, service: { ...service, resource_ids: [5] }, bookings: mine }).length, 1);
+  assert.equal(freeSlots({ date: '2026-11-23', hours, step: 30, service: { ...service, resource_ids: [5] }, bookings: mine, excludeId: 9 }).length, 2);
+});
+
+test('csv export neutralises formulas; reminders only 2-26 hours ahead; arrived status exists', () => {
+  const csv = toCsv([{ a: '=HYPERLINK("x")', b: 'Ali, "Khan"' }], [['a', 'A'], ['b', 'B']]);
+  assert.match(csv, /"'=HYPERLINK\(""x""\)"/);
+  assert.match(csv, /"Ali, ""Khan"""/);
+  assert.ok(dueForReminder('2026-11-23 10:00', '2026-11-22 12:00'));
+  assert.ok(!dueForReminder('2026-11-23 10:00', '2026-11-23 09:00'));
+  assert.ok(!dueForReminder('2026-11-25 10:00', '2026-11-22 12:00'));
+  assert.match(REMINDER_SQL, /^CREATE TABLE IF NOT EXISTS/);
+  assert.ok(BOOKING_STATUSES.includes('checked_in'));
+  const ui = readFileSync('public/bookings.js', 'utf8');
+  for (const bit of ['Reschedule', 'renderWeek', 'loadCustomers', 'exportCsv', 'deleteItem', 'readHourRows']) assert.ok(ui.includes(bit), bit);
+  const routes = readFileSync('src/bookings-routes.js', 'utf8');
+  for (const bit of ["/reschedule'", "/customers.csv'", "/bookings.csv'", "router.delete(base + '/services/:id'", "/history'"]) assert.ok(routes.includes(bit), bit);
+});

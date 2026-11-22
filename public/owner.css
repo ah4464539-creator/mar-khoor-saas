@@ -712,3 +712,22 @@ body.owner-app:not([data-category]) [data-biz-only],body.owner-app[data-category
 .mk .bk-overview .card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .mk .bk-overview h2{margin:0 0 4px}
 .mk .bk-overview-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:14px}
+/* Batch A: filters, week calendar, customers, history */
+.mk .bk-filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.mk .bk-filters .search{min-width:220px;flex:1 1 220px;max-width:360px}
+.mk .bk-view{display:flex;gap:4px}
+.mk .bk-view .btn.active{background:var(--ink,#16120f);color:#fff;border-color:transparent}
+.mk .bk-weeknav{display:flex;align-items:center;gap:6px}
+.mk .bk-list.week{grid-template-columns:repeat(7,minmax(170px,1fr));overflow-x:auto}
+.mk .bk-day.is-today{outline:2px solid var(--ember-line)}
+.mk .bk-history{margin:4px 0 0;padding-left:16px}
+.mk .bk-danger{color:#b42318;margin-right:auto}
+.mk .cu-card{margin:0 0 14px;border-radius:18px;border:1px solid var(--line);background:var(--surface)}
+.mk .cu-table-wrap{overflow-x:auto}
+.mk .cu-table{width:100%;border-collapse:collapse;font-size:14px}
+.mk .cu-table th{text-align:left;font-size:12px;color:var(--muted);font-weight:600;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.mk .cu-table td{padding:10px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.mk .cu-table tbody tr{cursor:pointer}
+.mk .cu-table tbody tr:hover,.mk .cu-table tbody tr:focus{background:var(--surface-2,#faf6f1);outline:none}
+.mk .cu-history{display:grid;gap:8px}
+.mk .cu-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px;border-radius:12px;background:var(--surface-2,#faf6f1)}

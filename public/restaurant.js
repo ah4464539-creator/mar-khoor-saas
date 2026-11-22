@@ -497,7 +497,7 @@ async function openRestaurant(restaurant) {
  window.mkSiteContent?.init({ restaurantId, api });
  window.mkOwnerApp?.init({ restaurantId, api });
  document.body.dataset.category = restaurant.category || 'restaurant';
- window.mkBookings?.init({ restaurantId, api, category: restaurant.category || 'restaurant', currency: restaurant.currency, slug: restaurant.slug });
+ window.mkBookings?.init({ restaurantId, api, token: () => token, category: restaurant.category || 'restaurant', currency: restaurant.currency, slug: restaurant.slug });
  // Clinics, salons and hotels open on their bookings (new owners first see Plans & billing).
  let seenSetup = false; try { seenSetup = localStorage.getItem('mar-khoor.setup-prompted.' + restaurant.id) === '1'; } catch {}
  if (document.body.dataset.category !== 'restaurant' && ((!location.hash && seenSetup) || location.hash === '#order-desk' || location.hash === '#menu-management')) history.replaceState(null, '', location.pathname + location.search + '#bookings');
