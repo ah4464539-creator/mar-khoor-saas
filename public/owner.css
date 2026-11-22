@@ -597,3 +597,43 @@ body.mk{margin:0}
 html.resuming .owner-app.signing-in .mk-login-grid{visibility:hidden}
 html.resuming .owner-app.signing-in::after{content:"";position:fixed;top:50%;left:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border:3px solid rgba(232,106,23,.2);border-top-color:#E86A17;border-radius:50%;animation:mk-resume-spin .8s linear infinite}
 @keyframes mk-resume-spin{to{transform:rotate(360deg)}}
+/* Payment methods page: boxy tiles */
+.mk .pay-page{display:grid;gap:16px;max-width:1100px}
+.mk .pay-page .card{margin:0;border-radius:18px;border:1px solid var(--line);box-shadow:0 1px 2px #1c17140a;background:var(--surface)}
+.mk .pay-intro{display:flex;gap:16px;align-items:center}
+.mk .pay-intro h2{margin:0 0 4px;font-size:18px}
+.mk .pay-intro p{margin:0}
+.mk .pay-intro-icon,.mk .pay-tile-icon{display:grid;place-items:center;width:48px;height:48px;border-radius:14px;background:var(--ember-soft);font-size:22px;flex:none}
+.mk .pay-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.mk .pay-tile{display:flex;align-items:center;gap:14px;padding:18px;border:1px solid var(--line);border-radius:18px;background:var(--surface);cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.mk .pay-tile:hover{border-color:var(--ember-line)}
+.mk .pay-tile:has(.pay-switch:checked){border-color:var(--ember-line);box-shadow:0 0 0 3px var(--ember-soft)}
+.mk .pay-tile-text{display:grid;gap:2px;flex:1;min-width:0}
+.mk .pay-switch{appearance:none;-webkit-appearance:none;width:46px;height:26px;border-radius:999px;background:#d9d1c7;position:relative;flex:none;cursor:pointer;transition:background .15s;margin:0}
+.mk .pay-switch::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 2px #0003;transition:transform .15s}
+.mk .pay-switch:checked{background:#E86A17}
+.mk .pay-switch:checked::after{transform:translateX(20px)}
+.mk .pay-switch:focus-visible{outline:2px solid #E86A17;outline-offset:2px}
+.mk .pay-accounts .card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:14px}
+.mk .pay-accounts h2{margin:0 0 4px;font-size:17px}
+.mk .pay-accounts .card-head p{margin:0;max-width:640px}
+.mk .pay-page .pay-transfers{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.mk .pay-page .pay-transfer-row{display:grid;gap:12px;padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--surface-2,#faf6f1)}
+.mk .pay-page .pay-transfer-row:not(.collapsed){grid-column:1/-1;background:var(--surface);border-color:var(--ember-line)}
+.mk .pay-badge{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;font-weight:800;font-size:13px;color:#fff;background:#6b6058;flex:none}
+.mk .pay-transfer-row[data-type="jazzcash"] .pay-badge{background:#c8102e}
+.mk .pay-transfer-row[data-type="easypaisa"] .pay-badge{background:#1f9d55}
+.mk .pay-transfer-row[data-type="raast"] .pay-badge{background:#2b5fb4}
+.mk .pay-transfer-row[data-type="bank"] .pay-badge{background:#efe7dd;font-size:20px}
+.mk .pay-row-head{gap:12px}
+.mk .pay-row-info{flex:1;display:grid;gap:2px}
+.mk .pay-row-meta{font-variant-numeric:tabular-nums}
+.mk .pay-transfers:not(:empty)+.pay-empty{display:none}
+.mk .pay-empty{margin:0;padding:18px;border:1px dashed var(--line);border-radius:14px;text-align:center}
+.mk .pay-savebar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;position:sticky;bottom:12px;z-index:2}
+.mk .pay-savebar p{margin:0}
+.mk .pay-save-actions{display:flex;align-items:center;gap:12px;margin-left:auto}
+/* Live orders side link */
+.mk .pay-link{display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit}
+.mk .pay-link:hover .side-card-edit{background:var(--ember-soft)}
+@media(max-width:760px){.mk .pay-accounts .card-head{flex-direction:column}.mk .pay-savebar{bottom:8px}}

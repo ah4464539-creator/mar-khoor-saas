@@ -10,6 +10,14 @@ test('Live orders: board left, side panel with payment methods and app alerts', 
   assert.match(side, /id="pay-settings"/);
   assert.match(side, /id="app-alerts"/);
   assert.match(desk, /id="order-summary"/);
+  assert.match(side, /href="#payment-methods"/);
+});
+
+test('payment methods have their own page in the left menu', () => {
+  const html = readFileSync('public/restaurant.html', 'utf8');
+  assert.match(html, /<a href="#payment-methods">/);
+  const page = html.slice(html.indexOf('id="payment-methods"'), html.indexOf('id="menu-management"'));
+  for (const id of ['pay-form', 'pay-cash', 'pay-card', 'pay-transfers', 'pay-add', 'pay-preview', 'pay-note']) assert.match(page, new RegExp('id="' + id + '"'), id);
 });
 
 test('order cards show items, source, contact links and map', () => {

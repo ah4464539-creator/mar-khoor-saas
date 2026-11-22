@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="/summit.css?v=20261120-s4">
-<link rel="stylesheet" href="/owner.css?v=20261122-s28">
+<link rel="stylesheet" href="/owner.css?v=20261122-s29">
 <script src="/session-guard.js?v=20261122-1"></script>
 <script src="/i18n.js?v=20261121-2" data-position="right" defer></script>
 </head>
@@ -30,6 +30,7 @@
  <symbol id="i-blog" viewBox="0 0 24 24"><path d="M4 4h16v16H4zM8 8h8M8 12h8M8 16h5"/></symbol>
  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol>
  <symbol id="i-send" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></symbol>
+ <symbol id="i-wallet" viewBox="0 0 24 24"><path d="M3 7h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 7l12-3v3M16 13.5h2"/></symbol>
  <symbol id="i-card" viewBox="0 0 24 24"><path d="M3 5h18v14H3zM3 10h18M7 15h4"/></symbol>
  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5V3h4M16 17l5-5-5-5M21 12H9"/></symbol>
  <symbol id="i-search" viewBox="0 0 24 24"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-5-5"/></symbol>
@@ -48,6 +49,7 @@
   <a class="selected" aria-current="page" href="#owner-overview"><svg aria-hidden="true"><use href="#i-home"/></svg><span>Dashboard</span></a>
   <div id="owner-navigation" class="nav-group" hidden>
    <a href="#order-desk"><svg aria-hidden="true"><use href="#i-orders"/></svg><span>Live orders</span><span class="count" id="nav-pending-count" hidden></span></a>
+   <a href="#payment-methods"><svg aria-hidden="true"><use href="#i-wallet"/></svg><span>Payment methods</span></a>
    <a href="#menu-management"><svg aria-hidden="true"><use href="#i-menu"/></svg><span>Menu &amp; items</span></a>
    <a href="#website"><svg aria-hidden="true"><use href="#i-web"/></svg><span>AI Website</span></a>
    <a href="#blog-pages"><svg aria-hidden="true"><use href="#i-blog"/></svg><span>Blog &amp; pages</span></a>
@@ -141,18 +143,7 @@
  <div id="orders" class="order-board" aria-live="polite"></div>
   </div>
   <aside class="order-side" aria-label="Payment methods and app">
- <details class="card card-pad pay-settings side-card" id="pay-settings">
-  <summary><span class="side-card-icon" aria-hidden="true">💳</span><span class="side-card-title"><strong>Payment methods</strong><span class="small muted" id="pay-summary">Cash · tap to add JazzCash, Easypaisa, Raast or bank</span></span><span class="side-card-edit">Edit</span></summary>
-  <form id="pay-form" class="pay-form">
-   <label class="check"><input type="checkbox" id="pay-cash" checked> Cash on delivery / at pickup</label>
-   <label class="check"><input type="checkbox" id="pay-card"> Card on delivery / at the counter (your own card machine)</label>
-   <div><strong>Transfers to your own account</strong><p class="small muted">The customer sends money to this account and enters the transaction ID. You check your bank or wallet app and press “Payment received” on the order. Money goes straight to you.</p></div>
-   <div id="pay-transfers" class="pay-transfers"></div>
-   <button type="button" class="btn btn-ghost btn-sm" id="pay-add">+ Add account</button>
-   <p class="small muted" id="pay-preview"></p>
-   <div class="form-actions"><button class="btn btn-primary">Save payment methods</button><span id="pay-note" class="small muted" role="status"></span></div>
-  </form>
- </details>
+ <a class="card card-pad side-card pay-link" id="pay-settings" href="#payment-methods"><span class="side-card-icon" aria-hidden="true">💳</span><span class="side-card-title"><strong>Payment methods</strong><span class="small muted" id="pay-summary">Cash</span></span><span class="side-card-edit">Manage</span></a>
  <section class="card card-pad app-alerts side-card" id="app-alerts" aria-labelledby="app-alerts-title">
   <div class="card-head"><div><h2 id="app-alerts-title">Mar-Khoor app &amp; alerts</h2><p class="small muted">Install the app on the counter phone. Every new order — and, if you like, every WhatsApp message, AI call and payment — shows in the phone's notification panel, even when the app is closed. You stay signed in.</p></div></div>
   <div class="app-alerts-actions">
@@ -172,6 +163,22 @@
  </section>
   </aside>
  </div>
+</section>
+<section class="owner-view owner-message-view" id="payment-methods" data-title="Payment methods" hidden>
+ <h2 tabindex="-1" class="visually-hidden">Payment methods</h2>
+ <form id="pay-form" class="pay-page">
+  <div class="card card-pad pay-intro"><span class="pay-intro-icon" aria-hidden="true">💳</span><div><h2>How customers can pay you</h2><p class="small muted">These options show at checkout on your website and in WhatsApp orders. Money goes straight to you. Mar-Khoor never holds it.</p></div></div>
+  <div class="pay-grid">
+   <label class="pay-tile"><span class="pay-tile-icon" aria-hidden="true">💵</span><span class="pay-tile-text"><strong>Cash</strong><span class="small muted">On delivery or at pickup</span></span><input type="checkbox" id="pay-cash" class="pay-switch" checked></label>
+   <label class="pay-tile"><span class="pay-tile-icon" aria-hidden="true">💳</span><span class="pay-tile-text"><strong>Card on delivery</strong><span class="small muted">Your own card machine, at the door or counter</span></span><input type="checkbox" id="pay-card" class="pay-switch"></label>
+  </div>
+  <section class="card card-pad pay-accounts" aria-labelledby="pay-accounts-title">
+   <div class="card-head"><div><h2 id="pay-accounts-title">Bank &amp; wallet accounts</h2><p class="small muted">The customer sends money to this account and enters the transaction ID. Check your bank or wallet app, then press “Payment received” on the order.</p></div><button type="button" class="btn btn-ghost btn-sm" id="pay-add">+ Add account</button></div>
+   <div id="pay-transfers" class="pay-transfers"></div>
+   <p class="small muted pay-empty">No accounts yet. Add JazzCash, Easypaisa, Raast or a bank account.</p>
+  </section>
+  <div class="card card-pad pay-savebar"><p class="small" id="pay-preview"></p><div class="pay-save-actions"><span id="pay-note" class="small muted" role="status"></span><button class="btn btn-primary">Save payment methods</button></div></div>
+ </form>
 </section>
 <section class="owner-view owner-message-view" id="menu-management" data-title="Menu &amp; items" hidden>
  <h2 tabindex="-1" class="visually-hidden">Menu and items</h2>
@@ -467,7 +474,7 @@
 <script src="/call-forwarding.js?v=20261122-1"></script>
 <script src="/site-content.js?v=20261122-1"></script>
 <script src="/owner-app.js?v=20261122-2"></script>
-<script type="module" src="/restaurant.js?v=20261122-s30"></script>
+<script type="module" src="/restaurant.js?v=20261122-s31"></script>
 <script>document.getElementById("login-show-password")?.addEventListener("change",function(){document.getElementById("password").type=this.checked?"text":"password"});</script>
 </body>
 </html>
