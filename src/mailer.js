@@ -117,10 +117,43 @@ export async function sendViaResend({ apiKey, fetchImpl = fetch }, { from, to, s
   if (!response.ok) throw Error(`Resend rejected email (${response.status})`);
 }
 
+
+export async function sendViaHostingerApi({ apiToken, mailboxResourceId, fetchImpl = fetch }, { to, subject, text, html, displayName = 'Mar-Khoor' }) {
+  // Official Mail API supports one sender mailbox per token.
+  // Never accept recipient, mailbox or credential from an untrusted client.
+  if (!/^AC[a-zA-Z0-9]+$/.test(mailboxResourceId)) throw Error('Hostinger Mail mailbox ID not configured');
+  const response = await fetchImpl(
+    'https://api.mail.hostinger.com/api/v1/mailboxes/' + encodeURIComponent(mailboxResourceId) + '/send',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + apiToken,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({ to: [to], subject, text, html, displayName }),
+      signal: AbortSignal.timeout(15000),
+    }
+  );
+  if (response.status !== 204) throw Error('Hostinger Mail API did not accept email (HTTP ' + response.status + ')');
+}
+
 // Returns sendMail({to,subject,text,html}) or null when email is not configured.
 export function mailerFromEnv(env = process.env) {
   const from = parseFrom(env.MAIL_FROM || '');
   if (!from) return null;
+  // Prefer a dedicated Mail API token over SMTP, so rotating the user's
+  // mailbox password does not break the public Contact Us form.
+  if (env.HOSTINGER_MAIL_API_TOKEN && env.HOSTINGER_MAILBOX_RESOURCE_ID) {
+    const config = {
+      apiToken: env.HOSTINGER_MAIL_API_TOKEN,
+      mailboxResourceId: env.HOSTINGER_MAILBOX_RESOURCE_ID,
+    };
+    return async ({ to, subject, text, html }) => {
+      if (!ADDRESS.test(to) || HEADER_UNSAFE.test(to)) throw Error('Invalid recipient');
+      await sendViaHostingerApi(config, { to, subject, text, html, displayName: from.address === 'admin@mar-khoor.com' ? 'Mar-Khoor Support' : 'Mar-Khoor' });
+    };
+  }
   if (env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASSWORD) {
     const config = { host: env.SMTP_HOST, port: Number(env.SMTP_PORT || 465), user: env.SMTP_USER, password: env.SMTP_PASSWORD };
     return async ({ to, subject, text, html }) => {

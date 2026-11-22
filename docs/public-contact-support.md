@@ -16,7 +16,7 @@ This change adds **/contact.html** and **/about.html**, accessible from the publ
 
 - Public visitors can use the Contact Us form with their name, reply email, topic and message, plus privacy consent.
 - The only mail recipient is fixed at `admin@mar-khoor.com`; user input never selects the destination.
-- The existing transactional mailer requires `MAIL_FROM` plus either `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD` (optional `SMTP_PORT`) or `RESEND_API_KEY`, all server-only.
+- The existing transactional mailer requires `MAIL_FROM` plus **one of**: (preferred) `HOSTINGER_MAIL_API_TOKEN` and `HOSTINGER_MAILBOX_RESOURCE_ID`, or SMTP `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD` (optional `SMTP_PORT`), or `RESEND_API_KEY`, all server-only.
 - Contact submissions are rate limited to five per hour per visitor IP and protected by a honeypot. They are sent via the configured mailer without storing a support database record.
 - Failure to send returns an error with a visible direct-email fallback. HTTP success means the SMTP/API provider accepted the message, **not** guaranteed mailbox delivery.
 - After accepting an enquiry in the support mailbox, the server sends an automatic **"we will reply within 24 hours"** acknowledgement to the supplied email address. It suppresses repeat acknowledgements to one sender within 24 hours and does not send to `admin@mar-khoor.com` or common no-reply mailboxes. An acknowledgement failure does not make the already-sent original enquiry fail.
@@ -33,3 +33,12 @@ This change adds **/contact.html** and **/about.html**, accessible from the publ
 7. Keep the customer-facing restaurant AI/order flows separate and unchanged.
 
 **Important:** Merging GitHub changes does not itself confirm that Hostinger is running that commit. Confirm deployed commit and perform live smoke tests before reporting a live release.
+
+
+## Hostinger Mail API transport (public support only)
+
+- Hostinger Mail supports `POST https://api.mail.hostinger.com/api/v1/mailboxes/{mailboxResourceId}/send` with a mailbox-scoped Bearer token. Its success response is HTTP 204; no SMTP password is required.
+- To repair a production SMTP password failure, create an API token scoped only to the official Mar-Khoor support mailbox under **hPanel → Emails → Agentic Mail → API access**. Keep the token in hPanel's **web application environment variables**, never in GitHub, public frontend code, docs, or chat.
+- Set `HOSTINGER_MAIL_API_TOKEN` to that token and `HOSTINGER_MAILBOX_RESOURCE_ID` to the mailbox resource ID from the authenticated account API. Keep the existing `MAIL_FROM`; the code chooses Hostinger Mail API ahead of legacy SMTP whenever both API env vars are set.
+- Saving environment variables may require/retrigger a deployment or restart. Verify the website Contact Form and visitor acknowledgement with a real test, check both mailboxes, and verify no token appears in public responses/logs. Never claim success solely from `/api/public/contact/status`.
+- In case of failure, remove only `HOSTINGER_MAIL_API_TOKEN` to fall back to the previously configured transport. Do not rotate a personal mailbox password or affect unrelated restaurant, order, or admin systems.
