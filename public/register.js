@@ -139,6 +139,9 @@ previous.addEventListener('click', () => changeStage(stage - 1));
   const sync = () => {
     const v = document.querySelector('input[name="business_type"]:checked')?.value || 'restaurant';
     const input = document.querySelector('#restaurant-name'); if (input) input.placeholder = NAMES[v] || NAMES.restaurant;
+    const label = { restaurant: 'restaurant', clinic: 'clinic', hotel: 'hotel', salon: 'salon' }[v] || 'business';
+    const create = document.querySelector('#create-restaurant'); if (create) create.textContent = 'Create ' + label;
+    const title = document.querySelector('.auth-copy h1'); if (title) title.textContent = v === 'restaurant' ? 'Your AI ordering desk, ready in minutes.' : 'Your AI booking desk, ready in minutes.';
     const hint = document.querySelector('#biz-type-hint');
     if (hint && document.querySelector('input[name="business_type"]:checked')) { hint.classList.remove('hint-error'); hint.textContent = 'WhatsApp, AI calls and your dashboard will be set up for this type.'; }
   };
