@@ -74,6 +74,9 @@
     renderTypeLine();
     $('bk-enabled').checked = Boolean(data.profile.bookings_enabled);
     $('bk-slot').value = String(data.profile.slot_minutes || 30);
+    const tz = $('bk-tz');
+    if (tz && !tz.options.length) { let zones = []; try { zones = Intl.supportedValuesOf('timeZone'); } catch { zones = [data.profile.timezone]; } if (!zones.includes(data.profile.timezone)) zones.unshift(data.profile.timezone); tz.replaceChildren(...zones.map(z => { const o = el('option', null, z.replace(/_/g, ' ')); o.value = z; return o; })); }
+    if (tz) tz.value = data.profile.timezone;
   }
   function renderTypeLine() {
     const info = data?.types?.[type()];
@@ -234,7 +237,7 @@
     const note = $('bk-note');
     if (!quiet) note.textContent = 'Saving…';
     try {
-      const body = { category: data.profile.category, bookings_enabled: $('bk-enabled').checked, slot_minutes: Number($('bk-slot').value) };
+      const body = { category: data.profile.category, bookings_enabled: $('bk-enabled').checked, slot_minutes: Number($('bk-slot').value), timezone: $('bk-tz')?.value };
       if (!night()) body.hours = readHours();
       const result = await ctx.api(base() + '/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       data.profile = result.profile; data.saved_category = result.profile.category;
@@ -447,7 +450,7 @@
       }));
     } catch { box.hidden = true; }
   }
-  const PAY_LABEL = { cash: 'Cash', card: 'Card', jazzcash: 'JazzCash', easypaisa: 'Easypaisa', raast: 'Raast', bank: 'Bank', other: 'Other' };
+  const PAY_LABEL = { cash: 'Cash', card: 'Card', bank: 'Bank', wallet: 'Mobile wallet', link: 'Online link', paypal: 'PayPal', upi: 'UPI', jazzcash: 'JazzCash', easypaisa: 'Easypaisa', raast: 'Raast', other: 'Other' };
   async function openPayments(b, card) {
     let box = card.querySelector('.bk-pay');
     if (box) { box.remove(); return; }

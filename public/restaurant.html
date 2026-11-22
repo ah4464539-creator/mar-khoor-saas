@@ -248,12 +248,13 @@
    <div class="card-head"><div><h2 id="bk-type-title">Your business</h2><p class="small muted">Your dashboard, website, WhatsApp and AI calls are set up for this type of business.</p></div></div>
    <p class="bk-type-current"><span class="bk-type-icon" id="bk-type-icon" aria-hidden="true"></span><b id="bk-type-name"></b><button type="button" class="btn btn-quiet btn-sm" id="bk-type-change">Wrong type? Change</button></p>
    <div class="bk-type-grid" id="bk-type-grid" role="radiogroup" aria-label="Type of business" hidden></div>
-   <div class="field bk-transfer"><label for="bk-transfer">Reception phone for call transfers (optional)</label><div class="bk-inline"><input class="input" id="bk-transfer" type="tel" maxlength="20" placeholder="+923001234567"><button type="button" class="btn btn-ghost btn-sm" id="bk-transfer-save">Save</button></div><span class="hint" id="bk-transfer-note">When a caller asks for a person, the AI Caller transfers the call here.</span></div>
+   <div class="field bk-transfer"><label for="bk-transfer">Reception phone for call transfers (optional)</label><div class="bk-inline"><input class="input" id="bk-transfer" type="tel" maxlength="20" placeholder="+ country code and number"><button type="button" class="btn btn-ghost btn-sm" id="bk-transfer-save">Save</button></div><span class="hint" id="bk-transfer-note">When a caller asks for a person, the AI Caller transfers the call here.</span></div>
    <label class="check bk-online"><input type="checkbox" id="bk-enabled"> <span id="bk-enabled-text">Take bookings online (website, WhatsApp and AI calls)</span></label>
    <p class="small" id="bk-link"></p>
   </section>
   <section class="card card-pad bk-card" aria-labelledby="bk-hours-title" id="bk-hours-card">
    <div class="card-head"><div><h2 id="bk-hours-title">Opening hours</h2><p class="small muted">Bookings are offered only inside these hours.</p></div>
+    <label class="bk-step"><span class="small">Time zone</span><select class="input" id="bk-tz"></select></label>
     <label class="bk-step"><span class="small">Time slot every</span><select class="input" id="bk-slot"><option value="15">15 min</option><option value="30">30 min</option><option value="60">1 hour</option></select></label></div>
    <div class="bk-hours" id="bk-hours"></div>
   </section>
@@ -387,7 +388,7 @@
   </div><p id="site-image-status" class="hint" role="status">Photos appear on your website after you Save (and Publish).</p></fieldset></section>
   <section class="card card-pad site-words"><div class="card-head"><h2>3. Words</h2></div>
    <div class="field site-description"><label for="site-description">Describe your restaurant</label><div class="describe-row"><textarea class="input" id="site-description" rows="3" maxlength="500" placeholder="e.g. Family-run burger place in Lahore, known for crispy zinger burgers"></textarea><button type="button" id="site-generate" class="btn btn-dark"><svg aria-hidden="true" width="18" height="18"><use href="#i-sparkle"/></svg>Write with AI</button></div></div>
-   <div class="field site-language"><label for="site-language">Website language</label><select class="input" id="site-language"><option value="en">English</option><option value="ur">اردو (Urdu)</option><option value="roman">Roman Urdu</option><option value="ar">العربية (Arabic)</option></select><span class="hint">Buttons and headings switch to this language. Press “Write with AI” to write your text in it too.</span></div>
+   <div class="field site-language"><label for="site-language">Website language</label><select class="input" id="site-language"><option value="en">English</option><option value="ur">اردو (Urdu)</option><option value="roman">Roman Urdu</option><option value="ar">العربية (Arabic)</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="tr">Türkçe</option><option value="hi">हिन्दी (Hindi)</option></select><span class="hint">Buttons and headings switch to this language. Press “Write with AI” to write your text in it too.</span></div>
    <div class="field site-headline"><label for="site-headline">Headline</label><input class="input" id="site-headline" maxlength="80" placeholder="Headline"></div>
    <div class="field site-tagline"><label for="site-tagline">Tagline</label><input class="input" id="site-tagline" maxlength="160" placeholder="Tagline"></div>
    <div class="field site-about"><label for="site-about">About us</label><textarea class="input" id="site-about" rows="4" maxlength="800" placeholder="About us"></textarea></div>
@@ -609,8 +610,8 @@
 <script src="/call-forwarding.js?v=20261122-1"></script>
 <script src="/site-content.js?v=20261122-1"></script>
 <script src="/owner-app.js?v=20261122-2"></script>
-<script src="/bookings.js?v=20261122-8"></script>
-<script type="module" src="/restaurant.js?v=20261122-s36"></script>
+<script src="/bookings.js?v=20261122-9"></script>
+<script type="module" src="/restaurant.js?v=20261122-s37"></script>
 <script>document.getElementById("login-show-password")?.addEventListener("change",function(){document.getElementById("password").type=this.checked?"text":"password"});</script>
 </body>
 </html>

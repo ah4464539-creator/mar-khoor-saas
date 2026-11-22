@@ -906,6 +906,7 @@ async function buildTemplateGallery(){
   const name=document.createElement('strong');name.textContent=t.label;
   const blurb=document.createElement('small');blurb.textContent=t.blurb||'';
   const best=document.createElement('small');best.className='template-best';best.textContent=t.best?'Best for: '+t.best:'';
+  if(t.recommended)name.append(Object.assign(document.createElement('span'),{className:'tag tag-ok template-rec',textContent:'Recommended'}));
   const open=document.createElement('button');open.type='button';open.className='btn btn-sm btn-ghost';open.textContent='Full preview';
   open.addEventListener('click',e=>{e.preventDefault();openTemplateDialog(t)});
   label.append(input,thumb,name,blurb,best,open);
@@ -1718,10 +1719,11 @@ function payTransferRow(t = {}) {
  const field = (labelText, el, wide) => { const l = document.createElement('label'); l.className = 'field' + (wide ? ' pay-wide' : ''); const span = document.createElement('span'); span.textContent = labelText; l.append(span, el); return l; };
  const input = (key, max, placeholder) => { const el = document.createElement('input'); el.className = 'input'; el.dataset.f = key; el.maxLength = max; if (placeholder) el.placeholder = placeholder; return el; };
  const select = document.createElement('select'); select.className = 'input'; select.dataset.f = 'type';
- for (const [value, text] of [['bank','Bank transfer'],['jazzcash','JazzCash'],['easypaisa','Easypaisa'],['raast','Raast'],['other','Other']]) { const o = document.createElement('option'); o.value = value; o.textContent = text; select.append(o); }
+ const pk = /PKR/.test(restaurantCurrency || '');
+ for (const [value, text] of [['bank','Bank transfer (IBAN / account)'],['wallet','Mobile wallet'],['link','Payment link (Stripe, PayPal, Razorpay…)'],['paypal','PayPal'],['upi','UPI'],...(pk || ['jazzcash','easypaisa','raast'].includes(t.type) ? [['jazzcash','JazzCash'],['easypaisa','Easypaisa'],['raast','Raast']] : []),['other','Other']]) { const o = document.createElement('option'); o.value = value; o.textContent = text; select.append(o); }
  const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'btn btn-ghost btn-sm'; remove.dataset.remove = ''; remove.textContent = 'Remove';
  const title = input('account_title', 80); title.required = true;
- const number = input('account_number', 40); number.required = true;
+ const number = input('account_number', 300); number.required = true;
  // Saved accounts show as one short line (type + number) with an Edit button; new ones open ready to fill.
  const head = document.createElement('div'); head.className = 'pay-row-head';
  const name = document.createElement('strong'); name.className = 'pay-row-name';
@@ -1731,7 +1733,7 @@ function payTransferRow(t = {}) {
  const info = document.createElement('span'); info.className = 'pay-row-info'; info.append(name, meta);
  head.append(badge, info, edit);
  const body = document.createElement('div'); body.className = 'pay-row-body';
- body.append(field('Type', select), field('Name shown to customers', input('label', 60, 'e.g. Meezan Bank')), field('Account title', title), field('Account / IBAN / mobile number', number), field('Note for customers (optional)', input('instructions', 200, 'e.g. Write your order number in the payment note'), true), remove);
+ body.append(field('Type', select), field('Name shown to customers', input('label', 60, 'e.g. Meezan Bank')), field('Account title', title), field('Account / IBAN / number / link', number), field('Note for customers (optional)', input('instructions', 200, 'e.g. Write your order number in the payment note'), true), remove);
  row.append(head, body);
  for (const key of ['type','label','account_title','account_number','instructions']) if (t[key]) row.querySelector('[data-f="'+key+'"]').value = t[key];
 const PAY_BADGES = {bank:'🏦', jazzcash:'JC', easypaisa:'EP', raast:'R', other:'•'};

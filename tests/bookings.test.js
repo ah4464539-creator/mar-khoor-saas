@@ -73,7 +73,7 @@ test('onboarding follows the business type', async () => {
     writes.push(args); return [{ affectedRows: 1 }];
   } };
   await saveProfile(pool, 7, { category: 'clinic' });
-  assert.equal(writes[0][4], 1);
+  assert.equal(writes[0][5], 1);
 });
 
 import { toCsv, BOOKING_STATUSES } from '../src/bookings.js';
@@ -158,4 +158,20 @@ test('batch C: website booking button, discounts, reports, staff role', async ()
   assert.match(routes, /kind === 'refund'\) return false/);
   assert.match(readFileSync('src/operations.js', 'utf8'), /staffOk=rows\[0\]\?\.role==='staff'/);
   assert.match(readFileSync('public/owner.css', 'utf8'), /\[data-role="staff"\] \[data-admin-only\]\{display:none!important\}/);
+});
+
+test('multinational: payment links, global time zones, more website languages', async () => {
+  const { sanitizePaymentSettings, cleanPayLink } = await import('../src/payment-options.js');
+  const s = sanitizePaymentSettings({ transfers: [{ type: 'link', label: 'Card / PayPal', account_number: 'https://buy.stripe.com/test_123' }, { type: 'link', account_title: 'x', account_number: 'javascript:alert(1)' }, { type: 'upi', account_title: 'Shop', account_number: 'shop@upi' }] });
+  assert.equal(s.transfers.length, 2);
+  assert.equal(s.transfers[0].account_number, 'https://buy.stripe.com/test_123');
+  assert.equal(cleanPayLink('http://x.com'), '');
+  const { isTimezone, timezoneFor } = await import('../src/bookings.js');
+  assert.ok(isTimezone('America/New_York') && isTimezone('Europe/Athens'));
+  assert.ok(!isTimezone('Mars/Base') && !isTimezone("'; DROP"));
+  assert.equal(timezoneFor('BR'), 'America/Sao_Paulo');
+  const { templatesFor } = await import('../src/site-builder.js');
+  assert.equal(templatesFor('clinic')[0], 'care');
+  assert.equal(templatesFor('hotel')[0], 'resort');
+  assert.equal(templatesFor('restaurant')[0], 'classic');
 });

@@ -21,9 +21,19 @@ export const SITE_LANGUAGES = Object.freeze({
   ur: { label: 'اردو', lang: 'ur', dir: 'rtl', prompt: 'Urdu written in Urdu (Nastaliq/Arabic) script' },
   roman: { label: 'Roman Urdu', lang: 'ur-Latn', dir: 'ltr', prompt: 'Roman Urdu (Urdu written in Latin letters, as used in Pakistan on WhatsApp)' },
   ar: { label: 'العربية', lang: 'ar', dir: 'rtl', prompt: 'Modern Standard Arabic' },
+  es: { label: 'Español', lang: 'es', dir: 'ltr', prompt: 'Spanish' },
+  fr: { label: 'Français', lang: 'fr', dir: 'ltr', prompt: 'French' },
+  de: { label: 'Deutsch', lang: 'de', dir: 'ltr', prompt: 'German' },
+  tr: { label: 'Türkçe', lang: 'tr', dir: 'ltr', prompt: 'Turkish' },
+  hi: { label: 'हिन्दी', lang: 'hi', dir: 'ltr', prompt: 'Hindi in Devanagari script' },
 });
 const LABELS = {
   en: { menu: 'Menu', track: 'Track order', history: 'Order history', refunds: 'Refunds', explore: 'Explore menu', featured: 'Featured dish', exploreThe: 'Explore the', menuWord: 'Menu', orderOnline: 'Open cart & menu', noItems: 'No menu items available yet.', about: 'About us', hours: 'Opening hours', find: 'Find us', gallery: 'Gallery', other: 'Other items', offers: 'Offers & deals', reviews: 'What customers say', waTitle: 'Order on WhatsApp', waText: 'Send us your order or question on WhatsApp.', waButton: 'Chat on WhatsApp', mapTitle: 'Find us', mapButton: 'Open in Google Maps' },
+  es: { menu: 'Menú', track: 'Seguir pedido', history: 'Mis pedidos', refunds: 'Reembolsos', explore: 'Ver menú', featured: 'Plato destacado', exploreThe: 'Descubre el', menuWord: 'Menú', orderOnline: 'Abrir carrito y menú', noItems: 'Aún no hay productos.', about: 'Sobre nosotros', hours: 'Horario', find: 'Encuéntranos', gallery: 'Galería', other: 'Otros', offers: 'Ofertas', reviews: 'Opiniones', waTitle: 'Pide por WhatsApp', waText: 'Envíanos tu pedido o pregunta por WhatsApp.', waButton: 'Chatear en WhatsApp', mapTitle: 'Encuéntranos', mapButton: 'Abrir en Google Maps' },
+  fr: { menu: 'Menu', track: 'Suivre la commande', history: 'Mes commandes', refunds: 'Remboursements', explore: 'Voir le menu', featured: 'Plat vedette', exploreThe: 'Découvrez le', menuWord: 'Menu', orderOnline: 'Panier et menu', noItems: 'Aucun article pour le moment.', about: 'À propos', hours: 'Horaires', find: 'Nous trouver', gallery: 'Galerie', other: 'Autres', offers: 'Offres', reviews: 'Avis clients', waTitle: 'Commander sur WhatsApp', waText: 'Envoyez-nous votre commande ou question sur WhatsApp.', waButton: 'Écrire sur WhatsApp', mapTitle: 'Nous trouver', mapButton: 'Ouvrir dans Google Maps' },
+  de: { menu: 'Speisekarte', track: 'Bestellung verfolgen', history: 'Meine Bestellungen', refunds: 'Erstattungen', explore: 'Speisekarte ansehen', featured: 'Empfehlung', exploreThe: 'Entdecke die', menuWord: 'Speisekarte', orderOnline: 'Warenkorb & Karte', noItems: 'Noch keine Artikel.', about: 'Über uns', hours: 'Öffnungszeiten', find: 'So finden Sie uns', gallery: 'Galerie', other: 'Weitere', offers: 'Angebote', reviews: 'Kundenstimmen', waTitle: 'Per WhatsApp bestellen', waText: 'Senden Sie uns Ihre Bestellung oder Frage per WhatsApp.', waButton: 'WhatsApp-Chat', mapTitle: 'So finden Sie uns', mapButton: 'In Google Maps öffnen' },
+  tr: { menu: 'Menü', track: 'Siparişi takip et', history: 'Siparişlerim', refunds: 'İadeler', explore: 'Menüyü gör', featured: 'Öne çıkan', exploreThe: 'Keşfet:', menuWord: 'Menü', orderOnline: 'Sepet ve menü', noItems: 'Henüz ürün yok.', about: 'Hakkımızda', hours: 'Çalışma saatleri', find: 'Bize ulaşın', gallery: 'Galeri', other: 'Diğer', offers: 'Kampanyalar', reviews: 'Yorumlar', waTitle: 'WhatsApp ile sipariş', waText: 'Siparişinizi veya sorunuzu WhatsApp ile gönderin.', waButton: 'WhatsApp’tan yaz', mapTitle: 'Bize ulaşın', mapButton: 'Google Haritalar’da aç' },
+  hi: { menu: 'मेन्यू', track: 'ऑर्डर ट्रैक करें', history: 'मेरे ऑर्डर', refunds: 'रिफंड', explore: 'मेन्यू देखें', featured: 'खास डिश', exploreThe: 'हमारा', menuWord: 'मेन्यू', orderOnline: 'कार्ट और मेन्यू', noItems: 'अभी कोई आइटम नहीं है।', about: 'हमारे बारे में', hours: 'समय', find: 'हमें खोजें', gallery: 'गैलरी', other: 'अन्य', offers: 'ऑफ़र', reviews: 'ग्राहकों की राय', waTitle: 'WhatsApp पर ऑर्डर करें', waText: 'अपना ऑर्डर या सवाल WhatsApp पर भेजें।', waButton: 'WhatsApp पर चैट करें', mapTitle: 'हमें खोजें', mapButton: 'Google Maps में खोलें' },
   ur: { menu: 'مینو', track: 'آرڈر ٹریک کریں', history: 'آرڈر ہسٹری', refunds: 'ریفنڈ', explore: 'مینو دیکھیں', featured: 'خاص ڈش', exploreThe: 'ہمارا', menuWord: 'مینو', orderOnline: 'آن لائن آرڈر کریں', noItems: 'ابھی مینو میں کوئی آئٹم دستیاب نہیں۔', about: 'ہمارے بارے میں', hours: 'اوقاتِ کار', find: 'ہمارا پتہ', gallery: 'گیلری', other: 'دیگر آئٹمز', offers: 'آفرز اور ڈیلز', reviews: 'ہمارے گاہک کیا کہتے ہیں', waTitle: 'واٹس ایپ پر آرڈر کریں', waText: 'اپنا آرڈر یا سوال ہمیں واٹس ایپ پر بھیجیں۔', waButton: 'واٹس ایپ پر بات کریں', mapTitle: 'ہمارا پتہ', mapButton: 'گوگل میپس میں کھولیں' },
   roman: { menu: 'Menu', track: 'Order track karein', history: 'Order history', refunds: 'Refund', explore: 'Menu dekhein', featured: 'Khaas dish', exploreThe: 'Hamara', menuWord: 'Menu', orderOnline: 'Online order karein', noItems: 'Abhi menu mein koi item dastiyab nahi.', about: 'Hamare baare mein', hours: 'Auqaat-e-kaar', find: 'Hamara pata', gallery: 'Gallery', other: 'Deegar items', offers: 'Offers aur deals', reviews: 'Hamare customers kya kehte hain', waTitle: 'WhatsApp par order karein', waText: 'Apna order ya sawal hamein WhatsApp par bhejein.', waButton: 'WhatsApp par baat karein', mapTitle: 'Hamara pata', mapButton: 'Google Maps mein kholein' },
   ar: { menu: 'القائمة', track: 'تتبع الطلب', history: 'سجل الطلبات', refunds: 'الاسترداد', explore: 'تصفح القائمة', featured: 'الطبق المميز', exploreThe: 'استكشف', menuWord: 'القائمة', orderOnline: 'اطلب الآن', noItems: 'لا توجد أصناف متاحة بعد.', about: 'من نحن', hours: 'ساعات العمل', find: 'موقعنا', gallery: 'معرض الصور', other: 'أصناف أخرى', offers: 'العروض', reviews: 'آراء عملائنا', waTitle: 'اطلب عبر واتساب', waText: 'أرسل طلبك أو سؤالك عبر واتساب.', waButton: 'تحدث عبر واتساب', mapTitle: 'موقعنا', mapButton: 'افتح في خرائط جوجل' },
@@ -41,6 +51,9 @@ export const SITE_TEMPLATES = Object.freeze({
   bakery: 'Sweet Bakery',
   fresh: 'Fresh Garden',
   noir: 'Noir Fine Dining',
+  care: 'Clinic Care',
+  resort: 'Resort Stay',
+  blush: 'Blush Studio',
 });
 // Gallery details shown to owners when choosing a template.
 export const TEMPLATE_INFO = Object.freeze({
@@ -55,7 +68,14 @@ export const TEMPLATE_INFO = Object.freeze({
   bakery: { blurb: 'Pastel pink and cream', best: 'Bakeries, desserts, ice cream', colors: ['#fff5f7', '#e0567f', '#4a2a33'] },
   fresh: { blurb: 'Clean greens, light and healthy', best: 'Salads, juices, healthy food', colors: ['#f3faf5', '#1f8a4c', '#12301f'] },
   noir: { blurb: 'Black and white luxury, serif type', best: 'Fine dining, steakhouses', colors: ['#0c0c0c', '#ffffff', '#b89b5e'] },
+  care: { blurb: 'Calm white and teal, trustworthy', best: 'Clinics, doctors, dentists', colors: ['#f4fbfb', '#0f8a8a', '#12343b'], types: ['clinic'] },
+  resort: { blurb: 'Sand, navy and gold, spacious', best: 'Hotels, guest houses, resorts', colors: ['#f7f2ea', '#1f3a5f', '#c9a227'], types: ['hotel'] },
+  blush: { blurb: 'Soft lilac and rose, elegant', best: 'Salons, spas, beauty studios', colors: ['#fbf5fa', '#b0487f', '#3e2238'], types: ['salon'] },
 });
+/** Templates suggested first for a type of business (the rest stay available). */
+export function templatesFor(category) {
+  return Object.keys(SITE_TEMPLATES).sort((a, b) => Number((TEMPLATE_INFO[b]?.types || ['restaurant']).includes(category)) - Number((TEMPLATE_INFO[a]?.types || ['restaurant']).includes(category)));
+}
 export const SITE_CSP = "default-src 'none'; style-src 'unsafe-inline'; img-src data: https:; manifest-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 
 const clean = (value, max, { newlines = false } = {}) => {
@@ -155,6 +175,27 @@ function formatPrice(minor, currency) {
 
 // Extra layout presets (same safe structure, CSS only).
 const EXTRA_TEMPLATE_CSS = `
+body.site-template-care{background:#f4fbfb;color:#12343b;font-family:system-ui,-apple-system,'Segoe UI',sans-serif}
+.site-template-care .site-header{background:#fff;border-color:#d5eaea}.site-template-care .wordmark{color:#0f6f70}.site-template-care .site-nav a{color:#24545c}
+.site-template-care .hero{background:radial-gradient(ellipse at 85% 20%,#c6ecea 0,transparent 55%),#eaf7f7;border-color:#d5eaea}
+.site-template-care .hero p,.site-template-care .info-card p,.site-template-care .dish p{color:#4d6c72}
+.site-template-care .btn{background:#0f8a8a;color:#fff;border-radius:12px}.site-template-care .btn:hover{background:#0c7575}
+.site-template-care .dish,.site-template-care .info-card,.site-template-care .feature{background:#fff;border:1px solid #d5eaea;border-radius:18px;box-shadow:0 8px 24px #0f8a8a12}
+.site-template-care .dish-footer strong,.site-template-care .feature strong,.site-template-care .section-heading em{color:#0f6f70}
+body.site-template-resort{background:#f7f2ea;color:#1b2a3f;font-family:Georgia,'Times New Roman',serif}
+.site-template-resort .site-header{background:#1f3a5f;border:0}.site-template-resort .wordmark{color:#f3d77a;letter-spacing:.08em}.site-template-resort .site-nav a{color:#e9eef6;font-family:system-ui,sans-serif}
+.site-template-resort .hero{background:linear-gradient(160deg,#1f3a5f,#2f527f);color:#fff;border:0}.site-template-resort .hero p{color:#dbe4f0}
+.site-template-resort .info-card p,.site-template-resort .dish p{color:#5b6677}
+.site-template-resort .btn{background:#c9a227;color:#1b2a3f;border-radius:4px;font-family:system-ui,sans-serif;letter-spacing:.04em}
+.site-template-resort .dish,.site-template-resort .info-card{background:#fffdf8;border:1px solid #e6dccb;border-radius:6px}
+.site-template-resort .dish-footer strong,.site-template-resort .section-heading em{color:#8a6d12}
+body.site-template-blush{background:#fbf5fa;color:#3e2238;font-family:system-ui,-apple-system,'Segoe UI',sans-serif}
+.site-template-blush .site-header{background:#fff;border-color:#efd9e8}.site-template-blush .wordmark{color:#8f3766;letter-spacing:.06em}.site-template-blush .site-nav a{color:#5c3a54}
+.site-template-blush .hero{background:radial-gradient(ellipse at 80% 25%,#f3c9df 0,transparent 55%),#f8e9f3;border-color:#efd9e8}
+.site-template-blush .hero p,.site-template-blush .info-card p,.site-template-blush .dish p{color:#7a5a72}
+.site-template-blush .btn{background:linear-gradient(130deg,#c9609a,#9e3f74);color:#fff;border-radius:999px}
+.site-template-blush .dish,.site-template-blush .info-card,.site-template-blush .feature{background:#fff;border:1px solid #efd9e8;border-radius:24px;box-shadow:0 10px 30px #b0487f14}
+.site-template-blush .dish-footer strong,.site-template-blush .section-heading em{color:#9e3f74}
 body.site-template-street{background:#111;color:#fff;font-family:Impact,'Arial Black',system-ui,sans-serif}
 .site-template-street .site-header{background:#ffd400;border:0}.site-template-street .wordmark{color:#111;letter-spacing:.04em}.site-template-street .site-nav a{color:#111;font-weight:700}
 .site-template-street .hero{background:linear-gradient(135deg,#e63027 0 45%,#111 45%);border:0}.site-template-street .hero h1{text-transform:uppercase;letter-spacing:-.02em}
