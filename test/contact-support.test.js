@@ -10,6 +10,11 @@ test('Contact Us page is reachable as static HTML and links to AI and email', ()
   const html = readPublic('contact.html');
   const widget = readPublic('website-assistant-new.js');
   const home = readPublic('index.html');
+  const about = readPublic('about.html');
+  assert.match(about, /<title>About Us/);
+  assert.match(about, /restaurants, clinics, salons and hotels|restaurant, clinic, salon or hotel/);
+  assert.match(about, /mailto:admin@mar-khoor\.com/);
+  assert.match(about, /contact\.html/);
   assert.match(html, /<title>Contact Us &amp; AI Help/);
   assert.match(html, /admin@mar-khoor\.com/);
   assert.match(html, /data-open-mk-support/);
