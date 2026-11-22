@@ -26,6 +26,9 @@ export function autoProvisionDeps(env = process.env) {
   };
   return {
     fetcher: fetch,
+    // Explicit opt-in is required for any number purchase or provider-number retry.
+    // Keep this OFF for four-business demos using existing forwarding/number mappings.
+    allowPurchases: env.VOICE_AUTOPROVISION_ENABLED === '1',
     telnyxKey: env.TELNYX_API_KEY,
     vapiKey: env.VAPI_API_KEY,
     credentialId: env.VAPI_TELNYX_CREDENTIAL_ID,
@@ -93,6 +96,10 @@ async function withCredential(deps) {
 export function resetDiscoveredCredential() { discoveredCredential = null; }
 
 export async function provisionSubscriptionNumber(pool, restaurantId, baseDeps = autoProvisionDeps()) {
+  // Do not start Telnyx/Vapi provisioning when automatic purchases are disabled.
+  // A manually linked existing number and its assistant can still be used elsewhere.
+  if (baseDeps.allowPurchases !== true)
+    return result('disabled', 'Automatic phone-number purchases are disabled. Use an existing verified number and call forwarding.');
   const missing = missingConfig(baseDeps);
   if (missing.length) return result('not_configured', 'Automatic numbers are off until these server settings are added: ' + missing.join(', ') + '.');
   let deps;
@@ -197,6 +204,7 @@ async function finishPending(pool, restaurantId, row, deps) {
 // Background job: finishes subscription numbers that were waiting on the phone company or the
 // Vapi import. Small batches; never buys anything new.
 export async function retryPendingSubscriptionNumbers(pool, baseDeps = autoProvisionDeps(), limit = 10) {
+  if (baseDeps.allowPurchases !== true) return [];
   if (missingConfig(baseDeps).length) return [];
   let deps;
   try { deps = await withCredential(baseDeps); } catch { return []; }
