@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="/summit.css?v=20261122-s5">
-<link rel="stylesheet" href="/owner.css?v=20261122-s32">
+<link rel="stylesheet" href="/owner.css?v=20261122-s33">
 <script src="/session-guard.js?v=20261122-1"></script>
 <script src="/i18n.js?v=20261121-2" data-position="right" defer></script>
 </head>
@@ -70,7 +70,7 @@
 <main class="main" id="owner-workspace">
 <header class="topbar owner-topbar">
  <div><p class="small muted owner-greeting">Good to see you, <strong id="owner-restaurant-label">Restaurant</strong></p><h1 id="owner-heading">Dashboard</h1></div>
- <div class="top-actions"><a class="btn btn-ghost live-site-btn" id="owner-live-site" href="#website" hidden><svg aria-hidden="true" width="18" height="18"><use href="#i-globe"/></svg><span>Live website</span></a><label class="search"><svg aria-hidden="true" width="16" height="16"><use href="#i-search"/></svg><span class="visually-hidden">Search orders or customers</span><input id="owner-global-search" type="search" placeholder="Search orders or customers"></label><a class="btn btn-primary" href="#menu-management" data-food-only><svg aria-hidden="true" width="18" height="18"><use href="#i-plus"/></svg>Add menu item</a><a class="btn btn-primary" href="#bookings" data-biz-only data-bk-new-link><svg aria-hidden="true" width="18" height="18"><use href="#i-plus"/></svg>New booking</a></div>
+ <div class="top-actions"><a class="btn btn-ghost live-site-btn" id="owner-live-site" href="#website" hidden><svg aria-hidden="true" width="18" height="18"><use href="#i-globe"/></svg><span>Live website</span></a><label class="search" data-food-only><svg aria-hidden="true" width="16" height="16"><use href="#i-search"/></svg><span class="visually-hidden">Search orders or customers</span><input id="owner-global-search" type="search" placeholder="Search orders or customers"></label><a class="btn btn-primary" href="#menu-management" data-food-only><svg aria-hidden="true" width="18" height="18"><use href="#i-plus"/></svg>Add menu item</a><a class="btn btn-primary" href="#bookings" data-biz-only data-bk-new-link><svg aria-hidden="true" width="18" height="18"><use href="#i-plus"/></svg>New booking</a></div>
 </header>
 
 <div class="auth mk-login-grid">
@@ -122,8 +122,13 @@
   <button type="button" id="open-setup" class="btn btn-primary btn-sm" disabled>Continue setup</button>
   <div id="usage-meter" class="usage-meter" aria-label="This month's usage" hidden></div>
  </section>
- <section id="analytics" class="grid-4 kpi-cards" aria-label="Restaurant analytics" aria-live="polite">Loading analytics…</section>
- <div class="split">
+ <section class="card card-pad bk-overview" id="bk-overview" data-biz-only aria-labelledby="bk-overview-title">
+  <div class="card-head"><div><h2 id="bk-overview-title">Upcoming bookings</h2><p class="small muted" id="bk-overview-sub">Today and the next 7 days</p></div><a class="btn btn-ghost btn-sm" href="#bookings">Open all</a></div>
+  <div class="bk-summary" id="bk-overview-summary"></div>
+  <div class="bk-overview-list" id="bk-overview-list"></div>
+ </section>
+ <section id="analytics" data-food-only class="grid-4 kpi-cards" aria-label="Restaurant analytics" aria-live="polite">Loading analytics…</section>
+ <div class="split" data-food-only>
   <section class="card card-pad grow owner-sales-panel"><div class="card-head"><div><h2>Sales</h2><p class="small muted">Completed order revenue</p></div><span class="tag">Last 30 days</span></div><div id="owner-sales"></div></section>
   <section class="card card-pad rail"><div class="card-head"><h2><span class="live-dot" aria-hidden="true"></span>Order activity</h2><a class="btn btn-ghost btn-sm" href="#order-desk">Order desk</a></div><div id="owner-order-activity" aria-live="polite"><p class="muted">Latest orders will appear here.</p></div><details class="owner-status-details"><summary>Order status summary</summary><div id="owner-status-summary"></div></details></section>
  </div>
@@ -204,8 +209,9 @@
  <h2 tabindex="-1" class="visually-hidden">Services and hours</h2>
  <div class="bk-setup">
   <section class="card card-pad bk-card" aria-labelledby="bk-type-title">
-   <div class="card-head"><div><h2 id="bk-type-title">Your business</h2><p class="small muted">Your dashboard, website and AI assistants adapt to your type of business.</p></div></div>
-   <div class="bk-type-grid" id="bk-type-grid" role="radiogroup" aria-label="Type of business"></div>
+   <div class="card-head"><div><h2 id="bk-type-title">Your business</h2><p class="small muted">Your dashboard, website, WhatsApp and AI calls are set up for this type of business.</p></div></div>
+   <p class="bk-type-current"><span class="bk-type-icon" id="bk-type-icon" aria-hidden="true"></span><b id="bk-type-name"></b><button type="button" class="btn btn-quiet btn-sm" id="bk-type-change">Wrong type? Change</button></p>
+   <div class="bk-type-grid" id="bk-type-grid" role="radiogroup" aria-label="Type of business" hidden></div>
    <label class="check bk-online"><input type="checkbox" id="bk-enabled"> <span id="bk-enabled-text">Take bookings online (website, WhatsApp and AI calls)</span></label>
    <p class="small" id="bk-link"></p>
   </section>
@@ -550,7 +556,7 @@
 <script src="/call-forwarding.js?v=20261122-1"></script>
 <script src="/site-content.js?v=20261122-1"></script>
 <script src="/owner-app.js?v=20261122-2"></script>
-<script src="/bookings.js?v=20261122-3"></script>
+<script src="/bookings.js?v=20261122-4"></script>
 <script type="module" src="/restaurant.js?v=20261122-s34"></script>
 <script>document.getElementById("login-show-password")?.addEventListener("change",function(){document.getElementById("password").type=this.checked?"text":"password"});</script>
 </body>
