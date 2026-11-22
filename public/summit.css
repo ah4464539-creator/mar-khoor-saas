@@ -1,15 +1,18 @@
 /* Mar-Khoor "Summit" design system (approved Nov 2026) — shared by customer, restaurant admin and super admin pages. */
 :root{
- --ground:#FBF7F2; --surface:#FFFFFF; --sunk:#F5EEE6; --line:#ECE2D7; --line-strong:#DCCBBB;
- --ink:#1C1714; --ink-2:#3A302A; --muted:#6B5E55; --faint:#8C7E74;
- --ember:#E8701A; --ember-ink:#1C1714; --ember-text:#A84B0A; --ember-soft:#FFF0E1; --ember-line:#F6C99E;
- --night:#16120F; --night-2:#211B17; --night-line:#3A2F28; --night-text:#EFE6DD; --night-muted:#B7A79A;
- --ok:#1F6B4F; --ok-bg:#E3F3EB; --info:#2C4E9E; --info-bg:#E9EEFB; --warn:#8A4B06; --warn-bg:#FFF1DC;
- --bad:#A12F2E; --bad-bg:#FCEBEA; --teal:#1C6A6A; --teal-bg:#E1F2F1;
+ /* Night Karakoram theme (Nov 2026): one dark palette for every Mar-Khoor page. */
+ --ground:#0E1620; --surface:#16212C; --sunk:#1C2A37; --line:#2A3A4A; --line-strong:#3A4D5F;
+ --surface-2:#1C2A37; --bg:#0E1620; --danger:#FF8A85;
+ --ink:#EAF0F4; --ink-2:#C6D2DB; --muted:#93A3B0; --faint:#7A8A97;
+ --ember:#F08A2E; --ember-ink:#140C05; --ember-text:#FFB066; --ember-soft:#2A1E12; --ember-line:#5A3A1A;
+ --night:#0A1018; --night-2:#121C27; --night-line:#22303D; --night-text:#EAF0F4; --night-muted:#93A3B0;
+ --ok:#7FD1B3; --ok-bg:#173A33; --info:#9DB8FF; --info-bg:#1B2747; --warn:#F5C26B; --warn-bg:#3A2A10;
+ --bad:#FF8A85; --bad-bg:#3D1C1C; --teal:#7FD6D0; --teal-bg:#123534;
  --r-sm:8px; --r:12px; --r-lg:18px; --r-xl:26px;
- --shadow:0 1px 2px #1c17140d,0 8px 24px #1c171410;
+ --shadow:0 1px 2px #00000066,0 8px 24px #00000055;
  --font:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
  --display:'Bricolage Grotesque','Inter',system-ui,sans-serif;
+ color-scheme:dark;
 }
 .mk{font-family:var(--font);color:var(--ink);background:var(--ground);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100%}
 .mk *{box-sizing:border-box}

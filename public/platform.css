@@ -152,7 +152,7 @@ body.mk{margin:0}
 .platform-app .biz-badges{display:flex;flex-wrap:wrap;gap:6px}
 .platform-app .biz-badge{font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;background:#eef0f2;color:#3b4148}
 .platform-app .biz-badge.ok{background:#e3f5ea;color:#17683a}
-.platform-app .biz-badge.warn{background:#fff2dc;color:#8a5300}
+.platform-app .biz-badge.warn{background:var(--warn-bg);color:#8a5300}
 .platform-app .biz-facts{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0;font-size:13px}
 .platform-app .biz-facts dt{color:var(--muted)}
 .platform-app .biz-facts dd{margin:0;overflow-wrap:anywhere}
