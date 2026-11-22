@@ -54,12 +54,15 @@ test('Contact form sends only to official Mar-Khoor email via configured mailer'
     assert.equal(delivered.length, 0);
     const response = await post(base, { ...data, name: '<Visitor & Partner>', message: 'Please help! <script>alert(1)</script>' });
     assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), { accepted: true });
-    assert.equal(delivered.length, 1);
+    assert.deepEqual(await response.json(), { accepted: true, acknowledgement_sent: true });
+    assert.equal(delivered.length, 2);
     assert.equal(delivered[0].to, 'admin@mar-khoor.com');
     assert.match(delivered[0].text, /visitor@example\.org/);
     assert.match(delivered[0].html, /&lt;script&gt;/);
     assert.doesNotMatch(delivered[0].html, /<script>/);
+    assert.equal(delivered[1].to, 'visitor@example.org');
+    assert.match(delivered[1].subject, /We Received Your Message/);
+    assert.match(delivered[1].text, /within 24 hours/);
   });
 });
 
@@ -77,6 +80,41 @@ test('Contact form avoids sending bot requests and returns honest errors when ma
   });
   await withServer(publicContactRouter({ sendMail: async () => { throw Error('test provider unavailable'); } }), async base => {
     assert.equal((await post(base, data)).status, 502);
+  });
+});
+
+
+test('Acknowledgement sends once per email each 24 hours and does not loop to support inbox', async () => {
+  const sent = [];
+  let time = Date.parse('2026-11-22T12:00:00Z');
+  await withServer(publicContactRouter({ sendMail: async item => sent.push(item), now: () => time }), async base => {
+    const first = await (await post(base, data)).json();
+    const second = await (await post(base, data)).json();
+    assert.deepEqual(first, { accepted: true, acknowledgement_sent: true });
+    assert.deepEqual(second, { accepted: true, acknowledgement_sent: false });
+    assert.equal(sent.filter(x => x.to === 'admin@mar-khoor.com').length, 2);
+    assert.equal(sent.filter(x => x.to === data.email).length, 1);
+    time += 24 * 60 * 60 * 1000 + 1;
+    const third = await (await post(base, data)).json();
+    assert.equal(third.acknowledgement_sent, true);
+    assert.equal(sent.filter(x => x.to === data.email).length, 2);
+    const self = await (await post(base, { ...data, email: 'admin@mar-khoor.com' })).json();
+    assert.equal(self.acknowledgement_sent, false);
+    assert.equal(sent.filter(x => x.to === 'admin@mar-khoor.com').length, 4);
+  });
+});
+
+test('Support message stays accepted when visitor auto-reply delivery fails', async () => {
+  const delivered = [];
+  await withServer(publicContactRouter({ sendMail: async item => {
+    delivered.push(item);
+    if (item.to !== 'admin@mar-khoor.com') throw Error('ack channel down');
+  } }), async base => {
+    const response = await post(base, data);
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { accepted: true, acknowledgement_sent: false });
+    assert.equal(delivered[0].to, 'admin@mar-khoor.com');
+    assert.equal(delivered[1].to, data.email);
   });
 });
 

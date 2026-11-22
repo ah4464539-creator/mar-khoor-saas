@@ -19,6 +19,8 @@ This change adds **/contact.html** and **/about.html**, accessible from the publ
 - The existing transactional mailer requires `MAIL_FROM` plus either `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD` (optional `SMTP_PORT`) or `RESEND_API_KEY`, all server-only.
 - Contact submissions are rate limited to five per hour per visitor IP and protected by a honeypot. They are sent via the configured mailer without storing a support database record.
 - Failure to send returns an error with a visible direct-email fallback. HTTP success means the SMTP/API provider accepted the message, **not** guaranteed mailbox delivery.
+- After accepting an enquiry in the support mailbox, the server sends an automatic **"we will reply within 24 hours"** acknowledgement to the supplied email address. It suppresses repeat acknowledgements to one sender within 24 hours and does not send to `admin@mar-khoor.com` or common no-reply mailboxes. An acknowledgement failure does not make the already-sent original enquiry fail.
+- **Direct inbound messages to `admin@mar-khoor.com` bypass this website endpoint.** For them, separately enable Hostinger's mailbox-level Automatic Reply (Webmail > Settings > All settings > Automatic reply; On; start immediately; never end). Use the same subject/body. This setup needs mailbox-owner access and should be verified with a separate external inbound email. Do not imply the mailbox-level setting is enabled just because the website form acknowledgement works.
 
 ## Deployment verification checklist
 

@@ -19,8 +19,39 @@ const trim = value => typeof value === 'string' ? value.trim() : '';
 const safeHtml = value => String(value).replace(/[&<>"']/g, ch =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 
-export function publicContactRouter({ sendMail, env = process.env } = {}) {
+const ACK_SUBJECT = 'We Received Your Message | Mar-Khoor Support';
+const ACK_TEXT = [
+  'Hello,', '',
+  'Thank you for contacting Mar-Khoor!', '',
+  'We have received your message. Our support team will review your request and get back to you within 24 hours.', '',
+  'Thank you for your patience.', '',
+  'Best regards,',
+  'Mar-Khoor Support Team',
+  SUPPORT_EMAIL,
+  'https://mar-khoor.com', '',
+  'This is an automated acknowledgement; please do not send passwords, one-time codes or payment details.',
+].join('\n');
+const ACK_HTML = [
+  '<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.7;color:#16232d">',
+  '<h2>Thank you for contacting Mar-Khoor!</h2>',
+  '<p>We have received your message. Our support team will review your request and get back to you <strong>within 24 hours</strong>.</p>',
+  '<p>Thank you for your patience.</p>',
+  '<p>Best regards,<br><strong>Mar-Khoor Support Team</strong><br>',
+  '<a href="mailto:admin@mar-khoor.com">admin@mar-khoor.com</a><br>',
+  '<a href="https://mar-khoor.com">mar-khoor.com</a></p>',
+  '<p style="font-size:12px;color:#617384">Automated acknowledgement. Do not send passwords, one-time codes, or payment details.</p>',
+  '</div>',
+].join('');
+
+// One acknowledgement per sender in 24 hours, separate from hPanel's inbound-mail autoresponder.
+const ACK_WINDOW_MS = 24 * 60 * 60 * 1000;
+function eligibleForAcknowledgement(address) {
+  const local = address.split('@')[0].toLowerCase();
+  return address.toLowerCase() !== SUPPORT_EMAIL && !/^(?:no-?reply|do-?not-?reply|postmaster|mailer-daemon|bounce|notifications?)$/.test(local);
+}
+export function publicContactRouter({ sendMail, env = process.env, now = Date.now } = {}) {
   const router = Router();
+  const acknowledged = new Map();
   const getMailer = () => sendMail === undefined ? mailerFromEnv(env) : sendMail;
 
   router.get('/public/contact/status', (_req, res) => {
@@ -92,7 +123,28 @@ export function publicContactRouter({ sendMail, env = process.env } = {}) {
         text,
         html,
       });
-      return res.status(200).json({ accepted: true });
+      // The incoming support request has been accepted. An acknowledgement failure must
+      // never make the visitor retry the already-sent support message.
+      let acknowledgementSent = false;
+      const recipient = email.toLowerCase();
+      const time = now();
+      if (acknowledged.size > 10000) {
+        for (const [key, timestamp] of acknowledged)
+          if (timestamp + ACK_WINDOW_MS <= time) acknowledged.delete(key);
+      }
+      if (eligibleForAcknowledgement(recipient) &&
+          (!acknowledged.has(recipient) || acknowledged.get(recipient) + ACK_WINDOW_MS <= time)) {
+        // Reserve the address before an awaited SMTP call to avoid double sends.
+        acknowledged.set(recipient, time);
+        try {
+          await send({ to: recipient, subject: ACK_SUBJECT, text: ACK_TEXT, html: ACK_HTML });
+          acknowledgementSent = true;
+        } catch (error) {
+          acknowledged.delete(recipient);
+          console.error(JSON.stringify({ event: 'public_contact_ack_error', type: error?.name || 'Error' }));
+        }
+      }
+      return res.status(200).json({ accepted: true, acknowledgement_sent: acknowledgementSent });
     } catch (error) {
       // Do not expose SMTP credentials, provider responses, or visitor details in logs.
       console.error(JSON.stringify({ event: 'public_contact_mail_error', type: error?.name || 'Error' }));
