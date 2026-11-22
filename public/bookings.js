@@ -624,7 +624,7 @@
           const d = addDays(calStart, i);
           const b = live.find(x => x.resource_id === room.id && x.start_at.slice(0, 10) <= d && x.end_at.slice(0, 10) > d);
           const td = el('td', b ? 'booked status-' + b.status : room.room_status === 'out_of_order' ? 'ooo' : 'free');
-          if (b) { td.textContent = b.start_at.slice(0, 10) === d ? b.customer_name.split(' ')[0] : ''; td.title = b.customer_name + ' · ' + b.service + ' · #' + b.id; td.tabIndex = 0; td.addEventListener('click', () => { location.hash = '#bookings'; setTimeout(() => { $('bk-search').value = String(b.id); loadBoard(); }, 300); }); }
+          if (b) { td.textContent = (b.start_at.slice(0, 10) === d || i === 0) ? b.customer_name.split(' ')[0] : ''; td.title = b.customer_name + ' · ' + b.service + ' · #' + b.id; td.tabIndex = 0; td.addEventListener('click', () => { location.hash = '#bookings'; setTimeout(() => { $('bk-search').value = String(b.id); loadBoard(); }, 300); }); }
           tr.append(td);
         }
         body.append(tr);
