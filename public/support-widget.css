@@ -1,0 +1,33 @@
+/* Isolated, flat Night Karakoram support widget; available on public pages. */
+.mk-support-root{font-family:Inter,'Segoe UI',system-ui,sans-serif;color:#eaf0f4;color-scheme:dark}
+.mk-support-root [hidden]{display:none!important}
+.mk-support-launch{position:fixed;z-index:1000;bottom:22px;right:22px;display:flex;align-items:center;gap:9px;min-height:52px;padding:0 19px;border:1px solid #b87332;border-radius:999px;background:#f08a2e;color:#140c05;box-shadow:0 10px 36px #0007;font:700 15px/1.2 inherit;cursor:pointer;touch-action:manipulation}
+.mk-support-launch:hover{background:#ffad5d;transform:translateY(-1px)}
+.mk-support-launch:focus-visible,.mk-support-panel :focus-visible{outline:3px solid #a88aff;outline-offset:3px}
+.mk-support-panel{position:fixed;z-index:1001;bottom:86px;right:22px;width:min(390px,calc(100vw - 24px));height:min(580px,calc(100dvh - 112px));display:flex;flex-direction:column;overflow:hidden;border:1px solid #31465b;border-radius:19px;background:#121c27;box-shadow:0 24px 80px #000a;color:#eaf0f4}
+.mk-support-header{display:flex;gap:12px;align-items:center;padding:15px 17px;background:#182635;border-bottom:1px solid #2a3a4a}
+.mk-support-mark{display:grid;place-items:center;width:39px;height:39px;border-radius:12px;background:#f08a2e;color:#1b1209;font-weight:900;font-size:21px}
+.mk-support-header strong{display:block;color:#fff;font-size:15px;line-height:1.3}
+.mk-support-header small{display:flex;gap:6px;align-items:center;margin-top:3px;color:#b8c6d1;font-size:11px}
+.mk-support-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#65d4a6}
+.mk-support-dot.offline{background:#f08a2e}
+.mk-support-close{margin-left:auto;display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:8px;background:transparent;color:#eaf0f4;font:normal 28px/1 inherit;cursor:pointer}
+.mk-support-close:hover{background:#2a3a4a}
+.mk-support-log{display:flex;flex:1;flex-direction:column;gap:12px;overflow-y:auto;padding:18px 15px;overscroll-behavior:contain}
+.mk-support-bubble{width:fit-content;max-width:91%;margin:0;padding:11px 14px;border:1px solid #304459;border-radius:15px 15px 15px 3px;background:#213243;color:#eaf0f4;font-size:13px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+.mk-support-bubble[data-from="user"]{align-self:flex-end;background:#ed8934;color:#1b1209;border-color:#ed8934;border-radius:15px 15px 3px 15px}
+.mk-support-chips{display:flex;flex-wrap:wrap;gap:7px}
+.mk-support-chips button{border:1px solid #3b5268;border-radius:999px;background:transparent;color:#d6e4ed;padding:7px 10px;font:500 11px/1.3 inherit;cursor:pointer}
+.mk-support-chips button:hover{border-color:#f08a2e;color:#fff}
+.mk-support-notice{margin:0 14px 9px;padding:9px 11px;border:1px solid #735137;border-radius:9px;background:#36291e;color:#ffdbb7;font-size:12px;line-height:1.45}
+.mk-support-form{display:flex;align-items:flex-end;gap:8px;padding:11px 13px;border-top:1px solid #2a3a4a;background:#182635}
+.mk-support-form textarea{box-sizing:border-box;flex:1;min-width:0;max-height:120px;min-height:41px;resize:vertical;padding:11px 12px;border:1px solid #3b5268;border-radius:10px;background:#0e1620;color:#fff;font:400 14px/1.45 inherit}
+.mk-support-form textarea::placeholder{color:#9badbc}
+.mk-support-form textarea:disabled{opacity:.6;cursor:not-allowed}
+.mk-support-send{flex:none;width:43px;height:43px;border:0;border-radius:10px;background:#f08a2e;color:#140c05;font-size:20px;cursor:pointer}
+.mk-support-send:disabled{opacity:.45;cursor:not-allowed}
+.mk-support-footer{padding:9px 13px 11px;background:#182635;color:#a7bac9;font-size:10px;line-height:1.6;text-align:center}
+.mk-support-footer a{color:#ffd2a3;text-decoration:underline;text-underline-offset:2px}
+.mk-support-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+@media(max-width:520px){.mk-support-launch{bottom:calc(15px + env(safe-area-inset-bottom));right:15px}.mk-support-panel{bottom:calc(81px + env(safe-area-inset-bottom));right:12px;width:calc(100vw - 24px);height:min(620px,calc(100dvh - 115px));border-radius:16px}}
+@media(prefers-reduced-motion:reduce){.mk-support-launch{transform:none!important}}
