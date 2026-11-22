@@ -125,7 +125,7 @@ export function integrationRouter(pool){
      // dashboard tests, other apps) are acknowledged, otherwise Meta retries them for hours.
      let inFlight=[];
      if(missing.length){
-      try{[inFlight]=await pool.execute("SELECT 1 FROM whatsapp_ai_jobs j JOIN whatsapp_inbound_messages m ON m.message_id=j.inbound_message_id AND m.restaurant_id=j.restaurant_id WHERE m.phone_number_id=? AND j.status='processing' LIMIT 1",[event.phoneId]);}catch{inFlight=[];}
+      try{[inFlight]=await pool.execute("SELECT 1 FROM whatsapp_ai_jobs j JOIN whatsapp_inbound_messages m ON m.message_id=j.inbound_message_id AND m.restaurant_id=j.restaurant_id WHERE m.phone_number_id=? AND j.status='processing' AND j.created_at>=NOW()-INTERVAL 10 MINUTE LIMIT 1",[event.phoneId]);}catch{inFlight=[];}
      }
      if(missing.length&&inFlight.length)retryRecentStatus=true;
      else {
