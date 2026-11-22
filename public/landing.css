@@ -18,15 +18,15 @@
 .lp .b-sm{height:40px;padding:0 16px;font-size:15px}
 
 /* Nav */
-.lp .nav{position:sticky;top:0;z-index:40;background:#F6F8FAe6;backdrop-filter:blur(12px);border-bottom:1px solid transparent;transition:border-color .2s}
-.lp .nav.solid{border-color:var(--glacier)}
-.lp .nav .wrap{display:flex;align-items:center;gap:28px;height:72px}
+.lp .topbar{position:sticky;top:0;z-index:40;background:#F6F8FAe6;backdrop-filter:blur(12px);border-bottom:1px solid transparent;transition:border-color .2s}
+.lp .topbar.solid{border-color:var(--glacier)}
+.lp .topbar .wrap{display:flex;align-items:center;gap:28px;height:72px}
 .lp .logo{display:flex;align-items:center;gap:10px;text-decoration:none;font:800 21px var(--f);letter-spacing:-.02em;color:var(--slate)}
 .lp .logo b{font:inherit}.lp .logo span{color:var(--ember)}
-.lp .nav nav{display:flex;gap:26px}
-.lp .nav nav a{text-decoration:none;font:500 15px var(--f);color:var(--slate-2)}
-.lp .nav nav a:hover{color:var(--slate)}
-.lp .nav .acts{margin-left:auto;display:flex;gap:10px}
+.lp .topbar nav{display:flex;gap:26px}
+.lp .topbar nav a{text-decoration:none;font:500 15px var(--f);color:var(--slate-2)}
+.lp .topbar nav a:hover{color:var(--slate)}
+.lp .topbar .acts{margin-left:auto;display:flex;gap:10px}
 
 /* Hero */
 .lp .hero{padding:64px 0 0}
@@ -145,7 +145,7 @@
 .lp .mbar{display:none}
 
 @media (max-width:960px){
- .lp .nav nav{display:none}
+ .lp .topbar nav{display:none}
  .lp .hero-top,.lp .close .wrap{grid-template-columns:1fr;gap:24px}
  .lp .lanes{grid-template-columns:1fr;min-height:0}
  .lp .cols,.lp .steps,.lp .tools,.lp .faq{grid-template-columns:1fr}
@@ -160,7 +160,7 @@
 }
 @media (max-width:600px){
  .lp .wrap{padding:0 18px}
- .lp .nav .acts .b-line{display:none}
+ .lp .topbar .acts .b-line{display:none}
  .lp .hero{padding-top:36px}
  .lp .foot{padding-bottom:110px}
  .lp .mbar{display:flex;gap:10px;position:fixed;left:0;right:0;bottom:0;z-index:50;padding:12px 18px calc(12px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--glacier)}
