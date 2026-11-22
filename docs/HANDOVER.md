@@ -1,7 +1,7 @@
 # Mar-Khoor — handover for the next work session
 
 Give this file to any new Claude session (or developer) so work can continue without re-explaining.
-Last updated: 2026-11-22 (after PR #124).
+Last updated: 2026-11-22 (after PR #130).
 
 ## 1. What the project is
 - Multi-business SaaS: restaurants (orders), clinics / salons (appointments), hotels (rooms).
@@ -42,10 +42,19 @@ Last updated: 2026-11-22 (after PR #124).
   - WhatsApp booking assistant `src/booking-assistant.js` (check_availability → propose_booking → mk_bconfirm/mk_bchange buttons).
   - AI calls `src/voice-bookings.js` (get_business_info, check_availability, book_appointment) — added to a business's Vapi assistant when bookings are on or the assistant is created; per-type rule between `[[MK-BUSINESS]]` markers.
 
+- **Booking batches A–C** (PR #128–#130):
+  - Doctor/staff own schedules, specialties/categories, reschedule, Arrived/Check-in, week calendar, search/filter, CSV export, audit history, Patients/Clients/Guests list, delete (archives if used).
+  - WhatsApp reminders (`src/booking-reminders.js`; needs `WHATSAPP_REMINDER_TEMPLATE` for customers outside the 24h window).
+  - Hotel rooms per room type, Housekeeping page, room status on check-in/out.
+  - Booking payments/refunds, advance payment + customer transaction ID (`src/booking-extras.js`).
+  - AI self-service: my_bookings / cancel_booking / reschedule_booking on WhatsApp and calls; WhatsApp `talk_to_staff` hand-over; call transfer to the reception phone.
+  - Booking-aware AI websites, discount codes, Reports page, staff accounts (role `staff`, front-desk only).
+
 ## 5. Not finished / waiting
 - **Owner tests needed:** WhatsApp booking and call booking end to end (suggested: Urban Cafe → Tables & hours → enable bookings → add "Table for 2" → book on WhatsApp). Note: saving services adds booking tools to Urban Cafe's Vapi assistant (order flow unchanged).
 - Landing page, setup dialog and login now speak to every business type (PR #124).
-- Reminders before appointments need an approved Meta message template (not built).
+- Reminders outside the 24h window need an approved Meta template; set `WHATSAPP_REMINDER_TEMPLATE` (body params: name, business, date-time) — never via the replace-env tool; ask the owner to add it in hPanel.
+- Not built yet: online card payments for bookings (Stripe for customers), restaurant deals and tables pages beyond table bookings, separate templates per business type in the website builder (sections adapt, designs are shared), a full end-to-end test on a test account for each of the four types (needs the owner's OK to create test accounts on production).
 - WhatsApp calling: needs a VPS media bridge (Opus/SDES). Waiting for the owner's yes and monthly vs. yearly choice (KVM1 ~$9.99 first month, then $19.49/month). Calling pilot is still ON for Urban Cafe and failing.
 - New plan prices (Starter $299 / Premium $599 / Unlimited $1,299) — awaiting approval.
 - Embedded Signup for WhatsApp needs NTN, Meta business verification and Tech Provider status.
