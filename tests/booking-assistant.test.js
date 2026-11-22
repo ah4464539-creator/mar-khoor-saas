@@ -16,8 +16,8 @@ function clinicPool(job) {
     if (sql.startsWith('SELECT s.enabled FROM whatsapp_ai_settings')) return [[{ enabled: 1 }]];
     if (sql.startsWith('SELECT role,text_body')) return [[]];
     if (sql.startsWith('SELECT r.country_code,b.category')) return [[{ country_code: 'PK', category: 'clinic', timezone: null, hours_json: allDay, slot_minutes: 30, bookings_enabled: 1 }]];
-    if (sql.startsWith('SELECT * FROM booking_services')) return [[{ id: 9, name: 'Check-up', description: null, duration_min: 30, price_minor: 150000, capacity: 1, resource_ids: '[]', active: 1 }]];
-    if (sql.startsWith('SELECT id,name,note,active FROM booking_resources')) return [[]];
+    if (sql.startsWith('SELECT s.*,m.category')) return [[{ id: 9, name: 'Check-up', description: null, duration_min: 30, price_minor: 150000, capacity: 1, resource_ids: '[]', active: 1 }]];
+    if (sql.startsWith('SELECT x.id,x.name')) return [[]];
     if (sql.startsWith('SELECT id,service_id,resource_id,start_at')) return [[]];
     if (sql.startsWith('INSERT INTO whatsapp_booking_drafts')) return [{ insertId: 55, affectedRows: 1 }];
     return [{ affectedRows: 1, insertId: 31 }];

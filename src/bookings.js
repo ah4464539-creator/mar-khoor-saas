@@ -69,6 +69,34 @@ export const BOOKING_SQL = [
  KEY ix_bookings_status (restaurant_id, status),
  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
 ) ENGINE=InnoDB`,
+  `CREATE TABLE IF NOT EXISTS booking_service_meta (
+ service_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+ restaurant_id BIGINT UNSIGNED NOT NULL,
+ category VARCHAR(80) NULL,
+ deposit_minor BIGINT UNSIGNED NOT NULL DEFAULT 0,
+ KEY ix_booking_service_meta (restaurant_id),
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+) ENGINE=InnoDB`,
+  `CREATE TABLE IF NOT EXISTS booking_resource_meta (
+ resource_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+ restaurant_id BIGINT UNSIGNED NOT NULL,
+ specialty VARCHAR(80) NULL,
+ hours_json TEXT NULL,
+ room_status VARCHAR(20) NULL,
+ KEY ix_booking_resource_meta (restaurant_id),
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+) ENGINE=InnoDB`,
+  `CREATE TABLE IF NOT EXISTS booking_events (
+ id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+ restaurant_id BIGINT UNSIGNED NOT NULL,
+ booking_id BIGINT UNSIGNED NOT NULL,
+ action VARCHAR(30) NOT NULL,
+ detail VARCHAR(300) NULL,
+ actor VARCHAR(40) NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ KEY ix_booking_events (restaurant_id, booking_id),
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+) ENGINE=InnoDB`,
 ];
 
 const ready = new WeakMap();
@@ -114,27 +142,39 @@ const overlaps = (aStart, aEnd, bStart, bEnd) => aStart < bEnd && bStart < aEnd;
  * service: { duration_min, capacity, resource_ids:[...] }; bookings: [{start_at,end_at,resource_id,service_id}] (not cancelled)
  * Returns [{ time:'HH:MM', resource_id|null }].
  */
-export function freeSlots({ date, hours, step = 30, service, bookings = [], now = '' }) {
+export function freeSlots({ date, hours, step = 30, service, bookings = [], now = '', resourceHours = {}, excludeId = null }) {
   if (!isDate(date)) return [];
-  const ranges = cleanHours(hours)[weekday(date)] || [];
+  const wd = weekday(date);
+  const ranges = cleanHours(hours)[wd] || [];
   const duration = Math.max(5, service.duration_min || 30);
-  const resources = service.resource_ids?.length ? service.resource_ids : null;
-  const sameDay = bookings.map(b => ({ s: norm(b.start_at), e: norm(b.end_at), r: b.resource_id == null ? null : Number(b.resource_id), sv: b.service_id == null ? null : Number(b.service_id) }));
-  const out = [];
-  for (const [open, close] of ranges) {
-    for (let m = open; m + duration <= close; m += Math.max(5, step)) {
-      const s = stamp(date, m), e = stamp(date, m + duration);
-      if (now && s <= now) continue;
-      const busy = sameDay.filter(b => overlaps(s, e, b.s, b.e));
-      if (resources) {
-        const free = resources.find(id => !busy.some(b => b.r === Number(id)));
-        if (free != null) out.push({ time: minutesToTime(m), resource_id: Number(free) });
-      } else if (busy.filter(b => b.sv === Number(service.id)).length < Math.max(1, service.capacity || 1)) {
-        out.push({ time: minutesToTime(m), resource_id: null });
+  const resources = service.resource_ids?.length ? service.resource_ids.map(Number) : null;
+  const sameDay = bookings.filter(b => excludeId == null || Number(b.id) !== Number(excludeId)).map(b => ({ s: norm(b.start_at), e: norm(b.end_at), r: b.resource_id == null ? null : Number(b.resource_id), sv: b.service_id == null ? null : Number(b.service_id) }));
+  const stepMin = Math.max(5, step);
+  if (!resources) {
+    const out = [];
+    for (const [open, close] of ranges) {
+      for (let m = open; m + duration <= close; m += stepMin) {
+        const s = stamp(date, m), e = stamp(date, m + duration);
+        if (now && s <= now) continue;
+        if (sameDay.filter(b => b.sv === Number(service.id) && overlaps(s, e, b.s, b.e)).length < Math.max(1, service.capacity || 1)) out.push({ time: minutesToTime(m), resource_id: null });
+      }
+    }
+    return out;
+  }
+  // Each doctor / staff member works their own hours (or the business hours); first free one wins.
+  const byTime = new Map();
+  for (const id of resources) {
+    const own = resourceHours[id] ? (cleanHours(resourceHours[id])[wd] || []) : ranges;
+    for (const [open, close] of own) {
+      for (let m = open; m + duration <= close; m += stepMin) {
+        if (byTime.has(m)) continue;
+        const s = stamp(date, m), e = stamp(date, m + duration);
+        if (now && s <= now) continue;
+        if (!sameDay.some(b => b.r === id && overlaps(s, e, b.s, b.e))) byTime.set(m, id);
       }
     }
   }
-  return out;
+  return [...byTime].sort((a, b) => a[0] - b[0]).map(([m, id]) => ({ time: minutesToTime(m), resource_id: id }));
 }
 
 /** Rooms left of a room type for check-in..check-out (nights). */
@@ -159,14 +199,18 @@ export function cleanService(body, type) {
     capacity: int(body?.capacity, 1, 500, 1),
     resource_ids: night ? [] : resourceIds,
     active: body?.active === false ? 0 : 1,
+    category: text(body?.category, 80) || null,
+    deposit_minor: Math.max(0, Math.min(price || 1e11, Math.round(Number(body?.deposit ?? 0) * 100) || 0)),
   } };
 }
+export const ROOM_STATUSES = ['clean', 'dirty', 'cleaning', 'occupied', 'out_of_order'];
 export function cleanResource(body) {
   const name = text(body?.name, 120);
   if (!name) return { error: 'Enter a name' };
-  return { value: { name, note: text(body?.note, 200) || null, active: body?.active === false ? 0 : 1 } };
+  const hours = body?.hours && typeof body.hours === 'object' ? cleanHours(body.hours) : null;
+  return { value: { name, note: text(body?.note, 200) || null, active: body?.active === false ? 0 : 1, specialty: text(body?.specialty, 80) || null, hours, room_status: ROOM_STATUSES.includes(body?.room_status) ? body.room_status : null } };
 }
-export const BOOKING_STATUSES = ['pending', 'confirmed', 'completed', 'cancelled', 'no_show'];
+export const BOOKING_STATUSES = ['pending', 'confirmed', 'checked_in', 'completed', 'cancelled', 'no_show'];
 export const BOOKING_SOURCES = ['owner', 'website', 'whatsapp', 'call'];
 export function cleanPhone(value) {
   const raw = text(value, 40).replace(/[\s()-]/g, '');
@@ -212,13 +256,13 @@ export async function categoriesFor(pool, ids) {
 
 export async function listServices(pool, restaurantId, { activeOnly = false } = {}) {
   await ensureBookingTables(pool);
-  const [rows] = await pool.execute('SELECT * FROM booking_services WHERE restaurant_id=?' + (activeOnly ? ' AND active=1' : '') + ' ORDER BY id', [restaurantId]);
-  return rows.map(serviceRow);
+  const [rows] = await pool.execute('SELECT s.*,m.category,m.deposit_minor FROM booking_services s LEFT JOIN booking_service_meta m ON m.service_id=s.id AND m.restaurant_id=s.restaurant_id WHERE s.restaurant_id=?' + (activeOnly ? ' AND s.active=1' : '') + ' ORDER BY s.id', [restaurantId]);
+  return rows.map(r => ({ ...serviceRow(r), category: r.category || null, deposit_minor: Number(r.deposit_minor || 0) }));
 }
 export async function listResources(pool, restaurantId, { activeOnly = false } = {}) {
   await ensureBookingTables(pool);
-  const [rows] = await pool.execute('SELECT id,name,note,active FROM booking_resources WHERE restaurant_id=?' + (activeOnly ? ' AND active=1' : '') + ' ORDER BY id', [restaurantId]);
-  return rows.map(r => ({ id: Number(r.id), name: r.name, note: r.note, active: Boolean(r.active) }));
+  const [rows] = await pool.execute('SELECT x.id,x.name,x.note,x.active,m.specialty,m.hours_json,m.room_status FROM booking_resources x LEFT JOIN booking_resource_meta m ON m.resource_id=x.id AND m.restaurant_id=x.restaurant_id WHERE x.restaurant_id=?' + (activeOnly ? ' AND x.active=1' : '') + ' ORDER BY x.id', [restaurantId]);
+  return rows.map(r => { let hours = null; try { hours = r.hours_json ? cleanHours(JSON.parse(r.hours_json)) : null; } catch {} return { id: Number(r.id), name: r.name, note: r.note, active: Boolean(r.active), specialty: r.specialty || null, hours, room_status: r.room_status || null }; });
 }
 export async function saveService(pool, restaurantId, id, value) {
   await ensureBookingTables(pool);
@@ -227,22 +271,59 @@ export async function saveService(pool, restaurantId, id, value) {
   const ids = JSON.stringify(value.resource_ids.filter(x => allowed.has(x)));
   if (id) {
     const [r] = await pool.execute('UPDATE booking_services SET name=?,description=?,duration_min=?,price_minor=?,capacity=?,resource_ids=?,active=? WHERE id=? AND restaurant_id=?', [value.name, value.description, value.duration_min, value.price_minor, value.capacity, ids, value.active, id, restaurantId]);
-    return r.affectedRows ? id : null;
+    if (!r.affectedRows) return null;
+    await saveServiceMeta(pool, restaurantId, id, value);
+    return id;
   }
   const [count] = await pool.execute('SELECT COUNT(*) n FROM booking_services WHERE restaurant_id=?', [restaurantId]);
   if (Number(count[0].n) >= 100) return null;
   const [r] = await pool.execute('INSERT INTO booking_services(restaurant_id,name,description,duration_min,price_minor,capacity,resource_ids,active) VALUES (?,?,?,?,?,?,?,?)', [restaurantId, value.name, value.description, value.duration_min, value.price_minor, value.capacity, ids, value.active]);
+  await saveServiceMeta(pool, restaurantId, Number(r.insertId), value);
   return Number(r.insertId);
+}
+async function saveServiceMeta(pool, restaurantId, id, value) {
+  await pool.execute('INSERT INTO booking_service_meta(service_id,restaurant_id,category,deposit_minor) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE category=VALUES(category),deposit_minor=VALUES(deposit_minor)', [id, restaurantId, value.category ?? null, value.deposit_minor || 0]);
+}
+async function saveResourceMeta(pool, restaurantId, id, value) {
+  await pool.execute('INSERT INTO booking_resource_meta(resource_id,restaurant_id,specialty,hours_json,room_status) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE specialty=VALUES(specialty),hours_json=VALUES(hours_json),room_status=COALESCE(VALUES(room_status),room_status)', [id, restaurantId, value.specialty ?? null, value.hours ? JSON.stringify(value.hours) : null, value.room_status ?? null]);
+}
+/** Delete a service / staff member; one with bookings is switched off instead so history stays. */
+export async function deleteService(pool, restaurantId, id) {
+  await ensureBookingTables(pool);
+  const [[used]] = await pool.execute('SELECT COUNT(*) n FROM bookings WHERE restaurant_id=? AND service_id=?', [restaurantId, id]);
+  if (Number(used.n)) { const [r] = await pool.execute('UPDATE booking_services SET active=0 WHERE id=? AND restaurant_id=?', [id, restaurantId]); return r.affectedRows ? 'archived' : null; }
+  const [r] = await pool.execute('DELETE FROM booking_services WHERE id=? AND restaurant_id=?', [id, restaurantId]);
+  if (r.affectedRows) await pool.execute('DELETE FROM booking_service_meta WHERE service_id=? AND restaurant_id=?', [id, restaurantId]);
+  return r.affectedRows ? 'deleted' : null;
+}
+export async function deleteResource(pool, restaurantId, id) {
+  await ensureBookingTables(pool);
+  const [[used]] = await pool.execute('SELECT COUNT(*) n FROM bookings WHERE restaurant_id=? AND resource_id=?', [restaurantId, id]);
+  if (Number(used.n)) { const [r] = await pool.execute('UPDATE booking_resources SET active=0 WHERE id=? AND restaurant_id=?', [id, restaurantId]); return r.affectedRows ? 'archived' : null; }
+  const [r] = await pool.execute('DELETE FROM booking_resources WHERE id=? AND restaurant_id=?', [id, restaurantId]);
+  if (r.affectedRows) await pool.execute('DELETE FROM booking_resource_meta WHERE resource_id=? AND restaurant_id=?', [id, restaurantId]);
+  return r.affectedRows ? 'deleted' : null;
+}
+export async function setRoomStatus(pool, restaurantId, id, status) {
+  if (!ROOM_STATUSES.includes(status)) return false;
+  await ensureBookingTables(pool);
+  const [[own]] = await pool.execute('SELECT COUNT(*) n FROM booking_resources WHERE id=? AND restaurant_id=?', [id, restaurantId]);
+  if (!Number(own.n)) return false;
+  await pool.execute('INSERT INTO booking_resource_meta(resource_id,restaurant_id,room_status) VALUES (?,?,?) ON DUPLICATE KEY UPDATE room_status=VALUES(room_status)', [id, restaurantId, status]);
+  return true;
 }
 export async function saveResource(pool, restaurantId, id, value) {
   await ensureBookingTables(pool);
   if (id) {
     const [r] = await pool.execute('UPDATE booking_resources SET name=?,note=?,active=? WHERE id=? AND restaurant_id=?', [value.name, value.note, value.active, id, restaurantId]);
-    return r.affectedRows ? id : null;
+    if (!r.affectedRows) return null;
+    await saveResourceMeta(pool, restaurantId, id, value);
+    return id;
   }
   const [count] = await pool.execute('SELECT COUNT(*) n FROM booking_resources WHERE restaurant_id=?', [restaurantId]);
   if (Number(count[0].n) >= 100) return null;
   const [r] = await pool.execute('INSERT INTO booking_resources(restaurant_id,name,note,active) VALUES (?,?,?,?)', [restaurantId, value.name, value.note, value.active]);
+  await saveResourceMeta(pool, restaurantId, Number(r.insertId), value);
   return Number(r.insertId);
 }
 
@@ -252,7 +333,7 @@ async function busyBetween(pool, restaurantId, from, to) {
 }
 
 /** Availability for a service: slots for a date, or rooms left for a stay. */
-export async function availability(pool, restaurantId, { serviceId, date, checkOut }) {
+export async function availability(pool, restaurantId, { serviceId, date, checkOut, resourceId = null, excludeId = null }) {
   const profile = await getProfile(pool, restaurantId);
   const service = (await listServices(pool, restaurantId, { activeOnly: true })).find(s => s.id === Number(serviceId));
   if (!profile || !service) return { error: 'Service not found' };
@@ -260,13 +341,24 @@ export async function availability(pool, restaurantId, { serviceId, date, checkO
   if (profile.type.booking === 'night') {
     if (!isDate(date) || !isDate(checkOut) || nightsBetween(date, checkOut) < 1 || nightsBetween(date, checkOut) > 60) return { error: 'Choose check-in and check-out dates' };
     if (date < now.slice(0, 10)) return { error: 'Choose a date from today' };
-    const busy = await busyBetween(pool, restaurantId, date + ' 00:00', checkOut + ' 23:59');
+    const busy = (await busyBetween(pool, restaurantId, date + ' 00:00', checkOut + ' 23:59')).filter(b => excludeId == null || Number(b.id) !== Number(excludeId));
     const left = roomsLeft({ service, checkIn: date, checkOut, bookings: busy });
     return { kind: 'night', service, nights: nightsBetween(date, checkOut), rooms_left: left, total_minor: service.price_minor * nightsBetween(date, checkOut) };
   }
   if (!isDate(date)) return { error: 'Choose a date' };
   const busy = await busyBetween(pool, restaurantId, date + ' 00:00', addDays(date, 1) + ' 00:00');
-  return { kind: 'slot', service, slots: freeSlots({ date, hours: profile.hours, step: profile.slot_minutes, service, bookings: busy, now }) };
+  const resourceHours = {};
+  let useService = service;
+  if (service.resource_ids.length) {
+    const active = await listResources(pool, restaurantId, { activeOnly: true });
+    for (const r of active) if (r.hours) resourceHours[r.id] = r.hours;
+    const ids = new Set(active.map(r => r.id));
+    useService = { ...service, resource_ids: service.resource_ids.filter(id => ids.has(id)) };
+  }
+  const wanted = resourceId ? Number(resourceId) : null;
+  if (wanted && useService.resource_ids.length) useService = { ...useService, resource_ids: useService.resource_ids.filter(id => id === wanted) };
+  if (service.resource_ids.length && !useService.resource_ids.length) return { kind: 'slot', service, slots: [] };
+  return { kind: 'slot', service, slots: freeSlots({ date, hours: profile.hours, step: profile.slot_minutes, service: useService, bookings: busy, now, resourceHours, excludeId }) };
 }
 
 /**
@@ -278,7 +370,8 @@ export async function createBooking(pool, restaurantId, input) {
   if (!name) return { error: 'Enter the customer name' };
   if (!phone) return { error: 'Enter a valid phone number' };
   const source = BOOKING_SOURCES.includes(input.source) ? input.source : 'owner';
-  const avail = await availability(pool, restaurantId, { serviceId: input.service_id, date: input.date, checkOut: input.check_out });
+  const wantedResource = input.resource_id ? Number(input.resource_id) : null;
+  const avail = await availability(pool, restaurantId, { serviceId: input.service_id, date: input.date, checkOut: input.check_out, resourceId: wantedResource });
   if (avail.error) return avail;
   const service = avail.service;
   let start, end, resourceId = null, price;
@@ -287,16 +380,7 @@ export async function createBooking(pool, restaurantId, input) {
     start = input.date + ' 14:00'; end = input.check_out + ' 12:00'; price = avail.total_minor;
   } else {
     const time = typeof input.time === 'string' ? input.time.slice(0, 5) : '';
-    const wanted = input.resource_id ? Number(input.resource_id) : null;
-    const slot = avail.slots.find(s => s.time === time && (!wanted || !service.resource_ids.length || s.resource_id === wanted));
-    let chosen = slot;
-    if (!chosen && wanted && service.resource_ids.includes(wanted)) {
-      // the first free resource for that time was someone else; check the wanted one directly
-      const profile = await getProfile(pool, restaurantId);
-      const busy = await busyBetween(pool, restaurantId, input.date + ' 00:00', addDays(input.date, 1) + ' 00:00');
-      const only = freeSlots({ date: input.date, hours: profile.hours, step: profile.slot_minutes, service: { ...service, resource_ids: [wanted] }, bookings: busy, now: localNow(profile.timezone) });
-      chosen = only.find(s => s.time === time);
-    }
+    const chosen = avail.slots.find(s => s.time === time);
     if (!chosen) return { error: 'That time is no longer free. Pick another time.' };
     const startMin = toMin(input.date + ' ' + time);
     start = input.date + ' ' + time; end = stamp(input.date, startMin + service.duration_min); resourceId = chosen.resource_id; price = service.price_minor;
@@ -304,23 +388,81 @@ export async function createBooking(pool, restaurantId, input) {
   const status = input.status === 'confirmed' ? 'confirmed' : 'pending';
   const [r] = await pool.execute('INSERT INTO bookings(restaurant_id,service_id,resource_id,customer_name,customer_phone,start_at,end_at,guests,price_minor,status,source,note) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
     [restaurantId, service.id, resourceId, name, phone, start + ':00', end + ':00', int(input.guests, 1, 50, 1), price, status, source, text(input.note, 500) || null]);
+  await logEvent(pool, restaurantId, Number(r.insertId), 'created', source);
   return { booking: { id: Number(r.insertId), service: service.name, start_at: start, end_at: end, resource_id: resourceId, price_minor: price, status } };
 }
 
-export async function listBookings(pool, restaurantId, { from, to, status } = {}) {
+export async function logEvent(pool, restaurantId, bookingId, action, detail = null, actor = null) {
+  try { await pool.execute('INSERT INTO booking_events(restaurant_id,booking_id,action,detail,actor) VALUES (?,?,?,?,?)', [restaurantId, bookingId, String(action).slice(0, 30), detail ? String(detail).slice(0, 300) : null, actor ? String(actor).slice(0, 40) : null]); } catch {}
+}
+export async function bookingEvents(pool, restaurantId, bookingId) {
+  await ensureBookingTables(pool);
+  const [rows] = await pool.execute('SELECT action,detail,actor,created_at FROM booking_events WHERE restaurant_id=? AND booking_id=? ORDER BY id LIMIT 50', [restaurantId, bookingId]);
+  return rows.map(r => ({ action: r.action, detail: r.detail, actor: r.actor, at: norm(r.created_at) }));
+}
+
+/** Move a booking to a new date/time (or stay dates), re-checked against everyone else. */
+export async function rescheduleBooking(pool, restaurantId, id, input, actor = 'owner') {
+  await ensureBookingTables(pool);
+  const [[b]] = await pool.execute('SELECT * FROM bookings WHERE id=? AND restaurant_id=?', [id, restaurantId]);
+  if (!b) return { error: 'Booking not found' };
+  if (['cancelled', 'completed', 'no_show'].includes(b.status)) return { error: 'This booking is closed' };
+  const resourceId = input.resource_id ? Number(input.resource_id) : null;
+  const avail = await availability(pool, restaurantId, { serviceId: input.service_id || b.service_id, date: input.date, checkOut: input.check_out, resourceId, excludeId: id });
+  if (avail.error) return avail;
+  let start, end, res = null, price;
+  if (avail.kind === 'night') {
+    if (avail.rooms_left < 1) return { error: 'No rooms of this type are free for those dates' };
+    start = input.date + ' 14:00'; end = input.check_out + ' 12:00'; price = avail.total_minor;
+  } else {
+    const time = String(input.time || '').slice(0, 5);
+    const chosen = avail.slots.find(s => s.time === time);
+    if (!chosen) return { error: 'That time is not free. Pick another time.' };
+    start = input.date + ' ' + time; end = stamp(input.date, toMin(start) + avail.service.duration_min); res = chosen.resource_id; price = avail.service.price_minor;
+  }
+  await pool.execute('UPDATE bookings SET service_id=?,resource_id=?,start_at=?,end_at=?,price_minor=? WHERE id=? AND restaurant_id=?', [avail.service.id, res, start + ':00', end + ':00', price, id, restaurantId]);
+  await logEvent(pool, restaurantId, id, 'rescheduled', norm(b.start_at) + ' → ' + start, actor);
+  return { booking: { id, service: avail.service.name, start_at: start, end_at: end, resource_id: res, price_minor: price, status: b.status } };
+}
+
+/** Patients / clients / guests: everyone who booked, grouped by phone number. */
+export async function listCustomers(pool, restaurantId, { q = '' } = {}) {
+  await ensureBookingTables(pool);
+  const args = [restaurantId];
+  let where = 'restaurant_id=?';
+  const term = text(q, 60);
+  if (term) { where += ' AND (customer_name LIKE ? OR customer_phone LIKE ?)'; args.push('%' + term + '%', '%' + term.replace(/[^\d+]/g, '') + '%'); }
+  const [rows] = await pool.execute("SELECT customer_phone phone, MAX(customer_name) name, COUNT(*) bookings, SUM(status='completed') visits, SUM(status IN ('cancelled','no_show')) missed, SUM(CASE WHEN status='completed' THEN price_minor ELSE 0 END) spent_minor, MAX(CASE WHEN start_at<NOW() THEN start_at END) last_at, MIN(CASE WHEN start_at>=NOW() AND status NOT IN ('cancelled','no_show') THEN start_at END) next_at FROM bookings WHERE " + where + ' GROUP BY customer_phone ORDER BY MAX(start_at) DESC LIMIT 500', args);
+  return rows.map(r => ({ phone: r.phone, name: r.name, bookings: Number(r.bookings), visits: Number(r.visits || 0), missed: Number(r.missed || 0), spent_minor: Number(r.spent_minor || 0), last_at: r.last_at ? norm(r.last_at) : null, next_at: r.next_at ? norm(r.next_at) : null }));
+}
+export async function customerBookings(pool, restaurantId, phone) {
+  await ensureBookingTables(pool);
+  const [rows] = await pool.execute('SELECT b.id,b.start_at,b.end_at,b.status,b.price_minor,b.note,s.name service FROM bookings b LEFT JOIN booking_services s ON s.id=b.service_id AND s.restaurant_id=b.restaurant_id WHERE b.restaurant_id=? AND b.customer_phone=? ORDER BY b.start_at DESC LIMIT 100', [restaurantId, phone]);
+  return rows.map(r => ({ id: Number(r.id), service: r.service, start_at: norm(r.start_at), end_at: norm(r.end_at), status: r.status, price_minor: Number(r.price_minor), note: r.note }));
+}
+/** CSV text (Excel-safe: formulas neutralised). */
+export function toCsv(rows, columns) {
+  const cell = v => { let t = v == null ? '' : String(v); if (/^[=+\-@]/.test(t)) t = "'" + t; return '"' + t.replace(/"/g, '""') + '"'; };
+  return [columns.map(c => cell(c[1])).join(','), ...rows.map(r => columns.map(c => cell(r[c[0]])).join(','))].join('\r\n') + '\r\n';
+}
+
+export async function listBookings(pool, restaurantId, { from, to, status, q } = {}) {
   await ensureBookingTables(pool);
   const args = [restaurantId];
   let where = 'b.restaurant_id=?';
   if (isDate(from)) { where += ' AND b.end_at>=?'; args.push(from + ' 00:00:00'); }
   if (isDate(to)) { where += ' AND b.start_at<?'; args.push(addDays(to, 1) + ' 00:00:00'); }
   if (BOOKING_STATUSES.includes(status)) { where += ' AND b.status=?'; args.push(status); }
+  const term = text(q, 60);
+  if (term) { where += ' AND (b.customer_name LIKE ? OR b.customer_phone LIKE ? OR b.id=?)'; args.push('%' + term + '%', '%' + term.replace(/[^\d+]/g, '') + '%', Number(term.replace(/\D/g, '')) || 0); }
   const [rows] = await pool.execute('SELECT b.*,s.name service_name,x.name resource_name FROM bookings b LEFT JOIN booking_services s ON s.id=b.service_id AND s.restaurant_id=b.restaurant_id LEFT JOIN booking_resources x ON x.id=b.resource_id AND x.restaurant_id=b.restaurant_id WHERE ' + where + ' ORDER BY b.start_at LIMIT 500', args);
   return rows.map(b => ({ id: Number(b.id), service_id: b.service_id == null ? null : Number(b.service_id), service: b.service_name, resource: b.resource_name, resource_id: b.resource_id == null ? null : Number(b.resource_id), customer_name: b.customer_name, customer_phone: b.customer_phone, start_at: norm(b.start_at), end_at: norm(b.end_at), guests: Number(b.guests), price_minor: Number(b.price_minor), status: b.status, source: b.source, note: b.note }));
 }
-export async function setBookingStatus(pool, restaurantId, id, status) {
+export async function setBookingStatus(pool, restaurantId, id, status, actor = 'owner') {
   if (!BOOKING_STATUSES.includes(status)) return false;
   await ensureBookingTables(pool);
   const [r] = await pool.execute('UPDATE bookings SET status=? WHERE id=? AND restaurant_id=?', [status, id, restaurantId]);
+  if (r.affectedRows) await logEvent(pool, restaurantId, id, status, null, actor);
   return r.affectedRows > 0;
 }
 

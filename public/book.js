@@ -5,7 +5,7 @@
   const slug = (new URLSearchParams(location.search).get('b') || '').toLowerCase().replace(/[^a-z0-9-]/g, '');
   const ICON = { restaurant: '🍽️', clinic: '🩺', hotel: '🏨', salon: '✂️' };
   const KIND = { restaurant: 'Reserve a table', clinic: 'Book an appointment', hotel: 'Book a room', salon: 'Book an appointment' };
-  let info = null, service = null, picked = '';
+  let info = null, service = null, picked = '', category = '';
   const night = () => info?.category === 'hotel';
   const money = m => { try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: info.business.currency, maximumFractionDigits: m % 100 ? 2 : 0 }).format(m / 100); } catch { return info.business.currency + ' ' + m / 100; } };
   const today = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
@@ -26,17 +26,39 @@
     $('book-out-field').hidden = !night();
     $('book-guests-label').textContent = info.category === 'clinic' ? 'Patients' : info.category === 'restaurant' ? 'Guests' : 'People';
     if (!info.services.length) { $('book-avail').textContent = 'Online booking is not ready yet. Please call the business.'; }
-    $('book-services').replaceChildren(...info.services.map((s, i) => {
-      const l = el('label', 'book-service'); const r = el('input'); r.type = 'radio'; r.name = 'svc'; r.value = s.id; r.checked = i === 0;
-      const t = el('span', 'book-svc-text'); t.append(el('b', null, s.name), el('small', null, night() ? money(s.price_minor) + ' / night' : s.duration_min + ' min' + (s.price_minor ? ' · ' + money(s.price_minor) : '')));
-      if (s.description) t.append(el('small', 'muted', s.description));
-      r.addEventListener('change', () => { service = s; check(); });
-      l.append(r, t); return l;
-    }));
-    service = info.services[0] || null;
+    const cats = [...new Set(info.services.map(s => s.category).filter(Boolean))];
+    const catLabel = info.category === 'clinic' ? 'Specialty' : 'Category';
+    if (cats.length > 1) {
+      $('book-cats').hidden = false;
+      const chip = (label, value) => { const b = el('button', 'book-cat', label); b.type = 'button'; b.addEventListener('click', () => { category = value; $('book-cats').querySelectorAll('.book-cat').forEach(x => x.classList.toggle('on', x === b)); renderServices(); }); return b; };
+      $('book-cats').replaceChildren(el('span', 'small muted', catLabel + ':'), chip('All', ''), ...cats.map(c => chip(c, c)));
+      $('book-cats').querySelector('.book-cat').classList.add('on');
+    }
+    renderServices();
+    $('book-res').addEventListener('change', check);
     $('book-date').min = today(); $('book-date').value = today(); $('book-out').value = plus(today(), 1);
     $('book-form').hidden = false;
     check();
+  }
+  function renderServices() {
+    const list = info.services.filter(s => !category || s.category === category);
+    $('book-services').replaceChildren(...list.map((s, i) => {
+      const l = el('label', 'book-service'); const r = el('input'); r.type = 'radio'; r.name = 'svc'; r.value = s.id; r.checked = i === 0;
+      const t = el('span', 'book-svc-text'); t.append(el('b', null, s.name), el('small', null, night() ? money(s.price_minor) + ' / night' : s.duration_min + ' min' + (s.price_minor ? ' · ' + money(s.price_minor) : '')));
+      if (s.description) t.append(el('small', 'muted', s.description));
+      r.addEventListener('change', () => { service = s; fillPeople(); check(); });
+      l.append(r, t); return l;
+    }));
+    service = list[0] || null;
+    fillPeople();
+    if (info && $('book-form').hidden === false) check();
+  }
+  function fillPeople() {
+    const people = service && !night() ? info.resources.filter(r => (service.resource_ids || []).includes(r.id)) : [];
+    $('book-res-field').hidden = people.length < 2;
+    $('book-res-label').textContent = info.category === 'clinic' ? 'Doctor' : info.category === 'restaurant' ? 'Table' : 'With';
+    const any = el('option', null, info.category === 'clinic' ? 'Any available doctor' : 'Anyone available'); any.value = '';
+    $('book-res').replaceChildren(any, ...people.map(r => { const o = el('option', null, r.name + (r.specialty ? ' · ' + r.specialty : '')); o.value = r.id; return o; }));
   }
   async function check() {
     picked = ''; $('book-total').textContent = '';
@@ -46,7 +68,7 @@
     if (night() && $('book-out').value <= $('book-date').value) $('book-out').value = plus($('book-date').value, 1);
     note.textContent = 'Checking…';
     try {
-      const r = await api('/availability?service_id=' + service.id + '&date=' + $('book-date').value + (night() ? '&check_out=' + $('book-out').value : ''));
+      const r = await api('/availability?service_id=' + service.id + '&date=' + $('book-date').value + (night() ? '&check_out=' + $('book-out').value : '') + ($('book-res').value ? '&resource_id=' + $('book-res').value : ''));
       if (r.kind === 'night') {
         note.textContent = r.rooms_left ? 'Available · ' + r.nights + ' night' + (r.nights > 1 ? 's' : '') : 'No rooms free for these dates. Try other dates.';
         if (r.rooms_left) $('book-total').textContent = 'Total: ' + money(r.total_minor);
@@ -63,7 +85,7 @@
     if (!night() && !picked) { status.textContent = 'Please pick a time.'; return; }
     $('book-submit').disabled = true; status.textContent = 'Booking…';
     try {
-      const { booking } = await api('/bookings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ service_id: service.id, date: $('book-date').value, time: picked, check_out: $('book-out').value, customer_name: $('book-cname').value, customer_phone: $('book-phone').value, guests: Number($('book-guests').value), note: $('book-note').value }) });
+      const { booking } = await api('/bookings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ service_id: service.id, resource_id: $('book-res').value ? Number($('book-res').value) : null, date: $('book-date').value, time: picked, check_out: $('book-out').value, customer_name: $('book-cname').value, customer_phone: $('book-phone').value, guests: Number($('book-guests').value), note: $('book-note').value }) });
       $('book-form').hidden = true; $('book-done').hidden = false;
       const when = night() ? booking.start_at.slice(0, 10) + ' to ' + booking.end_at.slice(0, 10) : booking.start_at.slice(0, 10) + ' at ' + booking.start_at.slice(11, 16);
       $('book-done-text').textContent = booking.service + ' · ' + when + ' · booking #' + booking.id;

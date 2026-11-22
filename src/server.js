@@ -30,6 +30,7 @@ import { startDomainWorker } from './domain-automation.js';
 const hostinger = createHostingerClient(hostingerConfig());
 import { numbersRouter } from './numbers.js';
 import { bookingsRouter } from './bookings-routes.js';
+import { startReminderWorker } from './booking-reminders.js';
 import { loadCatalog } from './plan-orders.js';
 import { voiceToolsRouter } from './voice-tools.js';
 import { vapiToolAdapterRouter } from './vapi-adapter.js';
@@ -120,6 +121,7 @@ const port = Number(process.env.PORT || 3001);
 app.listen(port, () => {
   console.log(`Mar-Khoor API listening on ${port}`);
   startWhatsAppAIWorker(pool);
+  startReminderWorker(pool);
   ensureFemaleVoices(pool).then(result => console.log('AI Caller voice:', JSON.stringify(result))).catch(error => console.warn('AI Caller voice update skipped:', error.message))
    .then(() => ensureSpeechRules(pool)).then(result => console.log('AI Caller speech rules:', JSON.stringify(result))).catch(error => console.warn('AI Caller speech rules skipped:', error.message));
   startDomainWorker(pool, hostinger);
