@@ -377,7 +377,7 @@ function orderCard(order, labels, methods, payments) {
  const payTag = money.querySelector('.tag');
  if (payTag) { const short = payTag.cloneNode(true); short.classList.add('oc-pay'); if (order.payment_state === 'submitted') short.classList.add('needs-check'); bottom.append(short); }
  if (order.delivery_instructions) bottom.append(ownerText('span', '📝', 'oc-flag'));
- bottom.append(ownerText('span', '', 'oc-space'));
+ const acts = ownerText('span', '', 'oc-acts');
  const actions = ownerText('div', '', 'actions');
  const transitions = orderTransitions[order.status] ?? [];
  for (const next of transitions) {
@@ -400,7 +400,7 @@ function orderCard(order, labels, methods, payments) {
    }
   });
   // The main next step stays on the card; cancel and the rest live in the details.
-  if (next !== 'cancelled' && !bottom.querySelector('.oc-main')) { button.classList.add('oc-main'); bottom.append(button); }
+  if (next !== 'cancelled' && !acts.querySelector('.oc-main')) { button.classList.add('oc-main'); acts.append(button); }
   else actions.append(button);
  }
  const toggle = ownerText('button', '', 'oc-toggle'); toggle.type = 'button';
@@ -409,7 +409,8 @@ function orderCard(order, labels, methods, payments) {
  toggle.addEventListener('click', event => { event.stopPropagation(); setOpen(!card.classList.contains('open')); });
  top.addEventListener('click', () => setOpen(!card.classList.contains('open')));
  midLine.addEventListener('click', () => setOpen(!card.classList.contains('open')));
- bottom.append(toggle);
+ acts.append(toggle);
+ bottom.append(acts);
  card.replaceChildren(top, midLine, bottom, details);
  setOpen(ownerOpenOrders.has(order.id));
  if (order.payment_state === 'submitted') card.classList.add('needs-check');

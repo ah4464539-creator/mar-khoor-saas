@@ -578,3 +578,8 @@ body.mk{margin:0}
 .owner-app .order-card.needs-check{box-shadow:0 0 0 2px #f6c99e}
 .owner-app .order-details .order-items{border-top:0;padding-top:0}
 .owner-app .order-details .actions .btn{min-height:36px}
+/* Bottom line wraps cleanly in narrow columns: total + payment, then the actions */
+.owner-app .oc-bot{flex-wrap:wrap;row-gap:6px}
+.owner-app .oc-pay{flex:0 1 auto;min-width:0;max-width:100%}
+.owner-app .oc-acts{display:flex;align-items:center;gap:6px;margin-left:auto;flex:none}
+.owner-app .order-card.compact{min-width:0;overflow:hidden}
