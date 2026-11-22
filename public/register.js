@@ -55,13 +55,14 @@ form.addEventListener('submit', async event => {
   if (password !== confirm) { status.textContent = 'Passwords do not match'; return; }
   const button = document.querySelector('#create-restaurant');
   button.disabled = true;
-  status.textContent = 'Creating your restaurant…';
+  status.textContent = 'Creating your account…';
   try {
     const response = await fetch('/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         restaurant_name: document.querySelector('#restaurant-name').value,
+        business_type: document.querySelector('input[name="business_type"]:checked')?.value || 'restaurant',
         country: country.value,
         email: document.querySelector('#email').value,
         password: document.querySelector('#password').value
@@ -122,3 +123,13 @@ next.addEventListener('click', () => {
   if (form.reportValidity()) changeStage(stage + 1);
 });
 previous.addEventListener('click', () => changeStage(stage - 1));
+
+// Business type: pre-select from ?type= and adapt the name example.
+(() => {
+  const NAMES = { restaurant: 'e.g. Cheema Cafe', clinic: 'e.g. City Care Clinic', hotel: 'e.g. Hunza View Guest House', salon: 'e.g. Glow Salon' };
+  const want = new URLSearchParams(location.search).get('type');
+  const radio = want && document.querySelector('input[name="business_type"][value="' + want.replace(/[^a-z]/g, '') + '"]');
+  if (radio) radio.checked = true;
+  const sync = () => { const v = document.querySelector('input[name="business_type"]:checked')?.value || 'restaurant'; const input = document.querySelector('#restaurant-name'); if (input) input.placeholder = NAMES[v] || NAMES.restaurant; };
+  document.querySelectorAll('input[name="business_type"]').forEach(r => r.addEventListener('change', sync)); sync();
+})();

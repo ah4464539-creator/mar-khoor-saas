@@ -1,3 +1,4 @@
+import { categoriesFor } from './bookings.js';
 import { trackSiteEvent } from './site-analytics.js';
 import { getPilotIds, setPilot, workerSwitch, setWorkerSwitch } from './whatsapp-pilot.js';
 import { enableCalling, disableCalling, callingStatus, getCallingState } from './whatsapp-calling.js';
@@ -173,7 +174,8 @@ export function apiRouter(pool) {
  router.get('/my/restaurants',requireAuth,async(req,res)=>{
   try {
    const [rows]=await pool.execute('SELECT r.id,r.name,r.slug,r.country_code,r.currency,r.locale,m.role FROM restaurant_members m JOIN restaurants r ON r.id=m.restaurant_id WHERE m.user_id=? ORDER BY r.name',[req.user.id]);
-   res.json({restaurants:rows});
+   const cats=await categoriesFor(pool,rows.map(r=>r.id));
+   res.json({restaurants:rows.map(r=>({...r,category:cats.get(Number(r.id))||'restaurant'}))});
   } catch {res.status(503).json({error:'Database unavailable'});}
  });
  router.get('/public/restaurants/:slug/menu',async(req,res)=>{

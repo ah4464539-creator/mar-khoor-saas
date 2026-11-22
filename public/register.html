@@ -10,8 +10,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="/summit.css?v=20261122-s5">
-<link rel="stylesheet" href="/public-pages.css?v=20261122-s5">
-<script src="/register.js?v=20261121-s3" defer></script>
+<link rel="stylesheet" href="/public-pages.css?v=20261122-s7">
+<script src="/register.js?v=20261122-b1" defer></script>
 <script defer>document.addEventListener("DOMContentLoaded",()=>{document.getElementById("show-passwords")?.addEventListener("change",e=>{for(const id of ["password","confirm-password"]){const input=document.getElementById(id);if(input)input.type=e.target.checked?"text":"password";}});});</script>
 <script src="/i18n.js?v=20261121-1" defer></script>
 </head>
@@ -19,15 +19,15 @@
 <div class="auth">
  <div class="auth-art auth-chef">
   <a translate="no" class="brand auth-logo" href="/" aria-label="Mar-Khoor home"><img src="/assets/markhor-mark-tile.svg" width="48" height="48" alt=""><b>Mar<span>-</span>Khoor</b></a>
-  <div class="auth-copy"><span class="eyebrow">Register your restaurant</span><h1 class="display">Your AI ordering desk, ready in minutes.</h1><p>Create your account, then choose a plan and connect WhatsApp, AI calls and your website. You can skip any channel and add it later.</p></div>
-  <ul class="auth-points"><li>AI phone orders</li><li>WhatsApp orders</li><li>AI website with your live menu</li><li>Urdu &amp; English</li></ul>
+  <div class="auth-copy"><span class="eyebrow">Register your business</span><h1 class="display">Your AI ordering desk, ready in minutes.</h1><p>Create your account, then choose a plan and connect WhatsApp, AI calls and your website. You can skip any channel and add it later.</p></div>
+  <ul class="auth-points"><li>AI phone orders &amp; bookings</li><li>WhatsApp orders &amp; bookings</li><li>AI website</li><li>Urdu &amp; English</li></ul>
  </div>
  <div class="auth-form">
   <section class="auth-card register-card">
    <ol class="register-steps stepper" aria-label="Registration progress">
     <li aria-current="step"><b>1</b>Restaurant</li><li><b>2</b>Owner</li><li><b>3</b>Account</li>
    </ol>
-   <div class="auth-title"><h2>Register your restaurant</h2><p class="muted">Start taking AI-powered orders in minutes.</p></div>
+   <div class="auth-title"><h2>Register your business</h2><p class="muted">Take orders and bookings with AI in minutes.</p></div>
    <div id="chosen-plan" class="chosen-plan">
     <label for="chosen-plan-select">Your plan</label>
     <select id="chosen-plan-select" class="input"><option value="">Decide after sign-in</option><option value="starter">Starter</option><option value="premium">Premium</option><option value="enterprise">Enterprise</option></select>
@@ -36,7 +36,15 @@
    </div>
    <form id="register">
     <fieldset><legend class="visually-hidden">Restaurant details</legend>
-     <div class="field"><label for="restaurant-name">Restaurant name</label><input class="input" id="restaurant-name" required maxlength="160" autocomplete="organization" placeholder="e.g. Cheema Cafe"></div>
+     <div class="field"><span class="field-label" id="biz-type-label">Type of business</span>
+      <div class="biz-types" role="radiogroup" aria-labelledby="biz-type-label">
+       <label class="biz-type"><input type="radio" name="business_type" value="restaurant" checked><span aria-hidden="true">🍽️</span><b>Restaurant / cafe</b></label>
+       <label class="biz-type"><input type="radio" name="business_type" value="clinic"><span aria-hidden="true">🩺</span><b>Clinic / doctor</b></label>
+       <label class="biz-type"><input type="radio" name="business_type" value="hotel"><span aria-hidden="true">🏨</span><b>Hotel / guest house</b></label>
+       <label class="biz-type"><input type="radio" name="business_type" value="salon"><span aria-hidden="true">✂️</span><b>Salon / services</b></label>
+      </div>
+     </div>
+     <div class="field"><label for="restaurant-name">Business name</label><input class="input" id="restaurant-name" required maxlength="160" autocomplete="organization" placeholder="e.g. Cheema Cafe"></div>
      <div class="field"><label for="country">Country</label><select class="input" id="country" required><option value="">Select country</option></select><span class="hint">Sets your currency and plan prices.</span></div>
     </fieldset>
     <fieldset hidden disabled><legend class="visually-hidden">Owner information</legend>

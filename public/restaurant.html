@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="/summit.css?v=20261122-s5">
-<link rel="stylesheet" href="/owner.css?v=20261122-s30">
+<link rel="stylesheet" href="/owner.css?v=20261122-s31">
 <script src="/session-guard.js?v=20261122-1"></script>
 <script src="/i18n.js?v=20261121-2" data-position="right" defer></script>
 </head>
@@ -30,6 +30,8 @@
  <symbol id="i-blog" viewBox="0 0 24 24"><path d="M4 4h16v16H4zM8 8h8M8 12h8M8 16h5"/></symbol>
  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol>
  <symbol id="i-send" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></symbol>
+ <symbol id="i-calendar" viewBox="0 0 24 24"><path d="M4 6h16v14H4zM4 10h16M8 3v5M16 3v5"/></symbol>
+ <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8M14 5v4M8 15v4"/></symbol>
  <symbol id="i-wallet" viewBox="0 0 24 24"><path d="M3 7h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 7l12-3v3M16 13.5h2"/></symbol>
  <symbol id="i-card" viewBox="0 0 24 24"><path d="M3 5h18v14H3zM3 10h18M7 15h4"/></symbol>
  <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5V3h4M16 17l5-5-5-5M21 12H9"/></symbol>
@@ -48,9 +50,11 @@
   <span class="nav-label">Restaurant</span>
   <a class="selected" aria-current="page" href="#owner-overview"><svg aria-hidden="true"><use href="#i-home"/></svg><span>Dashboard</span></a>
   <div id="owner-navigation" class="nav-group" hidden>
-   <a href="#order-desk"><svg aria-hidden="true"><use href="#i-orders"/></svg><span>Live orders</span><span class="count" id="nav-pending-count" hidden></span></a>
+   <a href="#order-desk" data-food-only><svg aria-hidden="true"><use href="#i-orders"/></svg><span>Live orders</span><span class="count" id="nav-pending-count" hidden></span></a>
+   <a href="#bookings" data-biz-nav="bookings"><svg aria-hidden="true"><use href="#i-calendar"/></svg><span data-biz-label="bookings">Bookings</span><span class="count" id="nav-booking-count" hidden></span></a>
+   <a href="#booking-setup" data-biz-nav="setup"><svg aria-hidden="true"><use href="#i-sliders"/></svg><span data-biz-label="setup">Services &amp; hours</span></a>
    <a href="#payment-methods"><svg aria-hidden="true"><use href="#i-wallet"/></svg><span>Payment methods</span></a>
-   <a href="#menu-management"><svg aria-hidden="true"><use href="#i-menu"/></svg><span>Menu &amp; items</span></a>
+   <a href="#menu-management" data-food-only><svg aria-hidden="true"><use href="#i-menu"/></svg><span>Menu &amp; items</span></a>
    <a href="#website"><svg aria-hidden="true"><use href="#i-web"/></svg><span>AI Website</span></a>
    <a href="#blog-pages"><svg aria-hidden="true"><use href="#i-blog"/></svg><span>Blog &amp; pages</span></a>
    <span class="nav-label">Channels</span>
@@ -66,7 +70,7 @@
 <main class="main" id="owner-workspace">
 <header class="topbar owner-topbar">
  <div><p class="small muted owner-greeting">Good to see you, <strong id="owner-restaurant-label">Restaurant</strong></p><h1 id="owner-heading">Dashboard</h1></div>
- <div class="top-actions"><a class="btn btn-ghost live-site-btn" id="owner-live-site" href="#website" hidden><svg aria-hidden="true" width="18" height="18"><use href="#i-globe"/></svg><span>Live website</span></a><label class="search"><svg aria-hidden="true" width="16" height="16"><use href="#i-search"/></svg><span class="visually-hidden">Search orders or customers</span><input id="owner-global-search" type="search" placeholder="Search orders or customers"></label><a class="btn btn-primary" href="#menu-management"><svg aria-hidden="true" width="18" height="18"><use href="#i-plus"/></svg>Add menu item</a></div>
+ <div class="top-actions"><a class="btn btn-ghost live-site-btn" id="owner-live-site" href="#website" hidden><svg aria-hidden="true" width="18" height="18"><use href="#i-globe"/></svg><span>Live website</span></a><label class="search"><svg aria-hidden="true" width="16" height="16"><use href="#i-search"/></svg><span class="visually-hidden">Search orders or customers</span><input id="owner-global-search" type="search" placeholder="Search orders or customers"></label><a class="btn btn-primary" href="#menu-management" data-food-only><svg aria-hidden="true" width="18" height="18"><use href="#i-plus"/></svg>Add menu item</a><a class="btn btn-primary" href="#bookings" data-biz-only data-bk-new-link><svg aria-hidden="true" width="18" height="18"><use href="#i-plus"/></svg>New booking</a></div>
 </header>
 
 <div class="auth mk-login-grid">
@@ -179,6 +183,47 @@
   </section>
   <div class="card card-pad pay-savebar"><p class="small" id="pay-preview"></p><div class="pay-save-actions"><span id="pay-note" class="small muted" role="status"></span><button class="btn btn-primary">Save payment methods</button></div></div>
  </form>
+</section>
+<section class="owner-view owner-message-view" id="bookings" data-title="Bookings" hidden>
+ <h2 tabindex="-1" class="visually-hidden">Bookings</h2>
+ <div class="bk-toolbar">
+  <div class="bk-summary" id="bk-summary" aria-live="polite"></div>
+  <div class="bk-range" role="group" aria-label="Show">
+   <button type="button" class="btn btn-sm btn-ghost" data-bk-range="today">Today</button>
+   <button type="button" class="btn btn-sm btn-ghost" data-bk-range="week">Next 7 days</button>
+   <button type="button" class="btn btn-sm btn-ghost" data-bk-range="month">30 days</button>
+   <label class="bk-date"><span class="visually-hidden">Pick a day</span><input type="date" class="input" id="bk-day"></label>
+  </div>
+  <button type="button" class="btn btn-primary" id="bk-new">+ New booking</button>
+ </div>
+ <div class="notice notice-info" id="bk-empty-setup" hidden><span>Add your services first, then customers can book on your website, WhatsApp and AI calls.</span> <a class="btn btn-sm btn-primary" href="#booking-setup">Set up services</a></div>
+ <div id="bk-list" class="bk-list" aria-live="polite"></div>
+ <p class="small muted" id="bk-public"></p>
+</section>
+<section class="owner-view owner-message-view" id="booking-setup" data-title="Services &amp; hours" hidden>
+ <h2 tabindex="-1" class="visually-hidden">Services and hours</h2>
+ <div class="bk-setup">
+  <section class="card card-pad bk-card" aria-labelledby="bk-type-title">
+   <div class="card-head"><div><h2 id="bk-type-title">Your business</h2><p class="small muted">Your dashboard, website and AI assistants adapt to your type of business.</p></div></div>
+   <div class="bk-type-grid" id="bk-type-grid" role="radiogroup" aria-label="Type of business"></div>
+   <label class="check bk-online"><input type="checkbox" id="bk-enabled"> <span>Take bookings online (website, WhatsApp and AI calls)</span></label>
+   <p class="small" id="bk-link"></p>
+  </section>
+  <section class="card card-pad bk-card" aria-labelledby="bk-hours-title" id="bk-hours-card">
+   <div class="card-head"><div><h2 id="bk-hours-title">Opening hours</h2><p class="small muted">Bookings are offered only inside these hours.</p></div>
+    <label class="bk-step"><span class="small">Time slot every</span><select class="input" id="bk-slot"><option value="15">15 min</option><option value="30">30 min</option><option value="60">1 hour</option></select></label></div>
+   <div class="bk-hours" id="bk-hours"></div>
+  </section>
+  <section class="card card-pad bk-card" aria-labelledby="bk-res-title">
+   <div class="card-head"><div><h2 id="bk-res-title">Staff</h2><p class="small muted" id="bk-res-hint"></p></div><button type="button" class="btn btn-ghost btn-sm" id="bk-res-add">+ Add</button></div>
+   <div class="bk-tiles" id="bk-resources"></div>
+  </section>
+  <section class="card card-pad bk-card" aria-labelledby="bk-svc-title">
+   <div class="card-head"><div><h2 id="bk-svc-title">Services</h2><p class="small muted" id="bk-svc-hint"></p></div><button type="button" class="btn btn-ghost btn-sm" id="bk-svc-add">+ Add</button></div>
+   <div class="bk-tiles" id="bk-services"></div>
+  </section>
+  <div class="card card-pad bk-savebar"><span class="small muted" id="bk-note" role="status"></span><button type="button" class="btn btn-primary" id="bk-save">Save business settings</button></div>
+ </div>
 </section>
 <section class="owner-view owner-message-view" id="menu-management" data-title="Menu &amp; items" hidden>
  <h2 tabindex="-1" class="visually-hidden">Menu and items</h2>
@@ -472,13 +517,41 @@
  <div class="preview-stage" id="template-stage"><iframe id="template-frame" title="Template preview" sandbox=""></iframe></div>
  <div class="form-actions"><button type="button" class="btn btn-primary" id="template-use">Use this template</button><button type="button" class="btn btn-ghost" id="template-close">Close</button></div>
 </dialog>
+<dialog id="bk-dialog" class="bk-dialog" aria-labelledby="bk-dialog-title">
+ <form method="dialog" id="bk-form" class="bk-form">
+  <h2 id="bk-dialog-title">New booking</h2>
+  <div class="field"><label for="bk-f-service" id="bk-f-service-label">Service</label><select class="input" id="bk-f-service" required></select></div>
+  <div class="field-pair"><div class="field"><label for="bk-f-date" id="bk-f-date-label">Date</label><input class="input" type="date" id="bk-f-date" required></div><div class="field" id="bk-f-out-field" hidden><label for="bk-f-out">Check-out</label><input class="input" type="date" id="bk-f-out"></div></div>
+  <div class="field" id="bk-f-slots-field"><span class="small"><strong>Free times</strong></span><div class="bk-slots" id="bk-f-slots"></div></div>
+  <p class="small" id="bk-f-avail"></p>
+  <div class="field-pair"><div class="field"><label for="bk-f-name">Customer name</label><input class="input" id="bk-f-name" maxlength="120" required></div><div class="field"><label for="bk-f-phone">Phone</label><input class="input" id="bk-f-phone" type="tel" maxlength="32" required></div></div>
+  <div class="field-pair"><div class="field"><label for="bk-f-guests" id="bk-f-guests-label">People</label><input class="input" id="bk-f-guests" type="number" min="1" max="50" value="1"></div><div class="field"><label for="bk-f-note">Note</label><input class="input" id="bk-f-note" maxlength="500"></div></div>
+  <p class="small" id="bk-f-status" role="status"></p>
+  <div class="form-actions"><button type="button" class="btn btn-ghost" id="bk-f-cancel">Close</button><button type="submit" class="btn btn-primary" id="bk-f-save" value="save">Save booking</button></div>
+ </form>
+</dialog>
+<dialog id="bk-item-dialog" class="bk-dialog" aria-labelledby="bk-item-title">
+ <form method="dialog" id="bk-item-form" class="bk-form">
+  <h2 id="bk-item-title">Add</h2>
+  <div class="field"><label for="bk-i-name">Name</label><input class="input" id="bk-i-name" maxlength="120" required></div>
+  <div class="field" data-svc-only><label for="bk-i-desc">Short description (optional)</label><input class="input" id="bk-i-desc" maxlength="400"></div>
+  <div class="field-pair" data-svc-only><div class="field" id="bk-i-dur-field"><label for="bk-i-dur">Duration (minutes)</label><input class="input" id="bk-i-dur" type="number" min="5" max="720" step="5" value="30"></div><div class="field"><label for="bk-i-price" id="bk-i-price-label">Price</label><input class="input" id="bk-i-price" type="number" min="0" step="0.01" value="0"></div></div>
+  <div class="field" data-svc-only><label for="bk-i-cap" id="bk-i-cap-label">How many at the same time</label><input class="input" id="bk-i-cap" type="number" min="1" max="500" value="1"></div>
+  <fieldset class="field" data-svc-only id="bk-i-res-field"><legend class="small" id="bk-i-res-legend">Who does it</legend><div class="bk-checks" id="bk-i-res"></div></fieldset>
+  <div class="field" data-res-only><label for="bk-i-note">Note (optional)</label><input class="input" id="bk-i-note" maxlength="200"></div>
+  <label class="check"><input type="checkbox" id="bk-i-active" checked> Available for booking</label>
+  <p class="small" id="bk-i-status" role="status"></p>
+  <div class="form-actions"><button type="button" class="btn btn-ghost" id="bk-i-cancel">Close</button><button type="submit" class="btn btn-primary" value="save">Save</button></div>
+ </form>
+</dialog>
 <script src="/password-reset.js?v=20261119"></script>
 <script src="/phone-input.js?v=20261121-1"></script>
 <script src="/whatsapp-connect.js?v=20261122-3"></script>
 <script src="/call-forwarding.js?v=20261122-1"></script>
 <script src="/site-content.js?v=20261122-1"></script>
 <script src="/owner-app.js?v=20261122-2"></script>
-<script type="module" src="/restaurant.js?v=20261122-s32"></script>
+<script src="/bookings.js?v=20261122-1"></script>
+<script type="module" src="/restaurant.js?v=20261122-s33"></script>
 <script>document.getElementById("login-show-password")?.addEventListener("change",function(){document.getElementById("password").type=this.checked?"text":"password"});</script>
 </body>
 </html>

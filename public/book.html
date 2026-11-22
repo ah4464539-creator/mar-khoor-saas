@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" type="image/svg+xml" href="/assets/markhor-mark-tile.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="/summit.css?v=20261122-s5">
+<link rel="stylesheet" href="/public-pages.css?v=20261122-s7">
+<title>Book online</title>
+<script src="/book.js?v=20261122-1" defer></script>
+<script src="/i18n.js?v=20261121-2" data-position="right" defer></script>
+</head>
+<body class="mk book-page">
+<main class="book-shell">
+ <header class="book-head"><span class="book-icon" id="book-icon" aria-hidden="true">📅</span><div><p class="eyebrow" id="book-kind">Book online</p><h1 class="display" id="book-name">Loading…</h1></div></header>
+ <form id="book-form" class="book-card" hidden>
+  <section class="book-step"><h2><span>1</span> <span id="book-svc-title">Choose a service</span></h2><div class="book-services" id="book-services" role="radiogroup"></div></section>
+  <section class="book-step"><h2><span>2</span> <span id="book-when-title">Choose a time</span></h2>
+   <div class="book-dates"><label class="field"><span id="book-date-label">Date</span><input class="input" type="date" id="book-date" required></label><label class="field" id="book-out-field" hidden><span>Check-out</span><input class="input" type="date" id="book-out"></label></div>
+   <div class="book-slots" id="book-slots"></div><p class="small" id="book-avail" role="status"></p>
+  </section>
+  <section class="book-step"><h2><span>3</span> Your details</h2>
+   <div class="book-dates"><label class="field"><span>Name</span><input class="input" id="book-cname" maxlength="120" required autocomplete="name"></label><label class="field"><span>Phone (WhatsApp)</span><input class="input" id="book-phone" type="tel" maxlength="32" required autocomplete="tel" placeholder="+92 300 1234567"></label></div>
+   <div class="book-dates"><label class="field"><span id="book-guests-label">People</span><input class="input" id="book-guests" type="number" min="1" max="50" value="1"></label><label class="field"><span>Note (optional)</span><input class="input" id="book-note" maxlength="500"></label></div>
+  </section>
+  <p class="book-total" id="book-total"></p>
+  <button class="btn btn-primary btn-lg btn-block" id="book-submit">Book now</button>
+  <p class="small" id="book-status" role="alert"></p>
+ </form>
+ <section class="book-card book-done" id="book-done" hidden><span class="book-icon" aria-hidden="true">✅</span><h2>Booking received</h2><p id="book-done-text"></p><p class="small muted">The business will confirm it. Keep your phone nearby.</p></section>
+ <p class="small muted book-foot">Bookings by <a href="/">Mar-Khoor</a></p>
+</main>
+</body>
+</html>

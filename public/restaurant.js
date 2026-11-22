@@ -496,6 +496,9 @@ async function openRestaurant(restaurant) {
  window.mkWhatsAppConnect?.init({ restaurantId, api });
  window.mkSiteContent?.init({ restaurantId, api });
  window.mkOwnerApp?.init({ restaurantId, api });
+ document.body.dataset.category = restaurant.category || 'restaurant';
+ window.mkBookings?.init({ restaurantId, api, category: restaurant.category || 'restaurant', currency: restaurant.currency, slug: restaurant.slug });
+ if (document.body.dataset.category !== 'restaurant' && (!location.hash || location.hash === '#order-desk' || location.hash === '#menu-management')) history.replaceState(null, '', location.pathname + location.search + '#bookings');
  restaurantCurrency = restaurant.currency;
  document.querySelector('#owner-tenant-initials').textContent = String(restaurant.name || 'R').split(/\s+/).filter(Boolean).slice(0, 2).map(word => word[0]).join('').toUpperCase() || 'R';
  document.querySelector('#owner-restaurant-label').textContent = restaurant.name;
