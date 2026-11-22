@@ -2,6 +2,7 @@ import express from 'express';
 import crypto from 'node:crypto';
 import {parseVapiEvent,processVapiEvent,verifyVapiHmac} from './vapi-events.js';
 import {saveInboundMedia} from './whatsapp-orders.js';
+import {notifyWhatsAppMessage} from './web-push.js';
 export function integrationRouter(pool){
  const router=express.Router();
  // Integration foundation only. Never treat inbound events as orders until authenticated and validated.
@@ -92,6 +93,7 @@ export function integrationRouter(pool){
     if(!mapped.length){console.warn('WhatsApp webhook: ignored message for unconnected phone number ID …'+msg.phoneId.slice(-4));continue;}
     const [result]=await pool.execute('INSERT IGNORE INTO whatsapp_inbound_messages(message_id,restaurant_id,phone_number_id,sender,message_type,text_body) VALUES (?,?,?,?,?,?)',[msg.id,mapped[0].restaurant_id,msg.phoneId,msg.from,msg.type==='button'?'interactive':msg.type,msg.body]);
     processed+=result.affectedRows;
+    if(result.affectedRows)notifyWhatsAppMessage(pool,{restaurantId:mapped[0].restaurant_id,sender:msg.from,type:msg.type,text:msg.body});
     if(msg.mediaId){try{await saveInboundMedia(pool,msg.id,msg.mediaId,msg.mime);}catch{msg.mediaId=null;}}
     if(((msg.type==='text'||msg.type==='interactive'||msg.type==='button')&&msg.body?.trim())||msg.mediaId){
      const [job]=await pool.execute("INSERT INTO whatsapp_ai_jobs(inbound_message_id,restaurant_id) SELECT m.message_id,m.restaurant_id FROM whatsapp_inbound_messages m JOIN whatsapp_ai_settings s ON s.restaurant_id=m.restaurant_id AND s.enabled=1 WHERE m.message_id=? AND m.restaurant_id=? AND m.phone_number_id=? ON DUPLICATE KEY UPDATE inbound_message_id=inbound_message_id",[msg.id,mapped[0].restaurant_id,msg.phoneId]);

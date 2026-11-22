@@ -6,7 +6,7 @@ import { isAllowedImageRef } from './media-store.js';
 import { ensurePaymentTables, loadPaymentSettings, sanitizePaymentSettings, publicPaymentOptions } from './payment-options.js';
 import { audit, rateLimit } from './security.js';
 import { startNumber, verifyNumber, onboardingStatus } from './whatsapp-number-onboarding.js';
-import { vapidKeys, saveSubscription, removeSubscription, deviceCount, pushToRestaurant } from './web-push.js';
+import { vapidKeys, saveSubscription, removeSubscription, deviceCount, pushToRestaurant, getPreferences, savePreferences } from './web-push.js';
 import { getSignupConfig, completeSignup, connectionStatus, tokenForNumber, graphVersion } from './whatsapp-signup-core.js';
 export function operationsRouter(pool) {
  const router=express.Router();
@@ -94,12 +94,15 @@ export function operationsRouter(pool) {
  });
  // Order alerts on the owner's phone (Web Push).
  router.get('/restaurants/:restaurantId/push',async(req,res)=>{
-  try{const keys=await vapidKeys(pool);res.json({public_key:keys.publicKey,devices:await deviceCount(pool,req.restaurantId)});}
+  try{const keys=await vapidKeys(pool);res.json({public_key:keys.publicKey,devices:await deviceCount(pool,req.restaurantId),preferences:await getPreferences(pool,req.restaurantId)});}
   catch{res.status(503).json({error:'Order alerts unavailable'});}
  });
  router.post('/restaurants/:restaurantId/push/subscribe',rateLimit({windowMs:10*60000,max:20,name:'push-subscribe'}),express.json({limit:'4kb'}),async(req,res)=>{
   try{const result=await saveSubscription(pool,req.restaurantId,req.user.id,req.body?.subscription);res.status(result.status).json(result.body);}
   catch{res.status(503).json({error:'Order alerts unavailable'});}
+ });
+ router.put('/restaurants/:restaurantId/push/preferences',express.json({limit:'2kb'}),async(req,res)=>{
+  try{res.json({preferences:await savePreferences(pool,req.restaurantId,req.body||{})});}catch{res.status(503).json({error:'Order alerts unavailable'});}
  });
  router.post('/restaurants/:restaurantId/push/unsubscribe',express.json({limit:'4kb'}),async(req,res)=>{
   try{const result=await removeSubscription(pool,req.restaurantId,req.body?.endpoint);res.status(result.status).json(result.body);}

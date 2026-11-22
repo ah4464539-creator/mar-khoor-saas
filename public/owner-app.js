@@ -5,6 +5,7 @@
 // restaurant.js calls window.mkOwnerApp.init({ restaurantId, api }) and .orders(list) after each refresh.
 (() => {
   const $ = s => document.querySelector(s);
+  let prefsLoaded = false;
   let ctx = null, installEvent = null, seen = null, seenFor = null, audio = null, soundOn = true;
   try { soundOn = localStorage.getItem('mk-order-sound') !== 'off'; } catch { /* private mode */ }
   const supportsPush = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
@@ -90,6 +91,11 @@
     iosTip.hidden = !(isIos && !standalone());
     const sub = supportsPush && Notification.permission === 'granted' ? await subscription().catch(() => null) : null;
     on.hidden = Boolean(sub); off.hidden = !sub; test.hidden = !sub;
+    const kinds = $('#app-alert-kinds');
+    if (kinds) {
+      kinds.hidden = !sub;
+      if (sub && !prefsLoaded) { prefsLoaded = true; try { const r = await ctx.api('/api/restaurants/' + ctx.restaurantId + '/push'); for (const box of kinds.querySelectorAll('[data-alert-kind]')) box.checked = r.preferences?.[box.dataset.alertKind] !== false; } catch { prefsLoaded = false; } }
+    }
     sound.checked = soundOn;
   }
 
@@ -101,11 +107,15 @@
     $('#app-alerts-off')?.addEventListener('click', () => turnOff().catch(e => say(e.message)));
     $('#app-alerts-test')?.addEventListener('click', async () => { say('Sending a test alert…'); try { const r = await ctx.api('/api/restaurants/' + ctx.restaurantId + '/push/test', { method: 'POST' }); say(r.sent ? 'Test alert sent. It should appear in a few seconds.' : 'No device received it. Turn alerts off and on again.'); } catch (e) { say(e.message); } });
     $('#app-sound')?.addEventListener('change', e => { soundOn = e.target.checked; try { localStorage.setItem('mk-order-sound', soundOn ? 'on' : 'off'); } catch { /* ignore */ } if (soundOn) { unlock(); ring(); } });
+    for (const box of document.querySelectorAll('[data-alert-kind]')) box.addEventListener('change', async () => {
+      try { await ctx.api('/api/restaurants/' + ctx.restaurantId + '/push/preferences', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [box.dataset.alertKind]: box.checked }) }); say('Saved.'); }
+      catch (e) { box.checked = !box.checked; say(e.message); }
+    });
     $('#new-order-banner button')?.addEventListener('click', () => { $('#new-order-banner').hidden = true; location.hash = '#order-desk'; });
   }
 
   window.mkOwnerApp = {
-    init(context) { ctx = context; seen = null; seenFor = null; wire(); render(); },
+    init(context) { ctx = context; seen = null; seenFor = null; prefsLoaded = false; wire(); render(); },
     orders,
     ring,
   };

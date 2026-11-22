@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="/summit.css?v=20261120-s4">
-<link rel="stylesheet" href="/owner.css?v=20261122-s21">
+<link rel="stylesheet" href="/owner.css?v=20261122-s22">
 <script src="/i18n.js?v=20261121-2" data-position="right" defer></script>
 </head>
 <body class="mk owner-app signing-in">
@@ -130,7 +130,7 @@
  <h2 tabindex="-1" class="visually-hidden">Live orders</h2>
  <div class="new-order-banner" id="new-order-banner" role="alert" hidden><svg aria-hidden="true" width="20" height="20"><use href="#i-bell"/></svg><span>New order</span><button type="button" class="btn btn-sm btn-primary">View</button></div>
  <section class="card card-pad app-alerts" id="app-alerts" aria-labelledby="app-alerts-title">
-  <div class="card-head"><div><h2 id="app-alerts-title">Mar-Khoor app &amp; order alerts</h2><p class="small muted">Install the app on the counter phone and get a loud alert for every new order, even when the app is closed.</p></div></div>
+  <div class="card-head"><div><h2 id="app-alerts-title">Mar-Khoor app &amp; alerts</h2><p class="small muted">Install the app on the counter phone. Every new order — and, if you like, every WhatsApp message, AI call and payment — shows in the phone's notification panel, even when the app is closed. You stay signed in.</p></div></div>
   <div class="app-alerts-actions">
    <button type="button" class="btn btn-dark" id="app-install" hidden>Install app</button>
    <button type="button" class="btn btn-primary" id="app-alerts-on">Turn on order alerts</button>
@@ -138,6 +138,11 @@
    <button type="button" class="btn btn-quiet" id="app-alerts-off" hidden>Turn off on this device</button>
    <label class="check"><input type="checkbox" id="app-sound" checked> Ring when the dashboard is open</label>
   </div>
+  <fieldset class="app-alert-kinds" id="app-alert-kinds" hidden><legend class="small">Also alert me for</legend>
+   <label class="check"><input type="checkbox" data-alert-kind="whatsapp" checked> New WhatsApp messages</label>
+   <label class="check"><input type="checkbox" data-alert-kind="calls" checked> AI phone calls</label>
+   <label class="check"><input type="checkbox" data-alert-kind="payments" checked> Payment references from customers</label>
+  </fieldset>
   <p class="small muted" id="app-ios-tip" hidden>iPhone: tap <strong>Share</strong> → <strong>Add to Home Screen</strong>, open Mar-Khoor from your home screen, then turn on order alerts.</p>
   <p class="small app-alerts-status" id="app-alerts-status" role="status"></p>
  </section>
@@ -454,8 +459,8 @@
 <script src="/whatsapp-connect.js?v=20261122-3"></script>
 <script src="/call-forwarding.js?v=20261122-1"></script>
 <script src="/site-content.js?v=20261122-1"></script>
-<script src="/owner-app.js?v=20261122-1"></script>
-<script type="module" src="/restaurant.js?v=20261122-s23"></script>
+<script src="/owner-app.js?v=20261122-2"></script>
+<script type="module" src="/restaurant.js?v=20261122-s24"></script>
 <script>document.getElementById("login-show-password")?.addEventListener("change",function(){document.getElementById("password").type=this.checked?"text":"password"});</script>
 </body>
 </html>

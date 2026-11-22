@@ -483,3 +483,5 @@ body.mk{margin:0}
 .owner-app .new-order-banner svg{fill:none;stroke:currentColor;stroke-width:2}
 @keyframes mk-pulse{50%{transform:scale(1.02)}}
 @media (display-mode: standalone){.owner-app #app-install{display:none!important}}
+.owner-app .app-alert-kinds{border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:12px 0 0;display:flex;flex-wrap:wrap;gap:8px 18px}
+.owner-app .app-alert-kinds legend{padding:0 6px;font-weight:700}

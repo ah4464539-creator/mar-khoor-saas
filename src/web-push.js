@@ -133,3 +133,68 @@ export async function notifyNewOrder(pool, { restaurantId, orderId, totalMinor, 
   return pushToRestaurant(pool, restaurantId, { title: '🛎️ New order #' + orderId, body: [money(totalMinor, currency), source].filter(Boolean).join(' · ') + ' — tap to open', url: '/restaurant.html#order-desk', tag: 'order-' + orderId }, options)
     .catch(() => ({ sent: 0 }));
 }
+
+// ---- Activity alerts (besides new orders): WhatsApp messages, AI calls, payment references ----
+export const PREFS_SQL = `CREATE TABLE IF NOT EXISTS push_preferences (
+ restaurant_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+ whatsapp TINYINT(1) NOT NULL DEFAULT 1,
+ calls TINYINT(1) NOT NULL DEFAULT 1,
+ payments TINYINT(1) NOT NULL DEFAULT 1,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+) ENGINE=InnoDB`;
+export const ACTIVITY_KINDS = ['whatsapp', 'calls', 'payments'];
+export async function getPreferences(pool, restaurantId) {
+  const prefs = { whatsapp: true, calls: true, payments: true };
+  try {
+    await pool.query(PREFS_SQL);
+    const [rows] = await pool.execute('SELECT whatsapp,calls,payments FROM push_preferences WHERE restaurant_id=? LIMIT 1', [restaurantId]);
+    if (rows[0]) for (const k of ACTIVITY_KINDS) prefs[k] = Number(rows[0][k]) === 1;
+  } catch { /* defaults */ }
+  return prefs;
+}
+export async function savePreferences(pool, restaurantId, input) {
+  const p = await getPreferences(pool, restaurantId);
+  for (const k of ACTIVITY_KINDS) if (typeof input?.[k] === 'boolean') p[k] = input[k];
+  await pool.query(PREFS_SQL);
+  await pool.execute('INSERT INTO push_preferences(restaurant_id,whatsapp,calls,payments) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE whatsapp=VALUES(whatsapp),calls=VALUES(calls),payments=VALUES(payments)',
+    [restaurantId, p.whatsapp ? 1 : 0, p.calls ? 1 : 0, p.payments ? 1 : 0]);
+  return p;
+}
+
+// One WhatsApp alert per customer per 10 minutes, so a chat does not ring on every message.
+const lastWhatsAppAlert = new Map();
+export function shouldAlertWhatsApp(restaurantId, sender, now = Date.now()) {
+  const key = restaurantId + '|' + sender, last = lastWhatsAppAlert.get(key);
+  if (last && now - last < 10 * 60000) return false;
+  if (lastWhatsAppAlert.size > 20000) lastWhatsAppAlert.clear();
+  lastWhatsAppAlert.set(key, now);
+  return true;
+}
+const masked = phone => { const d = String(phone || '').replace(/\D/g, ''); return d.length > 6 ? '+' + d.slice(0, 2) + ' ••• ' + d.slice(-4) : (d ? '+' + d : 'Customer'); };
+
+/** Never throws; respects the restaurant's alert preferences. */
+export async function notifyActivity(pool, restaurantId, kind, message, options) {
+  try {
+    if (!ACTIVITY_KINDS.includes(kind)) return { sent: 0 };
+    const prefs = await getPreferences(pool, restaurantId);
+    if (!prefs[kind]) return { sent: 0, reason: 'off' };
+    return await pushToRestaurant(pool, restaurantId, message, options);
+  } catch { return { sent: 0 }; }
+}
+export function notifyWhatsAppMessage(pool, { restaurantId, sender, type, text }, options) {
+  if (type === 'interactive' || type === 'button' || !shouldAlertWhatsApp(restaurantId, sender)) return Promise.resolve({ sent: 0 });
+  const preview = type === 'audio' ? '🎤 Voice note' : String(text || '').replace(/\s+/g, ' ').trim().slice(0, 90) || 'New message';
+  return notifyActivity(pool, restaurantId, 'whatsapp', { title: '💬 WhatsApp · ' + masked(sender), body: preview, url: '/restaurant.html#whatsapp-inbox-view', tag: 'wa-' + String(sender).slice(-12) }, options);
+}
+export function notifyCallEnded(pool, { restaurantId, callId, reason }, options) {
+  const missed = /no-answer|failed|error|busy/i.test(String(reason || ''));
+  return notifyActivity(pool, restaurantId, 'calls', { title: missed ? '📞 AI call could not finish' : '📞 AI call finished', body: missed ? 'Reason: ' + String(reason).slice(0, 60) : 'Tap to see the call and any order it took.', url: '/restaurant.html#order-desk', tag: 'call-' + String(callId).slice(-24) }, options);
+}
+export async function notifyPaymentReference(pool, { orderId }, options) {
+  try {
+    const [rows] = await pool.execute('SELECT restaurant_id FROM orders WHERE id=? LIMIT 1', [orderId]);
+    if (!rows.length) return { sent: 0 };
+    return notifyActivity(pool, rows[0].restaurant_id, 'payments', { title: '💳 Payment reference received', body: 'Order #' + orderId + ' — check the transaction ID and confirm the payment.', url: '/restaurant.html#order-desk', tag: 'pay-' + orderId }, options);
+  } catch { return { sent: 0 }; }
+}
