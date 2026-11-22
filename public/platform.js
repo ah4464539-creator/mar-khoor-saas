@@ -64,6 +64,68 @@ async function confirmDeleteTenant(tenant, button) {
   finally { button.disabled = false; }
 }
 
+// ---- One page per type of business (restaurants, clinics, hotels, salons) ----
+const BIZ = {
+  restaurant: { title: 'Restaurants', one: 'restaurant', activity: 'orders' },
+  clinic: { title: 'Clinics', one: 'clinic', activity: 'appointments' },
+  hotel: { title: 'Hotels', one: 'hotel', activity: 'reservations' },
+  salon: { title: 'Salons', one: 'salon', activity: 'appointments' },
+};
+let bizAll = null, bizType = 'restaurant';
+const bizEl = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+const bizDate = v => { if (!v) return '—'; const d = new Date(v); return Number.isNaN(d.getTime()) ? String(v).slice(0, 10) : d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }); };
+function bizCounts() {
+  if (!bizAll) return;
+  for (const key of Object.keys(BIZ)) { const n = bizAll.filter(t => (t.category || 'restaurant') === key).length; for (const el of document.querySelectorAll('[data-type-count="' + key + '"]')) el.textContent = n ? String(n) : ''; }
+}
+function bizRender() {
+  const info = BIZ[bizType] || BIZ.restaurant;
+  const list = document.getElementById('biz-list'); if (!list || !bizAll) return;
+  const q = (document.getElementById('biz-search')?.value || '').trim().toLowerCase();
+  const f = document.getElementById('biz-filter')?.value || '';
+  const mine = bizAll.filter(t => (t.category || 'restaurant') === bizType);
+  const shown = mine.filter(t => (!q || [t.name, t.slug, t.owners, '#' + t.id].join(' ').toLowerCase().includes(q))
+    && (!f || (f === 'active' ? t.plan_status === 'active' : f === 'none' ? !t.plan : t.whatsapp)));
+  document.getElementById('biz-title').textContent = info.title;
+  document.getElementById('biz-sub').textContent = mine.length + ' ' + (mine.length === 1 ? info.one : info.title.toLowerCase()) + ' on Mar-Khoor';
+  const kpi = (n, label) => { const k = bizEl('div', 'biz-kpi'); k.append(bizEl('b', null, String(n)), bizEl('span', null, label)); return k; };
+  document.getElementById('biz-kpis').replaceChildren(
+    kpi(mine.length, 'Total'), kpi(mine.filter(t => t.plan_status === 'active').length, 'Paid plan'), kpi(mine.filter(t => !t.plan).length, 'No plan yet'),
+    kpi(mine.filter(t => t.whatsapp).length, 'WhatsApp connected'),
+    kpi(mine.reduce((a, t) => a + (bizType === 'restaurant' ? t.orders : t.bookings), 0), info.activity[0].toUpperCase() + info.activity.slice(1)));
+  list.replaceChildren(...shown.map(t => {
+    const card = bizEl('article', 'biz-card');
+    const top = bizEl('div', 'biz-card-top');
+    top.append(bizEl('strong', null, t.name), bizEl('span', 'biz-id', '#' + t.id));
+    const badges = bizEl('div', 'biz-badges');
+    badges.append(bizEl('span', 'biz-badge ' + (t.plan_status === 'active' ? 'ok' : t.plan ? 'warn' : ''), t.plan ? (t.plan + ' · ' + (t.plan_status || '')) : 'No plan'));
+    if (t.whatsapp) badges.append(bizEl('span', 'biz-badge ok', 'WhatsApp'));
+    if (t.pending_bookings) badges.append(bizEl('span', 'biz-badge warn', t.pending_bookings + ' new'));
+    const facts = bizEl('dl', 'biz-facts');
+    for (const [k, v] of [['Owner', t.owners || '—'], ['Address', t.slug], ['Country', t.country_code + ' · ' + t.currency], ['Team', t.members + (t.members === 1 ? ' login' : ' logins')], [info.activity[0].toUpperCase() + info.activity.slice(1), String(bizType === 'restaurant' ? t.orders : t.bookings)], ['Joined', bizDate(t.created_at)], ['Last activity', bizDate(t.last_activity)]]) { facts.append(bizEl('dt', null, k), bizEl('dd', null, v)); }
+    const actions = bizEl('div', 'biz-actions');
+    const link = (label, href) => { const a = bizEl('a', 'btn btn-ghost btn-sm', label); a.href = href; a.target = '_blank'; a.rel = 'noopener'; return a; };
+    actions.append(link('Website', '/r/' + encodeURIComponent(t.slug)));
+    if (bizType !== 'restaurant') actions.append(link('Booking page', '/book.html?b=' + encodeURIComponent(t.slug)));
+    else actions.append(link('Menu', '/menu.html?restaurant=' + encodeURIComponent(t.slug)));
+    const del = bizEl('button', 'btn btn-quiet btn-sm biz-delete', 'Delete'); del.type = 'button';
+    del.addEventListener('click', async () => { await confirmDeleteTenant(t, del); bizAll = null; await bizLoad(); });
+    actions.append(del);
+    card.append(top, badges, facts, actions);
+    return card;
+  }));
+  if (!shown.length) list.append(bizEl('p', 'muted biz-empty', mine.length ? 'Nothing matches your search.' : 'No ' + info.title.toLowerCase() + ' yet.'));
+}
+async function bizLoad() {
+  try { bizAll = (await platformApi('/api/platform/restaurants')).restaurants; bizCounts(); bizRender(); }
+  catch (error) { const list = document.getElementById('biz-list'); if (list) list.textContent = error.message; }
+}
+window.mkBizPage = {
+  show(type) { bizType = BIZ[type] ? type : 'restaurant'; if (bizAll) bizRender(); else bizLoad(); },
+};
+document.getElementById('biz-search')?.addEventListener('input', bizRender);
+document.getElementById('biz-filter')?.addEventListener('change', bizRender);
+
 async function loadTenants() {
   const { restaurants } = await platformApi('/api/platform/restaurants');
   const root = document.querySelector('#tenant-list');
@@ -72,14 +134,15 @@ async function loadTenants() {
     const row = document.createElement('p');
     row.className = 'tenant-row';
     const text = document.createElement('span');
-    text.textContent = '#' + tenant.id + ' · ' + tenant.name + ' · ' + tenant.slug + ' · ' + tenant.country_code + ' · ' + tenant.members + ' members';
+    text.textContent = '#' + tenant.id + ' · ' + tenant.name + ' · ' + (BIZ[tenant.category]?.one || 'restaurant') + ' · ' + tenant.slug + ' · ' + tenant.country_code + ' · ' + tenant.members + ' members';
     const remove = document.createElement('button');
     remove.type = 'button'; remove.className = 'btn btn-ghost btn-sm tenant-delete'; remove.textContent = 'Delete';
     remove.addEventListener('click', () => confirmDeleteTenant(tenant, remove));
     row.append(text, remove);
     root.append(row);
   }
-  if (!restaurants.length) root.textContent = 'No restaurants yet.';
+  if (!restaurants.length) root.textContent = 'No businesses yet.';
+  bizAll = restaurants; bizCounts(); if (location.hash.startsWith('#biz-')) bizRender();
 }
 
 form.addEventListener('submit', async event => {

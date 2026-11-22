@@ -47,7 +47,19 @@ export function apiRouter(pool) {
  });
  router.get('/platform/restaurants',requireAuth,async(req,res)=>{
   if(req.user.platformRole!=='super_admin')return res.status(403).json({error:'Forbidden'});
-  try{const [rows]=await pool.query('SELECT r.id,r.name,r.slug,r.country_code,r.currency,r.locale,COUNT(m.user_id) AS members FROM restaurants r LEFT JOIN restaurant_members m ON m.restaurant_id=r.id GROUP BY r.id ORDER BY r.id DESC LIMIT 100');res.json({restaurants:rows});}
+  try{const [rows]=await pool.query('SELECT r.id,r.name,r.slug,r.country_code,r.currency,r.locale,r.created_at,COUNT(m.user_id) AS members FROM restaurants r LEFT JOIN restaurant_members m ON m.restaurant_id=r.id GROUP BY r.id ORDER BY r.id DESC LIMIT 500');
+   const ids=rows.map(r=>r.id);
+   const cats=await categoriesFor(pool,ids);
+   // Extra facts per business; each lookup is optional so a missing table never breaks the list.
+   const extra=async(sql)=>{if(!ids.length)return new Map();try{const [x]=await pool.query(sql,[ids]);return new Map(x.map(r=>[Number(r.id),r]));}catch{return new Map();}};
+   const [owners,subs,orders,bookings,wa]=await Promise.all([
+    extra("SELECT m.restaurant_id id,GROUP_CONCAT(u.email ORDER BY u.id SEPARATOR ', ') emails FROM restaurant_members m JOIN users u ON u.id=m.user_id WHERE m.role='admin' AND m.restaurant_id IN (?) GROUP BY m.restaurant_id"),
+    extra("SELECT restaurant_id id,plan_key,status FROM restaurant_subscriptions WHERE restaurant_id IN (?)"),
+    extra("SELECT restaurant_id id,COUNT(*) n,MAX(created_at) last_at FROM orders WHERE restaurant_id IN (?) GROUP BY restaurant_id"),
+    extra("SELECT restaurant_id id,COUNT(*) n,SUM(status='pending') pending,MAX(created_at) last_at FROM bookings WHERE restaurant_id IN (?) GROUP BY restaurant_id"),
+    extra("SELECT restaurant_id id,COUNT(*) n FROM whatsapp_numbers WHERE active=1 AND restaurant_id IN (?) GROUP BY restaurant_id"),
+   ]);
+   res.json({restaurants:rows.map(r=>{const id=Number(r.id);return {...r,category:cats.get(id)||'restaurant',owners:owners.get(id)?.emails||'',plan:subs.get(id)?.plan_key||null,plan_status:subs.get(id)?.status||null,orders:Number(orders.get(id)?.n||0),bookings:Number(bookings.get(id)?.n||0),pending_bookings:Number(bookings.get(id)?.pending||0),last_activity:[orders.get(id)?.last_at,bookings.get(id)?.last_at].filter(Boolean).sort().pop()||null,whatsapp:Number(wa.get(id)?.n||0)>0};})});}
   catch{res.status(503).json({error:'Database unavailable'});}
  });
  // Permanently delete a restaurant (demo accounts). Preview first; confirm by typing its name.
