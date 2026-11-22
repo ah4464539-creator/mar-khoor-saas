@@ -104,3 +104,41 @@ test('csv export neutralises formulas; reminders only 2-26 hours ahead; arrived 
   const routes = readFileSync('src/bookings-routes.js', 'utf8');
   for (const bit of ["/reschedule'", "/customers.csv'", "/bookings.csv'", "router.delete(base + '/services/:id'", "/history'"]) assert.ok(routes.includes(bit), bit);
 });
+
+import { roomsLeft as roomsLeft2, freeRoom } from '../src/bookings.js';
+import { EXTRA_SQL, recordPayment, customerPaymentReference, setTransferPhone } from '../src/booking-extras.js';
+import { withBookingTools as withTools, businessCallRule as rule } from '../src/voice-bookings.js';
+
+test('hotel: individual rooms are assigned and counted per stay', () => {
+  const bookings = [{ service_id: 2, resource_id: 101, start_at: '2026-11-24 14:00', end_at: '2026-11-26 12:00' }];
+  assert.equal(roomsLeft2({ service: { id: 2 }, checkIn: '2026-11-25', checkOut: '2026-11-27', bookings, rooms: [101, 102] }), 1);
+  assert.equal(freeRoom({ checkIn: '2026-11-25', checkOut: '2026-11-27', bookings, rooms: [101, 102] }), 102);
+  assert.equal(freeRoom({ checkIn: '2026-11-26', checkOut: '2026-11-27', bookings, rooms: [101, 102] }), 101);
+});
+
+test('payments: refunds cannot exceed paid; customer reference needs the booking secret; transfer number format', async () => {
+  for (const sql of EXTRA_SQL) assert.match(sql, /^CREATE TABLE IF NOT EXISTS /);
+  const pool = { async query() { return [[]]; }, async execute(sql) {
+    if (sql.startsWith('SELECT id,price_minor,status FROM bookings')) return [[{ id: 5, price_minor: 100000, status: 'confirmed' }]];
+    if (sql.startsWith('SELECT id,kind,amount_minor')) return [[{ id: 1, kind: 'payment', amount_minor: 50000, method: 'cash', reference: null, status: 'confirmed', actor: 'owner', created_at: '2026-11-22 10:00:00' }]];
+    if (sql.startsWith('SELECT token FROM booking_access')) return [[{ token: 'a'.repeat(32) }]];
+    return [{ affectedRows: 1, insertId: 1 }];
+  } };
+  assert.match((await recordPayment(pool, 4, 5, { kind: 'refund', amount: 600, method: 'cash' }, 'owner')).error, /cannot be more/);
+  assert.ok((await recordPayment(pool, 4, 5, { kind: 'refund', amount: 200, method: 'cash' }, 'owner')).payments);
+  assert.equal((await customerPaymentReference(pool, 4, 5, 'b'.repeat(32), { reference: 'TX12345' })).error, 'Invalid link');
+  assert.match((await setTransferPhone(pool, 4, '0300')).error, /country code/);
+});
+
+test('calls: transfer tool added and removed with the reception number', () => {
+  const model = { messages: [{ role: 'system', content: 'Host.' }], tools: [{ type: 'function', function: { name: 'place_order' } }] };
+  const withT = withTools(model, { url: 'https://x' }, rule('clinic', 'C', '+923001234567'), '+923001234567');
+  assert.ok(withT.tools.some(t => t.type === 'transferCall' && t.destinations[0].number === '+923001234567'));
+  assert.match(withT.messages[0].content, /transferCall/);
+  const without = withTools(withT, { url: 'https://x' }, rule('clinic', 'C', ''), '');
+  assert.ok(!without.tools.some(t => t.type === 'transferCall'));
+  const ui = readFileSync('public/bookings.js', 'utf8');
+  for (const bit of ['renderHousekeeping', 'openPayments', 'loadHandovers', 'saveTransfer']) assert.ok(ui.includes(bit), bit);
+  const worker = readFileSync('src/whatsapp-ai-worker.js', 'utf8');
+  for (const bit of ['handoverActive(pool,job)', "name==='cancel_booking'", "name==='reschedule_booking'", "name==='talk_to_staff'"]) assert.ok(worker.includes(bit), bit);
+});

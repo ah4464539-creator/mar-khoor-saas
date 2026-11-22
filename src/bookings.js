@@ -97,6 +97,26 @@ export const BOOKING_SQL = [
  KEY ix_booking_events (restaurant_id, booking_id),
  FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
 ) ENGINE=InnoDB`,
+  `CREATE TABLE IF NOT EXISTS booking_payments (
+ id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+ restaurant_id BIGINT UNSIGNED NOT NULL,
+ booking_id BIGINT UNSIGNED NOT NULL,
+ kind VARCHAR(10) NOT NULL DEFAULT 'payment',
+ amount_minor BIGINT UNSIGNED NOT NULL,
+ method VARCHAR(40) NULL,
+ reference VARCHAR(80) NULL,
+ status VARCHAR(12) NOT NULL DEFAULT 'confirmed',
+ actor VARCHAR(40) NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ KEY ix_booking_payments (restaurant_id, booking_id),
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+) ENGINE=InnoDB`,
+  `CREATE TABLE IF NOT EXISTS booking_access (
+ booking_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+ restaurant_id BIGINT UNSIGNED NOT NULL,
+ token CHAR(32) NOT NULL,
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+) ENGINE=InnoDB`,
 ];
 
 const ready = new WeakMap();
@@ -178,10 +198,18 @@ export function freeSlots({ date, hours, step = 30, service, bookings = [], now 
 }
 
 /** Rooms left of a room type for check-in..check-out (nights). */
-export function roomsLeft({ service, checkIn, checkOut, bookings = [] }) {
+export function roomsLeft({ service, checkIn, checkOut, bookings = [], rooms = null }) {
   const s = checkIn + ' 14:00', e = checkOut + ' 12:00';
-  const taken = bookings.filter(b => Number(b.service_id) === Number(service.id) && overlaps(s, e, norm(b.start_at), norm(b.end_at))).length;
+  const clash = bookings.filter(b => overlaps(s, e, norm(b.start_at), norm(b.end_at)));
+  if (rooms && rooms.length) return rooms.filter(id => !clash.some(b => Number(b.resource_id) === Number(id))).length;
+  const taken = clash.filter(b => Number(b.service_id) === Number(service.id)).length;
   return Math.max(0, Math.max(1, service.capacity || 1) - taken);
+}
+/** First free room of this type for the stay, or null. */
+export function freeRoom({ checkIn, checkOut, bookings = [], rooms = [] }) {
+  const s = checkIn + ' 14:00', e = checkOut + ' 12:00';
+  const clash = bookings.filter(b => overlaps(s, e, norm(b.start_at), norm(b.end_at)));
+  return rooms.find(id => !clash.some(b => Number(b.resource_id) === Number(id))) ?? null;
 }
 
 // ---- Validation ----
@@ -197,7 +225,7 @@ export function cleanService(body, type) {
     duration_min: night ? 1440 : int(body?.duration_min, 5, 720, 30),
     price_minor: price,
     capacity: int(body?.capacity, 1, 500, 1),
-    resource_ids: night ? [] : resourceIds,
+    resource_ids: resourceIds,
     active: body?.active === false ? 0 : 1,
     category: text(body?.category, 80) || null,
     deposit_minor: Math.max(0, Math.min(price || 1e11, Math.round(Number(body?.deposit ?? 0) * 100) || 0)),
@@ -342,8 +370,14 @@ export async function availability(pool, restaurantId, { serviceId, date, checkO
     if (!isDate(date) || !isDate(checkOut) || nightsBetween(date, checkOut) < 1 || nightsBetween(date, checkOut) > 60) return { error: 'Choose check-in and check-out dates' };
     if (date < now.slice(0, 10)) return { error: 'Choose a date from today' };
     const busy = (await busyBetween(pool, restaurantId, date + ' 00:00', checkOut + ' 23:59')).filter(b => excludeId == null || Number(b.id) !== Number(excludeId));
-    const left = roomsLeft({ service, checkIn: date, checkOut, bookings: busy });
-    return { kind: 'night', service, nights: nightsBetween(date, checkOut), rooms_left: left, total_minor: service.price_minor * nightsBetween(date, checkOut) };
+    let rooms = null;
+    if (service.resource_ids.length) {
+      const usable = new Set((await listResources(pool, restaurantId, { activeOnly: true })).filter(r => r.room_status !== 'out_of_order').map(r => r.id));
+      rooms = service.resource_ids.filter(id => usable.has(id));
+    }
+    const left = roomsLeft({ service, checkIn: date, checkOut, bookings: busy, rooms });
+    const room = rooms ? freeRoom({ checkIn: date, checkOut, bookings: busy, rooms }) : null;
+    return { kind: 'night', service, nights: nightsBetween(date, checkOut), rooms_left: left, room_id: room, total_minor: service.price_minor * nightsBetween(date, checkOut) };
   }
   if (!isDate(date)) return { error: 'Choose a date' };
   const busy = await busyBetween(pool, restaurantId, date + ' 00:00', addDays(date, 1) + ' 00:00');
@@ -377,7 +411,7 @@ export async function createBooking(pool, restaurantId, input) {
   let start, end, resourceId = null, price;
   if (avail.kind === 'night') {
     if (avail.rooms_left < 1) return { error: 'No rooms of this type are free for those dates' };
-    start = input.date + ' 14:00'; end = input.check_out + ' 12:00'; price = avail.total_minor;
+    start = input.date + ' 14:00'; end = input.check_out + ' 12:00'; price = avail.total_minor; resourceId = avail.room_id ?? null;
   } else {
     const time = typeof input.time === 'string' ? input.time.slice(0, 5) : '';
     const chosen = avail.slots.find(s => s.time === time);
@@ -413,7 +447,7 @@ export async function rescheduleBooking(pool, restaurantId, id, input, actor = '
   let start, end, res = null, price;
   if (avail.kind === 'night') {
     if (avail.rooms_left < 1) return { error: 'No rooms of this type are free for those dates' };
-    start = input.date + ' 14:00'; end = input.check_out + ' 12:00'; price = avail.total_minor;
+    start = input.date + ' 14:00'; end = input.check_out + ' 12:00'; price = avail.total_minor; res = avail.room_id ?? null;
   } else {
     const time = String(input.time || '').slice(0, 5);
     const chosen = avail.slots.find(s => s.time === time);
@@ -455,14 +489,24 @@ export async function listBookings(pool, restaurantId, { from, to, status, q } =
   if (BOOKING_STATUSES.includes(status)) { where += ' AND b.status=?'; args.push(status); }
   const term = text(q, 60);
   if (term) { where += ' AND (b.customer_name LIKE ? OR b.customer_phone LIKE ? OR b.id=?)'; args.push('%' + term + '%', '%' + term.replace(/[^\d+]/g, '') + '%', Number(term.replace(/\D/g, '')) || 0); }
-  const [rows] = await pool.execute('SELECT b.*,s.name service_name,x.name resource_name FROM bookings b LEFT JOIN booking_services s ON s.id=b.service_id AND s.restaurant_id=b.restaurant_id LEFT JOIN booking_resources x ON x.id=b.resource_id AND x.restaurant_id=b.restaurant_id WHERE ' + where + ' ORDER BY b.start_at LIMIT 500', args);
-  return rows.map(b => ({ id: Number(b.id), service_id: b.service_id == null ? null : Number(b.service_id), service: b.service_name, resource: b.resource_name, resource_id: b.resource_id == null ? null : Number(b.resource_id), customer_name: b.customer_name, customer_phone: b.customer_phone, start_at: norm(b.start_at), end_at: norm(b.end_at), guests: Number(b.guests), price_minor: Number(b.price_minor), status: b.status, source: b.source, note: b.note }));
+  const [rows] = await pool.execute('SELECT b.*,s.name service_name,x.name resource_name,(SELECT COALESCE(SUM(CASE WHEN p.kind=\'payment\' AND p.status=\'confirmed\' THEN p.amount_minor WHEN p.kind=\'refund\' AND p.status=\'confirmed\' THEN -CAST(p.amount_minor AS SIGNED) ELSE 0 END),0) FROM booking_payments p WHERE p.booking_id=b.id AND p.restaurant_id=b.restaurant_id) paid_minor,(SELECT COUNT(*) FROM booking_payments p WHERE p.booking_id=b.id AND p.restaurant_id=b.restaurant_id AND p.status=\'pending\') pending_payments FROM bookings b LEFT JOIN booking_services s ON s.id=b.service_id AND s.restaurant_id=b.restaurant_id LEFT JOIN booking_resources x ON x.id=b.resource_id AND x.restaurant_id=b.restaurant_id WHERE ' + where + ' ORDER BY b.start_at LIMIT 500', args);
+  return rows.map(b => ({ id: Number(b.id), service_id: b.service_id == null ? null : Number(b.service_id), service: b.service_name, resource: b.resource_name, resource_id: b.resource_id == null ? null : Number(b.resource_id), customer_name: b.customer_name, customer_phone: b.customer_phone, start_at: norm(b.start_at), end_at: norm(b.end_at), guests: Number(b.guests), price_minor: Number(b.price_minor), status: b.status, source: b.source, note: b.note, paid_minor: Number(b.paid_minor || 0), pending_payments: Number(b.pending_payments || 0) }));
 }
 export async function setBookingStatus(pool, restaurantId, id, status, actor = 'owner') {
   if (!BOOKING_STATUSES.includes(status)) return false;
   await ensureBookingTables(pool);
   const [r] = await pool.execute('UPDATE bookings SET status=? WHERE id=? AND restaurant_id=?', [status, id, restaurantId]);
-  if (r.affectedRows) await logEvent(pool, restaurantId, id, status, null, actor);
+  if (r.affectedRows) {
+    await logEvent(pool, restaurantId, id, status, null, actor);
+    // Hotels: a guest checking in makes the room occupied; checking out leaves it to be cleaned.
+    if (status === 'checked_in' || status === 'completed') {
+      try {
+        const [[b]] = await pool.execute('SELECT resource_id FROM bookings WHERE id=? AND restaurant_id=?', [id, restaurantId]);
+        const profile = await getProfile(pool, restaurantId);
+        if (b?.resource_id && profile?.type.booking === 'night') await setRoomStatus(pool, restaurantId, Number(b.resource_id), status === 'checked_in' ? 'occupied' : 'dirty');
+      } catch {}
+    }
+  }
   return r.affectedRows > 0;
 }
 

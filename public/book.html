@@ -9,9 +9,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="/summit.css?v=20261122-s5">
-<link rel="stylesheet" href="/public-pages.css?v=20261122-s9">
+<link rel="stylesheet" href="/public-pages.css?v=20261122-s10">
 <title>Book online</title>
-<script src="/book.js?v=20261122-2" defer></script>
+<script src="/book.js?v=20261122-3" defer></script>
 <script src="/i18n.js?v=20261121-2" data-position="right" defer></script>
 </head>
 <body class="mk book-page">
@@ -35,7 +35,14 @@
   <button class="btn btn-primary btn-lg btn-block" id="book-submit">Book now</button>
   <p class="small" id="book-status" role="alert"></p>
  </form>
- <section class="book-card book-done" id="book-done" hidden><span class="book-icon" aria-hidden="true">✅</span><h2>Booking received</h2><p id="book-done-text"></p><p class="small muted">The business will confirm it. Keep your phone nearby.</p></section>
+ <section class="book-card book-done" id="book-done" hidden><span class="book-icon" aria-hidden="true">✅</span><h2>Booking received</h2><p id="book-done-text"></p><p class="small muted">The business will confirm it. Keep your phone nearby.</p>
+  <div class="book-pay" id="book-pay" hidden>
+   <h3 id="book-pay-title">Pay now (optional)</h3>
+   <div class="book-pay-methods" id="book-pay-methods"></div>
+   <div class="book-dates"><label class="field"><span>Paid with</span><select class="input" id="book-pay-method"></select></label><label class="field"><span>Transaction ID</span><input class="input" id="book-pay-ref" maxlength="40" placeholder="From your payment app"></label></div>
+   <button type="button" class="btn btn-dark" id="book-pay-send">Send payment reference</button>
+   <p class="small" id="book-pay-status" role="status"></p>
+  </div></section>
  <p class="small muted book-foot">Bookings by <a href="/">Mar-Khoor</a></p>
 </main>
 </body>

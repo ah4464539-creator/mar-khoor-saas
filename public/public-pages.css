@@ -283,3 +283,7 @@ body.mk{margin:0}
 .book-page .book-cat{padding:7px 12px;border-radius:999px;border:1px solid var(--line,#e6e0d8);background:#fff;cursor:pointer;font-weight:600;font-size:13px}
 .book-page .book-cat.on{background:#16120f;color:#fff;border-color:#16120f}
 .book-page #book-res-field{display:grid;gap:6px;font-size:14px;font-weight:600;max-width:360px}
+.book-page .book-pay{display:grid;gap:12px;width:100%;margin-top:10px;padding:16px;border-radius:16px;background:var(--surface-2,#faf6f1);text-align:left}
+.book-page .book-pay h3{margin:0}
+.book-page .book-pay-methods{display:grid;gap:8px}
+.book-page .book-pay-method{display:grid;gap:2px;padding:10px 12px;border-radius:12px;background:#fff;border:1px solid var(--line,#e6e0d8)}

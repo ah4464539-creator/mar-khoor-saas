@@ -9,7 +9,7 @@
     restaurant: { people: 'Guests', cat: 'Category', arrive: 'Seated', finish: 'Done', group: 'Restaurant', online: 'Take table bookings online (website, WhatsApp and AI calls)', nav: 'Table bookings', setup: 'Tables & hours', resHint: 'Tables or areas guests can book (optional).', svcHint: 'For example: Table for 2, Family table, Private room.', capacity: 'Tables of this kind', resLegend: 'Which tables', guests: 'Guests' },
     clinic: { people: 'Patients', cat: 'Specialty', arrive: 'Patient arrived', finish: 'Done', group: 'Clinic', online: 'Patients can book appointments online (website, WhatsApp and AI calls)', nav: 'Appointments', setup: 'Doctors & services', resHint: 'Doctors or specialists who see patients.', svcHint: 'For example: General check-up, Dental cleaning, Follow-up visit.', capacity: 'Patients at the same time', resLegend: 'Which doctors', guests: 'Patients' },
     salon: { people: 'Clients', cat: 'Category', arrive: 'Arrived', finish: 'Done', group: 'Salon', online: 'Clients can book appointments online (website, WhatsApp and AI calls)', nav: 'Appointments', setup: 'Services & staff', resHint: 'Stylists or staff who do the work.', svcHint: 'For example: Haircut, Facial, Bridal makeup.', capacity: 'Clients at the same time', resLegend: 'Who does it', guests: 'People' },
-    hotel: { people: 'Guests', cat: 'Category', arrive: 'Check in', finish: 'Check out', group: 'Hotel', online: 'Guests can book rooms online (website, WhatsApp and AI calls)', nav: 'Reservations', setup: 'Rooms & rates', resHint: '', svcHint: 'Each room type with its price per night and how many rooms you have.', capacity: 'Rooms of this type', resLegend: '', guests: 'Guests' },
+    hotel: { people: 'Guests', cat: 'Category', arrive: 'Check in', finish: 'Check out', group: 'Hotel', online: 'Guests can book rooms online (website, WhatsApp and AI calls)', nav: 'Reservations', setup: 'Rooms & rates', resHint: 'Each room by its number (101, 102…). Housekeeping uses these.', svcHint: 'Each room type with its price per night. Tick its rooms, or give a number of rooms.', capacity: 'Rooms of this type (if no rooms are ticked)', resLegend: 'Rooms of this type', guests: 'Guests' },
   };
   const STATUS = { pending: 'New', confirmed: 'Confirmed', checked_in: 'Arrived', completed: 'Done', cancelled: 'Cancelled', no_show: 'No-show' };
   const SOURCE = { owner: '🧑‍💼', website: '🌐', whatsapp: '💬', call: '📞' };
@@ -44,7 +44,7 @@
     if ($('bk-svc-title')) $('bk-svc-title').textContent = info ? info.services : 'Services';
     if ($('bk-res-hint')) $('bk-res-hint').textContent = c.resHint;
     if ($('bk-svc-hint')) $('bk-svc-hint').textContent = c.svcHint;
-    const resCard = $('bk-resources')?.closest('.bk-card'); if (resCard) resCard.hidden = night();
+    const resCard = $('bk-resources')?.closest('.bk-card'); if (resCard) resCard.hidden = false;
     if ($('bk-hours-card')) $('bk-hours-card').hidden = night();
     if ($('bk-f-guests-label')) $('bk-f-guests-label').textContent = c.guests;
     if ($('bk-f-service-label')) $('bk-f-service-label').textContent = info ? info.service : 'Service';
@@ -168,9 +168,9 @@
     const box = $('bk-services'); if (!box || !data) return;
     const names = new Map(data.resources.map(r => [r.id, r.name]));
     box.replaceChildren(...data.services.map(s => tile(s.name, [
-      night() ? money(s.price_minor) + ' / night · ' + s.capacity + ' room' + (s.capacity === 1 ? '' : 's') : s.duration_min + ' min · ' + money(s.price_minor),
+      night() ? money(s.price_minor) + ' / night · ' + (s.resource_ids.length || s.capacity) + ' room' + ((s.resource_ids.length || s.capacity) === 1 ? '' : 's') : s.duration_min + ' min · ' + money(s.price_minor),
       s.category || '',
-      !night() && s.resource_ids.length ? s.resource_ids.map(id => names.get(id)).filter(Boolean).join(', ') : '',
+      s.resource_ids.length ? s.resource_ids.map(id => names.get(id)).filter(Boolean).join(', ') : '',
       s.active ? '' : 'Not taking bookings',
     ], () => openItem('service', s), !s.active)));
     if (!data.services.length) box.append(el('p', 'small muted bk-empty', 'Nothing added yet.'));
@@ -188,12 +188,13 @@
     $('bk-i-dur').value = item?.duration_min && item.duration_min < 1440 ? item.duration_min : 30;
     $('bk-i-price').value = item ? (item.price_minor || 0) / 100 : 0;
     $('bk-i-cap').value = item?.capacity || 1;
+    $('bk-i-dep').value = item ? (item.deposit_minor || 0) / 100 : 0;
     $('bk-i-active').checked = item ? item.active : true;
     $('bk-i-dur-field').hidden = kind !== 'service' || night();
     $('bk-i-price-label').textContent = night() ? 'Price per night' : 'Price';
     $('bk-i-cap-label').textContent = copy().capacity;
     const resField = $('bk-i-res-field');
-    resField.hidden = kind !== 'service' || night() || !data.resources.length;
+    resField.hidden = kind !== 'service' || !data.resources.length;
     $('bk-i-res-legend').textContent = copy().resLegend || 'Who does it';
     $('bk-i-res').replaceChildren(...data.resources.map(r => { const l = el('label', 'check'); const c = el('input'); c.type = 'checkbox'; c.value = r.id; c.checked = Boolean(item?.resource_ids?.includes(r.id)); l.append(c, ' ' + r.name); return l; }));
     $('bk-i-cat').value = item?.category || '';
@@ -216,7 +217,7 @@
     const body = editing.kind === 'service'
       ? { name: $('bk-i-name').value, description: $('bk-i-desc').value, duration_min: Number($('bk-i-dur').value), price: Number($('bk-i-price').value), capacity: Number($('bk-i-cap').value), resource_ids: [...$('bk-i-res').querySelectorAll('input:checked')].map(i => Number(i.value)), active: $('bk-i-active').checked }
       : { name: $('bk-i-name').value, note: $('bk-i-note').value, active: $('bk-i-active').checked, specialty: $('bk-i-spec').value, hours: $('bk-i-own-hours').checked ? readHourRows($('bk-i-hours')) : null };
-    if (editing.kind === 'service') body.category = $('bk-i-cat').value;
+    if (editing.kind === 'service') { body.category = $('bk-i-cat').value; body.deposit = Number($('bk-i-dep').value) || 0; }
     status.textContent = 'Saving…';
     try {
       // A new type of business must be saved first, so durations and prices are checked for it.
@@ -323,6 +324,7 @@
     const wa = el('a', 'small', 'WhatsApp'); wa.href = 'https://wa.me/' + b.customer_phone.replace(/\D/g, ''); wa.target = '_blank'; wa.rel = 'noopener'; who.append(wa);
     const what = el('div', 'small muted', [b.service, b.resource, b.guests > 1 ? b.guests + ' ' + copy().guests.toLowerCase() : '', b.price_minor ? money(b.price_minor) : ''].filter(Boolean).join(' · '));
     c.append(top, who, what);
+    if (b.paid_minor || b.pending_payments) { const pay = el('div', 'small'); if (b.paid_minor) pay.append(el('span', 'tag tag-ok', 'Paid ' + money(b.paid_minor))); if (b.pending_payments) pay.append(' ', el('span', 'tag tag-warn', 'Payment to check')); c.append(pay); }
     if (b.note) c.append(el('p', 'small bk-note', b.note));
     const acts = el('div', 'bk-actions');
     const btn = (label, status, cls) => { const x = el('button', 'btn btn-sm ' + (cls || 'btn-ghost'), label); x.type = 'button'; x.addEventListener('click', () => setStatus(b.id, status, x)); acts.append(x); };
@@ -332,6 +334,7 @@
     else if (b.status === 'confirmed') { btn(c2.arrive, 'checked_in', 'btn-dark'); btn('No-show', 'no_show'); btn('Cancel', 'cancelled'); }
     else if (b.status === 'checked_in') { btn(c2.finish, 'completed', 'btn-dark'); }
     if (['pending', 'confirmed'].includes(b.status)) extra('Reschedule', () => openNew(b));
+    extra('Payment', () => openPayments(b, c));
     extra('History', async () => {
       const box = c.querySelector('.bk-history') || c.appendChild(el('ul', 'bk-history small muted'));
       try { const { events } = await ctx.api(base() + '/bookings/' + b.id + '/history'); box.replaceChildren(...events.map(e => el('li', null, e.at + ' · ' + e.action + (e.detail ? ' · ' + e.detail : '')))); }
@@ -404,6 +407,80 @@
     } catch (error) { status.textContent = error.message; }
   }
 
+  async function saveTransfer() {
+    const note = $('bk-transfer-note');
+    note.textContent = 'Saving…';
+    try { const r = await ctx.api(base() + '/contacts', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ transfer_phone: $('bk-transfer').value.trim() }) }); note.textContent = r.transfer_phone ? 'Saved. The AI Caller can transfer callers to ' + r.transfer_phone + '.' : 'Removed.'; }
+    catch (error) { note.textContent = error.message; }
+  }
+  const ROOM = { clean: 'Clean', dirty: 'Dirty', cleaning: 'Cleaning', occupied: 'Occupied', out_of_order: 'Out of order' };
+  function renderHousekeeping() {
+    const grid = $('hk-grid'); if (!grid || !data) return;
+    if (!data.resources.length) { grid.replaceChildren(el('p', 'muted bk-none', 'Add your rooms in Rooms & rates first.')); return; }
+    grid.replaceChildren(...data.resources.filter(r => r.active).map(r => {
+      const st = r.room_status || 'clean';
+      const box = el('div', 'hk-room ' + st);
+      const types = data.services.filter(sv => sv.resource_ids.includes(r.id)).map(sv => sv.name).join(', ');
+      box.append(el('strong', null, r.name), el('span', 'small muted', types || 'No room type'), el('span', 'tag', ROOM[st]));
+      const btns = el('div', 'hk-btns');
+      for (const next of ['clean', 'cleaning', 'dirty', 'out_of_order']) {
+        if (next === st) continue;
+        const b = el('button', 'btn btn-sm btn-ghost', ROOM[next]); b.type = 'button';
+        b.addEventListener('click', async () => { b.disabled = true; try { const res = await ctx.api(base() + '/resources/' + r.id + '/room-status', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: next }) }); data.resources = res.resources; renderHousekeeping(); } catch (error) { b.disabled = false; alert(error.message); } });
+        btns.append(b);
+      }
+      box.append(btns); return box;
+    }));
+  }
+  async function loadHandovers() {
+    const box = $('wa-handover'); if (!box || !ctx) return;
+    try {
+      const { handovers } = await ctx.api(base() + '/handovers');
+      box.hidden = !handovers.length;
+      $('wa-handover-list').replaceChildren(...handovers.map(h => {
+        const row = el('div', 'wa-handover-row');
+        const wa = el('a', null, '+' + h.customer); wa.href = 'https://wa.me/' + h.customer; wa.target = '_blank'; wa.rel = 'noopener';
+        const back = el('button', 'btn btn-sm btn-primary', 'Let AI reply again'); back.type = 'button';
+        back.addEventListener('click', async () => { back.disabled = true; try { await ctx.api(base() + '/handovers/' + encodeURIComponent(h.customer), { method: 'DELETE' }); loadHandovers(); } catch { back.disabled = false; } });
+        row.append(wa, el('span', 'small muted', (h.reason || '') + ' · until ' + h.until.slice(11)), back);
+        return row;
+      }));
+    } catch { box.hidden = true; }
+  }
+  const PAY_LABEL = { cash: 'Cash', card: 'Card', jazzcash: 'JazzCash', easypaisa: 'Easypaisa', raast: 'Raast', bank: 'Bank', other: 'Other' };
+  async function openPayments(b, card) {
+    let box = card.querySelector('.bk-pay');
+    if (box) { box.remove(); return; }
+    box = el('div', 'bk-pay'); card.append(box);
+    const draw = payments => {
+      box.replaceChildren();
+      for (const p of payments) {
+        const row = el('div', 'bk-pay-row');
+        row.append(el('b', null, (p.kind === 'refund' ? '↩ Refund ' : '') + money(p.amount_minor)), el('span', null, PAY_LABEL[p.method] || p.method || ''), el('span', 'muted', p.reference || ''), el('span', 'tag' + (p.status === 'pending' ? ' tag-warn' : ''), p.status === 'pending' ? 'To check' : p.status === 'rejected' ? 'Rejected' : 'OK'));
+        if (p.status === 'pending') for (const [label, st] of [['Received', 'confirmed'], ['Not received', 'rejected']]) {
+          const x = el('button', 'btn btn-sm ' + (st === 'confirmed' ? 'btn-primary' : 'btn-ghost'), label); x.type = 'button';
+          x.addEventListener('click', async () => { x.disabled = true; try { draw((await ctx.api(base() + '/bookings/' + b.id + '/payments/' + p.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: st }) })).payments); } catch (error) { x.disabled = false; alert(error.message); } });
+          row.append(x);
+        }
+        box.append(row);
+      }
+      const form = el('div', 'bk-pay-form');
+      const kind = el('select', 'input'); for (const [v, t] of [['payment', 'Payment'], ['refund', 'Refund']]) { const o = el('option', null, t); o.value = v; kind.append(o); }
+      const amount = el('input', 'input'); amount.type = 'number'; amount.min = '0'; amount.step = '0.01'; amount.placeholder = 'Amount'; amount.value = b.price_minor && !payments.length ? b.price_minor / 100 : '';
+      const method = el('select', 'input'); for (const [v, t] of Object.entries(PAY_LABEL)) { const o = el('option', null, t); o.value = v; method.append(o); }
+      const ref = el('input', 'input'); ref.placeholder = 'Reference (optional)'; ref.maxLength = 80;
+      const save = el('button', 'btn btn-sm btn-dark', 'Save'); save.type = 'button';
+      const msg = el('span', 'small');
+      save.addEventListener('click', async () => {
+        save.disabled = true; msg.textContent = '';
+        try { draw((await ctx.api(base() + '/bookings/' + b.id + '/payments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: kind.value, amount: Number(amount.value), method: method.value, reference: ref.value }) })).payments); loadBoardOrOverview(); }
+        catch (error) { msg.textContent = error.message; save.disabled = false; }
+      });
+      form.append(kind, amount, method, ref, save, msg); box.append(form);
+    };
+    try { draw((await ctx.api(base() + '/bookings/' + b.id + '/payments')).payments); } catch (error) { box.replaceChildren(el('p', 'small', error.message)); }
+  }
+  const loadBoardOrOverview = () => { if (location.hash === '#bookings') loadBoard(); else loadOverview(); };
   async function loadCustomers() {
     if (!ctx || !$('cu-rows')) return;
     const q = $('cu-search').value.trim();
@@ -438,6 +515,9 @@
       applyLabels(); renderTypes(); renderHours(); renderResources(); renderServices(); renderBoardHints();
       if (location.hash === '#bookings') loadBoard();
       if (location.hash === '#customers') loadCustomers();
+      if (location.hash === '#housekeeping') renderHousekeeping();
+      if (location.hash === '#whatsapp-inbox-view') loadHandovers();
+      if ($('bk-transfer')) $('bk-transfer').value = result.transfer_phone || '';
       if (!location.hash || location.hash === '#owner-overview') loadOverview();
     } catch (error) { const n = $('bk-note'); if (n) n.textContent = error.message; }
   }
@@ -460,6 +540,7 @@
     $('cu-export')?.addEventListener('click', () => exportCsv(base() + '/customers.csv' + ($('cu-search').value.trim() ? '?q=' + encodeURIComponent($('cu-search').value.trim()) : ''), copy().people.toLowerCase() + '.csv'));
     $('cu-detail-close')?.addEventListener('click', () => { $('cu-detail').hidden = true; });
     $('bk-i-delete')?.addEventListener('click', deleteItem);
+    $('bk-transfer-save')?.addEventListener('click', saveTransfer);
     $('bk-i-own-hours')?.addEventListener('change', e => { $('bk-i-hours').hidden = !e.target.checked; });
     $('bk-f-res')?.addEventListener('change', checkAvailability);
     document.querySelector('[data-bk-new-link]')?.addEventListener('click', () => setTimeout(openNew, 50));
@@ -472,7 +553,7 @@
     $('bk-f-cancel')?.addEventListener('click', () => $('bk-dialog').close());
     $('bk-f-service')?.addEventListener('change', fillResources);
     for (const id of ['bk-f-service', 'bk-f-date', 'bk-f-out']) $(id)?.addEventListener('change', () => { if (id === 'bk-f-date' && night() && $('bk-f-out').value <= $('bk-f-date').value) $('bk-f-out').value = addDays($('bk-f-date').value, 1); checkAvailability(); });
-    window.addEventListener('hashchange', () => { if (!ctx) return; applyLabels(); if (location.hash === '#customers') loadCustomers(); if (location.hash === '#bookings') loadBoard(); if (!location.hash || location.hash === '#owner-overview') loadOverview(); });
+    window.addEventListener('hashchange', () => { if (!ctx) return; applyLabels(); if (location.hash === '#housekeeping') renderHousekeeping(); if (location.hash === '#whatsapp-inbox-view') loadHandovers(); if (location.hash === '#customers') loadCustomers(); if (location.hash === '#bookings') loadBoard(); if (!location.hash || location.hash === '#owner-overview') loadOverview(); });
     $('bk-type-change')?.addEventListener('click', () => { const g = $('bk-type-grid'); g.hidden = !g.hidden; $('bk-type-change').textContent = g.hidden ? 'Wrong type? Change' : 'Keep this type'; });
     setInterval(() => { if (ctx && location.hash === '#bookings' && !document.hidden) loadBoard(); }, 60000);
   }

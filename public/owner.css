@@ -731,3 +731,20 @@ body.owner-app:not([data-category]) [data-biz-only],body.owner-app[data-category
 .mk .cu-table tbody tr:hover,.mk .cu-table tbody tr:focus{background:var(--surface-2,#faf6f1);outline:none}
 .mk .cu-history{display:grid;gap:8px}
 .mk .cu-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px;border-radius:12px;background:var(--surface-2,#faf6f1)}
+/* Batch B: hotel, payments, hand-over */
+body.owner-app:not([data-category="hotel"]) [data-hotel-only]{display:none!important}
+.mk .bk-inline{display:flex;gap:8px}
+.mk .bk-transfer{margin:0 0 12px}
+.mk .hk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.mk .hk-room{display:grid;gap:8px;padding:14px;border-radius:16px;border:1px solid var(--line);background:var(--surface);border-top:5px solid #b9ada1}
+.mk .hk-room.clean{border-top-color:#1f9d55}.mk .hk-room.dirty{border-top-color:#E86A17}.mk .hk-room.cleaning{border-top-color:#d4a017}.mk .hk-room.occupied{border-top-color:#2b5fb4}.mk .hk-room.out_of_order{border-top-color:#b42318;opacity:.8}
+.mk .hk-room .hk-btns{display:flex;flex-wrap:wrap;gap:6px}
+.mk .bk-pay{display:grid;gap:8px;margin-top:6px;padding:10px;border-radius:12px;background:var(--surface-2,#faf6f1)}
+.mk .bk-pay-form{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.mk .bk-pay-form .input{height:34px;padding:4px 8px;width:auto;min-width:0;flex:1 1 90px}
+.mk .bk-pay-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px}
+.mk .tag-warn{background:#fff4e5;color:#9a5b00}
+.mk .wa-handover{margin:0 0 14px;border-radius:18px;border:1px solid var(--ember-line);background:var(--ember-soft)}
+.mk .wa-handover h2{margin:0 0 4px;font-size:16px}
+.mk .wa-handover-list{display:grid;gap:8px;margin-top:10px}
+.mk .wa-handover-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px;border-radius:12px;background:var(--surface)}

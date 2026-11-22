@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="/summit.css?v=20261122-s5">
-<link rel="stylesheet" href="/owner.css?v=20261122-s34">
+<link rel="stylesheet" href="/owner.css?v=20261122-s35">
 <script src="/session-guard.js?v=20261122-1"></script>
 <script src="/i18n.js?v=20261121-2" data-position="right" defer></script>
 </head>
@@ -53,6 +53,7 @@
   <div id="owner-navigation" class="nav-group" hidden>
    <a href="#order-desk" data-food-only><svg aria-hidden="true"><use href="#i-orders"/></svg><span>Live orders</span><span class="count" id="nav-pending-count" hidden></span></a>
    <a href="#bookings" data-biz-nav="bookings"><svg aria-hidden="true"><use href="#i-calendar"/></svg><span data-biz-label="bookings">Bookings</span><span class="count" id="nav-booking-count" hidden></span></a>
+   <a href="#housekeeping" data-hotel-only><svg aria-hidden="true"><use href="#i-sparkle"/></svg><span>Housekeeping</span></a>
    <a href="#customers" data-biz-only><svg aria-hidden="true"><use href="#i-users"/></svg><span data-biz-label="customers">Customers</span></a>
    <a href="#booking-setup" data-biz-nav="setup"><svg aria-hidden="true"><use href="#i-sliders"/></svg><span data-biz-label="setup">Services &amp; hours</span></a>
    <a href="#payment-methods"><svg aria-hidden="true"><use href="#i-wallet"/></svg><span>Payment methods</span></a>
@@ -214,6 +215,11 @@
  <div id="bk-list" class="bk-list" aria-live="polite"></div>
  <p class="small muted" id="bk-public"></p>
 </section>
+<section class="owner-view owner-message-view" id="housekeeping" data-title="Housekeeping" hidden>
+ <h2 tabindex="-1" class="visually-hidden">Housekeeping</h2>
+ <p class="small muted">Rooms change to Occupied at check-in and to Dirty at check-out. Out-of-order rooms are not offered for booking.</p>
+ <div class="hk-grid" id="hk-grid"></div>
+</section>
 <section class="owner-view owner-message-view" id="customers" data-title="Customers" hidden>
  <h2 tabindex="-1" class="visually-hidden">Customers</h2>
  <div class="bk-filters">
@@ -230,6 +236,7 @@
    <div class="card-head"><div><h2 id="bk-type-title">Your business</h2><p class="small muted">Your dashboard, website, WhatsApp and AI calls are set up for this type of business.</p></div></div>
    <p class="bk-type-current"><span class="bk-type-icon" id="bk-type-icon" aria-hidden="true"></span><b id="bk-type-name"></b><button type="button" class="btn btn-quiet btn-sm" id="bk-type-change">Wrong type? Change</button></p>
    <div class="bk-type-grid" id="bk-type-grid" role="radiogroup" aria-label="Type of business" hidden></div>
+   <div class="field bk-transfer"><label for="bk-transfer">Reception phone for call transfers (optional)</label><div class="bk-inline"><input class="input" id="bk-transfer" type="tel" maxlength="20" placeholder="+923001234567"><button type="button" class="btn btn-ghost btn-sm" id="bk-transfer-save">Save</button></div><span class="hint" id="bk-transfer-note">When a caller asks for a person, the AI Caller transfers the call here.</span></div>
    <label class="check bk-online"><input type="checkbox" id="bk-enabled"> <span id="bk-enabled-text">Take bookings online (website, WhatsApp and AI calls)</span></label>
    <p class="small" id="bk-link"></p>
   </section>
@@ -453,6 +460,7 @@
 </section>
 <section class="owner-view owner-message-view" id="whatsapp-inbox-view" data-title="WhatsApp inbox" hidden>
  <h2 tabindex="-1" class="visually-hidden">WhatsApp inbox</h2>
+ <div class="card card-pad wa-handover" id="wa-handover" hidden><div class="card-head"><div><h2>🙋 Waiting for a person</h2><p class="small muted">The AI is quiet for these customers for 2 hours. Reply from your WhatsApp, then let the AI answer again.</p></div></div><div id="wa-handover-list" class="wa-handover-list"></div></div>
  <div class="card card-pad"><div class="wa-connect" data-wa-connect hidden><button type="button" class="btn btn-dark"><svg width="18" height="18" aria-hidden="true"><use href="#i-chat"/></svg>Connect WhatsApp with Facebook</button><p class="wa-connect-status hint"></p></div></div>
  <div class="card card-pad"><div class="card-head"><p class="small muted">Customer messages to your WhatsApp Business number.</p><label class="check ai-toggle"><input id="whatsapp-ai-enabled" type="checkbox"> AI auto-replies</label></div><div id="whatsapp-inbox" class="message-list muted" translate="no"></div></div>
 </section>
@@ -562,6 +570,7 @@
   <div class="field" data-svc-only><label for="bk-i-desc">Short description (optional)</label><input class="input" id="bk-i-desc" maxlength="400"></div>
   <div class="field" data-svc-only id="bk-i-cat-field"><label for="bk-i-cat" id="bk-i-cat-label">Category</label><input class="input" id="bk-i-cat" maxlength="80" list="bk-cat-list"><datalist id="bk-cat-list"></datalist></div>
   <div class="field-pair" data-svc-only><div class="field" id="bk-i-dur-field"><label for="bk-i-dur">Duration (minutes)</label><input class="input" id="bk-i-dur" type="number" min="5" max="720" step="5" value="30"></div><div class="field"><label for="bk-i-price" id="bk-i-price-label">Price</label><input class="input" id="bk-i-price" type="number" min="0" step="0.01" value="0"></div></div>
+  <div class="field" data-svc-only><label for="bk-i-dep">Advance payment (optional)</label><input class="input" id="bk-i-dep" type="number" min="0" step="0.01" value="0"><span class="hint">Shown to customers after they book, with your payment methods. You confirm it when it arrives.</span></div>
   <div class="field" data-svc-only><label for="bk-i-cap" id="bk-i-cap-label">How many at the same time</label><input class="input" id="bk-i-cap" type="number" min="1" max="500" value="1"></div>
   <fieldset class="field" data-svc-only id="bk-i-res-field"><legend class="small" id="bk-i-res-legend">Who does it</legend><div class="bk-checks" id="bk-i-res"></div></fieldset>
   <div class="field" data-res-only id="bk-i-spec-field"><label for="bk-i-spec">Specialty</label><input class="input" id="bk-i-spec" maxlength="80" placeholder="e.g. Dentist, Child specialist"></div>
@@ -578,7 +587,7 @@
 <script src="/call-forwarding.js?v=20261122-1"></script>
 <script src="/site-content.js?v=20261122-1"></script>
 <script src="/owner-app.js?v=20261122-2"></script>
-<script src="/bookings.js?v=20261122-5"></script>
+<script src="/bookings.js?v=20261122-6"></script>
 <script type="module" src="/restaurant.js?v=20261122-s35"></script>
 <script>document.getElementById("login-show-password")?.addEventListener("change",function(){document.getElementById("password").type=this.checked?"text":"password"});</script>
 </body>

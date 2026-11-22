@@ -85,11 +85,26 @@
     if (!night() && !picked) { status.textContent = 'Please pick a time.'; return; }
     $('book-submit').disabled = true; status.textContent = 'Booking…';
     try {
-      const { booking } = await api('/bookings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ service_id: service.id, resource_id: $('book-res').value ? Number($('book-res').value) : null, date: $('book-date').value, time: picked, check_out: $('book-out').value, customer_name: $('book-cname').value, customer_phone: $('book-phone').value, guests: Number($('book-guests').value), note: $('book-note').value }) });
+      const { booking, token, deposit_minor: deposit, pay_options: payOptions } = await api('/bookings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ service_id: service.id, resource_id: $('book-res').value ? Number($('book-res').value) : null, date: $('book-date').value, time: picked, check_out: $('book-out').value, customer_name: $('book-cname').value, customer_phone: $('book-phone').value, guests: Number($('book-guests').value), note: $('book-note').value }) });
       $('book-form').hidden = true; $('book-done').hidden = false;
       const when = night() ? booking.start_at.slice(0, 10) + ' to ' + booking.end_at.slice(0, 10) : booking.start_at.slice(0, 10) + ' at ' + booking.start_at.slice(11, 16);
       $('book-done-text').textContent = booking.service + ' · ' + when + ' · booking #' + booking.id;
+      showPay(booking, token, deposit, payOptions || []);
     } catch (error) { status.textContent = error.message; $('book-submit').disabled = false; check(); }
+  }
+  const TYPE_KEY = { jazzcash: 'jazzcash', easypaisa: 'easypaisa', raast: 'raast', bank: 'bank' };
+  function showPay(booking, token, deposit, options) {
+    if (!options.length || !token) return;
+    const amount = deposit || booking.price_minor;
+    $('book-pay').hidden = false;
+    $('book-pay-title').textContent = deposit ? 'Advance payment: ' + money(deposit) : amount ? 'Pay now (optional): ' + money(amount) : 'Pay now (optional)';
+    $('book-pay-methods').replaceChildren(...options.map(o => { const d = el('div', 'book-pay-method'); d.append(el('b', null, o.label), el('span', null, [o.account_title, o.account_number].filter(Boolean).join(' · '))); if (o.instructions) d.append(el('small', 'muted', o.instructions)); return d; }));
+    $('book-pay-method').replaceChildren(...options.map(o => { const op = el('option', null, o.label); op.value = TYPE_KEY[o.type] || 'other'; return op; }));
+    $('book-pay-send').onclick = async () => {
+      const st = $('book-pay-status'); $('book-pay-send').disabled = true; st.textContent = 'Sending…';
+      try { await api('/bookings/' + booking.id + '/payment', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, reference: $('book-pay-ref').value, method: $('book-pay-method').value, amount: amount / 100 }) }); st.textContent = 'Thank you. The business will check your payment.'; }
+      catch (error) { st.textContent = error.message; $('book-pay-send').disabled = false; }
+    };
   }
   document.addEventListener('DOMContentLoaded', () => {
     $('book-date').addEventListener('change', check); $('book-out').addEventListener('change', check);
