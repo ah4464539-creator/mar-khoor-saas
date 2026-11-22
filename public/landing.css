@@ -169,3 +169,12 @@
 }
 @media (prefers-reduced-motion:reduce){.lp .item{transition:none}}
 .lp .lane > div{display:flex;flex-direction:column;gap:10px}
+.lp .logo,.lp .b{white-space:nowrap}
+.lp .ptable-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+@media (max-width:960px){.lp .demo{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:600px){
+ .lp .logo{font-size:18px}
+ .lp .ptable{min-width:520px}
+ .lp .ptable .b{height:36px;padding:0 10px;font-size:13px}
+ .lp h1{font-size:44px}
+}
