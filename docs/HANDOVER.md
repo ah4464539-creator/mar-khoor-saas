@@ -1,7 +1,7 @@
 # Mar-Khoor — handover for the next work session
 
 Give this file to any new Claude session (or developer) so work can continue without re-explaining.
-Last updated: 2026-11-22 (after PR #130).
+Last updated: 2026-11-22 (after PR #133). Everything below is merged to `main` and deployed.
 
 ## 1. What the project is
 - Multi-business SaaS: restaurants (orders), clinics / salons (appointments), hotels (rooms).
@@ -50,11 +50,19 @@ Last updated: 2026-11-22 (after PR #130).
   - AI self-service: my_bookings / cancel_booking / reschedule_booking on WhatsApp and calls; WhatsApp `talk_to_staff` hand-over; call transfer to the reception phone.
   - Booking-aware AI websites, discount codes, Reports page, staff accounts (role `staff`, front-desk only).
 
+- **Multinational (PR #132):** payment methods for any country (bank/IBAN, mobile wallet, payment link = the business's own Stripe/PayPal/Razorpay link shown as "Pay online", PayPal, UPI; JazzCash/Easypaisa/Raast only for PKR), time zone per business (IANA, setup page), currency defaults for more countries (two-decimal only; JPY/KRW etc. stay USD because prices are stored ×100), website languages en/ur/roman/ar/es/fr/de/tr/hi, templates Clinic Care / Resort Stay / Blush Studio (recommended per type).
+- PR #133: webhook ignores AI jobs stuck in `processing` > 10 min (after restarts) so delivery statuses are not retried forever.
+
 ## 5. Not finished / waiting
 - **Owner tests needed:** WhatsApp booking and call booking end to end (suggested: Urban Cafe → Tables & hours → enable bookings → add "Table for 2" → book on WhatsApp). Note: saving services adds booking tools to Urban Cafe's Vapi assistant (order flow unchanged).
 - Landing page, setup dialog and login now speak to every business type (PR #124).
 - Reminders outside the 24h window need an approved Meta template; set `WHATSAPP_REMINDER_TEMPLATE` (body params: name, business, date-time) — never via the replace-env tool; ask the owner to add it in hPanel.
-- Not built yet: online card payments for bookings (Stripe for customers), restaurant deals and tables pages beyond table bookings, separate templates per business type in the website builder (sections adapt, designs are shared), a full end-to-end test on a test account for each of the four types (needs the owner's OK to create test accounts on production).
+- Not built yet:
+  - Card payments collected by Mar-Khoor itself (Stripe Connect / marketplace) — today businesses use their own payment link or transfers.
+  - WhatsApp fixed texts (order/booking summaries) exist in en / Roman Urdu / Urdu / Arabic only; other languages get English summaries (the AI chat itself answers in any language).
+  - Restaurant "Deals" are menu items / website offers; no separate deals page.
+  - Full end-to-end test with a real test account per business type (needs the owner's OK to create test accounts on production).
+  - Zero-decimal currencies (JPY, KRW, VND, CLP) and 3-decimal (KWD, BHD, OMR, JOD) need Stripe amount handling before billing in them.
 - WhatsApp calling: needs a VPS media bridge (Opus/SDES). Waiting for the owner's yes and monthly vs. yearly choice (KVM1 ~$9.99 first month, then $19.49/month). Calling pilot is still ON for Urban Cafe and failing.
 - New plan prices (Starter $299 / Premium $599 / Unlimited $1,299) — awaiting approval.
 - Embedded Signup for WhatsApp needs NTN, Meta business verification and Tech Provider status.
