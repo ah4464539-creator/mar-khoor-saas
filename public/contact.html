@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="/contact.css?v=20261122-1">
 <link rel="stylesheet" href="/support-widget.css?v=20261122-1">
 <script src="/website-assistant-new.js?v=20261122-1" defer></script>
+<script src="/contact-form.js?v=20261122-2" defer></script>
 </head>
 <body class="mk-contact">
 <header class="ct-header">
@@ -31,7 +32,7 @@
    <p class="ct-kicker"><span class="ct-kicker-dot"></span> MAR-KHOOR SUPPORT</p>
    <h1>How can we <span>help you?</span></h1>
    <p class="ct-lead">Questions about setting up your business, connecting WhatsApp, AI calling, your website or billing? Our AI assistant can guide you. You can also contact our team directly.</p>
-   <div class="ct-hero-actions"><button class="ct-button ct-button-primary" type="button" data-open-mk-support>Chat with AI Support <span aria-hidden="true">↗</span></button><a class="ct-button ct-button-secondary" href="mailto:admin@mar-khoor.com?subject=Mar-Khoor%20Support%20Request">Email our team</a></div>
+   <div class="ct-hero-actions"><button class="ct-button ct-button-primary" type="button" data-open-mk-support>Chat with AI Support <span aria-hidden="true">↗</span></button><a class="ct-button ct-button-secondary" href="#send-message">Send a message</a></div>
   </div>
  </section>
  <section class="ct-wrap ct-options" aria-label="Support channels">
@@ -54,6 +55,29 @@
    <a href="/restaurant.html">Open your dashboard <span aria-hidden="true">↗</span></a>
   </article>
  </section>
+ <section class="ct-wrap ct-form-section" id="send-message" aria-labelledby="ct-form-title">
+  <div class="ct-form-intro"><p class="ct-kicker">CONTACT OUR TEAM</p><h2 id="ct-form-title">Send us a message.</h2>
+   <p>Need help from a person? Fill in the form and we'll route your request to Mar-Khoor's official support mailbox. You can also write directly to <a href="mailto:admin@mar-khoor.com">admin@mar-khoor.com</a>.</p>
+   <p class="ct-form-help">Please don't include passwords, security codes or sensitive payment information.</p>
+  </div>
+  <div class="ct-form-card">
+   <p id="mk-contact-readiness" class="ct-form-readiness" role="status" hidden></p>
+   <form id="mk-contact-form">
+    <div class="ct-form-pair">
+     <div class="ct-field"><label for="mk-contact-name">Your name <span aria-hidden="true">*</span></label><input id="mk-contact-name" name="name" type="text" autocomplete="name" minlength="2" maxlength="100" required placeholder="Your full name"></div>
+     <div class="ct-field"><label for="mk-contact-email">Email address <span aria-hidden="true">*</span></label><input id="mk-contact-email" name="email" type="email" autocomplete="email" maxlength="254" required placeholder="you@example.com"></div>
+    </div>
+    <div class="ct-field"><label for="mk-contact-topic">What do you need help with? <span aria-hidden="true">*</span></label><select id="mk-contact-topic" name="topic" required>
+     <option value="">Choose a topic</option><option value="general">General enquiry</option><option value="registration">Registration &amp; accounts</option><option value="website">AI websites</option><option value="whatsapp">WhatsApp AI</option><option value="calling">AI phone assistant</option><option value="billing">Plans &amp; billing</option><option value="privacy">Privacy or data request</option><option value="other">Other support</option>
+    </select></div>
+    <div class="ct-field"><label for="mk-contact-message">Your message <span aria-hidden="true">*</span></label><textarea id="mk-contact-message" name="message" rows="6" minlength="10" maxlength="4000" required placeholder="Please tell us how we can help."></textarea></div>
+    <div class="ct-honeypot" aria-hidden="true"><label for="mk-contact-website">Leave this blank</label><input id="mk-contact-website" name="website" type="text" tabindex="-1" autocomplete="off"></div>
+    <label class="ct-form-consent"><input type="checkbox" name="consent" required><span>I agree that Mar-Khoor can use these details to respond to my enquiry, as described in its <a href="/privacy.html">Privacy Policy</a>.</span></label>
+    <div class="ct-form-submit"><button type="submit" id="mk-contact-submit" class="ct-button ct-button-primary">Send message</button><span>Your message goes to <strong>admin@mar-khoor.com</strong>.</span></div>
+    <p id="mk-contact-feedback" class="ct-form-feedback" role="status" aria-live="polite"></p>
+   </form>
+  </div>
+ </section>
  <section class="ct-faq">
   <div class="ct-wrap ct-faq-layout">
    <div><p class="ct-kicker">QUICK ANSWERS</p><h2>Common questions</h2><p class="ct-faq-intro">These answers cover the basics. Open AI chat for more guidance.</p></div>
@@ -66,7 +90,7 @@
    </div>
   </div>
  </section>
- <section class="ct-wrap ct-bottom"><div><p class="ct-kicker">STILL NEED HELP?</p><h2>We're here for your questions.</h2><p>For account-specific questions, please email support. Never share passwords, verification codes, payment card details or sensitive customer information in AI chat.</p></div><a class="ct-button ct-button-primary" href="mailto:admin@mar-khoor.com?subject=Mar-Khoor%20Support%20Request">Contact support</a></section>
+ <section class="ct-wrap ct-bottom"><div><p class="ct-kicker">STILL NEED HELP?</p><h2>We're here for your questions.</h2><p>For account-specific questions, please email support. Never share passwords, verification codes, payment card details or sensitive customer information in AI chat.</p></div><a class="ct-button ct-button-primary" href="#send-message">Send a support request</a></section>
 </main>
 <footer class="ct-footer"><div class="ct-wrap"><span>© 2026 Mar-Khoor AI</span><nav aria-label="Footer"><a href="/">Home</a><a href="/about.html">About Us</a><a href="/contact.html" aria-current="page">Contact Us</a><a href="/privacy.html">Privacy Policy</a></nav></div></footer>
 </body>
