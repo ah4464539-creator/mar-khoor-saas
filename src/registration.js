@@ -2,6 +2,7 @@ import express from 'express';
 import { hashPassword } from './auth.js';
 import { registerRestaurant } from './registration-core.js';
 import { assignRegistrationNumber } from './registration-voice.js';
+import { isBusinessType, saveProfile } from './bookings.js';
 
 const WINDOW_MS = 60 * 60 * 1000, MAX_PER_WINDOW = 5;
 const attempts = new Map(); // per IP; in-memory like login throttling. Add proxy-level limits in production.
@@ -21,6 +22,9 @@ export function registrationRouter(pool) {
   if (limited(req.ip || 'unknown')) return res.status(429).json({ error: 'Too many registrations; try again later' });
   const result = await registerRestaurant(pool, req.body, hashPassword);
   if (result.status === 201) {
+   const category = isBusinessType(req.body?.business_type) ? req.body.business_type : 'restaurant';
+   result.body.category = category;
+   await saveProfile(pool, result.body.restaurant_id, { category }).catch(error => console.warn('business profile skipped:', error?.code || error?.message));
    result.body.voice = process.env.REGISTRATION_VOICE_POOL_ENABLED === '1'
     ? await assignRegistrationNumber(pool, result.body.restaurant_id, result.body.country)
     : { status: 'pending' };
