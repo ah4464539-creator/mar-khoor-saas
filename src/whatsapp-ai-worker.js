@@ -3,7 +3,9 @@ import { getPilotIds, workerSwitch } from './whatsapp-pilot.js';
 import { tokenForNumber } from './whatsapp-signup-core.js';
 import { ensureToolsTable } from './tools.js';
 import { notifyNewOrder } from './web-push.js';
-import { PROPOSE_ORDER_TOOL, buildDraft, summaryText, buttonsFor, parseReply, findDraft, saveDraft, markDraft, placeOrder, receivedText, changeText, expiredText, unavailableText, sendText, sendButtons, sendVoice, transcribeVoiceNote, speak } from './whatsapp-orders.js';
+import { PROPOSE_ORDER_TOOL, buildDraft, summaryText, buttonsFor, parseReply, findDraft, saveDraft, markDraft, placeOrder, receivedText, changeText, expiredText, unavailableText, sendText, sendButtons, sendVoice, transcribeVoiceNote, speak, paymentList, sendList, hasOtherPayments, choosePayment, pendingTransfer, extractReference, submitReference, thanksText, pictureText, inboundImage } from './whatsapp-orders.js';
+import { loadPaymentSettings } from './payment-options.js';
+import { notifyPaymentReference } from './web-push.js';
 import mysql from 'mysql2/promise';
 import {pathToFileURL} from 'node:url';
 import {resolve} from 'node:path';
@@ -59,7 +61,7 @@ export async function processWhatsAppAIJobs(pool,{fetcher=fetch,restaurantId=nul
   restaurantFilter=" AND (EXISTS (SELECT 1 FROM restaurant_subscriptions sub WHERE sub.restaurant_id=j.restaurant_id AND sub.status='active') OR EXISTS (SELECT 1 FROM restaurant_tools tool WHERE tool.restaurant_id=j.restaurant_id AND tool.tool_key='whatsapp' AND tool.status='active')"+(allowed.length?' OR j.restaurant_id IN ('+allowed.map(()=>'?').join(',')+')':'')+')';
   params.push(...allowed);
  }
- const [jobs]=await pool.execute("SELECT j.inbound_message_id,j.restaurant_id,m.phone_number_id,m.sender,m.message_type,m.text_body,r.name,r.locale,r.currency FROM whatsapp_ai_jobs j JOIN whatsapp_inbound_messages m ON m.message_id=j.inbound_message_id AND m.restaurant_id=j.restaurant_id JOIN whatsapp_ai_settings s ON s.restaurant_id=j.restaurant_id AND s.enabled=1 JOIN restaurants r ON r.id=j.restaurant_id JOIN whatsapp_numbers w ON w.phone_number_id=m.phone_number_id AND w.restaurant_id=j.restaurant_id AND w.active=1 WHERE j.status='pending' AND ((m.message_type IN ('text','interactive') AND m.text_body IS NOT NULL) OR m.message_type='audio') AND m.received_at>=NOW()-INTERVAL 23 HOUR"+restaurantFilter+" ORDER BY j.created_at LIMIT 10",params);
+ const [jobs]=await pool.execute("SELECT j.inbound_message_id,j.restaurant_id,m.phone_number_id,m.sender,m.message_type,m.text_body,r.name,r.locale,r.currency FROM whatsapp_ai_jobs j JOIN whatsapp_inbound_messages m ON m.message_id=j.inbound_message_id AND m.restaurant_id=j.restaurant_id JOIN whatsapp_ai_settings s ON s.restaurant_id=j.restaurant_id AND s.enabled=1 JOIN restaurants r ON r.id=j.restaurant_id JOIN whatsapp_numbers w ON w.phone_number_id=m.phone_number_id AND w.restaurant_id=j.restaurant_id AND w.active=1 WHERE j.status='pending' AND ((m.message_type IN ('text','interactive') AND m.text_body IS NOT NULL) OR m.message_type IN ('audio','image')) AND m.received_at>=NOW()-INTERVAL 23 HOUR"+restaurantFilter+" ORDER BY j.created_at LIMIT 10",params);
  let claimedCount=0,sent=0,failed=0;
  for(const job of jobs){
   const [claimed]=await pool.execute("UPDATE whatsapp_ai_jobs j JOIN whatsapp_ai_settings s ON s.restaurant_id=j.restaurant_id AND s.enabled=1 SET j.status='processing' WHERE j.inbound_message_id=? AND j.restaurant_id=? AND j.status='pending'",[job.inbound_message_id,job.restaurant_id]);
@@ -76,15 +78,23 @@ export async function processWhatsAppAIJobs(pool,{fetcher=fetch,restaurantId=nul
     if(!stillEnabled.length||!stillEnabled[0].enabled)throw Error('AI disabled, number unlinked or reply window expired');
    };
    // Voice notes are transcribed first and answered with a voice note as well as text.
-   const isVoice=job.message_type==='audio';
+   const isVoice=job.message_type==='audio',isImage=job.message_type==='image';
    let text=typeof job.text_body==='string'?job.text_body:'';
-   if(isVoice&&!text.trim())text=await transcribeVoiceNote(pool,job,{fetcher,env,metaToken:sendToken,apiKey:key});
-   if(!text.trim())throw Error('Empty message');
-   const [items]=await pool.execute('SELECT id,name,description,price_minor FROM menu_items WHERE restaurant_id=? AND active=1 ORDER BY id LIMIT 100',[job.restaurant_id]);
-   let replyText=null,replyButtons=null,speakReply=false;
+   let replyText=null,replyButtons=null,replyList=null,speakReply=false;
+   // A picture: a payment screenshot when a transfer is waiting, otherwise a polite note.
+   if(isImage){
+    const pending=await pendingTransfer(pool,job),image=await inboundImage(pool,job);
+    if(pending&&image&&await submitReference(pool,job,pending.order_id,{proof:image})){replyText=thanksText(pending.order_id,pending.language);notifyPaymentReference(pool,{orderId:pending.order_id});}
+    else replyText=pictureText(pending?.language||'en');
+   }
+   if(replyText===null&&isVoice&&!text.trim())text=await transcribeVoiceNote(pool,job,{fetcher,env,metaToken:sendToken,apiKey:key});
+   if(replyText===null&&!text.trim())throw Error('Empty message');
+   const [items]=replyText===null?await pool.execute('SELECT id,name,description,price_minor FROM menu_items WHERE restaurant_id=? AND active=1 ORDER BY id LIMIT 100',[job.restaurant_id]):[[]];
+   const paySettings=replyText===null?await loadPaymentSettings(pool,job.restaurant_id):null;
    // 1) Confirm / Change on an order summary (button tap or a typed "yes" while one is waiting).
-   const answer=parseReply(text);
-   if(answer){
+   const answer=replyText===null?parseReply(text):null;
+   if(answer?.action==='pay')replyText=await choosePayment(pool,job,answer.orderId,answer.key,job.currency);
+   else if(answer){
     const draft=await findDraft(pool,job,answer.draftId||null);
     if(draft&&answer.action==='change'){if(draft.status==='awaiting')await markDraft(pool,draft.id,'changed');replyText=changeText(draft.language);}
     else if(draft&&answer.action==='confirm'){
@@ -94,9 +104,15 @@ export async function processWhatsAppAIJobs(pool,{fetcher=fetch,restaurantId=nul
       const placed=await placeOrder(pool,job,draft);
       if(placed.error==='unavailable')replyText=unavailableText(draft.language);
       else if(placed.error)replyText=expiredText(draft.language);
-      else{replyText=receivedText(placed,draft,job.currency,process.env.PUBLIC_BASE_URL);console.log('WhatsApp order #'+placed.order_id+' placed for restaurant #'+job.restaurant_id+(placed.repeat?' (repeat tap)':''));if(!placed.repeat)notifyNewOrder(pool,{restaurantId:job.restaurant_id,orderId:placed.order_id,totalMinor:placed.total_minor,currency:job.currency,source:'WhatsApp'});}
+      else{replyText=receivedText(placed,draft,job.currency,process.env.PUBLIC_BASE_URL);if(!placed.repeat)replyList=paymentList(placed.order_id,paySettings,draft.order_type,draft.language);console.log('WhatsApp order #'+placed.order_id+' placed for restaurant #'+job.restaurant_id+(placed.repeat?' (repeat tap)':''));if(!placed.repeat)notifyNewOrder(pool,{restaurantId:job.restaurant_id,orderId:placed.order_id,totalMinor:placed.total_minor,currency:job.currency,source:'WhatsApp'});}
      }else replyText=expiredText(draft.language);
     }else if(answer.draftId)replyText=expiredText('en');
+   }
+   // A transaction ID typed while this customer's transfer is waiting.
+   if(replyText===null){
+    const ref=extractReference(text);
+    const pending=ref?await pendingTransfer(pool,job):null;
+    if(pending&&await submitReference(pool,job,pending.order_id,{reference:ref})){replyText=thanksText(pending.order_id,pending.language);notifyPaymentReference(pool,{orderId:pending.order_id});}
    }
    // 2) Normal conversation; the AI may propose an order, which we turn into an exact summary.
    if(replyText===null){
@@ -117,7 +133,7 @@ export async function processWhatsAppAIJobs(pool,{fetcher=fetch,restaurantId=nul
      if(built.value){
       await checkStillEnabled();
       const draftId=await saveDraft(pool,job,built.value);
-      replyText=summaryText(built.value,job.currency);replyButtons=buttonsFor(draftId,built.value.language);
+      replyText=summaryText(built.value,job.currency,{otherPayments:hasOtherPayments(paySettings)});replyButtons=buttonsFor(draftId,built.value.language);
      }else{
       const second=await ask({messages:[...messages,{role:'assistant',content:first.content||null,tool_calls:[call]},{role:'tool',tool_call_id:call.id,content:JSON.stringify({error:built.error})}]});
       replyText=typeof second.content==='string'?second.content.trim():'';speakReply=isVoice;
@@ -129,6 +145,10 @@ export async function processWhatsAppAIJobs(pool,{fetcher=fetch,restaurantId=nul
    const id=replyButtons?await sendButtons(fetcher,env,sendToken,job.phone_number_id,job.sender,replyText,replyButtons):await sendText(fetcher,env,sendToken,job.phone_number_id,job.sender,replyText);
    outboundId=id;
    await pool.execute('INSERT INTO whatsapp_outbound_messages(message_id,restaurant_id,phone_number_id,recipient,text_body) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE message_id=message_id',[id,job.restaurant_id,job.phone_number_id,job.sender,replyText]);
+   if(replyList){
+    try{const listId=await sendList(fetcher,env,sendToken,job.phone_number_id,job.sender,replyList);await pool.execute('INSERT INTO whatsapp_outbound_messages(message_id,restaurant_id,phone_number_id,recipient,text_body) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE message_id=message_id',[listId,job.restaurant_id,job.phone_number_id,job.sender,replyList.body]);}
+    catch(error){console.warn('WhatsApp payment list skipped for restaurant #'+job.restaurant_id+': '+String(error.message).slice(0,120));}
+   }
    if(speakReply){
     try{
      const audio=await speak(replyText,{fetcher,env,apiKey:key});

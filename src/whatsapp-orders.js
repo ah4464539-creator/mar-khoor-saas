@@ -7,6 +7,7 @@
 import { newTrackingToken, hashTrackingToken } from './order-tracking.js';
 import { isMissingFulfillmentSchema } from './order-fulfillment.js';
 import { URDU_SPEECH_RULES } from './speech-rules.js';
+import { loadPaymentSettings, publicPaymentOptions, resolvePaymentOption, ensurePaymentTables } from './payment-options.js';
 
 export const ORDER_SQL = [
   `CREATE TABLE IF NOT EXISTS whatsapp_order_drafts (
@@ -108,12 +109,12 @@ export function buildDraft(menu, proposal) {
   return { value: { items, total_minor: total, order_type: p.order_type, customer_name: name, delivery_address: p.order_type === 'delivery' ? address : null, language: lang(p.language) } };
 }
 
-export function summaryText(draft, currency) {
+export function summaryText(draft, currency, { otherPayments = false } = {}) {
   const t = T[lang(draft.language)];
   const lines = draft.items.map(i => `${i.quantity} × ${i.name} — ${money(i.unit_price_minor * i.quantity, currency)}`);
   return [t.check, '', ...lines, '', `*${t.total}: ${money(draft.total_minor, currency)}*`,
     draft.order_type === 'delivery' ? `${t.delivery}: ${draft.delivery_address}` : t.pickup,
-    `${t.name}: ${draft.customer_name}`, draft.order_type === 'delivery' ? t.payCod : t.payPickup, '', t.ask].join('\n').slice(0, 1024);
+    `${t.name}: ${draft.customer_name}`, otherPayments ? pt(draft.language).later : (draft.order_type === 'delivery' ? t.payCod : t.payPickup), '', t.ask].join('\n').slice(0, 1024);
 }
 export const buttonsFor = (draftId, language) => {
   const t = T[lang(language)];
@@ -130,6 +131,8 @@ export function statusText(status, orderId, orderType, language) {
 /** Recognises a button tap (mk_confirm:12) or a typed "yes" while a summary is waiting. */
 export function parseReply(text) {
   const s = String(text || '').trim();
+  const pay = /^mk_pay:(\d{1,12}):(cash|card|transfer:[a-z0-9]{4,12})$/.exec(s);
+  if (pay) return { action: 'pay', orderId: Number(pay[1]), key: pay[2] };
   const button = /^mk_(confirm|change):(\d{1,12})$/.exec(s);
   if (button) return { action: button[1], draftId: Number(button[2]) };
   if (/^(1|yes|yep|ok|okay|confirm|confirmed|han|haan|ha|ji|jee|ji haan|theek hai|thik hai|ہاں|جی|جی ہاں|ٹھیک ہے|نعم|أكد|تأكيد)[.! ]*$/i.test(s)) return { action: 'confirm', typed: true };
@@ -301,3 +304,166 @@ export async function notifyOrderStatus(pool, restaurantId, orderId, status, { f
   }
 }
 
+
+// ---- Paying on WhatsApp (besides cash): JazzCash, Easypaisa, Raast, bank, card at delivery ----
+// The money goes straight to the restaurant's own account (the methods it set up for its website).
+// The customer sends a transaction ID or a screenshot; the restaurant confirms it in the dashboard.
+
+export const PROOF_SQL = `CREATE TABLE IF NOT EXISTS whatsapp_payment_proofs (
+ order_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+ restaurant_id BIGINT UNSIGNED NOT NULL,
+ phone_number_id VARCHAR(64) NOT NULL,
+ message_id VARCHAR(255) NOT NULL,
+ media_id VARCHAR(128) NOT NULL,
+ mime_type VARCHAR(100) NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ FOREIGN KEY (restaurant_id) REFERENCES restaurants(id) ON DELETE CASCADE
+) ENGINE=InnoDB`;
+
+const P = {
+  en: { ask: 'How would you like to pay?', button: 'Choose payment', section: 'Payment', cash: 'Cash', cashDesc: (t) => t === 'delivery' ? 'Pay the rider on delivery' : 'Pay at the counter', card: 'Card at delivery/counter', cardDesc: 'Pay by card when you receive it', transferDesc: n => 'Send to ' + n,
+    later: 'Payment: cash, or online transfer — choose after you confirm',
+    cashNoted: id => `💵 Cash noted for order #${id}.`, cardNoted: id => `💳 Card payment at delivery/counter noted for order #${id}.`,
+    transfer: (id, amount, label, title, number, extra) => `Please send *${amount}* for order #${id} to:\n\n*${label}*\nAccount name: ${title}\nAccount number: ${number}${extra ? '\n' + extra : ''}\n\nAfter paying, reply here with the *transaction ID* or a *screenshot*.`,
+    thanks: id => `✅ Thank you! Your payment details for order #${id} have been sent to the restaurant. You will get a message here once they confirm it.`,
+    confirmed: id => `✅ Payment received for order #${id}. Thank you!`, rejected: id => `❌ The restaurant could not find your payment for order #${id}. Please check and send the transaction ID or screenshot again.`,
+    picture: 'Thanks for the picture. To order, please type what you would like or send a voice note.' },
+  roman: { ask: 'Payment kaise karna chahenge?', button: 'Payment chunein', section: 'Payment', cash: 'Cash', cashDesc: (t) => t === 'delivery' ? 'Delivery par rider ko dein' : 'Counter par dein', card: 'Card (delivery/counter)', cardDesc: 'Order milne par card se', transferDesc: n => n + ' par bhejein',
+    later: 'Payment: cash, ya online transfer — confirm ke baad chunein',
+    cashNoted: id => `💵 Order #${id} ke liye cash note kar liya.`, cardNoted: id => `💳 Order #${id} ke liye card payment (delivery/counter) note kar li.`,
+    transfer: (id, amount, label, title, number, extra) => `Order #${id} ke liye *${amount}* yahan bhejein:\n\n*${label}*\nAccount name: ${title}\nAccount number: ${number}${extra ? '\n' + extra : ''}\n\nPayment ke baad yahin *transaction ID* ya *screenshot* bhejein.`,
+    thanks: id => `✅ Shukriya! Order #${id} ki payment details restaurant ko bhej di gayi hain. Confirm hote hi aapko yahin message milega.`,
+    confirmed: id => `✅ Order #${id} ki payment mil gayi. Shukriya!`, rejected: id => `❌ Restaurant ko order #${id} ki payment nahi mili. Baraye meharbani check karke transaction ID ya screenshot dobara bhejein.`,
+    picture: 'Tasveer ka shukriya. Order ke liye apna order likhein ya voice note bhejein.' },
+  ur: { ask: 'آپ ادائیگی کیسے کرنا چاہیں گے؟', button: 'ادائیگی چنیں', section: 'ادائیگی', cash: 'کیش', cashDesc: (t) => t === 'delivery' ? 'ڈیلیوری پر رائیڈر کو دیں' : 'کاؤنٹر پر دیں', card: 'کارڈ (ڈیلیوری/کاؤنٹر)', cardDesc: 'آرڈر ملنے پر کارڈ سے', transferDesc: n => n + ' پر بھیجیں',
+    later: 'ادائیگی: کیش، یا آن لائن ٹرانسفر — تصدیق کے بعد چنیں',
+    cashNoted: id => `💵 آرڈر #${id} کے لیے کیش نوٹ کر لیا۔`, cardNoted: id => `💳 آرڈر #${id} کے لیے کارڈ ادائیگی نوٹ کر لی۔`,
+    transfer: (id, amount, label, title, number, extra) => `آرڈر #${id} کے لیے *${amount}* یہاں بھیجیں:\n\n*${label}*\nاکاؤنٹ نام: ${title}\nاکاؤنٹ نمبر: ${number}${extra ? '\n' + extra : ''}\n\nادائیگی کے بعد یہیں *ٹرانزیکشن آئی ڈی* یا *اسکرین شاٹ* بھیجیں۔`,
+    thanks: id => `✅ شکریہ! آرڈر #${id} کی ادائیگی کی تفصیل ریسٹورنٹ کو بھیج دی گئی ہے۔ تصدیق ہوتے ہی آپ کو یہیں پیغام ملے گا۔`,
+    confirmed: id => `✅ آرڈر #${id} کی ادائیگی موصول ہو گئی۔ شکریہ!`, rejected: id => `❌ ریسٹورنٹ کو آرڈر #${id} کی ادائیگی نہیں ملی۔ براہ کرم چیک کر کے ٹرانزیکشن آئی ڈی یا اسکرین شاٹ دوبارہ بھیجیں۔`,
+    picture: 'تصویر کا شکریہ۔ آرڈر کے لیے اپنا آرڈر لکھیں یا وائس نوٹ بھیجیں۔' },
+  ar: { ask: 'كيف تود الدفع؟', button: 'اختر الدفع', section: 'الدفع', cash: 'نقداً', cashDesc: (t) => t === 'delivery' ? 'ادفع للسائق عند التوصيل' : 'ادفع عند الكاونتر', card: 'بطاقة عند الاستلام', cardDesc: 'ادفع بالبطاقة عند الاستلام', transferDesc: n => 'أرسل إلى ' + n,
+    later: 'الدفع: نقداً أو تحويل — اختر بعد التأكيد',
+    cashNoted: id => `💵 تم تسجيل الدفع نقداً للطلب #${id}.`, cardNoted: id => `💳 تم تسجيل الدفع بالبطاقة للطلب #${id}.`,
+    transfer: (id, amount, label, title, number, extra) => `يرجى إرسال *${amount}* للطلب #${id} إلى:\n\n*${label}*\nاسم الحساب: ${title}\nرقم الحساب: ${number}${extra ? '\n' + extra : ''}\n\nبعد الدفع، أرسل هنا *رقم العملية* أو *لقطة الشاشة*.`,
+    thanks: id => `✅ شكراً! أُرسلت تفاصيل دفع الطلب #${id} إلى المطعم. ستصلك رسالة هنا عند التأكيد.`,
+    confirmed: id => `✅ تم استلام دفعة الطلب #${id}. شكراً لك!`, rejected: id => `❌ لم يجد المطعم دفعتك للطلب #${id}. يرجى التحقق وإرسال رقم العملية أو لقطة الشاشة مرة أخرى.`,
+    picture: 'شكراً على الصورة. للطلب، اكتب طلبك أو أرسل رسالة صوتية.' },
+};
+const pt = language => P[lang(language)];
+export const pictureText = language => pt(language).picture;
+export const payLaterLine = language => pt(language).later;
+
+/** True when the restaurant offers more than cash. */
+export const hasOtherPayments = settings => Boolean(settings?.card_on_delivery || settings?.transfers?.length);
+
+/** WhatsApp list message with the restaurant's own payment methods, or null when only cash. */
+export function paymentList(orderId, settings, orderType, language) {
+  if (!hasOtherPayments(settings)) return null;
+  const t = pt(language);
+  const rows = publicPaymentOptions(settings).slice(0, 10).map(o => ({
+    id: 'mk_pay:' + orderId + ':' + o.key,
+    title: (o.key === 'cash' ? '💵 ' + t.cash : o.key === 'card' ? '💳 ' + t.card : '📲 ' + o.label).slice(0, 24),
+    description: (o.key === 'cash' ? t.cashDesc(orderType) : o.key === 'card' ? t.cardDesc : t.transferDesc(o.account_number)).slice(0, 72),
+  }));
+  return { body: t.ask, action: { button: t.button.slice(0, 20), sections: [{ title: t.section.slice(0, 24), rows }] } };
+}
+export const sendList = (fetcher, env, token, phoneId, to, list) => postMessage(fetcher, env, token, phoneId, { to, type: 'interactive', interactive: { type: 'list', body: { text: String(list.body).slice(0, 1024) }, action: list.action } });
+
+/** The customer's WhatsApp order, checked to be theirs. */
+async function customerOrder(pool, job, orderId) {
+  await ensureOrderTables(pool);
+  const [rows] = await pool.execute('SELECT w.order_id,w.language,w.order_type,o.total_minor,o.status FROM whatsapp_orders w JOIN orders o ON o.id=w.order_id AND o.restaurant_id=w.restaurant_id WHERE w.order_id=? AND w.restaurant_id=? AND w.phone_number_id=? AND w.customer=? LIMIT 1',
+    [orderId, job.restaurant_id, job.phone_number_id, job.sender]);
+  return rows[0] || null;
+}
+
+/** Customer picked a payment method from the list. Returns the reply text. */
+export async function choosePayment(pool, job, orderId, key, currency) {
+  const order = await customerOrder(pool, job, orderId);
+  if (!order) return expiredText('en');
+  const t = pt(order.language);
+  await ensurePaymentTables(pool);
+  const [paid] = await pool.execute("SELECT status FROM order_payments WHERE order_id=? AND restaurant_id=? LIMIT 1", [orderId, job.restaurant_id]);
+  if (paid[0]?.status === 'confirmed') return t.confirmed(orderId);
+  const settings = await loadPaymentSettings(pool, job.restaurant_id);
+  const option = resolvePaymentOption(settings, key);
+  if (option?.error) return option.error;
+  if (option === null) { // cash: no payment record
+    await pool.execute("DELETE FROM order_payments WHERE order_id=? AND restaurant_id=? AND status IN ('awaiting','rejected')", [orderId, job.restaurant_id]);
+    return t.cashNoted(orderId);
+  }
+  await pool.execute("INSERT INTO order_payments (order_id,restaurant_id,option_key,method_type,method_label,reference,status) VALUES (?,?,?,?,?,NULL,'awaiting') ON DUPLICATE KEY UPDATE option_key=VALUES(option_key),method_type=VALUES(method_type),method_label=VALUES(method_label),reference=NULL,status='awaiting'",
+    [orderId, job.restaurant_id, option.option_key, option.method_type, option.method_label]);
+  if (option.option_key === 'card') return t.cardNoted(orderId);
+  const tr = option.transfer;
+  return t.transfer(orderId, money(order.total_minor, currency), tr.label, tr.account_title, tr.account_number, tr.instructions);
+}
+
+/** The latest WhatsApp order of this customer (24 hours) still waiting for a transfer proof. */
+export async function pendingTransfer(pool, job) {
+  try {
+    await ensureOrderTables(pool); await ensurePaymentTables(pool);
+    const [rows] = await pool.execute("SELECT w.order_id,w.language FROM whatsapp_orders w JOIN order_payments p ON p.order_id=w.order_id AND p.restaurant_id=w.restaurant_id WHERE w.restaurant_id=? AND w.phone_number_id=? AND w.customer=? AND p.option_key LIKE 'transfer:%' AND p.status IN ('awaiting','rejected') AND w.created_at>=NOW()-INTERVAL 24 HOUR ORDER BY w.order_id DESC LIMIT 1",
+      [job.restaurant_id, job.phone_number_id, job.sender]);
+    return rows[0] ? { order_id: Number(rows[0].order_id), language: lang(rows[0].language) } : null;
+  } catch { return null; }
+}
+
+/** A transaction ID in a short message ("TID 123456789", "Trx: AB12CD34", "123456789012"), or null. */
+export function extractReference(text) {
+  const s = String(text || '').trim();
+  if (s.length > 80) return null;
+  const labelled = /(?:\bt(?:rx|xn|id)\b|\btrans(?:action)?\b(?:\s*(?:id|no\.?|number))?|\bref(?:erence)?\b(?:\s*(?:id|no\.?|number))?)\s*(?:is\s+)?[:#-]?\s*([A-Za-z0-9][A-Za-z0-9._/-]{3,39})/i.exec(s);
+  const bare = /^([A-Za-z0-9][A-Za-z0-9._/-]{5,39})$/.exec(s.replace(/\s+/g, ''));
+  const ref = (labelled?.[1] || (bare && s.split(/\s+/).length <= 2 ? bare[1] : null));
+  return ref && (ref.match(/\d/g) || []).length >= 4 ? ref : null;
+}
+
+/** Saves the transaction ID (or screenshot) and moves the payment to "check payment". */
+export async function submitReference(pool, job, orderId, { reference = null, proof = null } = {}) {
+  await ensurePaymentTables(pool);
+  const ref = reference || 'Screenshot on WhatsApp';
+  const [r] = await pool.execute("UPDATE order_payments SET reference=?,status='submitted' WHERE order_id=? AND restaurant_id=? AND option_key LIKE 'transfer:%' AND status IN ('awaiting','rejected')", [ref.slice(0, 60), orderId, job.restaurant_id]);
+  if (!r.affectedRows) return false;
+  if (proof && typeof pool.query === 'function') {
+    await pool.query(PROOF_SQL);
+    await pool.execute('INSERT INTO whatsapp_payment_proofs(order_id,restaurant_id,phone_number_id,message_id,media_id,mime_type) VALUES (?,?,?,?,?,?) ON DUPLICATE KEY UPDATE message_id=VALUES(message_id),media_id=VALUES(media_id),mime_type=VALUES(mime_type),created_at=CURRENT_TIMESTAMP',
+      [orderId, job.restaurant_id, job.phone_number_id, job.inbound_message_id, proof.media_id, proof.mime_type || null]);
+  }
+  return true;
+}
+export const thanksText = (orderId, language) => pt(language).thanks(orderId);
+
+/** The image a customer sent as a payment proof (for the dashboard's "View screenshot"). */
+export async function proofMedia(pool, restaurantId, orderId) {
+  try {
+    await pool.query(PROOF_SQL);
+    const [rows] = await pool.execute('SELECT phone_number_id,media_id,mime_type FROM whatsapp_payment_proofs WHERE order_id=? AND restaurant_id=? LIMIT 1', [orderId, restaurantId]);
+    return rows[0] || null;
+  } catch { return null; }
+}
+export async function inboundImage(pool, job) {
+  await ensureOrderTables(pool);
+  const [rows] = await pool.execute('SELECT media_id,mime_type FROM whatsapp_inbound_media WHERE message_id=? LIMIT 1', [job.inbound_message_id]);
+  return rows[0] || null;
+}
+
+/** Owner confirmed or rejected a transfer: tell the WhatsApp customer (24h window). Never throws. */
+export async function notifyPaymentStatus(pool, restaurantId, orderId, status, { fetcher = fetch, env = process.env, tokenFor = null, log = console } = {}) {
+  try {
+    await ensureOrderTables(pool);
+    const [rows] = await pool.execute('SELECT phone_number_id,customer,language FROM whatsapp_orders WHERE order_id=? AND restaurant_id=? LIMIT 1', [orderId, restaurantId]);
+    if (!rows.length) return { sent: false, reason: 'not_whatsapp' };
+    const o = rows[0], t = pt(o.language);
+    const text = status === 'confirmed' ? t.confirmed(orderId) : status === 'rejected' ? t.rejected(orderId) : null;
+    if (!text) return { sent: false, reason: 'no_message' };
+    const [recent] = await pool.execute('SELECT 1 FROM whatsapp_inbound_messages WHERE restaurant_id=? AND phone_number_id=? AND sender=? AND received_at>=NOW()-INTERVAL 23 HOUR LIMIT 1', [restaurantId, o.phone_number_id, o.customer]);
+    if (!recent.length) return { sent: false, reason: 'window_closed' };
+    const token = (tokenFor ? await tokenFor(o.phone_number_id) : null) || env.WHATSAPP_ACCESS_TOKEN;
+    if (!token) return { sent: false, reason: 'no_token' };
+    const id = await sendText(fetcher, env, token, o.phone_number_id, o.customer, text);
+    await pool.execute('INSERT INTO whatsapp_outbound_messages(message_id,restaurant_id,phone_number_id,recipient,text_body) VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE message_id=message_id', [id, restaurantId, o.phone_number_id, o.customer, text]);
+    return { sent: true, id };
+  } catch (error) { log.warn?.('WhatsApp payment update failed for order #' + orderId + ': ' + String(error.message).slice(0, 120)); return { sent: false, reason: 'error' }; }
+}

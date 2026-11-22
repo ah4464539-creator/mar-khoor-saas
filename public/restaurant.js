@@ -264,6 +264,21 @@ function orderCard(order, labels, methods, payments) {
   if (order.payment_state !== 'confirmed') {
    payBox = ownerText('div', '', 'owner-payment-check');
    if (order.payment_reference) payBox.append(ownerText('span', 'Transaction ID: ' + order.payment_reference, 'small'));
+   if (order.payment_proof) {
+    const view = ownerText('button', 'View screenshot', 'btn btn-sm btn-ghost'); view.type = 'button';
+    view.addEventListener('click', async () => {
+     view.disabled = true;
+     try {
+      const r = await fetch('/api/restaurants/' + restaurantId + '/orders/' + order.id + '/payment-proof', { headers: { Authorization: 'Bearer ' + token } });
+      if (!r.ok) { const e = await r.json().catch(() => ({})); throw Error(e.error || 'Screenshot unavailable'); }
+      const url = URL.createObjectURL(await r.blob());
+      const w = window.open(url, '_blank'); if (!w) status.textContent = 'Allow pop-ups for mar-khoor.com to view the screenshot.';
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+     } catch (error) { status.textContent = error.message; }
+     finally { view.disabled = false; }
+    });
+    payBox.append(view);
+   }
    else if (order.payment_type !== 'card_on_delivery') payBox.append(ownerText('span', 'Customer has not sent a transaction ID yet', 'small muted'));
    for (const [action, text, cls] of [['confirm', order.payment_type === 'card_on_delivery' ? 'Mark paid' : 'Payment received', 'btn-primary'], ['reject', 'Not received', 'btn-ghost']]) {
     if (action === 'reject' && (order.payment_type === 'card_on_delivery' || !order.payment_reference)) continue;

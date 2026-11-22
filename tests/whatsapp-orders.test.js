@@ -151,3 +151,79 @@ test('webhook stores button ids and voice notes; status route notifies WhatsApp 
   assert.match(hook, /saveInboundMedia/);
   assert.match(readFileSync('src/operations.js', 'utf8'), /notifyOrderStatus\(pool,req\.restaurantId,id,status/);
 });
+
+import { paymentList, choosePayment, extractReference, submitReference, pendingTransfer, notifyPaymentStatus } from '../src/whatsapp-orders.js';
+
+const paySettings = { cash: true, card_on_delivery: true, transfers: [{ id: 'jc01', type: 'jazzcash', label: 'JazzCash', account_title: 'Urban Cafe', account_number: '03001234567', instructions: 'Use your order number as the note' }] };
+
+test('payment list shows only the restaurant methods; none when cash only', () => {
+  assert.equal(paymentList(77, { cash: true, card_on_delivery: false, transfers: [] }, 'pickup', 'en'), null);
+  const list = paymentList(77, paySettings, 'delivery', 'roman');
+  assert.deepEqual(list.action.sections[0].rows.map(r => r.id), ['mk_pay:77:cash', 'mk_pay:77:card', 'mk_pay:77:transfer:jc01']);
+  assert.ok(list.action.sections[0].rows.every(r => r.title.length <= 24 && r.description.length <= 72));
+  assert.ok(list.action.button.length <= 20);
+  assert.deepEqual(parseReply('mk_pay:77:transfer:jc01'), { action: 'pay', orderId: 77, key: 'transfer:jc01' });
+  assert.equal(parseReply('mk_pay:77:transfer:../x'), null);
+});
+
+function payPool({ owned = true, status = null, settings = paySettings } = {}) {
+  const writes = [];
+  return { writes, async query() { return [[]]; }, async execute(sql, p = []) {
+    if (sql.startsWith('SELECT w.order_id,w.language,w.order_type')) return [owned ? [{ order_id: 77, language: 'en', order_type: 'delivery', total_minor: 180000, status: 'pending' }] : []];
+    if (sql.startsWith('SELECT status FROM order_payments')) return [status ? [{ status }] : []];
+    if (sql.startsWith('SELECT config FROM restaurant_payment_settings')) return [[{ config: JSON.stringify(settings) }]];
+    writes.push({ sql: sql.slice(0, 40), p }); return [{ affectedRows: 1 }];
+  } };
+}
+const pjob = { restaurant_id: 4, phone_number_id: '148', sender: '923001234567', inbound_message_id: 'wamid.x' };
+
+test('choosing a transfer records it and sends the restaurant account details', async () => {
+  const pool = payPool();
+  const text = await choosePayment(pool, pjob, 77, 'transfer:jc01', 'PKR');
+  assert.match(text, /\*PKR 1,800\* for order #77/);
+  assert.match(text, /JazzCash[\s\S]*Urban Cafe[\s\S]*03001234567/);
+  assert.match(text, /transaction ID/);
+  assert.ok(pool.writes.some(w => w.sql.startsWith('INSERT INTO order_payments') && w.p[2] === 'transfer:jc01'));
+  assert.match(await choosePayment(payPool(), pjob, 77, 'cash', 'PKR'), /Cash noted/);
+  assert.match(await choosePayment(payPool({ owned: false }), pjob, 77, 'cash', 'PKR'), /expired/, 'another customer cannot touch the order');
+  assert.match(await choosePayment(payPool({ status: 'confirmed' }), pjob, 77, 'transfer:jc01', 'PKR'), /Payment received/);
+  assert.match(await choosePayment(payPool(), pjob, 77, 'transfer:nope', 'PKR'), /valid payment method/);
+});
+
+test('transaction IDs are recognised in short messages only', () => {
+  for (const [s, ref] of [['TID 123456789', '123456789'], ['Trx: AB12CD3456', 'AB12CD3456'], ['My transaction id is 98765432', '98765432'], ['0312345678901', '0312345678901']]) assert.equal(extractReference(s), ref, s);
+  for (const s of ['haan ek naan aur', '2 naan', 'ok', 'menu please']) assert.equal(extractReference(s), null, s);
+});
+
+test('owner confirm/reject is sent to the WhatsApp customer', async () => {
+  const sent = [];
+  const fetcher = async (url, init) => { sent.push(JSON.parse(init.body)); return { ok: true, json: async () => ({ messages: [{ id: 'wamid.p' }] }) }; };
+  const pool = { async query() { return [[]]; }, async execute(sql) {
+    if (sql.startsWith('SELECT phone_number_id,customer,language FROM whatsapp_orders')) return [[{ phone_number_id: '148', customer: '923001234567', language: 'roman' }]];
+    if (sql.startsWith('SELECT 1 FROM whatsapp_inbound_messages')) return [[{ 1: 1 }]];
+    return [{}];
+  } };
+  await notifyPaymentStatus(pool, 4, 77, 'confirmed', { fetcher, env: { WHATSAPP_ACCESS_TOKEN: 't' }, log: { warn() {} } });
+  await notifyPaymentStatus(pool, 4, 77, 'rejected', { fetcher, env: { WHATSAPP_ACCESS_TOKEN: 't' }, log: { warn() {} } });
+  assert.match(sent[0].text.body, /payment mil gayi/);
+  assert.match(sent[1].text.body, /payment nahi mili/);
+});
+
+test('worker: a typed transaction ID while a transfer waits is saved and the owner is alerted', () => withKeys(async () => {
+  const job = { inbound_message_id: 'wamid.in9', restaurant_id: 4, phone_number_id: '148', sender: '923001234567', message_type: 'text', text_body: 'TID 99887766', name: 'Urban Cafe', locale: 'en', currency: 'PKR' };
+  const pool = workerPool(job, sql => sql.startsWith('SELECT w.order_id,w.language FROM whatsapp_orders w JOIN order_payments') ? [[{ order_id: 77, language: 'en' }]] : undefined);
+  pool.query = async () => [[]];
+  const sent = [];
+  const fetcher = async (url, init) => { assert.ok(!url.includes('openai'), 'no AI call'); sent.push(JSON.parse(init.body)); return { ok: true, json: async () => ({ messages: [{ id: 'wamid.out' }] }) }; };
+  await processWhatsAppAIJobs(pool, { fetcher });
+  assert.match(sent[0].text.body, /payment details for order #77 have been sent/);
+  assert.ok(pool.queries.some(q => q.sql.startsWith("UPDATE order_payments SET reference=?,status='submitted'") && q.args[0] === '99887766'));
+}));
+
+test('webhook takes list replies and pictures; dashboard can show the screenshot', () => {
+  const hook = readFileSync('src/integrations.js', 'utf8');
+  assert.match(hook, /list_reply/);
+  assert.match(hook, /type==='image'\?msg\.image/);
+  assert.match(readFileSync('src/operations.js', 'utf8'), /payment-proof/);
+  assert.match(readFileSync('public/restaurant.js', 'utf8'), /View screenshot/);
+});
