@@ -147,7 +147,7 @@ test('worker: Change button marks the summary changed and asks what to change (n
 
 test('webhook stores button ids and voice notes; status route notifies WhatsApp customers', () => {
   const hook = readFileSync('src/integrations.js', 'utf8');
-  assert.match(hook, /mk_\(confirm\|change\)/);
+  assert.match(hook, /mk_\(confirm\|change\|bconfirm\|bchange\)/);
   assert.match(hook, /saveInboundMedia/);
   assert.match(readFileSync('src/operations.js', 'utf8'), /notifyOrderStatus\(pool,req\.restaurantId,id,status/);
 });

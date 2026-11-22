@@ -2,18 +2,15 @@
 import express from 'express';
 import { requireAuth } from './auth.js';
 import { rateLimit, audit } from './security.js';
-import { pushToRestaurant } from './web-push.js';
 import {
   BUSINESS_TYPES, getProfile, saveProfile, listServices, listResources, saveService, saveResource,
-  cleanService, cleanResource, availability, createBooking, listBookings, setBookingStatus, isDate,
+  cleanService, cleanResource, availability, createBooking, listBookings, setBookingStatus, isDate, notifyNewBooking,
 } from './bookings.js';
+import { notifyBookingStatus } from './booking-assistant.js';
+import { syncCallBookingTools } from './voice-bookings.js';
+import { tokenForNumber } from './whatsapp-signup-core.js';
 
 const idParam = v => { const n = Number(v); return Number.isSafeInteger(n) && n > 0 ? n : 0; };
-
-export async function notifyNewBooking(pool, restaurantId, booking, source) {
-  const when = booking.start_at.replace(' ', ' at ');
-  return pushToRestaurant(pool, restaurantId, { title: '📅 New booking #' + booking.id, body: [booking.service, when, source].filter(Boolean).join(' · '), url: '/restaurant.html#bookings', tag: 'booking-' + booking.id }).catch(() => ({ sent: 0 }));
-}
 
 export function bookingsRouter(pool) {
   const router = express.Router();
@@ -41,6 +38,7 @@ export function bookingsRouter(pool) {
   router.put(base + '/profile', async (req, res) => {
     try {
       const profile = await saveProfile(pool, req.restaurantId, req.body || {});
+      if (profile.bookings_enabled) syncCallBookingTools(pool, req.restaurantId).catch(() => {});
       await audit(pool, { actorUserId: req.user.id, restaurantId: req.restaurantId, action: 'business.profile' }).catch(() => {});
       res.json({ profile });
     } catch (e) { fail(res, e); }
@@ -54,6 +52,7 @@ export function bookingsRouter(pool) {
       if (parsed.error) return res.status(400).json({ error: parsed.error });
       const saved = await saveService(pool, req.restaurantId, id, parsed.value);
       if (!saved) return res.status(id ? 404 : 400).json({ error: id ? 'Not found' : 'Too many services' });
+      if (!id) syncCallBookingTools(pool, req.restaurantId).catch(() => {});
       res.json({ id: saved, services: await listServices(pool, req.restaurantId) });
     } catch (e) { fail(res, e); }
   }
@@ -88,8 +87,10 @@ export function bookingsRouter(pool) {
   });
   router.patch(base + '/bookings/:id', async (req, res) => {
     try {
-      const ok = await setBookingStatus(pool, req.restaurantId, idParam(req.params.id), req.body?.status);
+      const id = idParam(req.params.id), status = req.body?.status;
+      const ok = await setBookingStatus(pool, req.restaurantId, id, status);
       if (!ok) return res.status(400).json({ error: 'Could not update booking' });
+      notifyBookingStatus(pool, req.restaurantId, id, status, { tokenFor: phoneId => tokenForNumber(pool, phoneId) }).catch(() => {});
       res.json({ ok: true });
     } catch (e) { fail(res, e); }
   });
