@@ -36,7 +36,7 @@ body.mk{margin:0}
 .owner-app .restaurant-picker button:hover{background:var(--sunk)}
 
 /* Setup banner */
-.owner-app .setup-banner{display:flex;flex-wrap:wrap;align-items:center;gap:14px 18px;padding:16px 20px;border-radius:var(--r-lg);background:var(--ink);color:#fff;margin-bottom:22px}
+.owner-app .setup-banner{display:flex;flex-wrap:wrap;align-items:center;gap:14px 18px;padding:16px 20px;border-radius:var(--r-lg);background:var(--ink);color:var(--ground);margin-bottom:22px}
 .owner-app .setup-icon{width:40px;height:40px;border-radius:12px;background:var(--ember);color:var(--ember-ink);display:grid;place-items:center;flex:none}
 .owner-app .setup-text{flex:1 1 260px;display:grid;gap:2px}
 .owner-app .setup-text p{color:#D9CBBE;font-size:14px}
@@ -446,7 +446,7 @@ body.mk{margin:0}
 .owner-app #site-reviews-editor .site-list-row{grid-template-columns:1fr 2.4fr auto}
 @media(max-width:720px){.owner-app .site-list-row,.owner-app #site-reviews-editor .site-list-row{grid-template-columns:1fr}}
 .owner-app .preview-devices{display:flex;gap:6px;flex-wrap:wrap}
-.owner-app .preview-devices [aria-pressed="true"]{background:var(--ink);color:#fff}
+.owner-app .preview-devices [aria-pressed="true"]{background:var(--ink);color:var(--ground)}
 .owner-app .preview-stage{display:flex;justify-content:center;background:#ece8e3;border-radius:12px;padding:10px}
 .owner-app .preview-stage iframe{width:100%;height:72vh;min-height:520px;border:1px solid var(--line);border-radius:10px;background:var(--surface);transition:width .2s}
 .owner-app .preview-stage[data-device="mobile"] iframe{width:390px;max-width:100%}
@@ -657,7 +657,7 @@ body.owner-app:not([data-category]) [data-biz-only],body.owner-app[data-category
 .mk .bk-chip span{font-size:12px;color:var(--muted)}
 .mk .bk-chip.new{background:var(--ember-soft);border-color:var(--ember-line)}
 .mk .bk-range{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-left:auto}
-.mk .bk-range .btn.active{background:var(--ink,#16120f);color:#fff;border-color:transparent}
+.mk .bk-range .btn.active{background:var(--ink,#16120f);color:var(--ground);border-color:transparent}
 .mk .bk-date .input{height:34px;padding:4px 10px}
 .mk .bk-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;align-items:start}
 .mk .bk-day{display:grid;gap:10px;padding:12px;border-radius:18px;background:var(--surface-2,#f4efe8)}
@@ -716,7 +716,7 @@ body.owner-app:not([data-category]) [data-biz-only],body.owner-app[data-category
 .mk .bk-filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
 .mk .bk-filters .search{min-width:220px;flex:1 1 220px;max-width:360px}
 .mk .bk-view{display:flex;gap:4px}
-.mk .bk-view .btn.active{background:var(--ink,#16120f);color:#fff;border-color:transparent}
+.mk .bk-view .btn.active{background:var(--ink,#16120f);color:var(--ground);border-color:transparent}
 .mk .bk-weeknav{display:flex;align-items:center;gap:6px}
 .mk .bk-list.week{grid-template-columns:repeat(7,minmax(170px,1fr));overflow-x:auto}
 .mk .bk-day.is-today{outline:2px solid var(--ember-line)}

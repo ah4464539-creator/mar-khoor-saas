@@ -3,9 +3,9 @@
  /* Night Karakoram theme (Nov 2026): one dark palette for every Mar-Khoor page. */
  --ground:#0E1620; --surface:#16212C; --sunk:#1C2A37; --line:#2A3A4A; --line-strong:#3A4D5F;
  --surface-2:#1C2A37; --bg:#0E1620; --danger:#FF8A85;
- --ink:#EAF0F4; --ink-2:#C6D2DB; --muted:#93A3B0; --faint:#7A8A97;
+ --ink:#EEF3F6; --ink-2:#CDD8E0; --muted:#A6B4C0; --faint:#8C9BA8;
  --ember:#F08A2E; --ember-ink:#140C05; --ember-text:#FFB066; --ember-soft:#2A1E12; --ember-line:#5A3A1A;
- --night:#0A1018; --night-2:#121C27; --night-line:#22303D; --night-text:#EAF0F4; --night-muted:#93A3B0;
+ --night:#0A1018; --night-2:#121C27; --night-line:#22303D; --night-text:#EAF0F4; --night-muted:#A6B4C0;
  --ok:#7FD1B3; --ok-bg:#173A33; --info:#9DB8FF; --info-bg:#1B2747; --warn:#F5C26B; --warn-bg:#3A2A10;
  --bad:#FF8A85; --bad-bg:#3D1C1C; --teal:#7FD6D0; --teal-bg:#123534;
  --r-sm:8px; --r:12px; --r-lg:18px; --r-xl:26px;
@@ -30,7 +30,7 @@
 .mk .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 18px;border-radius:var(--r);border:1px solid transparent;font:600 14px/1 var(--font);text-decoration:none;cursor:pointer;white-space:nowrap}
 .mk .btn-primary{background:var(--ember);color:var(--ember-ink)}
 .mk .btn-primary:hover{background:#F2832F}
-.mk .btn-dark{background:var(--ink);color:#fff}
+.mk .btn-dark{background:var(--ink);color:var(--ground)}
 .mk .btn-ghost{background:var(--surface);color:var(--ink);border-color:var(--line-strong)}
 .mk .btn-ghost:hover{background:var(--sunk)}
 .mk .btn-quiet{background:transparent;color:var(--ink-2)}
@@ -151,7 +151,7 @@
 .mk .stepper{display:flex;gap:8px;flex-wrap:wrap}
 .mk .step{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;color:var(--muted)}
 .mk .step b{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line-strong);background:var(--surface);font-size:13px}
-.mk .step.done b{background:var(--ink);border-color:var(--ink);color:#fff}
+.mk .step.done b{background:var(--ink);border-color:var(--ink);color:var(--ground)}
 .mk .step.on{color:var(--ink)}
 .mk .step.on b{background:var(--ember);border-color:var(--ember);color:var(--ember-ink)}
 .mk .step-line{flex:0 0 28px;height:1px;background:var(--line-strong);align-self:center}
@@ -159,7 +159,7 @@
 /* Chat bubbles */
 .mk .bubble{max-width:78%;padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.45}
 .mk .bubble.in{background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:6px}
-.mk .bubble.out{background:var(--ink);color:#fff;margin-left:auto;border-bottom-right-radius:6px}
+.mk .bubble.out{background:var(--ink);color:var(--ground);margin-left:auto;border-bottom-right-radius:6px}
 .mk .bubble.ai{background:var(--ember-soft);color:var(--ink);margin-left:auto;border:1px solid var(--ember-line);border-bottom-right-radius:6px}
 
 /* Upload */
