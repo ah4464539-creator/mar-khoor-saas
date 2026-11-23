@@ -134,3 +134,60 @@ test('super-admin status detects missing Vapi registration even if Meta calling 
   assert.equal(status.config_checks_passed, false);
   assert.match(status.vapi.error, /Not found/);
 });
+
+
+test('rejects a second tenant using the same Meta phone number before any Vapi creation', async () => {
+  const pool = fakePool(), stub = fakeFetch();
+  await enableCalling(pool, 4, { env, fetcher: stub.fetcher, log: quiet });
+  stub.calls.length = 0;
+  await assert.rejects(enableCalling(pool, 18, { env, fetcher: stub.fetcher, log: quiet }),
+    /already mapped to another restaurant/);
+  assert.equal(stub.calls.some(c => c.method === 'POST'), false, 'no new provider resources created');
+  assert.deepEqual(Object.keys(await getCallingState(pool)), ['4'], 'original tenant mapping remains untouched');
+});
+
+test('rejects implicit destructive re-enable for an existing SIP mapping', async () => {
+  const pool = fakePool(), stub = fakeFetch();
+  await enableCalling(pool, 4, { env, fetcher: stub.fetcher, log: quiet });
+  stub.calls.length = 0;
+  await assert.rejects(enableCalling(pool, 4, { env, fetcher: stub.fetcher, log: quiet }),
+    /already has a mapping/);
+  assert.equal(stub.calls.some(c => ['POST', 'DELETE', 'PATCH'].includes(c.method)), false);
+});
+
+test('read-only status fails if another tenant owns the same Meta number', async () => {
+  const pool = fakePool(), stub = fakeFetch();
+  await enableCalling(pool, 4, { env, fetcher: stub.fetcher, log: quiet });
+  const state = await getCallingState(pool);
+  state[18] = { ...state[4], vapi_phone_number_id: 'another-sip-resource' };
+  pool.settings.set('whatsapp_calling', JSON.stringify(state));
+  const status = await callingStatus(pool, 4, { env, fetcher: stub.fetcher });
+  assert.equal(status.config_checks_passed, false);
+  assert.deepEqual(status.tenant_conflict_ids, [18]);
+  const diagnostics = await callingDiagnostics(pool, { env, fetcher: stub.fetcher });
+  assert.deepEqual(diagnostics.find(r => r.restaurantId === 4).tenant_conflict_ids, [18]);
+});
+
+test('read-only status fails when the active database assistant differs from stored SIP assistant', async () => {
+  const pool = fakePool(), stub = fakeFetch();
+  await enableCalling(pool, 4, { env, fetcher: stub.fetcher, log: quiet });
+  const originalExecute = pool.execute.bind(pool);
+  pool.execute = async (sql, params) => sql.startsWith('SELECT assistant_id')
+    ? [[{ assistant_id: 'wrong-tenant-assistant' }]]
+    : originalExecute(sql, params);
+  const status = await callingStatus(pool, 4, { env, fetcher: stub.fetcher });
+  assert.equal(status.vapi.assistant_matches, true, 'Vapi matches stale stored ID');
+  assert.equal(status.active_assistant_matches, false, 'live DB disagrees');
+  assert.equal(status.config_checks_passed, false, 'false READY is blocked');
+});
+
+test('read-only status fails when SIP number is no longer assigned to this restaurant', async () => {
+  const pool = fakePool(), stub = fakeFetch();
+  await enableCalling(pool, 4, { env, fetcher: stub.fetcher, log: quiet });
+  const originalExecute = pool.execute.bind(pool);
+  pool.execute = async (sql, params) => sql.startsWith('SELECT phone_number_id FROM whatsapp_numbers')
+    ? [[]] : originalExecute(sql, params);
+  const status = await callingStatus(pool, 4, { env, fetcher: stub.fetcher });
+  assert.equal(status.number_assignment_matches, false);
+  assert.equal(status.config_checks_passed, false);
+});
