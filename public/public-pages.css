@@ -18,9 +18,39 @@ body.mk{margin:0}
 .register-page .register-steps li b{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line-strong);background:var(--surface);font-size:13px}
 .register-page .register-steps li[aria-current=step]{color:var(--ink)}
 .register-page .register-steps li[aria-current=step] b{background:var(--ember);border-color:var(--ember);color:var(--ember-ink)}
-.register-page .chosen-plan{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;padding:12px 14px;border-radius:14px;background:var(--ember-soft);border:1px solid var(--ember-line)}
-.register-page .chosen-plan label{font-weight:700;font-size:14px}
-.register-page .chosen-plan select{min-height:40px;width:auto;padding:6px 10px;font-size:14px}
+.register-page .chosen-plan {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.register-page .chosen-plan label { font-weight: 700; font-size: 14px; }
+.register-page .chosen-plan select {
+  width: auto;
+  min-height: 44px;
+  padding-block: 8px;
+  font-size: 16px;
+}
+.register-page .chosen-plan a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  text-underline-offset: 3px;
+}
+@media (max-width: 600px) {
+  .register-page .chosen-plan {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+    padding: 12px 14px 6px;
+  }
+  .register-page .chosen-plan select { width: 100%; min-width: 0; }
+  .register-page .chosen-plan a { justify-self: start; }
+}
 .register-page #register{display:grid;gap:16px}
 .register-page #register fieldset{border:0;margin:0;padding:0;display:grid;gap:16px;min-width:0}
 .register-page .register-actions{display:flex;gap:10px}
