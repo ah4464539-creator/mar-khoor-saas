@@ -11,6 +11,8 @@
 
 import { notifyCallEnded } from './web-push.js';
 import crypto from 'node:crypto';
+import { resolveIncomingWhatsAppSip } from './whatsapp-sip-routing.js';
+import { emitWhatsAppCallLog, sipFailClosedEnabled } from './whatsapp-sip-identifiers.js';
 
 const ASSISTANT_ID = /^[a-zA-Z0-9_-]{1,128}$/;
 const CALL_ID = /^[-a-zA-Z0-9_:]{1,128}$/;
@@ -50,12 +52,31 @@ export async function processVapiEvent(pool, payload) {
   const event = parseVapiEvent(payload);
   if (event.kind === 'ignored') return { processed: false, reason: event.reason };
 
-  const [mapped] = await pool.execute(
-    'SELECT restaurant_id FROM voice_assistants WHERE assistant_id=? AND active=1 LIMIT 1',
-    [event.assistantId]
-  );
-  if (!mapped.length) return { processed: false, reason: 'assistant_not_mapped' };
-  const restaurantId = mapped[0].restaurant_id;
+  const route = sipFailClosedEnabled()
+    ? await resolveIncomingWhatsAppSip(pool, { call: payload.message?.call, assistantId: event.assistantId })
+    : { scope: 'other' };
+  if (route.scope === 'rejected') {
+    emitWhatsAppCallLog(console, { source: 'vapi', vapiCallId: event.callId,
+      vapiPhoneNumberId: route.vapiPhoneNumberId, businessNumber: route.businessNumber,
+      assistantId: event.assistantId, sipStatus: event.status,
+      sipResponse: payload.message?.call?.sip?.responseCode, decision: route.reason });
+    return { processed: false, reason: 'sip_route_rejected' }; // never infer tenant from assistant name
+  }
+  let restaurantId;
+  if (route.scope === 'validated') {
+    restaurantId = route.tenantId; // resolved against the authoritative active Meta phone mapping
+    emitWhatsAppCallLog(console, { source: 'vapi', vapiCallId: event.callId,
+      vapiPhoneNumberId: route.vapiPhoneNumberId, businessNumber: route.businessNumber,
+      tenantId: restaurantId, assistantId: event.assistantId, sipStatus: event.status,
+      sipResponse: payload.message?.call?.sip?.responseCode, decision: 'allow' });
+  } else {
+    const [mapped] = await pool.execute(
+      'SELECT restaurant_id FROM voice_assistants WHERE assistant_id=? AND active=1 LIMIT 1',
+      [event.assistantId]
+    );
+    if (!mapped.length) return { processed: false, reason: 'assistant_not_mapped' };
+    restaurantId = mapped[0].restaurant_id;
+  }
 
   if (event.kind === 'status-update') {
     await pool.execute(
