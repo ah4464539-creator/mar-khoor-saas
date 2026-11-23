@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { enableCalling, disableCalling, metaCallingSettings, vapiSipHost, getCallingState } from '../src/whatsapp-calling.js';
+import { enableCalling, disableCalling, metaCallingSettings, vapiSipHost, getCallingState, callingDiagnostics, callingStatus } from '../src/whatsapp-calling.js';
 
 function fakePool({ assistant = 'asst_1' } = {}) {
   const settings = new Map();
@@ -26,6 +26,8 @@ function fakeFetch({ failMeta = false } = {}) {
     if (url.includes('?fields=display_phone_number')) return reply(true, { display_phone_number: '+1 555-156-0265' });
     if (url.endsWith('/credential') && init.method === 'POST') return reply(true, { id: 'cred-123' });
     if (url.endsWith('/phone-number') && init.method === 'POST') return reply(true, { id: 'pn-456' });
+    if (url.endsWith('/phone-number/pn-456') && init.method === 'GET') return reply(true, { id: 'pn-456', sipUri: 'sip:+15551560265@sip.vapi.ai', assistantId: 'asst_1' });
+    if (url.endsWith('/settings?fields=calling')) return reply(true, { calling: { status: 'ENABLED', sip: { status: 'ENABLED', servers: [{ hostname: 'sip.vapi.ai' }] } } });
     if (url.endsWith('/settings')) return failMeta ? reply(false, { error: { message: 'Calling not allowed' } }) : reply(true, { success: true });
     return reply(true, {});
   };
@@ -88,13 +90,47 @@ test('Vapi refuses "+" in the SIP user: retries with digits only', async () => {
   assert.deepEqual(uris, ['sip:+15551560265@sip.vapi.ai', 'sip:15551560265@sip.vapi.ai']);
 });
 
-test('diagnostics report recent Vapi calls and gateways', async () => {
-  const pool = fakePool();
-  await enableCalling(pool, 4, { env, fetcher: fakeFetch().fetcher, log: quiet, resolve4 });
-  const fetcher = async url => ({ ok: true, status: 200, json: async () => url.includes('/call?')
-    ? [{ createdAt: 't', status: 'ended', endedReason: 'sip-gateway-failed', type: 'inboundPhoneCall' }]
-    : { gateways: [{ ip: '57.144.0.0', netmask: 16 }] } });
-  const [report] = await (await import('../src/whatsapp-calling.js')).callingDiagnostics(pool, { env, fetcher });
-  assert.deepEqual(report.gateways, ['57.144.0.0/16']);
-  assert.equal(report.calls[0].ended, 'sip-gateway-failed');
+test('diagnostics inspect the current Vapi SIP phone number, not an undefined trunk credential', async () => {
+  const pool = fakePool(), stub = fakeFetch();
+  await enableCalling(pool, 4, { env, fetcher: stub.fetcher, log: quiet });
+  stub.calls.length = 0;
+  const fetcher = async (url, init) => {
+    if (url.includes('/call?')) return { ok: true, status: 200, json: async () =>
+      [{ createdAt: 't', status: 'ended', endedReason: 'no-answer', type: 'inboundPhoneCall' }] };
+    return stub.fetcher(url, init);
+  };
+  const [report] = await callingDiagnostics(pool, { env, fetcher });
+  assert.equal(report.vapi_phone_registered, true);
+  assert.equal(report.vapi_sip_uri_matches, true);
+  assert.equal(report.vapi_assistant_matches, true);
+  assert.equal(report.calls[0].ended, 'no-answer');
+  assert.ok(stub.calls.some(c => c.url.endsWith('/phone-number/pn-456')));
+  assert.ok(stub.calls.every(c => !c.url.includes('/credential/undefined')), 'no obsolete undefined credentials lookup');
+  assert.equal('gateways' in report, false, 'new SIP-URI pilot has no trunk credential');
+});
+
+test('super-admin calling status checks both Meta and Vapi without claiming a real call succeeded', async () => {
+  const pool = fakePool(), stub = fakeFetch();
+  await enableCalling(pool, 4, { env, fetcher: stub.fetcher, log: quiet });
+  const status = await callingStatus(pool, 4, { env, fetcher: stub.fetcher });
+  assert.equal(status.on, true);
+  assert.equal(status.meta.status, 'ENABLED');
+  assert.equal(status.vapi.registered, true);
+  assert.equal(status.vapi.sip_uri_matches, true);
+  assert.equal(status.config_checks_passed, true);
+  assert.equal('call_answered' in status, false, 'configuration checks do not verify live inbound call delivery');
+});
+
+test('super-admin status detects missing Vapi registration even if Meta calling is enabled', async () => {
+  const pool = fakePool(), stub = fakeFetch();
+  await enableCalling(pool, 4, { env, fetcher: stub.fetcher, log: quiet });
+  const fetcher = async (url, init) => {
+    if (url.endsWith('/phone-number/pn-456')) return { ok: false, status: 404, json: async () => ({ message: 'Not found' }) };
+    return stub.fetcher(url, init);
+  };
+  const status = await callingStatus(pool, 4, { env, fetcher });
+  assert.equal(status.on, true);
+  assert.equal(status.vapi.registered, false);
+  assert.equal(status.config_checks_passed, false);
+  assert.match(status.vapi.error, /Not found/);
 });
