@@ -36,6 +36,19 @@ export async function getCallingState(pool) {
     return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
   } catch { return {}; }
 }
+// Refuse cross-restaurant SIP ownership, including +E.164 versus digits-only aliases.
+function conflictingRestaurants(state, restaurantId, phoneNumberId, number) {
+  const digits = value => String(value || '').replace(/\D/g, '');
+  return Object.entries(state).filter(([id, entry]) =>
+    id !== String(restaurantId) &&
+    (String(entry?.phone_number_id || '') === String(phoneNumberId || '') && Boolean(phoneNumberId) ||
+      Boolean(digits(number)) && digits(entry?.number) === digits(number))
+  ).map(([id]) => Number(id));
+}
+async function activeAssistantMatches(pool, restaurantId, assistantId) {
+  const [rows] = await pool.execute('SELECT assistant_id FROM voice_assistants WHERE restaurant_id=? AND active=1 LIMIT 2', [restaurantId]);
+  return rows.length === 1 && String(rows[0].assistant_id) === String(assistantId || '');
+}
 async function saveCallingState(pool, state) {
   await pool.query(VOICE_SETTINGS_SQL);
   await pool.query('INSERT INTO app_settings (setting_key,setting_value) VALUES (?,?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value)', [KEY, JSON.stringify(state)]);
@@ -81,6 +94,13 @@ export async function enableCalling(pool, restaurantId, { env = process.env, fet
   const info = await call(fetcher, graph + '?fields=display_phone_number', { token });
   const number = String(info.data?.display_phone_number || '').replace(/\D/g, '');
   if (!info.ok || number.length < 8) throw Object.assign(Error('Could not read the WhatsApp number: ' + errorText(info.data, 'HTTP ' + info.status)), { status: 502 });
+
+  // Safety: re-enabling must not silently replace/delete a working SIP object,
+  // and a Meta test number may never be assigned to two different restaurants.
+  const existing = await getCallingState(pool);
+  if (existing[restaurantId]) throw Object.assign(Error('WhatsApp calling already has a mapping for this restaurant; inspect it before explicit reconfiguration'), { status: 409 });
+  const conflicts = conflictingRestaurants(existing, restaurantId, phoneNumberId, number);
+  if (conflicts.length) throw Object.assign(Error('WhatsApp phone number already mapped to another restaurant; refuse cross-tenant SIP routing'), { status: 409 });
 
   const assistantId = await ensureAssistant(pool, restaurantId, { env, fetcher });
   const created = {};
@@ -135,8 +155,10 @@ export async function disableCalling(pool, restaurantId, { env = process.env, fe
  * Vapi SIP number resource exists, but SIP registration is not required by Vapi.
  */
 export async function callingStatus(pool, restaurantId, { env = process.env, fetcher = fetch } = {}) {
-  const entry = (await getCallingState(pool))[restaurantId] || null;
-  const phoneNumberId = entry?.phone_number_id || await restaurantNumber(pool, restaurantId);
+  const state = await getCallingState(pool);
+  const entry = state[restaurantId] || null;
+  const activePhoneNumberId = await restaurantNumber(pool, restaurantId);
+  const phoneNumberId = entry?.phone_number_id || activePhoneNumberId;
   if (!phoneNumberId) return { on: false, error: 'No active WhatsApp number' };
   const token = await tokenForNumber(pool, phoneNumberId, env);
   if (!token) return { on: Boolean(entry), error: 'No WhatsApp token' };
@@ -149,6 +171,9 @@ export async function callingStatus(pool, restaurantId, { env = process.env, fet
     sip_hosts: (calling.sip?.servers || []).map(s => s.hostname).filter(Boolean),
   } : null;
 
+  const tenant_conflict_ids = entry ? conflictingRestaurants(state, restaurantId, entry.phone_number_id, entry.number) : [];
+  const number_assignment_matches = entry ? String(activePhoneNumberId || '') === String(entry.phone_number_id || '') : null;
+  const active_assistant_matches = entry ? await activeAssistantMatches(pool, restaurantId, entry.assistant_id) : null;
   let vapi = null;
   if (entry) {
     if (!env.VAPI_API_KEY || !entry.vapi_phone_number_id) {
@@ -168,11 +193,12 @@ export async function callingStatus(pool, restaurantId, { env = process.env, fet
   }
   const config_checks_passed = Boolean(entry && meta?.status === 'ENABLED' && meta?.sip_status === 'ENABLED'
     && meta.sip_hosts.includes(entry.sip_host) && vapi?.configured && vapi.sip_uri_matches === true
-    && vapi.assistant_matches === true);
+    && vapi.assistant_matches === true && number_assignment_matches === true
+    && active_assistant_matches === true && tenant_conflict_ids.length === 0);
   return {
     on: Boolean(entry),
     setup: entry ? { number: '+' + entry.number, sip_host: entry.sip_host, enabled_at: entry.enabled_at } : null,
-    meta, vapi, config_checks_passed,
+    meta, vapi, config_checks_passed, tenant_conflict_ids, number_assignment_matches, active_assistant_matches,
     ...(!result?.ok ? { error: result ? errorText(result.data, 'Meta ' + result.status) : 'Meta request failed' } : {}),
   };
 }
@@ -196,8 +222,14 @@ export async function callingDiagnostics(pool, { env = process.env, fetcher = fe
       : null;
     const list = Array.isArray(calls?.data) ? calls.data : Array.isArray(calls?.data?.results) ? calls.data.results : [];
     const expectedUri = entry.sip_user && entry.sip_host ? 'sip:' + entry.sip_user + '@' + entry.sip_host : null;
+    const tenant_conflict_ids = conflictingRestaurants(state, restaurantId, entry.phone_number_id, entry.number);
+    const activePhoneNumberId = await restaurantNumber(pool, restaurantId);
+    const active_assistant_matches = await activeAssistantMatches(pool, restaurantId, entry.assistant_id);
     out.push({
       restaurantId: Number(restaurantId), sip_host: entry.sip_host,
+      tenant_conflict_ids,
+      number_assignment_matches: String(activePhoneNumberId || '') === String(entry.phone_number_id || ''),
+      active_assistant_matches,
       vapi_phone_configured: phone?.ok === true,
       vapi_sip_uri_matches: expectedUri && phone?.ok ? phone.data?.sipUri === expectedUri : null,
       vapi_assistant_matches: phone?.ok && phone.data?.assistantId && entry.assistant_id
