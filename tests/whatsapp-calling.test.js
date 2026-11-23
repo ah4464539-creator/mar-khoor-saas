@@ -100,7 +100,7 @@ test('diagnostics inspect the current Vapi SIP phone number, not an undefined tr
     return stub.fetcher(url, init);
   };
   const [report] = await callingDiagnostics(pool, { env, fetcher });
-  assert.equal(report.vapi_phone_registered, true);
+  assert.equal(report.vapi_phone_configured, true);
   assert.equal(report.vapi_sip_uri_matches, true);
   assert.equal(report.vapi_assistant_matches, true);
   assert.equal(report.calls[0].ended, 'no-answer');
@@ -115,7 +115,7 @@ test('super-admin calling status checks both Meta and Vapi without claiming a re
   const status = await callingStatus(pool, 4, { env, fetcher: stub.fetcher });
   assert.equal(status.on, true);
   assert.equal(status.meta.status, 'ENABLED');
-  assert.equal(status.vapi.registered, true);
+  assert.equal(status.vapi.configured, true);
   assert.equal(status.vapi.sip_uri_matches, true);
   assert.equal(status.config_checks_passed, true);
   assert.equal('call_answered' in status, false, 'configuration checks do not verify live inbound call delivery');
@@ -130,7 +130,7 @@ test('super-admin status detects missing Vapi registration even if Meta calling 
   };
   const status = await callingStatus(pool, 4, { env, fetcher });
   assert.equal(status.on, true);
-  assert.equal(status.vapi.registered, false);
+  assert.equal(status.vapi.configured, false);
   assert.equal(status.config_checks_passed, false);
   assert.match(status.vapi.error, /Not found/);
 });
