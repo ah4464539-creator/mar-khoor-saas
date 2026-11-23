@@ -3,6 +3,8 @@ import crypto from 'node:crypto';
 import {parseVapiEvent,processVapiEvent,verifyVapiHmac} from './vapi-events.js';
 import {saveInboundMedia} from './whatsapp-orders.js';
 import {notifyWhatsAppMessage} from './web-push.js';
+import {getCallingState} from './whatsapp-calling.js';
+import {emitWhatsAppCallLog,safeCallIdentifier,sipFailClosedEnabled} from './whatsapp-sip-identifiers.js';
 export function integrationRouter(pool){
  const router=express.Router();
  // Integration foundation only. Never treat inbound events as orders until authenticated and validated.
@@ -55,10 +57,21 @@ export function integrationRouter(pool){
   let payload;
   try{payload=JSON.parse(req.body.toString('utf8'))}catch{return res.status(400).json({error:'Invalid JSON'})}
   if(payload?.object!=='whatsapp_business_account'||!Array.isArray(payload.entry))return res.status(400).json({error:'Invalid WhatsApp event'});
-  const messages=[],statuses=[];
+  const messages=[],statuses=[],metaCallEvents=[];
   for(const entry of payload.entry){
    if(!Array.isArray(entry?.changes))continue;
    for(const change of entry.changes){
+    // Meta call ID can be logged from signed calling webhooks; SIP media bypasses this server.
+    if(change?.field==='calls'){
+     const phoneId=change.value?.metadata?.phone_number_id;
+     if(typeof phoneId==='string'&&/^[0-9]{5,64}$/.test(phoneId)&&Array.isArray(change.value?.calls)){
+      for(const evt of change.value.calls.slice(0,25)){
+       if(!safeCallIdentifier(evt?.id))continue;
+       metaCallEvents.push({phoneId,metaCallId:evt.id,status:evt.event,sipResponse:evt.sip?.responseCode});
+      }
+     }
+     continue;
+    }
     if(change?.field!=='messages')continue;
     const phoneId=change.value?.metadata?.phone_number_id;
     if(Array.isArray(change.value?.statuses)){
@@ -84,6 +97,23 @@ export function integrationRouter(pool){
      messages.push({phoneId,id:msg.id,from:msg.from,type,body,mediaId,mime});
     }
    }
+  }
+  if(sipFailClosedEnabled()&&metaCallEvents.length&&pool){
+   try{
+    const state=await getCallingState(pool);
+    for(const evt of metaCallEvents){
+     const [owners]=await pool.execute('SELECT restaurant_id FROM whatsapp_numbers WHERE phone_number_id=? AND active=1 LIMIT 2',[evt.phoneId]);
+     const tenant=owners.length===1?Number(owners[0].restaurant_id):null;
+     const entry=tenant?state[tenant]:null;
+     const matched=Boolean(entry&&String(entry.phone_number_id)===evt.phoneId&&
+      Object.values(state).filter(e=>e?.phone_number_id===evt.phoneId).length===1);
+     emitWhatsAppCallLog(console,{source:'meta',metaCallId:evt.metaCallId,
+      businessNumber:matched?entry.number:null,tenantId:matched?tenant:null,
+      vapiPhoneNumberId:matched?entry.vapi_phone_number_id:null,
+      assistantId:matched?entry.assistant_id:null,sipStatus:evt.status,
+      sipResponse:evt.sipResponse,decision:matched?'mapped':'unmapped'});
+    }
+   }catch{console.warn('WhatsApp calling trace: mapping lookup unavailable');}
   }
   console.log(`WhatsApp webhook: ${messages.length} message(s), ${statuses.length} status(es)`);
   if(!messages.length&&!statuses.length)return res.status(202).json({received:true,processed:0});

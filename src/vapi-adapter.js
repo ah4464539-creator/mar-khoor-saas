@@ -2,6 +2,8 @@ import express from 'express';
 import crypto from 'node:crypto';
 import {createVoiceOrderHandler} from './voice-tools.js';
 import {VOICE_BOOKING_TOOLS,runVoiceBookingTool} from './voice-bookings.js';
+import { resolveIncomingWhatsAppSip } from './whatsapp-sip-routing.js';
+import { emitWhatsAppCallLog, sipFailClosedEnabled } from './whatsapp-sip-identifiers.js';
 
 // Adapter for Vapi-style tool-calls payloads. Configure a private server URL
 // and verify the provider's current security options before production.
@@ -19,6 +21,22 @@ export function vapiToolAdapterRouter(pool){
   const assistantId=message?.assistant?.id||message?.assistantId||message?.call?.assistantId||message?.call?.assistant?.id;
   if(!Array.isArray(calls)||calls.length<1||calls.length>10||typeof assistantId!=='string'||!/^[a-zA-Z0-9_-]{1,128}$/.test(assistantId))return res.status(400).json({error:'Invalid tool call envelope'});
   if(new Set(calls.map(c=>c?.id)).size!==calls.length)return res.status(400).json({error:'Duplicate tool call ID'});
+  let route={scope:'other'};
+  try { if (sipFailClosedEnabled()) route=await resolveIncomingWhatsAppSip(pool,{call:message?.call,assistantId}); }
+  catch { return res.status(503).json({error:'Calling route unavailable'}); }
+  if(route.scope==='rejected'){
+    emitWhatsAppCallLog(console,{source:'vapi-tools',vapiCallId:message?.call?.id,
+      vapiPhoneNumberId:route.vapiPhoneNumberId,businessNumber:route.businessNumber,
+      assistantId,sipStatus:message?.call?.status,sipResponse:message?.call?.sip?.responseCode,
+      decision:route.reason});
+    return res.status(403).json({error:'WhatsApp SIP routing mismatch'});
+  }
+  if(route.scope==='validated'){
+    emitWhatsAppCallLog(console,{source:'vapi-tools',vapiCallId:message?.call?.id,
+      vapiPhoneNumberId:route.vapiPhoneNumberId,businessNumber:route.businessNumber,
+      tenantId:route.tenantId,assistantId,sipStatus:message?.call?.status,
+      sipResponse:message?.call?.sip?.responseCode,decision:'allow'});
+  }
   const results=[];
   for(const call of calls){
    const id=call?.id;
