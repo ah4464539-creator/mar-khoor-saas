@@ -494,11 +494,16 @@ async function loadWhatsAppNumbers() {
     if (n.calling_on) platformApi('/api/platform/restaurants/' + n.restaurant_id + '/whatsapp-calling').then(s => {
       const metaReady = s.meta?.status === 'ENABLED' && s.meta?.sip_status === 'ENABLED';
       const vapiReady = s.vapi?.configured === true && s.vapi?.sip_uri_matches === true && s.vapi?.assistant_matches === true;
+      const routingWarnings = [];
+      if (s.tenant_conflict_ids?.length) routingWarnings.push('SHARED WHATSAPP NUMBER across restaurants ' + s.tenant_conflict_ids.join(', '));
+      if (s.active_assistant_matches === false) routingWarnings.push('active restaurant AI assistant mismatch');
+      if (s.number_assignment_matches === false) routingWarnings.push('WhatsApp number not assigned to this restaurant');
       callInfo.textContent = 'WhatsApp calls: Meta ' + (metaReady ? 'ON' : 'check needed') +
         ' · Vapi SIP ' + (vapiReady ? 'matched' : 'check needed') +
         ' · Config ' + (s.config_checks_passed === true ? 'READY (real call not verified)' : 'NOT VERIFIED') +
         (s.error ? ' · Meta: ' + s.error : '') +
-        (s.vapi?.error ? ' · Vapi: ' + s.vapi.error : '');
+        (s.vapi?.error ? ' · Vapi: ' + s.vapi.error : '') +
+        (routingWarnings.length ? ' · ROUTING WARNING: ' + routingWarnings.join('; ') : '');
     }).catch(() => {});
     main.append(callInfo);
     actions.append(tag, pilot, calls);
