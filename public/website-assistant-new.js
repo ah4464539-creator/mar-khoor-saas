@@ -24,7 +24,7 @@
       '<p class="mk-support-notice" id="mk-support-notice" role="status" hidden></p>',
       '<form class="mk-support-form" id="mk-support-form">',
         '<label class="mk-support-sr" for="mk-support-input">Message</label>',
-        '<textarea id="mk-support-input" rows="1" maxlength="1200" placeholder="Ask a question…" required></textarea>',
+        '<textarea id="mk-support-input" rows="1" enterkeyhint="send" maxlength="1200" placeholder="Ask a question…" required></textarea>',
         '<button type="submit" class="mk-support-send" aria-label="Send message" title="Send message">➤</button>',
       '</form>',
       '<div class="mk-support-footer">AI can make mistakes. No passwords or payment details. <a href="/contact.html">Contact us</a> · <a href="mailto:admin@mar-khoor.com">Email support</a></div>',
@@ -42,6 +42,8 @@
   const notice = root.querySelector('.mk-support-notice');
   const state = root.querySelector('#mk-support-state');
   const dot = root.querySelector('.mk-support-dot');
+  const mobileLayout = window.matchMedia('(max-width: 600px), (pointer: coarse) and (max-height: 500px)');
+  const viewport = window.visualViewport;
   const history = [];
   let enabled = false;
   let busy = false;
@@ -59,13 +61,27 @@
     if (!enabled) showNotice('AI chat is temporarily unavailable. Please email admin@mar-khoor.com for assistance.');
     else showNotice('');
   }
+  function fitVisibleViewport() {
+    if (panel.hidden || !mobileLayout.matches || !viewport) return;
+    const followLatest = log.scrollHeight - log.scrollTop - log.clientHeight < 4;
+    panel.style.setProperty('--mk-support-viewport-top', viewport.offsetTop + 'px');
+    panel.style.setProperty('--mk-support-viewport-left', viewport.offsetLeft + 'px');
+    panel.style.setProperty('--mk-support-viewport-width', viewport.width + 'px');
+    panel.style.setProperty('--mk-support-viewport-height', viewport.height + 'px');
+    if (followLatest) log.scrollTop = log.scrollHeight;
+  }
+  viewport?.addEventListener('resize', fitVisibleViewport);
+  viewport?.addEventListener('scroll', fitVisibleViewport);
+  mobileLayout.addEventListener('change', fitVisibleViewport);
+
   function toggle(open) {
     panel.hidden = !open;
     launch.setAttribute('aria-expanded', String(open));
     if (open) {
-      if (enabled) input.focus();
-      else closer.focus();
-    } else launch.focus();
+      fitVisibleViewport();
+      if (enabled && !mobileLayout.matches) input.focus();
+      else closer.focus({ preventScroll: true });
+    } else launch.focus({ preventScroll: true });
   }
   launch.addEventListener('click', () => toggle(panel.hidden));
   closer.addEventListener('click', () => toggle(false));
@@ -91,7 +107,7 @@
     if (!message || !enabled || busy || message.length > 1200) return;
     busy = true;
     input.value = '';
-    input.disabled = true;
+    if (!mobileLayout.matches) input.disabled = true;
     submit.disabled = true;
     showNotice('');
     addMessage(message, 'user');
@@ -119,9 +135,12 @@
       input.disabled = !enabled;
       submit.disabled = !enabled;
       log.scrollTop = log.scrollHeight;
-      if (!panel.hidden && enabled) input.focus();
+      if (!panel.hidden && enabled && !mobileLayout.matches) input.focus();
     }
   }
+  submit.addEventListener('mousedown', event => {
+    if (mobileLayout.matches && document.activeElement === input) event.preventDefault();
+  });
   form.addEventListener('submit', event => {
     event.preventDefault();
     void sendMessage(input.value);
