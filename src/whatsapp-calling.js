@@ -10,6 +10,7 @@
 import { VOICE_SETTINGS_SQL, femaleVoice } from './vapi-voice.js';
 import { tokenForNumber } from './whatsapp-signup-core.js';
 import { cloneAssistant } from './providers/vapi-assistants.js';
+import { normalizeBusinessPhone, parseBusinessSipUri } from './whatsapp-sip-identifiers.js';
 
 
 const KEY = 'whatsapp_calling';
@@ -38,7 +39,7 @@ export async function getCallingState(pool) {
 }
 // Refuse cross-restaurant SIP ownership, including +E.164 versus digits-only aliases.
 function conflictingRestaurants(state, restaurantId, phoneNumberId, number) {
-  const digits = value => String(value || '').replace(/\D/g, '');
+  const digits = value => normalizeBusinessPhone(value) || '';
   return Object.entries(state).filter(([id, entry]) =>
     id !== String(restaurantId) &&
     (String(entry?.phone_number_id || '') === String(phoneNumberId || '') && Boolean(phoneNumberId) ||
@@ -62,7 +63,8 @@ export function metaCallingSettings(sipHost) {
 export const vapiSipHost = credentialId => credentialId + '.sip.vapi.ai';
 
 async function restaurantNumber(pool, restaurantId) {
-  const [rows] = await pool.execute('SELECT phone_number_id FROM whatsapp_numbers WHERE restaurant_id=? AND active=1 ORDER BY phone_number_id LIMIT 1', [restaurantId]);
+  const [rows] = await pool.execute('SELECT phone_number_id FROM whatsapp_numbers WHERE restaurant_id=? AND active=1 ORDER BY phone_number_id LIMIT 2', [restaurantId]);
+  if (rows.length > 1) throw Object.assign(Error('Multiple active WhatsApp numbers: select and verify an explicit phone number'), { status: 409 });
   return rows[0]?.phone_number_id ? String(rows[0].phone_number_id) : null;
 }
 
@@ -92,8 +94,8 @@ export async function enableCalling(pool, restaurantId, { env = process.env, fet
   if (!token) throw Object.assign(Error('No WhatsApp token for this number'), { status: 503 });
   const graph = 'https://graph.facebook.com/' + graphVersion(env) + '/' + phoneNumberId;
   const info = await call(fetcher, graph + '?fields=display_phone_number', { token });
-  const number = String(info.data?.display_phone_number || '').replace(/\D/g, '');
-  if (!info.ok || number.length < 8) throw Object.assign(Error('Could not read the WhatsApp number: ' + errorText(info.data, 'HTTP ' + info.status)), { status: 502 });
+  const number = normalizeBusinessPhone(info.data?.display_phone_number);
+  if (!info.ok || !number) throw Object.assign(Error('Could not read the WhatsApp number: ' + errorText(info.data, 'HTTP ' + info.status)), { status: 502 });
 
   // Safety: re-enabling must not silently replace/delete a working SIP object,
   // and a Meta test number may never be assigned to two different restaurants.
@@ -181,10 +183,11 @@ export async function callingStatus(pool, restaurantId, { env = process.env, fet
     } else {
       const phone = await call(fetcher, VAPI + '/phone-number/' + encodeURIComponent(entry.vapi_phone_number_id), { token: env.VAPI_API_KEY })
         .catch(() => null);
-      const expected = entry.sip_user && entry.sip_host ? 'sip:' + entry.sip_user + '@' + entry.sip_host : null;
+      const expected = entry.sip_user && entry.sip_host ? parseBusinessSipUri('sip:' + entry.sip_user + '@' + entry.sip_host) : null;
+      const actual = parseBusinessSipUri(phone?.data?.sipUri);
       vapi = {
         configured: phone?.ok === true,
-        sip_uri_matches: phone?.ok && expected ? phone.data?.sipUri === expected : null,
+        sip_uri_matches: phone?.ok && expected && actual ? expected.digits === actual.digits && expected.host === actual.host : null,
         assistant_matches: phone?.ok && phone.data?.assistantId && entry.assistant_id
           ? phone.data.assistantId === entry.assistant_id : null,
         ...(!phone?.ok ? { error: phone ? errorText(phone.data, 'Vapi HTTP ' + phone.status) : 'Vapi request failed' } : {}),
@@ -221,7 +224,8 @@ export async function callingDiagnostics(pool, { env = process.env, fetcher = fe
       ? await call(fetcher, VAPI + '/credential/' + encodeURIComponent(entry.vapi_credential_id), { token: env.VAPI_API_KEY }).catch(() => null)
       : null;
     const list = Array.isArray(calls?.data) ? calls.data : Array.isArray(calls?.data?.results) ? calls.data.results : [];
-    const expectedUri = entry.sip_user && entry.sip_host ? 'sip:' + entry.sip_user + '@' + entry.sip_host : null;
+    const expectedUri = entry.sip_user && entry.sip_host ? parseBusinessSipUri('sip:' + entry.sip_user + '@' + entry.sip_host) : null;
+    const actualUri = parseBusinessSipUri(phone?.data?.sipUri);
     const tenant_conflict_ids = conflictingRestaurants(state, restaurantId, entry.phone_number_id, entry.number);
     const activePhoneNumberId = await restaurantNumber(pool, restaurantId);
     const active_assistant_matches = await activeAssistantMatches(pool, restaurantId, entry.assistant_id);
@@ -231,7 +235,7 @@ export async function callingDiagnostics(pool, { env = process.env, fetcher = fe
       number_assignment_matches: String(activePhoneNumberId || '') === String(entry.phone_number_id || ''),
       active_assistant_matches,
       vapi_phone_configured: phone?.ok === true,
-      vapi_sip_uri_matches: expectedUri && phone?.ok ? phone.data?.sipUri === expectedUri : null,
+      vapi_sip_uri_matches: expectedUri && phone?.ok && actualUri ? expectedUri.digits === actualUri.digits && expectedUri.host === actualUri.host : null,
       vapi_assistant_matches: phone?.ok && phone.data?.assistantId && entry.assistant_id
         ? phone.data.assistantId === entry.assistant_id : null,
       ...(credential ? { gateways: (credential.data?.gateways || []).map(g => g.ip + (g.netmask ? '/' + g.netmask : '')) } : {}),
