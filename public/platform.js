@@ -492,7 +492,13 @@ async function loadWhatsAppNumbers() {
       catch (error) { callInfo.textContent = error.message; calls.disabled = false; }
     });
     if (n.calling_on) platformApi('/api/platform/restaurants/' + n.restaurant_id + '/whatsapp-calling').then(s => {
-      callInfo.textContent = 'WhatsApp calls: Meta ' + (s.meta?.status || '?') + ' · SIP ' + (s.meta?.sip_status || '?') + ' · ' + (s.meta?.srtp || '') + (s.error ? ' · ' + s.error : '');
+      const metaReady = s.meta?.status === 'ENABLED' && s.meta?.sip_status === 'ENABLED';
+      const vapiReady = s.vapi?.configured === true && s.vapi?.sip_uri_matches === true && s.vapi?.assistant_matches === true;
+      callInfo.textContent = 'WhatsApp calls: Meta ' + (metaReady ? 'ON' : 'check needed') +
+        ' · Vapi SIP ' + (vapiReady ? 'matched' : 'check needed') +
+        ' · Config ' + (s.config_checks_passed === true ? 'READY (real call not verified)' : 'NOT VERIFIED') +
+        (s.error ? ' · Meta: ' + s.error : '') +
+        (s.vapi?.error ? ' · Vapi: ' + s.vapi.error : '');
     }).catch(() => {});
     main.append(callInfo);
     actions.append(tag, pilot, calls);
