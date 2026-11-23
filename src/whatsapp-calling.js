@@ -130,37 +130,82 @@ export async function disableCalling(pool, restaurantId, { env = process.env, fe
   return { restaurant_id: restaurantId, on: false };
 }
 
-/** Meta's current calling settings for the restaurant's number (no SIP password requested). */
+/** Meta's current calling settings and Vapi SIP-registration check for the restaurant's number.
+ * A matching configuration is NOT proof that an actual call reached or was answered by the AI.
+ */
 export async function callingStatus(pool, restaurantId, { env = process.env, fetcher = fetch } = {}) {
   const entry = (await getCallingState(pool))[restaurantId] || null;
   const phoneNumberId = entry?.phone_number_id || await restaurantNumber(pool, restaurantId);
   if (!phoneNumberId) return { on: false, error: 'No active WhatsApp number' };
   const token = await tokenForNumber(pool, phoneNumberId, env);
   if (!token) return { on: Boolean(entry), error: 'No WhatsApp token' };
-  const result = await call(fetcher, 'https://graph.facebook.com/' + graphVersion(env) + '/' + phoneNumberId + '/settings?fields=calling', { token });
-  const calling = result.data?.calling || null;
-  return { on: Boolean(entry), setup: entry ? { number: '+' + entry.number, sip_host: entry.sip_host, enabled_at: entry.enabled_at } : null,
-    meta: calling ? { status: calling.status || null, srtp: calling.srtp_key_exchange_protocol || null, sip_status: calling.sip?.status || null,
-      sip_hosts: (calling.sip?.servers || []).map(s => s.hostname).filter(Boolean) } : null,
-    ...(result.ok ? {} : { error: errorText(result.data, 'Meta ' + result.status) }) };
+  const result = await call(fetcher, 'https://graph.facebook.com/' + graphVersion(env) + '/' + phoneNumberId + '/settings?fields=calling', { token })
+    .catch(() => null);
+  const calling = result?.data?.calling || null;
+  const meta = calling ? {
+    status: calling.status || null, srtp: calling.srtp_key_exchange_protocol || null,
+    sip_status: calling.sip?.status || null,
+    sip_hosts: (calling.sip?.servers || []).map(s => s.hostname).filter(Boolean),
+  } : null;
+
+  let vapi = null;
+  if (entry) {
+    if (!env.VAPI_API_KEY || !entry.vapi_phone_number_id) {
+      vapi = { registered: false, error: env.VAPI_API_KEY ? 'Missing Vapi SIP number ID' : 'Vapi API not configured' };
+    } else {
+      const phone = await call(fetcher, VAPI + '/phone-number/' + encodeURIComponent(entry.vapi_phone_number_id), { token: env.VAPI_API_KEY })
+        .catch(() => null);
+      const expected = entry.sip_user && entry.sip_host ? 'sip:' + entry.sip_user + '@' + entry.sip_host : null;
+      vapi = {
+        registered: phone?.ok === true,
+        sip_uri_matches: phone?.ok && expected ? phone.data?.sipUri === expected : null,
+        assistant_matches: phone?.ok && phone.data?.assistantId && entry.assistant_id
+          ? phone.data.assistantId === entry.assistant_id : null,
+        ...(!phone?.ok ? { error: phone ? errorText(phone.data, 'Vapi HTTP ' + phone.status) : 'Vapi request failed' } : {}),
+      };
+    }
+  }
+  const config_checks_passed = Boolean(entry && meta?.status === 'ENABLED' && meta?.sip_status === 'ENABLED'
+    && meta.sip_hosts.includes(entry.sip_host) && vapi?.registered && vapi.sip_uri_matches === true
+    && vapi.assistant_matches !== false);
+  return {
+    on: Boolean(entry),
+    setup: entry ? { number: '+' + entry.number, sip_host: entry.sip_host, enabled_at: entry.enabled_at } : null,
+    meta, vapi, config_checks_passed,
+    ...(!result?.ok ? { error: result ? errorText(result.data, 'Meta ' + result.status) : 'Meta request failed' } : {}),
+  };
 }
 
 /**
- * Read-only check for the pilot: what Vapi saw for each WhatsApp-calling number (recent calls and
- * how they ended) and the trunk's gateways. Logged so failed calls can be diagnosed from runtime logs.
+ * Read-only pilot check: validate Vapi's actual SIP phone-number object and recent calls.
+ * Newer pilots use provider=vapi SIP URIs, NOT a BYO trunk credential; never request /credential/undefined.
+ * Does not make test calls or modify Meta/Vapi/tenant state. Do not log customer phone numbers or transcripts.
  */
 export async function callingDiagnostics(pool, { env = process.env, fetcher = fetch } = {}) {
   if (!env.VAPI_API_KEY) return [];
   const state = await getCallingState(pool);
   const out = [];
   for (const [restaurantId, entry] of Object.entries(state)) {
-    const calls = await call(fetcher, VAPI + '/call?limit=5&phoneNumberId=' + encodeURIComponent(entry.vapi_phone_number_id), { token: env.VAPI_API_KEY }).catch(() => null);
-    const credential = await call(fetcher, VAPI + '/credential/' + encodeURIComponent(entry.vapi_credential_id), { token: env.VAPI_API_KEY }).catch(() => null);
+    const phoneId = entry.vapi_phone_number_id;
+    const calls = phoneId ? await call(fetcher, VAPI + '/call?limit=5&phoneNumberId=' + encodeURIComponent(phoneId), { token: env.VAPI_API_KEY }).catch(() => null) : null;
+    const phone = phoneId ? await call(fetcher, VAPI + '/phone-number/' + encodeURIComponent(phoneId), { token: env.VAPI_API_KEY }).catch(() => null) : null;
+    // Historical BYO trunk pilots may still have a credential. Check it only when an ID is recorded.
+    const credential = entry.vapi_credential_id
+      ? await call(fetcher, VAPI + '/credential/' + encodeURIComponent(entry.vapi_credential_id), { token: env.VAPI_API_KEY }).catch(() => null)
+      : null;
     const list = Array.isArray(calls?.data) ? calls.data : Array.isArray(calls?.data?.results) ? calls.data.results : [];
-    out.push({ restaurantId: Number(restaurantId), sip_host: entry.sip_host,
-      gateways: (credential?.data?.gateways || []).map(g => g.ip + (g.netmask ? '/' + g.netmask : '')),
+    const expectedUri = entry.sip_user && entry.sip_host ? 'sip:' + entry.sip_user + '@' + entry.sip_host : null;
+    out.push({
+      restaurantId: Number(restaurantId), sip_host: entry.sip_host,
+      vapi_phone_registered: phone?.ok === true,
+      vapi_sip_uri_matches: expectedUri && phone?.ok ? phone.data?.sipUri === expectedUri : null,
+      vapi_assistant_matches: phone?.ok && phone.data?.assistantId && entry.assistant_id
+        ? phone.data.assistantId === entry.assistant_id : null,
+      ...(credential ? { gateways: (credential.data?.gateways || []).map(g => g.ip + (g.netmask ? '/' + g.netmask : '')) } : {}),
       calls: list.slice(0, 5).map(c => ({ at: c.createdAt, status: c.status, ended: c.endedReason, type: c.type })),
-      ...(calls && !calls.ok ? { calls_error: errorText(calls.data, 'HTTP ' + calls.status) } : {}) });
+      ...(phone && !phone.ok ? { vapi_phone_error: errorText(phone.data, 'HTTP ' + phone.status) } : {}),
+      ...(calls && !calls.ok ? { calls_error: errorText(calls.data, 'HTTP ' + calls.status) } : {}),
+    });
   }
   return out;
 }
