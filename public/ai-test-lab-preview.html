@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mar-Khoor AI Test Lab — Safe Preview</title>
+<style>
+:root{font-family:system-ui,sans-serif;color:#f0f1ff;background:#0b1020}*{box-sizing:border-box}body{margin:0}header{padding:24px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #323b57}main{max-width:1100px;margin:auto;padding:26px}h1{font-size:30px}p,small{color:#b6bfd5}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:15px}.card{background:#151c33;border:1px solid #303c5c;border-radius:16px;padding:20px}button{background:#263656;border:1px solid #546489;border-radius:9px;padding:12px;color:white;cursor:pointer}button:focus-visible{outline:3px solid #70d5ff}button.active{background:#245d66;border-color:#6af1ce}.pill{border-radius:20px;padding:6px 12px;background:#3b2e25;color:#ffce85}select{background:#101a2d;color:white;padding:12px;border:1px solid #64748b;border-radius:8px;width:100%}.row{display:flex;gap:10px;flex-wrap:wrap}.note{border-left:3px solid #f4bc65;padding-left:12px}#log{white-space:pre-wrap;max-height:220px;overflow:auto}footer{padding:25px;color:#aab5d0}
+</style>
+<header><strong>MAR-KHOOR · AI TEST LAB</strong><span class="pill">PREVIEW ONLY · NO LIVE CONNECTION</span></header>
+<main><h1>Four businesses. One safe test workspace.</h1><p>Prototype for Super Admin review. Nothing on this page changes call forwarding, sends WhatsApp, creates orders or touches databases.</p>
+<div class="grid" id="businesses"></div>
+<section class="card" style="margin-top:18px"><h2 id="selected">Restaurant</h2><p id="details"></p><div class="row"><button id="text">Simulate text test</button><button id="voice">Simulate voice readiness</button><button id="workflow">Show workflow checks</button></div></section>
+<div class="grid" style="margin-top:18px">
+<section class="card"><h2>Call routing safety</h2><p>Vodafone Greece personal number: not supplied</p><p>Inbound destination: not configured</p><p>Forwarding: not enabled by this app</p><p class="note">Only one business may be routed at a time after backend verification. Manual carrier disable and rollback required.</p></section>
+<section class="card"><h2>Recording & consent</h2><p>Default: OFF. Recording may only start after explicit caller consent and a verified provider control.</p><label><input type="checkbox" id="consent"> Preview caller consent received (simulation only)</label><p id="consentStatus">Recording remains OFF</p></section>
+</div>
+<section class="card" style="margin-top:18px"><h2>Preview activity log</h2><pre id="log" aria-live="polite">No tests simulated yet.</pre></section>
+</main><footer>Requires server-side Super Admin authentication, isolated staging DB, tenant-scoped permissions, real endpoint tests, and approved routing before deployment. No secrets stored here.</footer>
+<script>
+const businesses=[
+{name:'Restaurant',icon:'🍽️',description:'Menu, cart, authorized confirmed orders, COD, isolation',checks:['Tenant-specific menu','Order confirmation and authorization','Payment/COD selection','No cross-tenant records']},
+{name:'Clinic',icon:'🩺',description:'Doctors, availability, patient booking flow',checks:['Doctor availability','Appointment consent','Patient privacy','No cross-clinic records']},
+{name:'Hotel',icon:'🏨',description:'Rooms, dates, availability, booking flow',checks:['Room inventory','Dates and guests','Booking confirmation','No cross-hotel records']},
+{name:'Salon',icon:'✂️',description:'Services, staff, slots, appointment flow',checks:['Service catalog','Staff schedule','Slot booking','No cross-salon records']}
+];
+let current=0;const log=document.getElementById('log');
+function write(s){log.textContent=new Date().toLocaleTimeString()+' — '+s+'\n'+(log.textContent==='No tests simulated yet.'?'':log.textContent)}
+function render(){document.getElementById('businesses').innerHTML=businesses.map((b,i)=>'<button class="'+(i===current?'active':'')+'" data-index="'+i+'"><strong>'+b.icon+' '+b.name+'</strong><p>'+b.description+'</p></button>').join('');document.querySelectorAll('[data-index]').forEach(b=>b.onclick=()=>{current=Number(b.dataset.index);render();write('Preview selection: '+businesses[current].name+' (no routing change)')});document.getElementById('selected').textContent=businesses[current].name;document.getElementById('details').textContent=businesses[current].description}
+document.getElementById('text').onclick=()=>write('Simulated text checklist for '+businesses[current].name+'; no AI API request sent');
+document.getElementById('voice').onclick=()=>write('Voice readiness NOT VERIFIED for '+businesses[current].name+'; no call initiated');
+document.getElementById('workflow').onclick=()=>write(businesses[current].name+' checklist: '+businesses[current].checks.join('; ')+' — pending real tests');
+document.getElementById('consent').onchange=e=>{document.getElementById('consentStatus').textContent=e.target.checked?'Consent checkbox checked in preview; recording remains OFF':'Recording remains OFF';write('Consent preview changed; no recording activated')};render();
+</script></html>
