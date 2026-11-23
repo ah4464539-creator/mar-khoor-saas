@@ -132,6 +132,7 @@ export async function disableCalling(pool, restaurantId, { env = process.env, fe
 
 /** Meta's current calling settings and Vapi SIP-registration check for the restaurant's number.
  * A matching configuration is NOT proof that an actual call reached or was answered by the AI.
+ * Vapi SIP number resource exists, but SIP registration is not required by Vapi.
  */
 export async function callingStatus(pool, restaurantId, { env = process.env, fetcher = fetch } = {}) {
   const entry = (await getCallingState(pool))[restaurantId] || null;
@@ -151,13 +152,13 @@ export async function callingStatus(pool, restaurantId, { env = process.env, fet
   let vapi = null;
   if (entry) {
     if (!env.VAPI_API_KEY || !entry.vapi_phone_number_id) {
-      vapi = { registered: false, error: env.VAPI_API_KEY ? 'Missing Vapi SIP number ID' : 'Vapi API not configured' };
+      vapi = { configured: false, error: env.VAPI_API_KEY ? 'Missing Vapi SIP number ID' : 'Vapi API not configured' };
     } else {
       const phone = await call(fetcher, VAPI + '/phone-number/' + encodeURIComponent(entry.vapi_phone_number_id), { token: env.VAPI_API_KEY })
         .catch(() => null);
       const expected = entry.sip_user && entry.sip_host ? 'sip:' + entry.sip_user + '@' + entry.sip_host : null;
       vapi = {
-        registered: phone?.ok === true,
+        configured: phone?.ok === true,
         sip_uri_matches: phone?.ok && expected ? phone.data?.sipUri === expected : null,
         assistant_matches: phone?.ok && phone.data?.assistantId && entry.assistant_id
           ? phone.data.assistantId === entry.assistant_id : null,
@@ -166,8 +167,8 @@ export async function callingStatus(pool, restaurantId, { env = process.env, fet
     }
   }
   const config_checks_passed = Boolean(entry && meta?.status === 'ENABLED' && meta?.sip_status === 'ENABLED'
-    && meta.sip_hosts.includes(entry.sip_host) && vapi?.registered && vapi.sip_uri_matches === true
-    && vapi.assistant_matches !== false);
+    && meta.sip_hosts.includes(entry.sip_host) && vapi?.configured && vapi.sip_uri_matches === true
+    && vapi.assistant_matches === true);
   return {
     on: Boolean(entry),
     setup: entry ? { number: '+' + entry.number, sip_host: entry.sip_host, enabled_at: entry.enabled_at } : null,
@@ -197,7 +198,7 @@ export async function callingDiagnostics(pool, { env = process.env, fetcher = fe
     const expectedUri = entry.sip_user && entry.sip_host ? 'sip:' + entry.sip_user + '@' + entry.sip_host : null;
     out.push({
       restaurantId: Number(restaurantId), sip_host: entry.sip_host,
-      vapi_phone_registered: phone?.ok === true,
+      vapi_phone_configured: phone?.ok === true,
       vapi_sip_uri_matches: expectedUri && phone?.ok ? phone.data?.sipUri === expectedUri : null,
       vapi_assistant_matches: phone?.ok && phone.data?.assistantId && entry.assistant_id
         ? phone.data.assistantId === entry.assistant_id : null,
