@@ -100,7 +100,12 @@ export function customDomainRouting(pool, { env = process.env, ttlMs = 60000 } =
   }
   return async function customDomain(req, res, next) {
     if (req.method !== 'GET' && req.method !== 'HEAD') return next();
-    const host = String(req.hostname || '').toLowerCase().replace(/^www\./, '');
+    const hostname = String(req.hostname || '').toLowerCase();
+    if (hostname === 'www.mar-khoor.com' || hostname === 'www.mar-khoor.com.') {
+      const path = req.originalUrl.startsWith('/') ? req.originalUrl : '/';
+      return res.redirect(308, 'https://mar-khoor.com' + path);
+    }
+    const host = hostname.replace(/^www\./, '');
     if (!host || isPlatformHost(host, hosts) || isPlatformHost('www.' + host, hosts)) return next();
     if (req.path !== '/' && req.path !== '/index.html') return next();
     const slug = await slugFor(host);
