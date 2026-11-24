@@ -163,7 +163,7 @@
  .lp .topbar .acts .b-line{display:none}
  .lp .hero{padding-top:36px}
  .lp .foot{padding-bottom:110px}
- .lp .mbar{display:flex;gap:10px;position:fixed;left:0;right:0;bottom:0;z-index:50;padding:12px 18px calc(12px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--glacier)}
+ .lp .mbar{display:flex;gap:10px;position:fixed;left:0;right:0;bottom:0;z-index:50;padding:12px 18px calc(12px + env(safe-area-inset-bottom));background:var(--snow);border-top:1px solid var(--glacier)}
  .lp .mbar .b{flex:1}
  .lp .switch button{flex:1 1 40%}
 }
@@ -195,7 +195,7 @@
 .lp .b-go{color:#140C05}.lp .b-go:hover{background:#FF9F4A}
 .lp .b-line{background:transparent;color:var(--slate)}.lp .b-line:hover{border-color:var(--slate-2)}
 .lp .desk{background:#16212C;border:1px solid #2A3A4A}.lp .lane{background:#1C2A37}.lp .from{background:#24384A}
-.lp .reply{background:#EAF0F4;color:#0E1620}
+.lp .reply{background:var(--surface);color:var(--ink)}
 .lp .done{background:#173A33;color:#BFEBD9;border-color:#2F6B5B}.lp .done b{color:#E6FFF5}.lp .done small{color:#7FD1B3}
 .lp .switch button[aria-pressed="true"]{background:#2A3A4A;color:#fff;box-shadow:none}
 .lp .col q{background:#1A2633}
