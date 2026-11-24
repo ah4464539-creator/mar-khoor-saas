@@ -179,7 +179,7 @@ body.site-template-care{background:#f4fbfb;color:#12343b;font-family:system-ui,-
 .site-template-care .site-header{background:#fff;border-color:#d5eaea}.site-template-care .wordmark{color:#0f6f70}.site-template-care .site-nav a{color:#24545c}
 .site-template-care .hero{background:radial-gradient(ellipse at 85% 20%,#c6ecea 0,transparent 55%),#eaf7f7;border-color:#d5eaea}
 .site-template-care .hero p,.site-template-care .info-card p,.site-template-care .dish p{color:#4d6c72}
-.site-template-care .btn{background:#0f8a8a;color:#fff;border-radius:12px}.site-template-care .btn:hover{background:#0c7575}
+.site-template-care .btn{background:#0b7070;color:#fff;border-radius:12px}.site-template-care .btn:hover{background:#0c7575}
 .site-template-care .dish,.site-template-care .info-card,.site-template-care .feature{background:#fff;border:1px solid #d5eaea;border-radius:18px;box-shadow:0 8px 24px #0f8a8a12}
 .site-template-care .dish-footer strong,.site-template-care .feature strong,.site-template-care .section-heading em{color:#0f6f70}
 body.site-template-resort{background:#f7f2ea;color:#1b2a3f;font-family:Georgia,'Times New Roman',serif}
@@ -193,7 +193,7 @@ body.site-template-blush{background:#fbf5fa;color:#3e2238;font-family:system-ui,
 .site-template-blush .site-header{background:#fff;border-color:#efd9e8}.site-template-blush .wordmark{color:#8f3766;letter-spacing:.06em}.site-template-blush .site-nav a{color:#5c3a54}
 .site-template-blush .hero{background:radial-gradient(ellipse at 80% 25%,#f3c9df 0,transparent 55%),#f8e9f3;border-color:#efd9e8}
 .site-template-blush .hero p,.site-template-blush .info-card p,.site-template-blush .dish p{color:#7a5a72}
-.site-template-blush .btn{background:linear-gradient(130deg,#c9609a,#9e3f74);color:#fff;border-radius:999px}
+.site-template-blush .btn{background:linear-gradient(130deg,#9d3f73,#80305d);color:#fff;border-radius:999px}
 .site-template-blush .dish,.site-template-blush .info-card,.site-template-blush .feature{background:#fff;border:1px solid #efd9e8;border-radius:24px;box-shadow:0 10px 30px #b0487f14}
 .site-template-blush .dish-footer strong,.site-template-blush .section-heading em{color:#9e3f74}
 body.site-template-street{background:#111;color:#fff;font-family:Impact,'Arial Black',system-ui,sans-serif}
@@ -203,7 +203,7 @@ body.site-template-street{background:#111;color:#fff;font-family:Impact,'Arial B
 .site-template-street .btn{background:#ffd400;color:#111;border-radius:999px;text-transform:uppercase;font-family:system-ui,sans-serif;font-weight:900}
 .site-template-street .feature{background:#1b1b1b;border:3px solid #ffd400;border-radius:24px}.site-template-street .feature span,.site-template-street .feature strong,.site-template-street .dish-footer strong{color:#ffd400}
 .site-template-street .dish,.site-template-street .info-card{background:#1b1b1b;border:2px solid #333;border-radius:18px}.site-template-street .section-heading em{color:#ffd400}
-.site-template-street .category-nav a{color:#ffd400;border-color:#ffd400}.site-template-street a{color:#ffd400}.site-template-street .site-banner{background:#e63027;color:#fff}
+.site-template-street .category-nav a{color:#ffd400;border-color:#ffd400}.site-template-street a{color:#ffd400}.site-template-street .site-banner{background:#b62520;color:#fff}
 body.site-template-cafe{background:#f6efe6;color:#3b2a20}
 .site-template-cafe .site-header{background:#efe3d3;border-color:#e0cfba}.site-template-cafe .wordmark{color:#6b4430}.site-template-cafe .site-nav a{color:#5a3d2c}
 .site-template-cafe .hero{background:radial-gradient(ellipse at 80% 30%,#e8d2b8 0,transparent 60%),#f6efe6;border-color:#e6d6c2}
@@ -221,20 +221,20 @@ body.site-template-desi{background:#2a090d;color:#fbefd9;font-family:Georgia,'Ti
 .site-template-desi .dish,.site-template-desi .info-card{background:#3a0d12;border:1px solid #d4a64066;border-radius:12px}.site-template-desi .section-heading em{color:#e8c063}
 .site-template-desi .category-nav a{color:#e8c063;border-color:#d4a64088}.site-template-desi a{color:#e8c063}
 body.site-template-bakery{background:#fff5f7;color:#4a2a33}
-.site-template-bakery .site-header{background:#ffe4ec;border-color:#f7c6d4}.site-template-bakery .wordmark{color:#c23a63}.site-template-bakery .site-nav a{color:#6b3a48}
+.site-template-bakery .site-header{background:#ffe4ec;border-color:#f7c6d4}.site-template-bakery .wordmark{color:#a12c55}.site-template-bakery .site-nav a{color:#6b3a48}
 .site-template-bakery .hero{background:radial-gradient(ellipse at 80% 30%,#ffd1df 0,transparent 60%),#fff5f7;border-color:#f7d2dd}
-.site-template-bakery .hero p,.site-template-bakery .info-card p,.site-template-bakery .dish p{color:#7a5260}.site-template-bakery .hero-kicker{color:#e0567f}
-.site-template-bakery .btn{background:#e0567f;color:#fff;border-radius:999px}.site-template-bakery .feature{background:#fff;border:2px dashed #f2a7bd;border-radius:36px}
-.site-template-bakery .feature span,.site-template-bakery .feature strong,.site-template-bakery .dish-footer strong{color:#d0436d}
-.site-template-bakery .dish,.site-template-bakery .info-card{background:#fff;border:1px solid #f6d0dc;border-radius:30px;box-shadow:0 10px 24px #e0567f12}.site-template-bakery .section-heading em{color:#e0567f}
+.site-template-bakery .hero p,.site-template-bakery .info-card p,.site-template-bakery .dish p{color:#7a5260}.site-template-bakery .hero-kicker{color:#a12c55}
+.site-template-bakery .btn{background:#a12c55;color:#fff;border-radius:999px}.site-template-bakery .feature{background:#fff;border:2px dashed #f2a7bd;border-radius:36px}
+.site-template-bakery .feature span,.site-template-bakery .feature strong,.site-template-bakery .dish-footer strong{color:#a12c55}
+.site-template-bakery .dish,.site-template-bakery .info-card{background:#fff;border:1px solid #f6d0dc;border-radius:30px;box-shadow:0 10px 24px #e0567f12}.site-template-bakery .section-heading em{color:#a12c55}
 .site-template-bakery .category-nav a{color:#c23a63;border-color:#f2a7bd}.site-template-bakery a{color:#c23a63}
 body.site-template-fresh{background:#f3faf5;color:#12301f}
-.site-template-fresh .site-header{background:#fff;border-color:#d5eadc}.site-template-fresh .wordmark{color:#1f8a4c}.site-template-fresh .site-nav a{color:#24573a}
+.site-template-fresh .site-header{background:#fff;border-color:#d5eadc}.site-template-fresh .wordmark{color:#196c3c}.site-template-fresh .site-nav a{color:#24573a}
 .site-template-fresh .hero{background:radial-gradient(ellipse at 85% 25%,#c9efd6 0,transparent 55%),#f3faf5;border-color:#d5eadc}
-.site-template-fresh .hero p,.site-template-fresh .info-card p,.site-template-fresh .dish p{color:#4b6b58}.site-template-fresh .hero-kicker{color:#1f8a4c}
-.site-template-fresh .btn{background:#1f8a4c;color:#fff;border-radius:12px}.site-template-fresh .feature{background:#fff;border:1px solid #cfe6d7;border-radius:24px;box-shadow:0 18px 40px #1f8a4c14}
-.site-template-fresh .feature span,.site-template-fresh .feature strong,.site-template-fresh .dish-footer strong{color:#1f8a4c}
-.site-template-fresh .dish,.site-template-fresh .info-card{background:#fff;border:1px solid #d9ece0;border-radius:20px}.site-template-fresh .section-heading em{color:#1f8a4c}
+.site-template-fresh .hero p,.site-template-fresh .info-card p,.site-template-fresh .dish p{color:#4b6b58}.site-template-fresh .hero-kicker{color:#196c3c}
+.site-template-fresh .btn{background:#196c3c;color:#fff;border-radius:12px}.site-template-fresh .feature{background:#fff;border:1px solid #cfe6d7;border-radius:24px;box-shadow:0 18px 40px #1f8a4c14}
+.site-template-fresh .feature span,.site-template-fresh .feature strong,.site-template-fresh .dish-footer strong{color:#196c3c}
+.site-template-fresh .dish,.site-template-fresh .info-card{background:#fff;border:1px solid #d9ece0;border-radius:20px}.site-template-fresh .section-heading em{color:#196c3c}
 .site-template-fresh .category-nav a{color:#1f6b3d;border-color:#b6dcc3}.site-template-fresh a{color:#1f7a44}
 body.site-template-noir{background:#0c0c0c;color:#f4f4f4;font-family:Georgia,'Times New Roman',serif}
 .site-template-noir .site-header{background:#0c0c0c;border-color:#ffffff22}.site-template-noir .wordmark{color:#fff;letter-spacing:.2em}.site-template-noir .site-nav a{color:#ddd;letter-spacing:.06em}
