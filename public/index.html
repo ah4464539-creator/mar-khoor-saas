@@ -115,13 +115,26 @@
    </div>
   </div>
   <div class="demo-stage" aria-label="Demo conversation"></div>
- </div></div></section>
+ </div>
+  <details class="faq-item">
+   <summary>Try a sample booking</summary>
+   <p>This interactive demo uses sample availability and keeps the booking on this page.</p>
+   <form id="booking-demo">
+    <label for="demo-time">Table for two at Lahore Grill</label>
+    <select id="demo-time" class="input" required>
+     <option value="">Choose a time</option><option>6:30 pm</option><option>7:15 pm</option><option>8:00 pm</option>
+    </select>
+    <button type="submit" class="b b-go b-sm">Confirm demo booking</button>
+   </form>
+   <div class="notice notice-ok" id="demo-booking-result" role="status" aria-live="polite"></div>
+  </details>
+ </div></section>
 
  <section id="how-it-works" class="sec"><div class="wrap">
-  <h2>Live the same afternoon</h2>
+  <h2>Set up your AI front desk</h2>
   <ol class="steps">
    <li><h3>Register</h3><p>Choose your business type and create your account. It takes about five minutes.</p></li>
-   <li><h3>Add what you offer</h3><p>Menu, services or rooms with prices. Then connect your WhatsApp number and phone line.</p></li>
+   <li><h3>Add what you offer</h3><p>Menu, services or rooms with prices. Connect WhatsApp and your phone line when your accounts and numbers are ready.</p></li>
    <li><h3>Let it answer</h3><p>Customers order and book on their own. You confirm, serve and see payments in one desk.</p></li>
   </ol>
  </div></section>
@@ -129,6 +142,11 @@
  <section id="plans" class="sec price"><div class="wrap">
   <h2>Pay for how busy you are</h2>
   <p class="intro">Every plan includes your website, WhatsApp AI and the AI Caller. Plans differ only in how much they can handle each month.</p>
+  <div class="pnote">
+   <label for="pricing-country">Pricing country</label>
+   <select id="pricing-country" class="input" disabled><option value="">Default currency</option></select>
+   <span id="pricing-status" role="status">Monthly prices before taxes.</span>
+  </div>
   <div class="ptable-wrap"><table class="ptable">
    <thead><tr>
     <th scope="col"><span class="visually-hidden">Included each month</span></th>
@@ -137,6 +155,7 @@
     <th scope="col"><span class="pname">Enterprise</span><span class="pfor">Chains and several branches</span></th>
    </tr></thead>
    <tbody>
+    <tr><th scope="row">Monthly price</th><td data-monthly-price="starter">—</td><td class="pick" data-monthly-price="premium">—</td><td data-monthly-price="enterprise">—</td></tr>
     <tr><th scope="row">AI chats</th><td>1,500</td><td class="pick">5,000</td><td>15,000</td></tr>
     <tr><th scope="row">WhatsApp messages</th><td>1,000</td><td class="pick">3,000</td><td>8,000</td></tr>
     <tr><th scope="row">AI call minutes</th><td>100</td><td class="pick">400</td><td>1,200</td></tr>
@@ -147,7 +166,7 @@
      <td><a class="b b-line b-sm plan-link" href="/register.html?plan=enterprise" data-plan="enterprise">Choose Enterprise</a></td></tr>
    </tbody>
   </table></div>
-  <p class="pnote">Prices depend on your country. <a href="/build-plan.html">See prices in your currency</a></p>
+  <p class="pnote"><a id="compare-pricing" href="/build-plan.html">Compare monthly and yearly plans</a> · <a href="/contact.html#send-message">Billing and refunds support</a></p>
 
   <h3 class="tools-title" id="single-tools">Or start with one tool</h3>
   <div class="tools">
@@ -186,7 +205,7 @@
 </div></footer>
 
 
-<script src="/landing.js?v=20261122-3" defer></script>
+<script src="/landing.js?v=20261125-launch1" defer></script>
 <script>
 // Plan buttons: new visitors go straight to registration with the plan; signed-in owners go to
 // their dashboard, where setup opens on the same plan.

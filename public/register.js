@@ -36,7 +36,9 @@ function rememberPlan() {
     if (plan) localStorage.setItem(PLAN_STORE, JSON.stringify({ plan, cycle: cycleSelect.value, at: Date.now() }));
     else localStorage.removeItem(PLAN_STORE);
   } catch {}
-  const query = plan ? '?' + new URLSearchParams({ plan, cycle: cycleSelect.value }) : '';
+  const planQuery = new URLSearchParams(plan ? { plan, cycle: cycleSelect.value } : {});
+  if (country.value) planQuery.set('country', country.value);
+  const query = planQuery.size ? '?' + planQuery : '';
   if (signinLink) signinLink.href = '/restaurant.html' + query;
   if (compareLink) compareLink.href = '/build-plan.html' + query;
   const doneLink = document.querySelector('#done a.button');
@@ -44,8 +46,9 @@ function rememberPlan() {
 }
 planSelect.addEventListener('change', rememberPlan);
 cycleSelect.addEventListener('change', rememberPlan);
-rememberPlan();
+country.addEventListener('change', rememberPlan);
 if (/^[A-Z]{2}$/.test(chosen.get('country') || '') && [...country.options].some(option => option.value === chosen.get('country'))) country.value = chosen.get('country');
+rememberPlan();
 
 form.addEventListener('submit', async event => {
   event.preventDefault();
@@ -90,7 +93,7 @@ form.addEventListener('submit', async event => {
         return;
       }
     } catch {}
-    document.querySelector('#done-text').textContent = 'Sign in with the email and password you just chose to finish setup. Your restaurant name for customers is "' + data.slug + '".';
+    document.querySelector('#done-text').textContent = 'Sign in with the email and password you just chose to finish setup. Your business address for customers is "' + data.slug + '".';
   } catch (error) {
     status.textContent = error.message;
   } finally {
@@ -133,15 +136,19 @@ previous.addEventListener('click', () => changeStage(stage - 1));
 // Business type: pre-select from ?type= and adapt the name example.
 (() => {
   const NAMES = { restaurant: 'e.g. Cheema Cafe', clinic: 'e.g. City Care Clinic', hotel: 'e.g. Hunza View Guest House', salon: 'e.g. Glow Salon' };
+  const HEADINGS = {
+    restaurant: 'Take orders and table bookings with AI.',
+    clinic: 'Manage clinic appointments with AI.',
+    salon: 'Take salon bookings with AI.',
+    hotel: 'Manage hotel reservations with AI.',
+  };
   const want = new URLSearchParams(location.search).get('type');
   const radio = want && document.querySelector('input[name="business_type"][value="' + want.replace(/[^a-z]/g, '') + '"]');
   if (radio) radio.checked = true;
   const sync = () => {
-    const v = document.querySelector('input[name="business_type"]:checked')?.value || 'restaurant';
+    const v = document.querySelector('input[name="business_type"]:checked')?.value;
     const input = document.querySelector('#restaurant-name'); if (input) input.placeholder = NAMES[v] || NAMES.restaurant;
-    const label = { restaurant: 'restaurant', clinic: 'clinic', hotel: 'hotel', salon: 'salon' }[v] || 'business';
-    const create = document.querySelector('#create-restaurant'); if (create) create.textContent = 'Create ' + label;
-    const title = document.querySelector('.auth-copy h1'); if (title) title.textContent = v === 'restaurant' ? 'Your AI ordering desk, ready in minutes.' : 'Your AI booking desk, ready in minutes.';
+    document.querySelector('.auth-copy h1').textContent = HEADINGS[v] || 'Set up your AI front desk.';
     const hint = document.querySelector('#biz-type-hint');
     if (hint && document.querySelector('input[name="business_type"]:checked')) { hint.classList.remove('hint-error'); hint.textContent = 'WhatsApp, AI calls and your dashboard will be set up for this type.'; }
   };
