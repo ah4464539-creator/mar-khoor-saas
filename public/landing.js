@@ -56,3 +56,71 @@
   }));
   play('restaurant');
 })();
+
+(() => {
+  const country = document.getElementById('pricing-country');
+  if (!country) return;
+
+  const status = document.getElementById('pricing-status');
+  const comparison = document.getElementById('compare-pricing');
+  const planLinks = [...document.querySelectorAll('a[data-plan]')];
+  const prices = [...document.querySelectorAll('[data-monthly-price]')];
+  const names = new Intl.DisplayNames(['en'], { type: 'region', fallback: 'none' });
+  const regions = [];
+  for (const first of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') {
+    for (const last of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') {
+      const code = first + last;
+      const name = names.of(code);
+      if (name && !['EU', 'EZ', 'QO', 'UN', 'ZZ', 'XA', 'XB'].includes(code)) regions.push({ code, name });
+    }
+  }
+  regions.sort((a, b) => a.name.localeCompare(b.name));
+  for (const { code, name } of regions) country.add(new Option(name, code));
+  const region = new Intl.Locale(navigator.language || 'en').region;
+  if (regions.some(({ code }) => code === region)) country.value = region;
+  country.disabled = false;
+
+  let pending;
+  async function loadPrices() {
+    pending?.abort();
+    pending = new AbortController();
+    const { signal } = pending;
+    for (const link of [comparison, ...planLinks]) {
+      const target = new URL(link.href);
+      if (country.value) target.searchParams.set('country', country.value);
+      else target.searchParams.delete('country');
+      link.href = target.pathname + target.search;
+    }
+    const query = country.value ? '?' + new URLSearchParams({ country: country.value }) : '';
+    status.textContent = 'Loading monthly prices…';
+    for (const cell of prices) cell.textContent = '—';
+    try {
+      const response = await fetch('/api/public/plans' + query, { signal });
+      if (!response.ok) throw Error('Pricing unavailable');
+      const { plans } = await response.json();
+      if (signal.aborted) return;
+      for (const cell of prices) {
+        const plan = plans.find(entry => entry.key === cell.dataset.monthlyPrice);
+        const amount = plan?.price_minor?.monthly;
+        cell.textContent = Number.isInteger(amount)
+          ? new Intl.NumberFormat(undefined, { style: 'currency', currency: plan.currency }).format(amount / 100)
+          : 'Price on request';
+      }
+      status.textContent = 'Monthly prices before taxes.';
+    } catch {
+      if (signal.aborted) return;
+      for (const cell of prices) cell.textContent = '—';
+      status.textContent = 'Prices could not be loaded. Open the plan comparison to try again.';
+    }
+  }
+
+  country.addEventListener('change', loadPrices);
+  loadPrices();
+})();
+
+document.getElementById('booking-demo')?.addEventListener('submit', event => {
+  event.preventDefault();
+  const time = document.getElementById('demo-time').value;
+  document.getElementById('demo-booking-result').textContent =
+    'Front desk received: demo table booking for 2 at ' + time + ' at Lahore Grill.';
+});
