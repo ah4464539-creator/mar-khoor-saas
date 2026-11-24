@@ -40,6 +40,16 @@ test('a verified custom domain shows that restaurant site at "/" only; platform 
   assert.equal(await run('unknown.example'), '/');
 });
 
+test('platform www redirects page reads and preserves path and query', async () => {
+  const route = customDomainRouting({}, { env: {} });
+  const request = { method: 'GET', hostname: 'www.mar-khoor.com', originalUrl: '/register.html?plan=starter' };
+  const response = { redirect: (status, url) => [status, url] };
+  assert.deepEqual(await route(request, response, () => assert.fail('Expected a redirect')), [
+    308, 'https://mar-khoor.com/register.html?plan=starter',
+  ]);
+  assert.equal(await route({ ...request, method: 'POST' }, response, () => 'continued'), 'continued');
+});
+
 test('integration health reports names of missing settings only, and payments as off by design', () => {
   const env = { OPENAI_API_KEY: 'sk-secret-value', META_APP_SECRET: 'x', WHATSAPP_VERIFY_TOKEN: 'y', WHATSAPP_ACCESS_TOKEN: 'z', VAPI_API_KEY: 'v' };
   const channels = summarize(configStatus(env), { inbound: { last_at: new Date(), week: 5 }, outbound: { delivered_week: 4, failed_week: 0 }, jobs: { pending: 0 }, calls: { last_at: null, week: 0 }, orders: { last_at: new Date(), today: 2 }, cash: { week: 3 } });
