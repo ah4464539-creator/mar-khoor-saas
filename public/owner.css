@@ -204,7 +204,7 @@ body.mk{margin:0}
 .owner-app .site-words .card-head{margin-bottom:0}
 .owner-app .describe-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start}
 .owner-app .describe-row textarea{flex:1 1 300px;min-height:72px}
-.owner-app .site-actions{position:sticky;bottom:0;z-index:2;display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:14px 16px;background:#fffffff2;border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:0 -6px 24px #1c171414;backdrop-filter:blur(6px)}
+.owner-app .site-actions{position:sticky;bottom:0;z-index:2;display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:0 -6px 24px #1c171414;backdrop-filter:blur(6px)}
 .owner-app .site-actions #site-status{flex:1 1 220px}
 .owner-app .site-preview-wrap{margin-top:16px;padding:14px}
 .owner-app .site-preview-wrap .card-head{margin-bottom:12px}
@@ -334,7 +334,7 @@ body.mk{margin:0}
 .owner-app .domain-progress li{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--faint)}
 .owner-app .domain-progress li::before{content:"";width:22px;height:22px;border-radius:50%;border:2px solid var(--line-strong);flex:none;box-sizing:border-box}
 .owner-app .domain-progress li[data-state=done]{color:var(--ink)}
-.owner-app .domain-progress li[data-state=done]::before{content:"✓";display:grid;place-items:center;color:#fff;background:var(--ok);border-color:var(--ok);font-size:12px}
+.owner-app .domain-progress li[data-state=done]::before{content:"✓";display:grid;place-items:center;color:var(--ground);background:var(--ok);border-color:var(--ok);font-size:12px}
 .owner-app .domain-progress li[data-state=current]{color:var(--ink);font-weight:600}
 .owner-app .domain-progress li[data-state=current]::before{border-color:var(--ember);background:var(--ember-soft);box-shadow:0 0 0 4px var(--ember-soft)}
 .owner-app .domain-buy{border-top:1px solid var(--line);padding-top:12px}
@@ -361,7 +361,7 @@ body.mk{margin:0}
 .mk .billing-card .notice{margin-bottom:12px}
 .mk .billing-step{border:0;padding:0;margin:0 0 18px}
 .mk .billing-step legend{display:flex;align-items:center;gap:8px;font-weight:700;margin-bottom:10px;padding:0}
-.mk .step-no{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--ember,#e8701a);color:#fff;font-size:13px}
+.mk .step-no{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--ember);color:var(--ember-ink);font-size:13px}
 .mk .billing-cycle{display:flex;gap:18px;flex-wrap:wrap}
 .mk .billing-plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
 .mk .billing-plan{position:relative;display:grid;gap:6px;padding:14px 14px 14px 40px;border:1px solid var(--line,#e6e0d8);border-radius:14px;cursor:pointer;background:var(--surface,#fff)}
@@ -565,7 +565,7 @@ body.mk{margin:0}
 .owner-app .oc-bot{display:flex;align-items:center;gap:6px;min-width:0}
 .owner-app .oc-total{font:800 15px var(--display);flex:none}
 .owner-app .oc-pay{font-size:11px;padding:3px 7px;max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.owner-app .oc-pay.needs-check{background:var(--ember-soft);color:#8a3b06;font-weight:800}
+.owner-app .oc-pay.needs-check{background:var(--ember-soft);color:var(--ember-text);font-weight:800}
 .owner-app .oc-flag{font-size:13px}
 .owner-app .oc-space{flex:1}
 .owner-app .oc-bot .oc-main{min-height:32px;padding:0 12px;flex:none}
@@ -702,7 +702,7 @@ body.owner-app:not([data-category]) [data-biz-only],body.owner-app[data-category
 .mk .bk-form h2{margin:0}
 .mk .bk-slots{display:flex;flex-wrap:wrap;gap:6px;max-height:180px;overflow:auto}
 .mk .bk-slot{padding:6px 10px;border-radius:10px;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-variant-numeric:tabular-nums}
-.mk .bk-slot.on{background:#E86A17;border-color:#E86A17;color:#fff}
+.mk .bk-slot.on{background:var(--ember);border-color:var(--ember);color:var(--ember-ink)}
 .mk .bk-checks{display:flex;flex-wrap:wrap;gap:10px}
 @media(max-width:640px){.mk .bk-hour-row{grid-template-columns:1fr 1fr}.mk .bk-hour-row .muted{display:none}.mk .bk-range{margin-left:0}}
 /* Clinics, salons, hotels: type line and dashboard bookings box */
@@ -721,7 +721,7 @@ body.owner-app:not([data-category]) [data-biz-only],body.owner-app[data-category
 .mk .bk-list.week{grid-template-columns:repeat(7,minmax(170px,1fr));overflow-x:auto}
 .mk .bk-day.is-today{outline:2px solid var(--ember-line)}
 .mk .bk-history{margin:4px 0 0;padding-left:16px}
-.mk .bk-danger{color:#b42318;margin-right:auto}
+.mk .bk-danger{color:var(--bad);margin-right:auto}
 .mk .cu-card{margin:0 0 14px;border-radius:18px;border:1px solid var(--line);background:var(--surface)}
 .mk .cu-table-wrap{overflow-x:auto}
 .mk .cu-table{width:100%;border-collapse:collapse;font-size:14px}
@@ -743,7 +743,7 @@ body.owner-app:not([data-category="hotel"]) [data-hotel-only]{display:none!impor
 .mk .bk-pay-form{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .mk .bk-pay-form .input{height:34px;padding:4px 8px;width:auto;min-width:0;flex:1 1 90px}
 .mk .bk-pay-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px}
-.mk .tag-warn{background:var(--ember-soft);color:#9a5b00}
+.mk .tag-warn{background:var(--warn-bg);color:var(--warn)}
 .mk .wa-handover{margin:0 0 14px;border-radius:18px;border:1px solid var(--ember-line);background:var(--ember-soft)}
 .mk .wa-handover h2{margin:0 0 4px;font-size:16px}
 .mk .wa-handover-list{display:grid;gap:8px;margin-top:10px}
@@ -770,7 +770,7 @@ body.owner-app[data-role="staff"] #bk-new{display:inline-flex}
 .mk .av-grid th.is-today{color:#E86A17}
 .mk .av-grid td.free{background:var(--ok-bg)}
 .mk .av-grid td.booked{background:#dfe8f7;color:#1d3e72;font-weight:600;cursor:pointer}
-.mk .av-grid td.booked.status-pending{background:var(--ember-soft);color:#8a3d0a}
+.mk .av-grid td.booked.status-pending{background:var(--ember-soft);color:var(--ember-text)}
 .mk .av-grid td.booked.status-checked_in{background:#cfe3fb}
 .mk .av-grid td.booked.status-completed{background:#e5e1dc;color:#6b6058}
 .mk .av-grid td.ooo{background:repeating-linear-gradient(45deg,var(--bad-bg),var(--bad-bg) 6px,var(--surface) 6px,var(--surface) 12px)}
