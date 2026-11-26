@@ -1,10 +1,10 @@
 import { categoriesFor } from './bookings.js';
 import { trackSiteEvent } from './site-analytics.js';
+import { onlinePaymentsAvailable } from './payments/service.js';
 import { getPilotIds, setPilot, workerSwitch, setWorkerSwitch } from './whatsapp-pilot.js';
 import { enableCalling, disableCalling, callingStatus, getCallingState } from './whatsapp-calling.js';
 import { getSignupConfig, saveSignupConfig } from './whatsapp-signup-core.js';
 import express from 'express';
-import { onlinePaymentsAvailable } from './payments/service.js';
 import { requireAuth } from './auth.js';
 import { audit } from './security.js';
 import { deletePreview, deleteRestaurant } from './restaurant-delete.js';
