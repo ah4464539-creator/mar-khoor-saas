@@ -35,6 +35,7 @@
     </header>
     <main>
       <h1>Privacy Policy</h1>
+      <p><small>Last updated: 26 November 2026</small></p>
       <p>This notice explains how Mar-Khoor handles information when you use its restaurant workspace, place an order on a restaurant website, or contact a restaurant through a connected WhatsApp or voice channel.</p>
 
       <section>
@@ -44,7 +45,9 @@
           <li><strong>Support enquiries.</strong> When you use our Contact Us form, we process your name, reply email address, selected topic, and message to deliver it to Mar-Khoor support and respond. The form uses our configured email service; no payment information or passwords should be submitted.</li>
           <li><strong>Website orders.</strong> Contact and order details you supply, including ordered items and any notes you submit.</li>
           <li><strong>WhatsApp.</strong> The sender and business number identifiers, message IDs, message text, timestamps, replies, and delivery status used to operate the restaurant inbox and auto-replies.</li>
-          <li><strong>Voice.</strong> When a restaurant enables an AI assistant, the call provider processes your speech. Mar-Khoor can receive call identifiers, status, end reason, and the transcript when the provider supplies it.</li>
+          <li><strong>Voice.</strong> When a restaurant enables an AI assistant, the call provider processes your speech. Mar-Khoor can receive call identifiers, status, end reason, your phone number, call duration, a short AI summary, a recording link and the transcript when the provider supplies them.</li>
+          <li><strong>Payments.</strong> Restaurant plans are paid through Stripe. When a restaurant offers online card payment, you pay on Stripe's page into the restaurant's own Stripe account; Mar-Khoor receives the payment status, amount and reference, never your card number.</li>
+          <li><strong>Your choices on WhatsApp.</strong> Send <strong>STOP</strong> (or “band karo”) to stop automatic messages from a restaurant, and <strong>START</strong> to turn them back on. Ask for a person at any time and the AI hands the chat to the restaurant's staff.</li>
         </ul>
       </section>
 
@@ -55,12 +58,20 @@
 
       <section>
         <h2>Who receives information</h2>
-        <p>Authorized staff at the relevant restaurant can see information needed to manage its orders, inbox, and calls. Hostinger hosts the application and database. Meta processes WhatsApp delivery and related events. When WhatsApp AI replies are enabled, Mar-Khoor sends the message text and relevant restaurant menu context to OpenAI to generate a reply. Website draft generation uses the restaurant details and description supplied for that purpose. Vapi and its configured providers process calls when voice is enabled. Providers may process information in countries other than your own.</p>
+        <p>Authorized staff at the relevant restaurant can see information needed to manage its orders, inbox, and calls. Hostinger hosts the application and database. Meta processes WhatsApp delivery and related events. When WhatsApp AI replies are enabled, Mar-Khoor sends the message text and relevant restaurant menu context to OpenAI to generate a reply. Website draft generation uses the restaurant details and description supplied for that purpose. Vapi and its configured providers process calls when voice is enabled. Stripe processes plan payments and, where a restaurant offers it, customer card payments. Providers may process information in countries other than your own. We do not sell personal information.</p>
       </section>
 
       <section>
         <h2>Retention and sign-in</h2>
-        <p>Retention depends on the record and why it is needed. We consider ongoing service needs, order and support history, security and audit requirements, and any legal obligations. Restaurant sign-in uses browser storage to keep the session active. Signing out removes that session from the browser.</p>
+        <p>Personal text is deleted automatically after a fixed period. The record itself (date, status, linked order) stays so restaurants can keep their order history.</p>
+        <ul>
+          <li><strong>WhatsApp message text</strong> (customer messages and replies): deleted after <strong>90 days</strong> by default.</li>
+          <li><strong>AI call transcripts, call summaries and recording links</strong>: deleted after <strong>30 days</strong> by default.</li>
+          <li>Each restaurant can choose its own period between 7 and 365 days for its messages and transcripts.</li>
+          <li><strong>Audit records</strong> (who changed what in a workspace): 365 days. Expired sign-in sessions and password reset links are deleted daily.</li>
+          <li>Orders, bookings and payment records are kept while the restaurant account is active, as business and tax records.</li>
+        </ul>
+        <p>Restaurant sign-in uses browser storage to keep the session active. Signing out removes that session from the browser.</p>
       </section>
 
       <section>

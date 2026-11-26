@@ -14,7 +14,40 @@ export function securityHeaders(req, res, next) {
   res.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.set('X-Frame-Options', 'DENY');
   res.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+  res.set('X-Permitted-Cross-Domain-Policies', 'none');
+  res.set('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  // Safe for every page (including the older ones with inline scripts): no plugins, no <base> hijack.
+  // Routes with their own stricter CSP (generated restaurant sites) replace this header.
+  res.set('Content-Security-Policy', "object-src 'none'; base-uri 'self'");
   if (req.secure) res.set('Strict-Transport-Security', 'max-age=15552000');
+  next();
+}
+
+// Rejects JSON bodies that are suspiciously deep or wide, or that use prototype keys
+// (__proto__, constructor, prototype), before any route sees them.
+const PROTO_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+export function inspectJson(value, { maxDepth = 20, maxKeys = 5000 } = {}) {
+  let keys = 0;
+  const walk = (node, depth) => {
+    if (depth > maxDepth) return 'too deep';
+    if (Array.isArray(node)) { for (const item of node) { const bad = walk(item, depth + 1); if (bad) return bad; } return null; }
+    if (node && typeof node === 'object') {
+      for (const key of Object.keys(node)) {
+        if (PROTO_KEYS.has(key)) return 'forbidden key';
+        if (++keys > maxKeys) return 'too many fields';
+        const bad = walk(node[key], depth + 1);
+        if (bad) return bad;
+      }
+    }
+    return null;
+  };
+  return walk(value, 0);
+}
+export function jsonGuard(req, res, next) {
+  if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) {
+    const problem = inspectJson(req.body);
+    if (problem) { console.warn(JSON.stringify({ event: 'json_rejected', reason: problem, path: req.path })); return res.status(400).json({ error: 'Invalid request body' }); }
+  }
   next();
 }
 

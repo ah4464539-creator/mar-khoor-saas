@@ -4,6 +4,7 @@
 // body parameters: 1 = customer name, 2 = business name, 3 = date and time). Without a template those
 // reminders are skipped and logged, never faked. Additive table only.
 import { ensureBookingTables, getProfile, localNow } from './bookings.js';
+import { registerWorker, heartbeat } from './observability.js';
 import { ensureBookingChatTables } from './booking-assistant.js';
 import { sendText, lang } from './whatsapp-orders.js';
 import { tokenForNumber } from './whatsapp-signup-core.js';
@@ -80,7 +81,8 @@ export async function sendDueReminders(pool, { fetcher = fetch, env = process.en
 }
 
 export function startReminderWorker(pool) {
-  const run = () => sendDueReminders(pool).catch(error => console.warn('Booking reminders failed:', String(error?.code || error?.message).slice(0, 80)));
+  registerWorker('booking_reminders', { intervalMs: 10 * 60 * 1000 });
+  const run = () => sendDueReminders(pool).then(() => heartbeat('booking_reminders')).catch(error => { console.warn('Booking reminders failed:', String(error?.code || error?.message).slice(0, 80)); heartbeat('booking_reminders', { ok: false, error }); });
   setTimeout(run, 60000).unref();
   setInterval(run, 10 * 60 * 1000).unref();
 }

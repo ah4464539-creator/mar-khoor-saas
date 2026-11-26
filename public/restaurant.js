@@ -495,6 +495,7 @@ async function openRestaurant(restaurant) {
  restaurantId = restaurant.id;
  window.mkWhatsAppConnect?.init({ restaurantId, api });
  window.mkSiteContent?.init({ restaurantId, api });
+ window.mkPrivacySettings?.init({ restaurantId, api });
  window.mkOwnerApp?.init({ restaurantId, api });
  document.body.dataset.category = restaurant.category || 'restaurant';
  window.mkBookings?.init({ restaurantId, api, token: () => token, category: restaurant.category || 'restaurant', currency: restaurant.currency, slug: restaurant.slug });
