@@ -35,16 +35,20 @@ import { startReminderWorker } from './booking-reminders.js';
 import { loadCatalog } from './plan-orders.js';
 import { voiceToolsRouter } from './voice-tools.js';
 import { vapiToolAdapterRouter } from './vapi-adapter.js';
-import { parseTrustProxy, securityHeaders, rateLimit, accessLog, jsonErrorHandler } from './security.js';
+import { parseTrustProxy, securityHeaders, rateLimit, jsonErrorHandler, jsonGuard } from './security.js';
+import { log, requestId, requestLog, installProcessHandlers, workerHealth } from './observability.js';
+import { startRetentionWorker } from './retention.js';
+import { privacyRouter } from './privacy.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const app = express();
 app.disable('x-powered-by');
 app.set('trust proxy', parseTrustProxy(process.env.TRUST_PROXY));
+app.use(requestId);
 app.use(securityHeaders);
-app.use(accessLog);
-process.on('unhandledRejection', reason => console.error(JSON.stringify({ event: 'unhandled_rejection', name: reason?.name })));
+app.use(requestLog());
+installProcessHandlers();
 const pool = mysql.createPool({
   host: process.env.DB_HOST || '127.0.0.1',
   port: Number(process.env.DB_PORT || 3306),
@@ -55,6 +59,8 @@ const pool = mysql.createPool({
   connectionLimit: 10,
 });
 useSessionStore(createDbSessionStore(pool));
+// Provider webhooks are signed; this per-IP ceiling only stops floods (Meta and Stripe retry on 429).
+app.use(['/integrations', '/webhooks'], rateLimit({ windowMs: 60 * 1000, max: 1200, name: 'webhooks' }));
 app.use('/integrations', integrationRouter(pool));
 app.use(billingWebhookRouter(pool)); // raw body for Stripe signatures, before express.json
 app.use('/auth/password', rateLimit({ windowMs: 15 * 60 * 1000, max: 10, methods: ['POST'], name: 'password-reset' }));
@@ -66,6 +72,7 @@ app.use('/api/public/restaurants/:slug/orders', rateLimit({ windowMs: 10 * 60 * 
 app.use('/api/restaurants/:restaurantId/site/generate', rateLimit({ windowMs: 60 * 60 * 1000, max: 10, methods: ['POST'], name: 'site-generate' }));
 app.use('/api', rateLimit({ windowMs: 10 * 60 * 1000, max: 1500, name: 'api' }));
 app.use(express.json({ limit: '1mb' }));
+app.use(jsonGuard);
 // Verified restaurant domains (e.g. myrestaurant.pk) show that restaurant's website at "/".
 app.use(customDomainRouting(pool));
 const publicDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
@@ -80,6 +87,8 @@ app.use(express.static(publicDirectory, {
     if (/\.(html|js|css)$/.test(file)) res.setHeader('Cache-Control', 'no-cache');
   },
 }));
+// Baseline for every dynamic route (public pages, assistants, APIs); static files above are not counted.
+app.use(rateLimit({ windowMs: 60 * 1000, max: 600, name: 'baseline' }));
 app.post('/api/public/plan-quote', async (req, res) => {
   try {
     res.json(quotePlan(req.body, await loadCatalog(pool)));
@@ -108,23 +117,30 @@ app.use(bookingsRouter(pool));
 app.use(widgetRouter(pool));
 app.use(billingRouter(pool));
 app.use(sitesRouter(pool));
+app.use(privacyRouter(pool));
 app.use('/voice-tools', voiceToolsRouter(pool));
 app.use('/integrations/vapi', vapiToolAdapterRouter(pool));
-app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'mar-khoor-api' }));
+app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'mar-khoor-api', release: process.env.APP_RELEASE || null, uptime_seconds: Math.round(process.uptime()) }));
+// Background workers (WhatsApp AI, reminders, domains, retention): 503 when one is failing or stale.
+app.get('/health/workers', (_req, res) => {
+  const health = workerHealth();
+  res.set('Cache-Control', 'no-store').status(health.status === 'ok' ? 200 : 503).json(health);
+});
 app.get('/health/database', async (_req, res) => {
   try { await pool.query('SELECT 1'); res.json({ status: 'ok', database: 'connected' }); }
   catch (error) {
     const code = /^[A-Z][A-Z0-9_]{1,63}$/.test(error?.code ?? '') ? error.code : 'UNKNOWN';
-    console.warn('MariaDB health check failed:', code);
+    log.warn('db_health_failed', { code });
     res.status(503).json({ status: 'unavailable', database: 'disconnected' });
   }
 });
 app.use(jsonErrorHandler);
 const port = Number(process.env.PORT || 3001);
 app.listen(port, () => {
-  console.log(`Mar-Khoor API listening on ${port}`);
+  log.info('server_started', { port, release: process.env.APP_RELEASE || null });
   startWhatsAppAIWorker(pool);
   startReminderWorker(pool);
+  startRetentionWorker(pool);
   ensureFemaleVoices(pool).then(result => console.log('AI Caller voice:', JSON.stringify(result))).catch(error => console.warn('AI Caller voice update skipped:', error.message))
    .then(() => ensureSpeechRules(pool)).then(result => console.log('AI Caller speech rules:', JSON.stringify(result))).catch(error => console.warn('AI Caller speech rules skipped:', error.message));
   startDomainWorker(pool, hostinger);

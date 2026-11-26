@@ -2,13 +2,14 @@ import express from 'express';
 import { requireAuth } from './auth.js';
 import { rateLimit } from './security.js';
 import { configStatus, activity, summarize, present } from './integration-health-core.js';
+import { workerHealth, errorTrackingUrl } from './observability.js';
 
 export function integrationHealthRouter(pool, { fetcher = fetch, env = process.env } = {}) {
   const router = express.Router();
   const superOnly = (req, res, next) => req.user.platformRole === 'super_admin' ? next() : res.status(403).json({ error: 'Forbidden' });
   router.get('/api/platform/integrations/health', requireAuth, superOnly, async (_req, res) => {
     res.set('Cache-Control', 'no-store');
-    try { res.json({ checked_at: new Date().toISOString(), channels: summarize(configStatus(env), await activity(pool)) }); }
+    try { res.json({ checked_at: new Date().toISOString(), channels: summarize(configStatus(env), await activity(pool)), workers: workerHealth(), error_tracking: Boolean(errorTrackingUrl(env)) }); }
     catch { res.status(503).json({ error: 'Health check unavailable' }); }
   });
   router.post('/api/platform/integrations/test-openai', rateLimit({ windowMs: 10 * 60 * 1000, max: 5, name: 'test-openai' }), requireAuth, superOnly, async (_req, res) => {

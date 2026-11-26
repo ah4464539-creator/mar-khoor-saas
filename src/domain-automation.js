@@ -3,6 +3,7 @@
 //   ownership → parking (domain added to the mar-khoor.com website, i.e. our hosting)
 //   → dns (records written when DNS is in our Hostinger account, otherwise waiting for the owner)
 //   → ssl (certificate requested once, then polled) → live
+import { registerWorker, workerDisabled, heartbeat } from './observability.js';
 import dns from 'node:dns/promises';
 import { ensureDomainsTable } from './domain-core.js';
 
@@ -172,13 +173,14 @@ export async function runDueDomainSetups(pool, client, { limit = 5 } = {}) {
 }
 
 export function startDomainWorker(pool, client, { intervalMs = 3 * MINUTE } = {}) {
-  if (!client) return null;
+  if (!client) { workerDisabled('domains', 'Hostinger API not configured'); return null; }
+  registerWorker('domains', { intervalMs });
   let running = false;
   const tick = async () => {
     if (running) return;
     running = true;
-    try { await runDueDomainSetups(pool, client); }
-    catch (error) { console.warn(JSON.stringify({ event: 'domain_worker_failed', message: short(error) })); }
+    try { await runDueDomainSetups(pool, client); heartbeat('domains'); }
+    catch (error) { console.warn(JSON.stringify({ event: 'domain_worker_failed', message: short(error) })); heartbeat('domains', { ok: false, error }); }
     finally { running = false; }
   };
   const timer = setInterval(tick, intervalMs);

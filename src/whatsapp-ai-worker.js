@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { getPilotIds, workerSwitch } from './whatsapp-pilot.js';
 import { tokenForNumber } from './whatsapp-signup-core.js';
 import { ensureToolsTable } from './tools.js';
+import { registerWorker, workerDisabled, heartbeat } from './observability.js';
 import { notifyNewOrder } from './web-push.js';
 import { money, PROPOSE_ORDER_TOOL, buildDraft, summaryText, buttonsFor, parseReply, findDraft, saveDraft, markDraft, placeOrder, receivedText, changeText, expiredText, unavailableText, sendText, sendButtons, sendVoice, transcribeVoiceNote, speak, paymentList, sendList, hasOtherPayments, choosePayment, pendingTransfer, extractReference, submitReference, thanksText, pictureText, inboundImage } from './whatsapp-orders.js';
 import { loadPaymentSettings } from './payment-options.js';
@@ -224,9 +225,12 @@ export function startWhatsAppAIWorker(pool) {
  const { alwaysAllowed } = workerScope();
  if (!process.env.OPENAI_API_KEY || !process.env.WHATSAPP_ACCESS_TOKEN) {
   console.warn('WhatsApp AI worker disabled: missing OpenAI or WhatsApp configuration');
+  workerDisabled('whatsapp_ai', 'missing OPENAI_API_KEY or WHATSAPP_ACCESS_TOKEN');
   return;
  }
  console.log('WhatsApp AI worker started');
+ registerWorker('whatsapp_ai', { intervalMs: 60000 });
+ let failedBatch = false;
  let toolsReady = typeof pool.query !== 'function', lastMode = 'on';
  const run = async () => {
   try {
@@ -240,7 +244,11 @@ export function startWhatsAppAIWorker(pool) {
   } catch (error) {
    const code = /^[A-Z][A-Z0-9_]{1,63}$/.test(error?.code ?? '') ? error.code : 'UNKNOWN';
    console.warn('WhatsApp AI worker batch failed:', code, String(error?.message||'').slice(0,120));
+   heartbeat('whatsapp_ai',{ok:false,error});
+   failedBatch = true;
   } finally {
+   if (!failedBatch) heartbeat('whatsapp_ai');
+   failedBatch = false;
    setTimeout(run, 5000).unref();
   }
  };
