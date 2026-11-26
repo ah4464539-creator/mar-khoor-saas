@@ -417,8 +417,17 @@ document.querySelector('#route-form').addEventListener('submit', async event => 
 // Integration health and custom domains.
 const healthNames={whatsapp:'WhatsApp Business',ai:'OpenAI (AI replies, website text, menu import)',voice:'AI Call Assistant (Vapi)',numbers:'Dedicated numbers (Telnyx)',domains:'Custom domains (Hostinger API)',billing:'Plan payments (Stripe)',email:'Email (password reset)',payments:'Online payments (Stripe)'};
 const healthLabels={live:['Live','tag-ok'],configured:['Configured · needs live test','tag-info'],missing:['Settings missing','tag-bad'],deferred:['Off by design','tag-warn']};
+function renderWorkerHealth(data){
+ const box=document.querySelector('#health-workers');
+ if(!box||!data.workers)return;
+ const labels={ok:['Running','tag-ok'],starting:['Starting','tag-warn'],failing:['Failing','tag-bad'],stale:['Not running','tag-bad'],disabled:['Off','']};
+ const rows=data.workers.workers.map(w=>{const p=document.createElement('p');const tag=document.createElement('span');const [label,cls]=labels[w.status]||[w.status,''];tag.className='tag '+cls;tag.textContent=label;p.append(document.createTextNode(w.name.replace(/_/g,' ')+' '),tag,document.createTextNode((w.last_run_seconds_ago!=null?' · last run '+w.last_run_seconds_ago+'s ago':'')+(w.reason?' · '+w.reason:'')+(w.last_error?' · '+w.last_error:'')));return p;});
+ const tracking=document.createElement('p');tracking.className='small muted';tracking.textContent=data.error_tracking?'Error alerts: on (ERROR_TRACKING_WEBHOOK_URL).':'Error alerts: off. Set ERROR_TRACKING_WEBHOOK_URL to get alerts.';
+ box.replaceChildren(...rows,tracking);
+}
 async function loadHealth(){
  const data=await platformApi('/api/platform/integrations/health');
+ renderWorkerHealth(data);
  const list=document.querySelector('#health-list');
  list.replaceChildren(...Object.entries(data.channels).map(([key,channel])=>{
   const card=document.createElement('article');card.className='health-card';card.dataset.status=channel.status;
