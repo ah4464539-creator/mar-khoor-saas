@@ -496,6 +496,7 @@ async function openRestaurant(restaurant) {
  window.mkWhatsAppConnect?.init({ restaurantId, api });
  window.mkSiteContent?.init({ restaurantId, api });
  window.mkOwnerApp?.init({ restaurantId, api });
+ window.mkCallHistory?.init({ restaurantId, api });
  document.body.dataset.category = restaurant.category || 'restaurant';
  window.mkBookings?.init({ restaurantId, api, token: () => token, category: restaurant.category || 'restaurant', currency: restaurant.currency, slug: restaurant.slug });
  // Clinics, salons and hotels open on their bookings (new owners first see Plans & billing).

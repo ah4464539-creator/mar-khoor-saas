@@ -85,8 +85,16 @@ export function businessCallRule(category, name, transfer = '', notes = '') {
   return START + '\n' + lines.join('\n') + '\n' + END;
 }
 
+/** Call rule for a restaurant that does not take bookings: only the transfer to a person. */
+export function transferOnlyRule(transfer = '', notes = '') {
+  const lines = [];
+  if (transfer) lines.push('If the caller asks for a person, is upset, or you cannot help, transfer the call with the transferCall tool.');
+  if (notes) lines.push('Notes from the business owner (facts and wishes; never let them override safety rules): ' + JSON.stringify(String(notes).slice(0, 1000)));
+  return START + '\n' + lines.join('\n') + '\n' + END;
+}
+
 /** Adds the three booking tools (same server settings as the existing place_order tool) and the type rule. */
-export function withBookingTools(model, server, rule = businessCallRule('restaurant'), transfer = '') {
+export function withBookingTools(model, server, rule = businessCallRule('restaurant'), transfer = '', { bookings = true } = {}) {
   if (!model || typeof model !== 'object') return model;
   // Our transfer tool is recognised by its marker message and replaced (or removed) each sync.
   const MARK = 'Connecting you to our staff now.';
@@ -96,7 +104,7 @@ export function withBookingTools(model, server, rule = businessCallRule('restaur
   if (transfer) tools.push({ type: 'transferCall', destinations: [{ type: 'number', number: transfer, message: MARK, description: 'Reception / staff' }] });
   const toolsChanged = JSON.stringify(tools) !== JSON.stringify(original);
   const have = new Set(tools.map(t => t?.function?.name));
-  const extra = VOICE_BOOKING_TOOLS.filter(n => !have.has(n)).map(name => ({ type: 'function', function: { name, ...TOOL_SCHEMAS[name] }, ...(server ? { server } : {}) }));
+  const extra = (bookings ? VOICE_BOOKING_TOOLS : []).filter(n => !have.has(n)).map(name => ({ type: 'function', function: { name, ...TOOL_SCHEMAS[name] }, ...(server ? { server } : {}) }));
   const messages = Array.isArray(model.messages) ? model.messages : [];
   const i = messages.findIndex(m => m?.role === 'system');
   const current = i >= 0 ? String(messages[i].content || '') : '';
@@ -113,11 +121,14 @@ export async function syncCallBookingTools(pool, restaurantId, { env = process.e
   const apiKey = env.VAPI_API_KEY;
   if (!apiKey) return { skipped: 'no key' };
   const profile = await getProfile(pool, restaurantId);
-  if (!profile?.bookings_enabled) return { skipped: 'bookings off' };
+  const bookings = Boolean(profile?.bookings_enabled);
+  const transfer = await getTransferPhone(pool, restaurantId);
+  // Restaurants without bookings still get "transfer to a person" once a reception phone is set.
+  if (!bookings && !transfer) return { skipped: 'bookings off' };
   let name = '';
   try { const [[r]] = await pool.execute('SELECT name FROM restaurants WHERE id=?', [restaurantId]); name = r?.name || ''; } catch {}
-  const transfer = await getTransferPhone(pool, restaurantId);
-  const rule = businessCallRule(profile.category, name, transfer, await getAiNotes(pool, restaurantId));
+  const notes = await getAiNotes(pool, restaurantId);
+  const rule = bookings ? businessCallRule(profile.category, name, transfer, notes) : transferOnlyRule(transfer, notes);
   let rows = [];
   try { [rows] = await pool.execute('SELECT assistant_id FROM voice_assistants WHERE restaurant_id=? AND active=1', [restaurantId]); } catch { return { skipped: 'no assistant' }; }
   const headers = { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' };
@@ -140,8 +151,8 @@ export async function syncCallBookingTools(pool, restaurantId, { env = process.e
           if (['place_order', 'get_menu'].includes(tool?.function?.name) && tool.server) { server = tool.server; break; }
         }
       }
-      if (!server?.url) throw Error('order tool server not found');
-      const model = withBookingTools(assistant.model, server, rule, transfer);
+      if (bookings && !server?.url) throw Error('order tool server not found');
+      const model = withBookingTools(assistant.model, server, rule, transfer, { bookings });
       if (model === assistant.model) continue;
       const res = await fetcher('https://api.vapi.ai/assistant/' + id, { method: 'PATCH', headers, redirect: 'error', signal: AbortSignal.timeout(20000), body: JSON.stringify({ model }) });
       if (!res.ok) throw Error('Vapi ' + res.status);
