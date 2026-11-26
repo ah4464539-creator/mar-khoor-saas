@@ -137,8 +137,7 @@ app.get('/health/database', async (_req, res) => {
 app.use(jsonErrorHandler);
 const port = Number(process.env.PORT || 3001);
 app.listen(port, () => {
-  // Keep this exact plain line: Hostinger waits for it before routing traffic to the app
-  // (verified: without it the PR preview never became reachable). The JSON line is for log tools.
+  // Plain startup line kept as before (people and hPanel log views look for it); the JSON line is for log tools.
   console.log(`Mar-Khoor API listening on ${port}`);
   log.info('server_started', { port, release: process.env.APP_RELEASE || null });
   startWhatsAppAIWorker(pool);

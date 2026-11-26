@@ -94,7 +94,7 @@ test('server wires request ids, logs, limits, JSON guard, worker health and rete
   const server = readFileSync('src/server.js', 'utf8');
   for (const text of ['app.use(requestId)', 'app.use(requestLog())', 'installProcessHandlers()', "name: 'webhooks'", "name: 'baseline'", 'app.use(jsonGuard)', "app.get('/health/workers'", 'app.get(\'/health/database\'', 'startRetentionWorker(pool)', 'privacyRouter(pool)'])
     assert.ok(server.includes(text), text);
-  assert.ok(server.includes('console.log(`Mar-Khoor API listening on ${port}`)'), 'Hostinger needs the plain startup line');
+  assert.ok(server.includes('console.log(`Mar-Khoor API listening on ${port}`)'), 'plain startup line kept');
   assert.ok(server.indexOf("name: 'webhooks'") < server.indexOf("app.use('/integrations', integrationRouter(pool))"), 'webhook limit before the webhook routes');
   assert.ok(server.indexOf('express.static(') < server.indexOf("name: 'baseline'"), 'static files are not counted by the baseline limit');
 });
