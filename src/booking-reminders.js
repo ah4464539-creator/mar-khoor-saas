@@ -7,6 +7,7 @@ import { ensureBookingTables, getProfile, localNow } from './bookings.js';
 import { ensureBookingChatTables } from './booking-assistant.js';
 import { sendText, lang } from './whatsapp-orders.js';
 import { tokenForNumber } from './whatsapp-signup-core.js';
+import { isOptedOut } from './whatsapp-reliability.js';
 
 export const REMINDER_SQL = `CREATE TABLE IF NOT EXISTS booking_reminders (
  booking_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
@@ -61,6 +62,7 @@ export async function sendDueReminders(pool, { fetcher = fetch, env = process.en
       let phoneId = b.wa_phone, to = b.wa_customer || String(b.customer_phone).replace(/\D/g, '');
       if (!phoneId) { const [[n]] = await pool.execute('SELECT phone_number_id FROM whatsapp_numbers WHERE restaurant_id=? AND active=1 LIMIT 1', [rid]); phoneId = n?.phone_number_id; }
       if (!phoneId) { await record('none', 'skipped', 'no WhatsApp number'); skipped++; continue; }
+      if (typeof pool.query === 'function' && await isOptedOut(pool, rid, to)) { await record('none', 'skipped', 'customer opted out (STOP)'); skipped++; continue; }
       const token = (await tokenForNumber(pool, phoneId).catch(() => null)) || env.WHATSAPP_ACCESS_TOKEN;
       if (!token) { await record('none', 'skipped', 'no token'); skipped++; continue; }
       const [recent] = await pool.execute('SELECT 1 FROM whatsapp_inbound_messages WHERE restaurant_id=? AND phone_number_id=? AND sender=? AND received_at>=NOW()-INTERVAL 23 HOUR LIMIT 1', [rid, phoneId, to]);
