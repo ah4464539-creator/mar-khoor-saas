@@ -4,6 +4,7 @@
 //
 // Safety: prices and totals always come from the menu table, never from the AI. An order is only
 // created after the customer taps Confirm (or replies "yes") on a summary we generated ourselves.
+import { isOptedOut } from './whatsapp-reliability.js';
 import { newTrackingToken, hashTrackingToken } from './order-tracking.js';
 import { isMissingFulfillmentSchema } from './order-fulfillment.js';
 import { URDU_SPEECH_RULES } from './speech-rules.js';
@@ -218,11 +219,13 @@ const graph = env => 'https://graph.facebook.com/' + (/^v\d{1,2}\.\d{1,2}$/.test
 async function postMessage(fetcher, env, token, phoneId, payload) {
   const r = await fetcher(graph(env) + '/' + phoneId + '/messages', { method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ messaging_product: 'whatsapp', ...payload }), signal: AbortSignal.timeout(15000) });
   const data = await r.json().catch(() => ({}));
-  if (!r.ok) throw Error('WhatsApp send failed (Meta ' + r.status + (data?.error?.message ? ': ' + String(data.error.message).slice(0, 120) : '') + ')');
+  // metaStatus tells the AI worker that Meta answered with an error, i.e. it did not accept the message.
+  if (!r.ok) throw Object.assign(Error('WhatsApp send failed (Meta ' + r.status + (data?.error?.message ? ': ' + String(data.error.message).slice(0, 120) : '') + ')'), { metaStatus: r.status });
   const id = data?.messages?.[0]?.id;
   if (typeof id !== 'string' || !id.startsWith('wamid.') || id.length > 255) throw Error('Missing outbound ID');
   return id;
 }
+export const postWhatsAppMessage = postMessage;
 export const sendText = (fetcher, env, token, phoneId, to, body) => postMessage(fetcher, env, token, phoneId, { to, type: 'text', text: { body: String(body).slice(0, 4096) } });
 export const sendButtons = (fetcher, env, token, phoneId, to, body, buttons) => postMessage(fetcher, env, token, phoneId, { to, type: 'interactive', interactive: { type: 'button', body: { text: String(body).slice(0, 1024) }, action: { buttons } } });
 
@@ -286,7 +289,9 @@ export async function speak(text, { fetcher = fetch, env = process.env, apiKey =
 // ---- Status updates --------------------------------------------------------------------------
 /**
  * Sends the new order status to the customer on WhatsApp, for orders placed on WhatsApp.
- * Only inside WhatsApp's 24-hour customer-service window (free-form messages); never throws.
+ * Inside WhatsApp's 24-hour customer-service window a free-form message; outside it the approved
+ * template WHATSAPP_ORDER_STATUS_TEMPLATE when one is configured. Never to customers who opted out
+ * (STOP / band karo). Never throws.
  */
 export async function notifyOrderStatus(pool, restaurantId, orderId, status, { fetcher = fetch, env = process.env, tokenFor = null, log = console } = {}) {
   try {
@@ -296,8 +301,16 @@ export async function notifyOrderStatus(pool, restaurantId, orderId, status, { f
     const o = rows[0];
     const text = statusText(status, orderId, o.order_type, o.language);
     if (!text) return { sent: false, reason: 'no_message' };
+    const templates = await import('./whatsapp-templates.js');
+    if (typeof pool.query === 'function' && await isOptedOut(pool, restaurantId, o.customer)) return { sent: false, reason: 'opted_out' };
     const [recent] = await pool.execute('SELECT 1 FROM whatsapp_inbound_messages WHERE restaurant_id=? AND phone_number_id=? AND sender=? AND received_at>=NOW()-INTERVAL 23 HOUR LIMIT 1', [restaurantId, o.phone_number_id, o.customer]);
-    if (!recent.length) { log.log?.('WhatsApp status not sent (24h window closed) for order #' + orderId); return { sent: false, reason: 'window_closed' }; }
+    if (!recent.length) {
+      const template = templates.orderStatusTemplate(orderId, String(status).replace(/_/g, ' '), env);
+      const token = template && ((tokenFor ? await tokenFor(o.phone_number_id) : null) || env.WHATSAPP_ACCESS_TOKEN);
+      if (template && token) return templates.sendTemplateMessage(pool, { restaurantId, phoneId: o.phone_number_id, customer: o.customer, template, token, fetcher, env });
+      log.log?.('WhatsApp status not sent (24h window closed, no WHATSAPP_ORDER_STATUS_TEMPLATE) for order #' + orderId);
+      return { sent: false, reason: 'window_closed' };
+    }
     const token = (tokenFor ? await tokenFor(o.phone_number_id) : null) || env.WHATSAPP_ACCESS_TOKEN;
     if (!token) return { sent: false, reason: 'no_token' };
     const id = await sendText(fetcher, env, token, o.phone_number_id, o.customer, text);

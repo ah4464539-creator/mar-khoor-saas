@@ -4,6 +4,7 @@ import { getPilotIds, setPilot, workerSwitch, setWorkerSwitch } from './whatsapp
 import { enableCalling, disableCalling, callingStatus, getCallingState } from './whatsapp-calling.js';
 import { getSignupConfig, saveSignupConfig } from './whatsapp-signup-core.js';
 import express from 'express';
+import { reliabilityCounts } from './whatsapp-reliability.js';
 import { requireAuth } from './auth.js';
 import { audit } from './security.js';
 import { deletePreview, deleteRestaurant } from './restaurant-delete.js';
@@ -42,7 +43,8 @@ export function apiRouter(pool) {
    const [stale]=await pool.execute("SELECT COUNT(*) AS count FROM whatsapp_ai_jobs WHERE status='processing' AND created_at<NOW()-INTERVAL 10 MINUTE");
    const [oldPending]=await pool.execute("SELECT COUNT(*) AS count FROM whatsapp_ai_jobs WHERE status='pending' AND created_at<NOW()-INTERVAL 5 MINUTE");
    const [outbound]=await pool.execute("SELECT status,COUNT(*) AS count FROM whatsapp_outbound_messages WHERE sent_at>=NOW()-INTERVAL 24 HOUR GROUP BY status");
-   res.set('Cache-Control','no-store').json({jobs,stale_processing:Number(stale[0]?.count||0),delayed_pending:Number(oldPending[0]?.count||0),outbound_last_24h:outbound});
+   const reliability=typeof pool.query==='function'?await reliabilityCounts(pool):null;
+   res.set('Cache-Control','no-store').json({jobs,stale_processing:Number(stale[0]?.count||0),delayed_pending:Number(oldPending[0]?.count||0),outbound_last_24h:outbound,...(reliability??{})});
   }catch{res.status(503).json({error:'WhatsApp monitoring unavailable'});}
  });
  router.get('/platform/restaurants',requireAuth,async(req,res)=>{

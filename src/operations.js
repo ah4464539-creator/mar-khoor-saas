@@ -1,4 +1,5 @@
 import express from 'express';
+import { validateTemplate, sendTemplateMessage } from './whatsapp-templates.js';
 import { notifyOrderStatus, notifyPaymentStatus, proofMedia } from './whatsapp-orders.js';
 import { requireAuth } from './auth.js';
 import { isMissingFulfillmentSchema } from './order-fulfillment.js';
@@ -180,6 +181,26 @@ export function operationsRouter(pool) {
    }catch{return res.status(503).json({sent:true,message_id:outboundId,history_saved:false});}
    return res.status(200).json({sent:true,message_id:outboundId,history_saved:true});
   }catch{return res.status(503).json({error:'WhatsApp sending unavailable'});}
+ });
+ // Approved template message, e.g. outside the 24-hour window. Only to customers who have written to
+ // this restaurant before, never to customers who opted out (STOP / band karo).
+ router.post('/restaurants/:restaurantId/whatsapp/templates/send',rateLimit({windowMs:60000,max:20,name:'wa-template'}),async(req,res)=>{
+  const customer=String(req.body?.customer??'').replace(/[^0-9]/g,'');
+  if(!/^[0-9]{5,20}$/.test(customer))return res.status(400).json({error:'Customer WhatsApp number (digits with country code)'});
+  const checked=validateTemplate(req.body?.template);
+  if(checked.error)return res.status(400).json({error:checked.error});
+  const token=process.env.WHATSAPP_ACCESS_TOKEN;
+  try{
+   const [rows]=await pool.execute('SELECT m.phone_number_id FROM whatsapp_inbound_messages m JOIN whatsapp_numbers w ON w.phone_number_id=m.phone_number_id AND w.restaurant_id=m.restaurant_id AND w.active=1 WHERE m.restaurant_id=? AND m.sender=? ORDER BY m.id DESC LIMIT 1',[req.restaurantId,customer]);
+   if(!rows.length)return res.status(409).json({error:'This customer has not messaged your WhatsApp number yet'});
+   const phoneId=rows[0].phone_number_id;
+   const sendToken=await tokenForNumber(pool,phoneId)||token;
+   if(!sendToken)return res.status(503).json({error:'WhatsApp sending not configured'});
+   const result=await sendTemplateMessage(pool,{restaurantId:req.restaurantId,phoneId,customer,template:checked.value,token:sendToken});
+   if(!result.sent)return res.status(result.reason==='opted_out'?409:400).json({error:result.reason==='opted_out'?'This customer opted out (sent STOP). They must send START first.':result.error||'Not sent'});
+   await audit(pool,{actorUserId:req.user.id,restaurantId:req.restaurantId,action:'whatsapp.template:'+checked.value.name});
+   res.json({sent:true,message_id:result.id});
+  }catch(error){res.status(error?.metaStatus?502:503).json({error:error?.metaStatus?'WhatsApp rejected the template (check name, language and number of values in Meta)':'WhatsApp sending unavailable'});}
  });
  router.get('/restaurants/:restaurantId/analytics',async(req,res)=>{
   try{
