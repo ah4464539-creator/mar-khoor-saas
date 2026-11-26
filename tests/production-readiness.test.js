@@ -21,6 +21,8 @@ test('structured logs are JSON lines with secrets redacted and numbers masked', 
   assert.match(JSON.parse(lines[1][1]).message, /Bearer \[redacted\]/);
   assert.equal(maskText('card 4242 4242 4242 4242'), 'card [number]');
   assert.deepEqual(redact({ password: 'x', ok: true }), { password: '[redacted]', ok: true });
+  assert.deepEqual(redact({ request_id: 'fd123456-4be0-8fb3-d123456789ab', order_id: 1234567, note: '+923001234567' }), { request_id: 'fd123456-4be0-8fb3-d123456789ab', order_id: 1234567, note: '[number]' });
+  assert.deepEqual(redact({ expired_reset_links: 3, passed: 2 }), { expired_reset_links: 3, passed: 2 });
 });
 
 test('every request gets a safe request id', () => {
@@ -102,7 +104,7 @@ test('retention settings: defaults, owner range, every step defined', () => {
   assert.deepEqual(validRetentionDays(null), { value: null });
   for (const bad of [3, 400, 7.5, '30']) assert.ok(validRetentionDays(bad).error, String(bad));
   const steps = purgeStatements(retentionConfig({})).map(([step]) => step);
-  assert.deepEqual(steps, ['whatsapp_inbound_text', 'whatsapp_outbound_text', 'call_transcripts', 'call_transcript_lines', 'call_summaries', 'expired_sessions', 'expired_password_resets', 'audit_logs']);
+  assert.deepEqual(steps, ['whatsapp_inbound_text', 'whatsapp_outbound_text', 'call_transcripts', 'call_transcript_lines', 'call_summaries', 'expired_sessions', 'expired_reset_links', 'audit_logs']);
   assert.ok(readFileSync('db/migrations/2026-11-26-retention.sql', 'utf8').includes(RETENTION_SQL));
   assert.match(readFileSync('scripts/purge-old-data.js', 'utf8'), /purgeOldData/);
 });

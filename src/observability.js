@@ -9,7 +9,9 @@
 // responses and worker failures are posted there, throttled. A Sentry SDK can replace reportError later.
 import crypto from 'node:crypto';
 
-const SECRET_KEY = /pass(word)?|secret|token|authori[sz]ation|api[_-]?key|cookie|signature|card|cvc|iban/i;
+const SECRET_KEY = /password|passwd|secret|token|authori[sz]ation|api[_-]?key|cookie|signature|card|cvc|iban/i;
+// Identifier fields (request_id, order_id, ...) are kept as they are: they are not personal numbers.
+const ID_KEY = /(^|_)id$/i;
 const LEVELS = { debug: 10, info: 20, warn: 30, error: 40 };
 
 export function maskText(value) {
@@ -21,7 +23,7 @@ export function redact(value, depth = 0) {
   if (Array.isArray(value)) return value.slice(0, 20).map(item => redact(item, depth + 1));
   if (value && typeof value === 'object') {
     const out = {};
-    for (const [key, item] of Object.entries(value).slice(0, 40)) out[key] = SECRET_KEY.test(key) ? '[redacted]' : redact(item, depth + 1);
+    for (const [key, item] of Object.entries(value).slice(0, 40)) out[key] = SECRET_KEY.test(key) ? '[redacted]' : ID_KEY.test(key) && (typeof item === 'number' || /^[A-Za-z0-9._:-]{1,80}$/.test(String(item))) ? item : redact(item, depth + 1);
     return out;
   }
   if (typeof value === 'string') return maskText(value);

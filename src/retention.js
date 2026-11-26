@@ -54,7 +54,7 @@ export function purgeStatements(config) {
     ['call_transcript_lines', 'DELETE l FROM voice_call_transcript_lines l LEFT JOIN restaurant_privacy_settings p ON p.restaurant_id=l.restaurant_id WHERE l.created_at < NOW() - ' + own(config.transcripts)],
     ['call_summaries', 'UPDATE voice_call_details d LEFT JOIN restaurant_privacy_settings p ON p.restaurant_id=d.restaurant_id SET d.summary=NULL,d.recording_url=NULL WHERE (d.summary IS NOT NULL OR d.recording_url IS NOT NULL) AND d.updated_at < NOW() - ' + own(config.transcripts)],
     ['expired_sessions', 'DELETE FROM sessions WHERE expires_at < NOW()'],
-    ['expired_password_resets', 'DELETE FROM password_resets WHERE expires_at < NOW() - INTERVAL 1 DAY'],
+    ['expired_reset_links', 'DELETE FROM password_resets WHERE expires_at < NOW() - INTERVAL 1 DAY'],
     ['audit_logs', 'DELETE FROM audit_logs WHERE created_at < NOW() - INTERVAL ' + Number(config.audit) + ' DAY'],
   ];
 }
