@@ -9,6 +9,16 @@
 import { verifyStripeSignature, stripeAmount } from '../stripe-billing.js';
 
 const ACCOUNT = /^acct_[A-Za-z0-9]{6,64}$/;
+
+// Countries where Stripe can open accounts for businesses (connected accounts). Stripe is not
+// available in e.g. Pakistan, so restaurants there use cash, JazzCash, Easypaisa or bank transfer.
+// Override with STRIPE_CONNECT_COUNTRIES="US,GB,AE" when Stripe adds a country.
+export const STRIPE_CONNECT_COUNTRIES = Object.freeze(('AE AT AU BE BG BR CA CH CY CZ DE DK EE ES FI FR GB GI GR HK HR HU IE IT JP LI LT LU LV '
+  + 'MT MX MY NL NO NZ PL PT RO SE SG SI SK TH US').split(' '));
+export function stripeConnectCountries(env = process.env) {
+  const custom = String(env.STRIPE_CONNECT_COUNTRIES || '').toUpperCase().split(',').map(c => c.trim()).filter(c => /^[A-Z]{2}$/.test(c));
+  return new Set(custom.length ? custom : STRIPE_CONNECT_COUNTRIES);
+}
 const API = 'https://api.stripe.com/v1/';
 
 export function stripePaymentsConfig(env = process.env) {
@@ -26,8 +36,9 @@ export function fromStripeAmount(amount, currency) {
   return ZERO_DECIMAL.has(String(currency).toUpperCase()) ? n * 100 : n;
 }
 
-export function createStripeProvider(config, { fetcher = fetch } = {}) {
+export function createStripeProvider(config, { fetcher = fetch, env = process.env } = {}) {
   if (!config) return null;
+  const countries = stripeConnectCountries(env);
   async function call(method, path, params, { account = null, idempotencyKey = null } = {}) {
     const headers = { Authorization: 'Bearer ' + config.secretKey, 'Stripe-Version': '2024-06-20' };
     if (params) headers['Content-Type'] = 'application/x-www-form-urlencoded';
@@ -38,6 +49,8 @@ export function createStripeProvider(config, { fetcher = fetch } = {}) {
     if (!response.ok) {
       const error = new Error(data?.error?.message || 'Payment provider unavailable');
       error.status = response.status; error.code = data?.error?.code;
+      // Stripe's own explanation (never contains keys); shown to owners for 4xx and logged.
+      error.stripeMessage = String(data?.error?.message || '').slice(0, 300); error.param = String(data?.error?.param || '').slice(0, 80);
       throw error;
     }
     return data;
@@ -46,6 +59,7 @@ export function createStripeProvider(config, { fetcher = fetch } = {}) {
   return {
     name: 'stripe',
     live: config.live,
+    supportsCountry: country => countries.has(String(country || '').toUpperCase()),
 
     async createCheckout({ kind = 'order', orderId, restaurantId, amountMinor, currency, description, successUrl, cancelUrl, account, idempotencyKey }) {
       const amount = stripeAmount(amountMinor, currency);
@@ -115,7 +129,8 @@ export function createStripeProvider(config, { fetcher = fetch } = {}) {
       const params = { type: 'express', 'capabilities[card_payments][requested]': 'true', 'capabilities[transfers][requested]': 'true', 'metadata[restaurant_id]': String(restaurantId) };
       if (/^[A-Z]{2}$/.test(country || '')) params.country = country;
       if (email) params.email = email;
-      const account = await call('POST', 'accounts', params, { idempotencyKey: 'mk-connect-account-' + restaurantId });
+      // Short-lived key: protects against a double click, but a failed attempt is not replayed for 24 hours.
+      const account = await call('POST', 'accounts', params, { idempotencyKey: 'mk-connect-account-' + restaurantId + '-' + Math.floor(Date.now() / 60000) });
       if (!ACCOUNT.test(account?.id || '')) throw new Error('Invalid account');
       return { accountId: account.id };
     },

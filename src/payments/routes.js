@@ -10,9 +10,13 @@ import express from 'express';
 import { requireAuth } from '../auth.js';
 import { audit, rateLimit } from '../security.js';
 import { getProvider } from './provider.js';
+import { maskText } from '../observability.js';
 import { ensurePaymentsTables, paymentAccount, saveAccount, applyPaymentEvent, refundOrder, revenueReport, orderProvider } from './service.js';
 
 const safeCode = error => /^[A-Za-z][A-Za-z0-9_]{1,63}$/.test(error?.code ?? '') ? error.code : 'UNKNOWN';
+// Provider error details for logs: Stripe's message and the parameter it rejected (no keys or card data).
+const providerDetail = error => ({ status: error?.status, code: safeCode(error), param: error?.param || undefined, message: maskText(error?.stripeMessage || '') || undefined });
+export const COUNTRY_NOT_SUPPORTED = 'Stripe card payments are not available for businesses in your country yet. Use cash, JazzCash, Easypaisa or a bank transfer under "Bank & wallet accounts".';
 
 export function paymentsWebhookRouter(pool, { providerFor = name => getProvider(name) } = {}) {
   const router = express.Router();
@@ -57,7 +61,9 @@ export function paymentsRouter(pool, { providerFor = () => orderProvider(), base
   const base = '/api/restaurants/:restaurantId/payments/online';
   const view = async (restaurantId, provider) => {
     const account = await paymentAccount(pool, restaurantId, provider?.name);
-    return { configured: Boolean(provider), provider: provider?.name ?? null, test_mode: provider ? !provider.live : null,
+    const [[restaurant]] = await pool.execute('SELECT country_code FROM restaurants WHERE id=? LIMIT 1', [restaurantId]);
+    const countrySupported = provider?.supportsCountry ? provider.supportsCountry(restaurant?.country_code) : Boolean(provider);
+    return { configured: Boolean(provider), provider: provider?.name ?? null, test_mode: provider ? !provider.live : null, country_supported: countrySupported,
       connected: Boolean(account), charges_enabled: Boolean(account?.chargesEnabled), online_enabled: Boolean(account?.onlineEnabled && account?.chargesEnabled) };
   };
 
@@ -71,6 +77,7 @@ export function paymentsRouter(pool, { providerFor = () => orderProvider(), base
     if (!provider?.createAccount) return res.status(503).json({ error: 'Online payment is not available yet' });
     try {
       let account = await paymentAccount(pool, req.restaurant.id, provider.name);
+      if (!account && provider.supportsCountry && !provider.supportsCountry(req.restaurant.country_code)) return res.status(409).json({ error: COUNTRY_NOT_SUPPORTED, country_supported: false });
       if (!account) {
         const created = await provider.createAccount({ country: req.restaurant.country_code, email: req.user.email, restaurantId: req.restaurant.id });
         await saveAccount(pool, req.restaurant.id, { accountId: created.accountId, chargesEnabled: false, onlineEnabled: false }, provider.name);
@@ -80,7 +87,9 @@ export function paymentsRouter(pool, { providerFor = () => orderProvider(), base
       await audit(pool, { actorUserId: req.user.id, restaurantId: req.restaurant.id, action: 'payments.connect:' + provider.name });
       res.json({ url: link.url });
     } catch (error) {
-      console.error(JSON.stringify({ event: 'payments_connect_failed', status: error?.status, code: safeCode(error) }));
+      console.error(JSON.stringify({ event: 'payments_connect_failed', ...providerDetail(error) }));
+      // A 4xx from Stripe will fail the same way again: say why instead of "try again".
+      if (error?.status >= 400 && error?.status < 500 && error?.stripeMessage) return res.status(409).json({ error: 'Stripe: ' + error.stripeMessage });
       res.status(502).json({ error: 'Could not open the payment setup. Please try again in a minute.' });
     }
   });
@@ -95,7 +104,7 @@ export function paymentsRouter(pool, { providerFor = () => orderProvider(), base
       await saveAccount(pool, req.restaurant.id, { accountId: account.accountId, chargesEnabled: status.chargesEnabled, onlineEnabled: status.chargesEnabled ? null : false }, provider.name);
       res.json(await view(req.restaurant.id, provider));
     } catch (error) {
-      console.error(JSON.stringify({ event: 'payments_refresh_failed', status: error?.status, code: safeCode(error) }));
+      console.error(JSON.stringify({ event: 'payments_refresh_failed', ...providerDetail(error) }));
       res.status(502).json({ error: 'Payment provider unavailable' });
     }
   });
@@ -122,7 +131,7 @@ export function paymentsRouter(pool, { providerFor = () => orderProvider(), base
       if (result.status === 200) await audit(pool, { actorUserId: req.user.id, restaurantId: req.restaurant.id, action: 'payments.refund:order#' + orderId });
       res.status(result.status).json(result.body);
     } catch (error) {
-      console.error(JSON.stringify({ event: 'payments_refund_failed', status: error?.status, code: safeCode(error) }));
+      console.error(JSON.stringify({ event: 'payments_refund_failed', ...providerDetail(error) }));
       res.status(502).json({ error: 'The refund could not be made. Check the payment in your Stripe dashboard.' });
     }
   });

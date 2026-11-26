@@ -9,6 +9,11 @@
     box.hidden = !state.configured;
     if (!state.configured) return;
     const status = $('online-pay-status');
+    if (state.country_supported === false && !state.connected) {
+      status.textContent = 'Stripe card payments are not available for businesses in your country yet. Use cash, JazzCash, Easypaisa or a bank transfer below.';
+      for (const id of ['online-pay-connect', 'online-pay-refresh', 'online-pay-toggle-wrap']) $(id).hidden = true;
+      return;
+    }
     status.textContent = !state.connected ? 'Not set up yet. Setup takes about 5 minutes on Stripe (business and bank details).'
       : !state.charges_enabled ? 'Stripe is still checking your details. Finish the setup, then press "Check status".'
       : state.online_enabled ? 'On: customers can pay by card at checkout.' : 'Ready. Turn it on to show “Pay online now” at checkout.';

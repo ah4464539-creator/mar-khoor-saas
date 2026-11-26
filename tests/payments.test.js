@@ -199,3 +199,28 @@ test('payments on MariaDB: online order → verified webhook → paid → refund
     await pool.end();
   }
 });
+
+test('Stripe Connect: unsupported countries (e.g. Pakistan) are refused up front', () => {
+  const provider = createStripeProvider(config, { env: {} });
+  assert.equal(provider.supportsCountry('PK'), false);
+  assert.equal(provider.supportsCountry('us'), true);
+  assert.equal(provider.supportsCountry('AE'), true);
+  assert.equal(provider.supportsCountry(null), false);
+  const custom = createStripeProvider(config, { env: { STRIPE_CONNECT_COUNTRIES: 'pk, gb' } });
+  assert.equal(custom.supportsCountry('PK'), true, 'override when Stripe adds a country');
+  assert.equal(custom.supportsCountry('US'), false);
+});
+
+test("Stripe errors keep Stripe's message, and a failed account creation is not replayed for 24 hours", async () => {
+  const calls = [];
+  const fetcher = async (url, options) => { calls.push(options.headers['Idempotency-Key']); return { ok: false, status: 400, json: async () => ({ error: { message: 'Connected accounts in this country are not supported.', param: 'country' } }) }; };
+  const provider = createStripeProvider(config, { fetcher });
+  const error = await provider.createAccount({ country: 'US', email: 'o@example.com', restaurantId: 8 }).catch(e => e);
+  assert.equal(error.status, 400);
+  assert.equal(error.stripeMessage, 'Connected accounts in this country are not supported.');
+  assert.equal(error.param, 'country');
+  assert.match(calls[0], /^mk-connect-account-8-\d+$/, 'key changes every minute');
+  const routes = readFileSync('src/payments/routes.js', 'utf8');
+  assert.match(routes, /COUNTRY_NOT_SUPPORTED/);
+  assert.match(routes, /'Stripe: ' \+ error\.stripeMessage/);
+});
