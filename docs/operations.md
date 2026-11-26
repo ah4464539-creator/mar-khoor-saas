@@ -20,7 +20,7 @@
 - **More limits:** every dynamic route has a per-IP baseline of 600 requests a minute; provider webhooks have a ceiling of 1,200 a minute.
 - **JSON guard:** bodies with `__proto__` / `constructor` / `prototype` keys, or nested deeper than 20 levels, are rejected with 400.
 - **More headers:** `Content-Security-Policy: object-src 'none'; base-uri 'self'` on every page (generated sites keep their strict CSP), `X-Permitted-Cross-Domain-Policies: none`, `Cross-Origin-Opener-Policy: same-origin-allow-popups`.
-- **Retention (built in):** a daily job inside the Node service (first run 10 minutes after start) clears:
+- **Retention (built in, opt-in):** with `RETENTION_WORKER_ENABLED=1` (set it on production only; Hostinger PR previews share the production database), a daily job inside the Node service (first run 10 minutes after start) clears:
   - WhatsApp message text older than `MESSAGE_RETENTION_DAYS` (90);
   - call transcripts, transcript lines, summaries and recording links older than `TRANSCRIPT_RETENTION_DAYS` (30);
   - expired sessions and reset links;

@@ -10,7 +10,7 @@
   - WhatsApp AI worker, every ~5 s;
   - booking reminders, every 10 min;
   - custom-domain setup, every 3 min;
-  - data retention, daily;
+  - data retention, daily, only with `RETENTION_WORKER_ENABLED=1` (production only);
   - AI Caller number retry, every 15 min.
 
 ## Environment variables
@@ -28,6 +28,9 @@ The full list with purposes is in the README ("Environment variables"); placehol
 | Vapi | `https://mar-khoor.com/integrations/webhooks/vapi` (tools optionally `https://mar-khoor.com/integrations/vapi/tools`) |
 | Stripe plans and tools | `https://mar-khoor.com/webhooks/stripe` |
 | Stripe Connect order payments | `https://mar-khoor.com/webhooks/payments/stripe` |
+
+## PR previews share production
+The Hostinger PR previews (`*.hostingersite.com` links on each PR) start with the production environment variables, so they use the **production database and provider keys**. Their background workers (WhatsApp AI replies, booking reminders) can act on real customers while a preview is up. Treat previews as production: keep PRs short-lived, and give previews a separate database or turn their workers off if Hostinger lets you set preview-only variables.
 
 ## Remaining go-live items
 - Real end-to-end checks with provider accounts: Meta number, Vapi call, Stripe test then live keys.

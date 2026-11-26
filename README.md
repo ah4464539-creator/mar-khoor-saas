@@ -85,7 +85,8 @@ Set them in hPanel → Websites → mar-khoor.com → Node.js → Environment va
 | --- | --- |
 | `ERROR_TRACKING_WEBHOOK_URL` | HTTPS webhook (Slack / Discord / collector) for error alerts |
 | `APP_RELEASE`, `LOG_LEVEL` (`info`), `SLOW_REQUEST_MS` (3000) | Release tag in logs and alerts; log level; slow-request threshold |
-| `MESSAGE_RETENTION_DAYS` (90), `TRANSCRIPT_RETENTION_DAYS` (30), `AUDIT_RETENTION_DAYS` (365), `RETENTION_WORKER_ENABLED` | Automatic deletion of old personal text (see the privacy page) |
+| `MESSAGE_RETENTION_DAYS` (90), `TRANSCRIPT_RETENTION_DAYS` (30), `AUDIT_RETENTION_DAYS` (365) | Retention periods (see the privacy page) |
+| `RETENTION_WORKER_ENABLED` | `1` = run the daily clean-up in the app. Set on **production only**: PR previews share the production database |
 
 **WhatsApp (Meta Cloud API)**
 | Name | Purpose |

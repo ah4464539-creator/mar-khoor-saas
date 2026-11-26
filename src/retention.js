@@ -5,8 +5,9 @@
 //                            AUDIT_RETENTION_DAYS 365      audit log rows
 // Each restaurant may set its own period (7-365 days) in Dashboard → AI receptionist → Privacy; it then
 // applies to that restaurant's messages and transcripts. Rows stay (dates, status, order links); only
-// the personal text is cleared. Runs daily inside the Node service (RETENTION_WORKER_ENABLED=0 turns it
-// off) and on demand with `npm run purge-old-data`. Additive table: db/migrations/2026-11-26-retention.sql.
+// the personal text is cleared. Runs daily inside the Node service only when RETENTION_WORKER_ENABLED=1
+// (opt-in: Hostinger PR previews share the production database and must never purge it), and on demand
+// with `npm run purge-old-data`. Additive table: db/migrations/2026-11-26-retention.sql.
 import { heartbeat, registerWorker, workerDisabled, log } from './observability.js';
 
 export const RETENTION_SQL = `CREATE TABLE IF NOT EXISTS restaurant_privacy_settings (
@@ -76,7 +77,7 @@ export async function purgeOldData(pool, { env = process.env, logger = log } = {
 
 /** Daily purge inside the Node service (first run 10 minutes after start). */
 export function startRetentionWorker(pool, { env = process.env, intervalMs = 24 * 60 * 60 * 1000 } = {}) {
-  if (env.RETENTION_WORKER_ENABLED === '0') { workerDisabled('retention', 'RETENTION_WORKER_ENABLED=0'); return null; }
+  if (String(env.RETENTION_WORKER_ENABLED ?? '').trim() !== '1') { workerDisabled('retention', 'set RETENTION_WORKER_ENABLED=1 on production to run the daily clean-up'); return null; }
   registerWorker('retention', { intervalMs });
   const run = () => purgeOldData(pool, { env }).then(() => heartbeat('retention')).catch(error => { log.warn('retention_purge_failed', { step: error?.step, code: error?.code }); heartbeat('retention', { ok: false, error }); });
   setTimeout(run, 10 * 60 * 1000).unref?.();

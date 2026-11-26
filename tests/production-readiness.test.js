@@ -111,6 +111,15 @@ test('retention settings: defaults, owner range, every step defined', () => {
   assert.match(readFileSync('scripts/purge-old-data.js', 'utf8'), /purgeOldData/);
 });
 
+test('the daily retention job is opt-in (previews share the production database)', async () => {
+  const { startRetentionWorker } = await import('../src/retention.js');
+  resetWorkers();
+  assert.equal(startRetentionWorker({}, { env: {} }), null);
+  assert.equal(startRetentionWorker({}, { env: { RETENTION_WORKER_ENABLED: '0' } }), null);
+  assert.equal(workerHealth().workers.find(w => w.name === 'retention').status, 'disabled');
+  resetWorkers();
+});
+
 test('retention skips tables that do not exist yet', async () => {
   const pool = { async query(sql) { if (/voice_call_(transcript_lines|details)/.test(sql)) throw Object.assign(Error('missing'), { code: 'ER_NO_SUCH_TABLE' }); return [{ affectedRows: 1 }]; } };
   const quiet = { info() {} };
