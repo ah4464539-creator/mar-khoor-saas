@@ -137,7 +137,6 @@ app.get('/health/database', async (_req, res) => {
 app.use(jsonErrorHandler);
 const port = Number(process.env.PORT || 3001);
 app.listen(port, () => {
-  console.log(`Mar-Khoor API listening on ${port}`);
   log.info('server_started', { port, release: process.env.APP_RELEASE || null });
   startWhatsAppAIWorker(pool);
   startReminderWorker(pool);
