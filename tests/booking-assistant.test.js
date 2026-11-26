@@ -82,7 +82,8 @@ test('calls: booking tools added once, with the order tool server and the bookin
   assert.equal(clinic.messages[0].content.split('[[MK-BUSINESS]]').length, 2);
   assert.ok(clinic.messages[0].content.startsWith('You are a host.'));
   assert.equal(clinic.tools.length, 7);
-  const adapter = readFileSync('src/vapi-adapter.js', 'utf8');
-  assert.match(adapter, /VOICE_BOOKING_TOOLS\.includes\(name\)/);
+  // Tool dispatch lives in the shared runner used by the tool URL and the main Vapi webhook.
+  assert.match(readFileSync('src/vapi-tool-runner.js', 'utf8'), /VOICE_BOOKING_TOOLS\.includes\(name\)/);
+  assert.match(readFileSync('src/vapi-adapter.js', 'utf8'), /runVapiToolCalls/);
   assert.match(readFileSync('src/integrations.js', 'utf8'), /bconfirm\|bchange/);
 });

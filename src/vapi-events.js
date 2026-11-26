@@ -1,15 +1,18 @@
 // Vapi server-message (webhook) processing: call lifecycle tracking.
 //
 // Supported message types (per Vapi's server events documentation):
-//   status-update       { message: { type, call, status } }
-//   end-of-call-report  { message: { type, endedReason, call, artifact: { transcript } } }
-// Anything else is acknowledged and ignored. Tool calls are handled by the
-// separate /integrations/vapi/tools adapter, never here.
+//   status-update       { message: { type, call, status } }       ('in-progress' = call started)
+//   end-of-call-report  { message: { type, endedReason, call, artifact: { transcript, recordingUrl },
+//                         analysis: { summary }, durationSeconds, customer } }
+//   transcript          { message: { type, role, transcriptType: 'final', transcript, call } }
+// Tool calls (`tool-calls`) and `transfer-destination-request` need a response body and are
+// answered by the webhook route in integrations.js. Anything else is acknowledged and ignored.
 //
 // Tenant identity is never taken from the payload: the restaurant is resolved
 // from the server-side voice_assistants mapping.
 
 import { notifyCallEnded } from './web-push.js';
+import { callDetails, saveCallDetails, transcriptLine, saveTranscriptLine } from './vapi-call-log.js';
 import crypto from 'node:crypto';
 import { resolveIncomingWhatsAppSip } from './whatsapp-sip-routing.js';
 import { emitWhatsAppCallLog, sipFailClosedEnabled } from './whatsapp-sip-identifiers.js';
@@ -26,13 +29,15 @@ export function parseVapiEvent(payload) {
   const message = payload?.message;
   if (!message || typeof message !== 'object' || Array.isArray(message)) return { kind: 'ignored', reason: 'no_message' };
   const type = message.type;
-  if (type !== 'status-update' && type !== 'end-of-call-report') return { kind: 'ignored', reason: 'unsupported_type' };
+  const line = typeof type === 'string' && type.startsWith('transcript') ? transcriptLine(message) : null;
+  if (type !== 'status-update' && type !== 'end-of-call-report' && !line) return { kind: 'ignored', reason: 'unsupported_type' };
 
   const assistantId = message.assistant?.id || message.assistantId || message.call?.assistantId || message.call?.assistant?.id;
   const callId = message.call?.id;
   if (typeof assistantId !== 'string' || !ASSISTANT_ID.test(assistantId)) return { kind: 'ignored', reason: 'invalid_assistant' };
   if (typeof callId !== 'string' || !CALL_ID.test(callId)) return { kind: 'ignored', reason: 'invalid_call' };
 
+  if (line) return { kind: 'transcript', assistantId, callId, line };
   if (type === 'status-update') {
     if (typeof message.status !== 'string' || !STATUSES.has(message.status)) return { kind: 'ignored', reason: 'invalid_status' };
     return { kind: 'status-update', assistantId, callId, status: message.status };
@@ -42,7 +47,7 @@ export function parseVapiEvent(payload) {
   const rawTranscript = typeof message.artifact?.transcript === 'string' ? message.artifact.transcript
     : typeof message.transcript === 'string' ? message.transcript : null;
   const transcript = rawTranscript ? rawTranscript.slice(0, MAX_TRANSCRIPT) : null;
-  return { kind: 'end-of-call-report', assistantId, callId, status: 'ended', endedReason: reason, transcript };
+  return { kind: 'end-of-call-report', assistantId, callId, status: 'ended', endedReason: reason, transcript, details: callDetails(message) };
 }
 
 // Persists the event. Idempotent: replays and retries are safe, and a call that
@@ -51,31 +56,13 @@ export function parseVapiEvent(payload) {
 export async function processVapiEvent(pool, payload) {
   const event = parseVapiEvent(payload);
   if (event.kind === 'ignored') return { processed: false, reason: event.reason };
+  const resolved = await resolveCallRestaurant(pool, payload, event);
+  if (resolved.reason) return { processed: false, reason: resolved.reason };
+  const restaurantId = resolved.restaurantId;
 
-  const route = sipFailClosedEnabled()
-    ? await resolveIncomingWhatsAppSip(pool, { call: payload.message?.call, assistantId: event.assistantId })
-    : { scope: 'other' };
-  if (route.scope === 'rejected') {
-    emitWhatsAppCallLog(console, { source: 'vapi', vapiCallId: event.callId,
-      vapiPhoneNumberId: route.vapiPhoneNumberId, businessNumber: route.businessNumber,
-      assistantId: event.assistantId, sipStatus: event.status,
-      sipResponse: payload.message?.call?.sip?.responseCode, decision: route.reason });
-    return { processed: false, reason: 'sip_route_rejected' }; // never infer tenant from assistant name
-  }
-  let restaurantId;
-  if (route.scope === 'validated') {
-    restaurantId = route.tenantId; // resolved against the authoritative active Meta phone mapping
-    emitWhatsAppCallLog(console, { source: 'vapi', vapiCallId: event.callId,
-      vapiPhoneNumberId: route.vapiPhoneNumberId, businessNumber: route.businessNumber,
-      tenantId: restaurantId, assistantId: event.assistantId, sipStatus: event.status,
-      sipResponse: payload.message?.call?.sip?.responseCode, decision: 'allow' });
-  } else {
-    const [mapped] = await pool.execute(
-      'SELECT restaurant_id FROM voice_assistants WHERE assistant_id=? AND active=1 LIMIT 1',
-      [event.assistantId]
-    );
-    if (!mapped.length) return { processed: false, reason: 'assistant_not_mapped' };
-    restaurantId = mapped[0].restaurant_id;
+  if (event.kind === 'transcript') {
+    await saveTranscriptLine(pool, { assistantId: event.assistantId, callId: event.callId, restaurantId, line: event.line });
+    return { processed: true };
   }
 
   if (event.kind === 'status-update') {
@@ -92,8 +79,47 @@ export async function processVapiEvent(pool, payload) {
     "ON DUPLICATE KEY UPDATE status='ended',ended_reason=COALESCE(VALUES(ended_reason),ended_reason),transcript=COALESCE(VALUES(transcript),transcript),ended_at=COALESCE(ended_at,NOW())",
     [event.assistantId, event.callId, restaurantId, event.endedReason, event.transcript]
   );
+  const d = event.details;
+  if (d && (d.callerNumber || d.durationSeconds !== null || d.summary || d.recordingUrl)) {
+    // Extra details are best effort: the call row above is what the dashboard needs first.
+    try { await saveCallDetails(pool, { assistantId: event.assistantId, callId: event.callId, restaurantId, details: d }); }
+    catch (error) { console.warn(JSON.stringify({ event: 'vapi_call_details_failed', code: /^[A-Z][A-Z0-9_]{1,63}$/.test(error?.code ?? '') ? error.code : 'UNKNOWN' })); }
+  }
   notifyCallEnded(pool, { restaurantId, callId: event.callId, reason: event.endedReason });
   return { processed: true };
+}
+
+/**
+ * The restaurant a call belongs to: the validated WhatsApp SIP route when fail-closed routing is on,
+ * otherwise the active voice_assistants mapping. Returns { restaurantId } or { reason }.
+ */
+export async function resolveCallRestaurant(pool, payload, event) {
+  const route = sipFailClosedEnabled()
+    ? await resolveIncomingWhatsAppSip(pool, { call: payload.message?.call, assistantId: event.assistantId })
+    : { scope: 'other' };
+  if (route.scope === 'rejected') {
+    emitWhatsAppCallLog(console, { source: 'vapi', vapiCallId: event.callId,
+      vapiPhoneNumberId: route.vapiPhoneNumberId, businessNumber: route.businessNumber,
+      assistantId: event.assistantId, sipStatus: event.status,
+      sipResponse: payload.message?.call?.sip?.responseCode, decision: route.reason });
+    return { reason: 'sip_route_rejected' }; // never infer tenant from assistant name
+  }
+  let restaurantId;
+  if (route.scope === 'validated') {
+    restaurantId = route.tenantId; // resolved against the authoritative active Meta phone mapping
+    emitWhatsAppCallLog(console, { source: 'vapi', vapiCallId: event.callId,
+      vapiPhoneNumberId: route.vapiPhoneNumberId, businessNumber: route.businessNumber,
+      tenantId: restaurantId, assistantId: event.assistantId, sipStatus: event.status,
+      sipResponse: payload.message?.call?.sip?.responseCode, decision: 'allow' });
+  } else {
+    const [mapped] = await pool.execute(
+      'SELECT restaurant_id FROM voice_assistants WHERE assistant_id=? AND active=1 LIMIT 1',
+      [event.assistantId]
+    );
+    if (!mapped.length) return { reason: 'assistant_not_mapped' };
+    restaurantId = mapped[0].restaurant_id;
+  }
+  return { restaurantId };
 }
 
 // Verifies a Vapi HMAC credential: signature = HMAC-SHA256(secret, `${timestamp}.${rawBody}`),

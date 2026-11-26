@@ -1,6 +1,8 @@
 import express from 'express';
 import crypto from 'node:crypto';
-import {parseVapiEvent,processVapiEvent,verifyVapiHmac} from './vapi-events.js';
+import {parseVapiEvent,processVapiEvent,verifyVapiHmac,resolveCallRestaurant} from './vapi-events.js';
+import {runVapiToolCalls,assistantIdOf} from './vapi-tool-runner.js';
+import {transferDestination} from './vapi-transfer.js';
 import {saveInboundMedia} from './whatsapp-orders.js';
 import {notifyWhatsAppMessage} from './web-push.js';
 import {getCallingState} from './whatsapp-calling.js';
@@ -31,7 +33,20 @@ export function integrationRouter(pool){
   let payload;
   try{payload=JSON.parse(req.body.toString('utf8'))}catch{return res.status(400).json({error:'Invalid JSON'})}
   if(!payload||typeof payload!=='object'||Array.isArray(payload))return res.status(400).json({error:'Invalid event'});
-  // Only call lifecycle events (status-update, end-of-call-report) are stored. Everything else is acknowledged and ignored.
+  const type=payload.message?.type;
+  // Tool calls need the results in the response (same tools as /integrations/vapi/tools).
+  if(type==='tool-calls'){
+   if(!pool)return res.status(503).json({error:'Tools unavailable'});
+   try{const outcome=await runVapiToolCalls(pool,payload.message);return res.status(outcome.status).json(outcome.body);}
+   catch{return res.status(503).json({error:'Tools unavailable'});}
+  }
+  // A transferCall tool without a fixed number asks where to send the caller: the restaurant's reception.
+  if(type==='transfer-destination-request'){
+   if(!pool)return res.status(503).json({error:'Transfer unavailable'});
+   try{return res.status(200).json(await transferDestination(pool,payload,{resolve:resolveCallRestaurant,assistantId:assistantIdOf(payload.message)}));}
+   catch{return res.status(200).json({error:'Transfer unavailable'});}
+  }
+  // Call lifecycle (status-update, end-of-call-report) and final transcript lines are stored. Everything else is acknowledged and ignored.
   if(parseVapiEvent(payload).kind==='ignored')return res.status(202).json({received:true,processed:false});
   if(!pool)return res.status(503).json({error:'Call storage unavailable'});
   try{

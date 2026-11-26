@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="/summit.css?v=20261122-n3">
-<link rel="stylesheet" href="/owner.css?v=20261122-n2">
+<link rel="stylesheet" href="/owner.css?v=20261126-c1">
 <script src="/session-guard.js?v=20261122-1"></script>
 <script src="/i18n.js?v=20261122-n1" data-position="right" defer></script>
 </head>
@@ -69,6 +69,7 @@
    <span class="nav-label">Channels</span>
    <a data-admin-only href="#whatsapp-inbox-view"><svg aria-hidden="true"><use href="#i-chat"/></svg><span>WhatsApp inbox</span></a>
    <a data-admin-only href="#whatsapp-outgoing-view"><svg aria-hidden="true"><use href="#i-send"/></svg><span>Outgoing messages</span></a>
+   <a data-admin-only href="#call-history"><svg aria-hidden="true"><use href="#i-phone"/></svg><span>AI calls</span></a>
    <span class="nav-label">Account</span>
    <a data-admin-only href="#plan"><svg aria-hidden="true"><use href="#i-card"/></svg><span>Plans &amp; billing</span></a>
   </div>
@@ -529,6 +530,16 @@
  <div class="card card-pad"><div id="whatsapp-outbound" class="message-list muted"></div></div>
 </section>
 
+<section class="owner-view owner-message-view" id="call-history" data-title="AI calls" hidden>
+ <h2 tabindex="-1" class="visually-hidden">AI call history</h2>
+ <div class="card card-pad"><div class="card-head"><p class="small muted">Calls answered by your AI Caller: who called, how long, what was said, and any order or booking it took. Orders from calls stay pending until you confirm them.</p><button type="button" class="btn btn-ghost btn-sm" id="call-history-refresh">Refresh</button></div>
+  <ul id="call-history-list" class="call-list"></ul>
+  <p class="small muted" id="call-history-status" role="status"></p>
+  <button type="button" class="btn btn-ghost btn-sm" id="call-history-more" hidden>Older calls</button>
+ </div>
+ <div class="card card-pad" id="call-detail" hidden><div class="card-head"><h2>Call details</h2><button type="button" class="btn btn-quiet btn-sm" id="call-detail-close">Close</button></div><div id="call-detail-body" translate="no"></div></div>
+</section>
+
 <dialog id="setup-dialog" aria-labelledby="setup-title">
 <form id="setup-form" novalidate>
 <div class="setup-head"><p class="tag tag-ember" id="setup-step-label">Step 1 of 4</p><button type="button" id="defer-setup" class="btn btn-quiet btn-sm">Skip for now</button></div>
@@ -648,7 +659,8 @@
 <script src="/site-content.js?v=20261122-1"></script>
 <script src="/owner-app.js?v=20261122-2"></script>
 <script src="/bookings.js?v=20261122-12"></script>
-<script type="module" src="/restaurant.js?v=20261122-s37"></script>
+<script src="/call-history.js?v=20261126-1"></script>
+<script type="module" src="/restaurant.js?v=20261126-c1"></script>
 <script>document.getElementById("login-show-password")?.addEventListener("change",function(){document.getElementById("password").type=this.checked?"text":"password"});</script>
 </body>
 </html>
