@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import express from 'express';
 import mysql from 'mysql2/promise';
-import { createLogger, redact, maskText, requestId, reportError, resetErrorThrottle, registerWorker, workerDisabled, heartbeat, workerHealth, resetWorkers, errorTrackingUrl } from '../src/observability.js';
+import { EventEmitter } from 'node:events';
+import { installProcessHandlers, createLogger, redact, maskText, requestId, reportError, resetErrorThrottle, registerWorker, workerDisabled, heartbeat, workerHealth, resetWorkers, errorTrackingUrl } from '../src/observability.js';
 import { securityHeaders, inspectJson, jsonGuard } from '../src/security.js';
 import { retentionConfig, validRetentionDays, purgeStatements, purgeOldData, RETENTION_SQL } from '../src/retention.js';
 
@@ -152,4 +153,19 @@ test('retention on MariaDB clears old message text, honours the restaurant setti
     for (const id of ids) await pool.execute('DELETE FROM restaurants WHERE id=?', [id]).catch(() => {});
     await pool.end();
   }
+});
+
+test('uncaught exceptions exit only when no hosting wrapper handles them', async () => {
+  const quiet = { error() {}, warn() {}, info() {} };
+  const alone = new EventEmitter(); const exits = [];
+  installProcessHandlers({ logger: quiet, exit: code => exits.push(code), target: alone });
+  alone.emit('uncaughtException', new Error('boom'));
+  await new Promise(r => setTimeout(r, 20));
+  assert.deepEqual(exits, [1], 'alone: same as Node default');
+  const wrapped = new EventEmitter(); const kept = [];
+  wrapped.on('uncaughtException', () => {}); // e.g. the host's loader keeping the app alive
+  installProcessHandlers({ logger: quiet, exit: code => kept.push(code), target: wrapped });
+  wrapped.emit('uncaughtException', new Error('boom'));
+  await new Promise(r => setTimeout(r, 20));
+  assert.deepEqual(kept, [], 'never kill a process the host keeps alive');
 });

@@ -103,16 +103,22 @@ export async function reportError(error, context = {}, { env = process.env, fetc
 }
 export function resetErrorThrottle() { recent.clear(); windowStart = 0; sentInWindow = 0; }
 
-/** Logs and reports process-level failures. An uncaught exception still ends the process (Hostinger restarts it). */
-export function installProcessHandlers({ logger = log, exit = code => process.exit(code) } = {}) {
-  process.on('unhandledRejection', reason => {
+/**
+ * Logs and reports process-level failures. Behaviour is otherwise unchanged: an uncaught exception
+ * ends the process only when nothing else handles it (Node's default). Hosting wrappers such as
+ * Hostinger's Node.js loader may install their own handler to keep the app alive; we never override that.
+ */
+export function installProcessHandlers({ logger = log, exit = code => process.exit(code), target = process } = {}) {
+  target.on('unhandledRejection', reason => {
     logger.error('unhandled_rejection', { name: reason?.name, message: reason?.message });
     reportError(reason instanceof Error ? reason : new Error(String(reason)), { event: 'unhandled_rejection' });
   });
-  process.on('uncaughtException', error => {
+  const onUncaught = error => {
     logger.error('uncaught_exception', { name: error?.name, message: error?.message });
-    Promise.race([reportError(error, { event: 'uncaught_exception' }), new Promise(r => setTimeout(r, 2000))]).finally(() => exit(1));
-  });
+    const report = Promise.race([reportError(error, { event: 'uncaught_exception' }), new Promise(r => setTimeout(r, 2000))]);
+    if (target.listenerCount('uncaughtException') <= 1) report.finally(() => exit(1));
+  };
+  target.on('uncaughtException', onUncaught);
 }
 
 // ---- Worker health ----
