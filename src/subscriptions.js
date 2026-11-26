@@ -5,7 +5,8 @@
 // SUBSCRIPTION_PRICES_JSON {"USD":{...}}) and are converted automatically to each restaurant's
 // currency with daily exchange rates. An explicit per-currency entry in SUBSCRIPTION_PRICES_JSON
 // (e.g. {"PKR":{...}}) wins over conversion. Without a rate the price is shown in USD.
-// Usage never stops service at the limit.
+// Usage limits are enforced in usage-limits.js: the AI pauses for a channel at limit + 10% grace
+// (USAGE_LIMIT_MODE=soft restores "never stop").
 import { convertUsdMinor } from './fx-rates.js';
 
 export const BASE_CURRENCY = 'USD';

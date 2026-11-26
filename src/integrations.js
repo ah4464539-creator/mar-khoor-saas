@@ -2,6 +2,7 @@ import express from 'express';
 import crypto from 'node:crypto';
 import {parseVapiEvent,processVapiEvent,verifyVapiHmac} from './vapi-events.js';
 import {saveInboundMedia} from './whatsapp-orders.js';
+import {withinLimit} from './usage-limits.js';
 import {notifyWhatsAppMessage} from './web-push.js';
 import {getCallingState} from './whatsapp-calling.js';
 import {emitWhatsAppCallLog,safeCallIdentifier,sipFailClosedEnabled} from './whatsapp-sip-identifiers.js';
@@ -127,7 +128,10 @@ export function integrationRouter(pool){
     processed+=result.affectedRows;
     if(result.affectedRows)notifyWhatsAppMessage(pool,{restaurantId:mapped[0].restaurant_id,sender:msg.from,type:msg.type,text:msg.body});
     if(msg.mediaId){try{await saveInboundMedia(pool,msg.id,msg.mediaId,msg.mime);}catch{msg.mediaId=null;}}
-    if(((msg.type==='text'||msg.type==='interactive'||msg.type==='button')&&msg.body?.trim())||msg.mediaId){
+    // Monthly WhatsApp AI replies (plan limit + grace) used up: the message stays in the inbox for staff, no AI job.
+    const wantsAi=((msg.type==='text'||msg.type==='interactive'||msg.type==='button')&&msg.body?.trim())||msg.mediaId;
+    if(wantsAi&&result.affectedRows&&!await withinLimit(pool,Number(mapped[0].restaurant_id),'whatsapp_messages')){console.log('WhatsApp message for restaurant #'+mapped[0].restaurant_id+': monthly AI reply limit reached, no AI reply');continue;}
+    if(wantsAi){
      const [job]=await pool.execute("INSERT INTO whatsapp_ai_jobs(inbound_message_id,restaurant_id) SELECT m.message_id,m.restaurant_id FROM whatsapp_inbound_messages m JOIN whatsapp_ai_settings s ON s.restaurant_id=m.restaurant_id AND s.enabled=1 WHERE m.message_id=? AND m.restaurant_id=? AND m.phone_number_id=? ON DUPLICATE KEY UPDATE inbound_message_id=inbound_message_id",[msg.id,mapped[0].restaurant_id,msg.phoneId]);
      console.log('WhatsApp message for restaurant #'+mapped[0].restaurant_id+': '+(job.affectedRows?'AI reply queued':'AI replies are off for this restaurant'));
     }

@@ -4,6 +4,7 @@ import { getPilotIds, setPilot, workerSwitch, setWorkerSwitch } from './whatsapp
 import { enableCalling, disableCalling, callingStatus, getCallingState } from './whatsapp-calling.js';
 import { getSignupConfig, saveSignupConfig } from './whatsapp-signup-core.js';
 import express from 'express';
+import { onlinePaymentsAvailable } from './payments/service.js';
 import { requireAuth } from './auth.js';
 import { audit } from './security.js';
 import { deletePreview, deleteRestaurant } from './restaurant-delete.js';
@@ -198,6 +199,8 @@ export function apiRouter(pool) {
    const restaurant=restaurants[0];
    const [items]=await pool.execute('SELECT id,name,description,price_minor,category,image_url FROM menu_items WHERE restaurant_id=? AND active=1 ORDER BY id',[restaurant.id]);
    const payment_options=publicPaymentOptions(await loadPaymentSettings(pool,restaurant.id));
+   // Online card payment is offered after cash (cash stays the default) when the restaurant switched it on.
+   if(await onlinePaymentsAvailable(pool,restaurant.id))payment_options.push({key:'online',type:'online',label:'Pay online now (card)'});
    res.json({restaurant,items,payment_options});
    trackSiteEvent(pool,restaurant.id,'menu_views',req);
   } catch {res.status(503).json({error:'Database unavailable'});}

@@ -9,6 +9,7 @@ import { loadRestaurant, loadSite, saveSite, canPublish, setPublished, loadPubli
 import { audit, rateLimit } from './security.js';
 import { restaurantAssistantInstructions } from './restaurant-assistant-policy.js';
 import { recordUsage } from './subscriptions.js';
+import { withinLimit } from './usage-limits.js';
 import { buildRestaurantChatInput, normalizeAssistantHistory } from './restaurant-chat-context.js';
 import { classifyAssistantProviderFailure } from './ai-provider-diagnostics.js';
 import { trackSiteEvent, loadSiteAnalytics } from './site-analytics.js';
@@ -198,6 +199,8 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
     };
     const key = process.env.OPENAI_API_KEY;
     if (!key) return fallback('missing_key');
+    // Monthly AI chats (plan limit + grace) used up: the menu fallback answers instead of the AI.
+    if (Number.isSafeInteger(Number(site.restaurant?.id)) && !await withinLimit(pool, Number(site.restaurant.id), 'ai_chats')) return fallback('usage_limit');
     const signal = AbortSignal.timeout(18000);
     const response = await restaurantAiRequest(() => assistantFetch('https://api.openai.com/v1/responses', {
      method: 'POST',

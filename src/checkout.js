@@ -3,6 +3,8 @@ import { newTrackingToken, hashTrackingToken, getOrderTracking } from './order-t
 import { notifyNewOrder, notifyPaymentReference } from './web-push.js';
 import { validateFulfillment, isMissingFulfillmentSchema } from './order-fulfillment.js';
 import { ensurePaymentTables, loadPaymentSettings, resolvePaymentOption, normalizeReference, paymentView } from './payment-options.js';
+import { CASH_METHOD_FOR } from './order-fulfillment.js';
+import { onlinePaymentsAvailable, startOrderCheckout } from './payments/service.js';
 export function checkoutRouter(pool){
  const router=express.Router();
  ensurePaymentTables(pool).catch(()=>{});
@@ -12,8 +14,11 @@ export function checkoutRouter(pool){
   // Optional fulfilment: legacy website checkouts without these details stay supported.
   const fulfillment=validateFulfillment(req.body||{});
   if(!fulfillment.ok)return res.status(400).json({error:fulfillment.error});
-  // Stripe checkout is intentionally not exposed before a connected account, signed webhook,
-  // and restaurant-level payment enablement are verified (see src/stripe-checkout.js).
+  // Online card payment (payment_option 'online'): only when the restaurant connected its own payment
+  // account and switched it on (src/payments). Cash stays the default; the order is created first and
+  // the customer is sent to the provider's checkout page; a verified webhook marks it paid.
+  const wantsOnline=req.body?.payment_option==='online';
+  if(wantsOnline&&!fulfillment.present)return res.status(400).json({error:'Add your phone and pickup or delivery to pay online'});
   const reference=normalizeReference(req.body?.payment_reference);
   if(!reference.ok)return res.status(400).json({error:'Enter the transaction ID shown in your banking or wallet app'});
   if(client_request_id!==null&&(typeof client_request_id!=='string'||!/^[0-9a-f-]{36}$/.test(client_request_id)))return res.status(400).json({error:'Invalid order request ID'});
@@ -33,7 +38,8 @@ export function checkoutRouter(pool){
    if(!restaurants.length){await connection.rollback();return res.status(404).json({error:'Restaurant not found'});}
    const restaurantId=restaurants[0].id;
    const paySettings=await loadPaymentSettings(connection,restaurantId);
-   const payOption=resolvePaymentOption(paySettings,req.body?.payment_option);
+   if(wantsOnline&&!await onlinePaymentsAvailable(pool,restaurantId)){await connection.rollback();return res.status(409).json({error:'Online payment is not available for this restaurant. Please choose cash.'});}
+   const payOption=wantsOnline?null:resolvePaymentOption(paySettings,req.body?.payment_option);
    if(payOption?.error){await connection.rollback();return res.status(400).json({error:payOption.error});}
    if(payOption)await ensurePaymentTables(pool);
    const ids=[...quantities.keys()];
@@ -44,7 +50,7 @@ export function checkoutRouter(pool){
    for(const item of menu){total+=Number(item.price_minor)*quantities.get(item.id);if(!Number.isSafeInteger(total)||total>1000000000){await connection.rollback();return res.status(400).json({error:'Order total exceeds limit'});}}
    const [created]=await connection.execute('INSERT INTO orders (restaurant_id,customer_name,total_minor,client_request_id) VALUES (?,?,?,?)',[restaurantId,customer_name.trim(),total,client_request_id]);
    for(const item of menu)await connection.execute('INSERT INTO order_items (order_id,menu_item_id,name_snapshot,quantity,unit_price_minor) VALUES (?,?,?,?,?)',[created.insertId,item.id,item.name,quantities.get(item.id),item.price_minor]);
-   if(fulfillment.present){const f=fulfillment.value;await connection.execute('INSERT INTO order_fulfillment (order_id,restaurant_id,order_type,customer_phone,delivery_address,delivery_instructions,payment_method,payment_status) VALUES (?,?,?,?,?,?,?,?)',
+   if(fulfillment.present){const f=wantsOnline?{...fulfillment.value,payment_method:'stripe',payment_status:'pending'}:fulfillment.value;await connection.execute('INSERT INTO order_fulfillment (order_id,restaurant_id,order_type,customer_phone,delivery_address,delivery_instructions,payment_method,payment_status) VALUES (?,?,?,?,?,?,?,?)',
     [created.insertId,restaurantId,f.order_type,f.customer_phone,f.delivery_address,f.delivery_instructions,f.payment_method,f.payment_status]);}
    let paymentRow=null;
    if(payOption){
@@ -58,6 +64,19 @@ export function checkoutRouter(pool){
    const receipt={order_id:created.insertId,status:'pending',total_minor:total,tracking_token:trackingToken};
    if(fulfillment.present)Object.assign(receipt,{order_type:fulfillment.value.order_type,payment_method:fulfillment.value.payment_method,payment_status:'unpaid'});
    if(paymentRow)receipt.payment=paymentView(paymentRow,paySettings);
+   if(wantsOnline){
+    try{
+     const checkout=await startOrderCheckout(pool,{restaurantId,orderId:created.insertId,trackingToken,baseUrl:process.env.PUBLIC_BASE_URL||'https://mar-khoor.com'});
+     if(checkout.error)throw Error(checkout.error);
+     Object.assign(receipt,{payment_method:'online',payment_status:'pending',payment_url:checkout.url});
+    }catch(error){
+     // The order is kept: the customer pays in cash instead, and is told so.
+     const cash=CASH_METHOD_FOR[fulfillment.value.order_type];
+     await pool.execute("UPDATE order_fulfillment SET payment_method=?,payment_status='unpaid' WHERE order_id=? AND restaurant_id=?",[cash,created.insertId,restaurantId]).catch(()=>{});
+     console.warn(JSON.stringify({event:'order_checkout_failed',restaurant_id:restaurantId,status:error?.status,code:/^[A-Za-z][A-Za-z0-9_]{1,63}$/.test(error?.code??'')?error.code:'UNKNOWN'}));
+     Object.assign(receipt,{payment_method:cash,payment_status:'unpaid',payment_fallback:'cash'});
+    }
+   }
    res.status(201).json(receipt);
    notifyNewOrder(pool,{restaurantId,orderId:created.insertId,totalMinor:total,source:'Website'});
   }catch(e){if(connection)await connection.rollback().catch(()=>{});if(e?.code==='ER_DUP_ENTRY'&&client_request_id)return res.status(409).json({error:'Order submission already attempted. Check your order history before retrying.'});if(isMissingFulfillmentSchema(e))console.error(JSON.stringify({event:'order_fulfillment_schema_missing'}));res.status(503).json({error:'Order service unavailable'});}

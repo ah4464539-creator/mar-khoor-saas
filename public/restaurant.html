@@ -190,6 +190,11 @@
    <label class="pay-tile"><span class="pay-tile-icon" aria-hidden="true">💵</span><span class="pay-tile-text"><strong>Cash</strong><span class="small muted">On delivery or at pickup</span></span><input type="checkbox" id="pay-cash" class="pay-switch" checked></label>
    <label class="pay-tile"><span class="pay-tile-icon" aria-hidden="true">💳</span><span class="pay-tile-text"><strong>Card on delivery</strong><span class="small muted">Your own card machine, at the door or counter</span></span><input type="checkbox" id="pay-card" class="pay-switch"></label>
   </div>
+  <section class="card card-pad" id="online-pay" aria-labelledby="online-pay-title" hidden>
+   <div class="card-head"><div><h2 id="online-pay-title">Online card payments</h2><p class="small muted">Customers pay by card on your website before the order is made. Payments go to your own Stripe account; Mar-Khoor never holds the money. Cash stays the default option.</p></div></div>
+   <p class="small" id="online-pay-status" role="status"></p>
+   <div class="form-actions"><button type="button" class="btn btn-dark btn-sm" id="online-pay-connect">Set up card payments</button><button type="button" class="btn btn-ghost btn-sm" id="online-pay-refresh" hidden>Check status</button><label class="check" id="online-pay-toggle-wrap" hidden><input type="checkbox" id="online-pay-toggle"> Offer “Pay online now” at checkout</label></div>
+  </section>
   <section class="card card-pad pay-accounts" aria-labelledby="pay-accounts-title">
    <div class="card-head"><div><h2 id="pay-accounts-title">Bank &amp; wallet accounts</h2><p class="small muted">The customer sends money to this account and enters the transaction ID. Check your bank or wallet app, then press “Payment received” on the order.</p></div><button type="button" class="btn btn-ghost btn-sm" id="pay-add">+ Add account</button></div>
    <div id="pay-transfers" class="pay-transfers"></div>
@@ -536,7 +541,7 @@
 <h2 id="setup-title">Choose your plan</h2>
 <fieldset class="setup-step" data-step="plan">
 <legend class="visually-hidden">Plan</legend>
-<p class="muted">Every plan includes the AI Assistant, Business WhatsApp, AI Caller and your website. Plans differ only in monthly usage. Service never stops at the limit; you get warnings at 75%, 90% and 100%.</p>
+<p class="muted">Every plan includes the AI Assistant, Business WhatsApp, AI Caller and your website. Plans differ only in monthly usage. You get warnings at 75%, 90% and 100%; above 110% the AI pauses for that channel until next month or an upgrade.</p>
 <div class="billing-toggle tabs" role="radiogroup" aria-label="Billing">
 <label><input type="radio" name="billing_cycle" value="monthly" checked> Monthly</label>
 <label><input type="radio" name="billing_cycle" value="yearly"> Yearly</label>
@@ -642,6 +647,7 @@
  </form>
 </dialog>
 <script src="/password-reset.js?v=20261119"></script>
+<script src="/online-payments.js?v=20261126-1"></script>
 <script src="/phone-input.js?v=20261121-1"></script>
 <script src="/whatsapp-connect.js?v=20261122-3"></script>
 <script src="/call-forwarding.js?v=20261122-1"></script>

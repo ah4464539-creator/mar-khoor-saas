@@ -55,6 +55,7 @@
   <a href="#biz-salon"><svg aria-hidden="true"><use href="#i-users"/></svg><span>Salons</span><span class="nav-count" data-type-count="salon"></span></a>
   <a href="#subscriptions"><svg aria-hidden="true"><use href="#i-layers"/></svg><span>Subscriptions</span></a>
   <a href="#plan-orders"><svg aria-hidden="true"><use href="#i-card"/></svg><span>Plan orders</span></a>
+  <a href="#revenue"><svg aria-hidden="true"><use href="#i-layers"/></svg><span>Revenue</span></a>
   <span class="nav-label">Integrations</span>
   <a href="#integration-health"><svg aria-hidden="true"><use href="#i-shield"/></svg><span>Integration health</span></a>
   <a href="#custom-domains"><svg aria-hidden="true"><use href="#i-globe"/></svg><span>Custom domains</span></a>
@@ -130,6 +131,15 @@
   <div class="notice notice-warn"><span>After you receive the payment press <b>Confirm payment</b>. For Premium and Enterprise this automatically creates the restaurant's AI voice assistant, buys a Telnyx number in its country (within the cost limit) and connects it. <b>Buying spends real money.</b></span></div>
   <p id="subscription-status" role="status" class="status-line"></p>
   <div id="subscription-list" class="row-list muted">Loading…</div>
+ </section>
+
+ <section class="card card-pad" id="revenue" tabindex="-1" hidden>
+  <div class="card-head"><div><h2>Revenue</h2><p class="small muted">Monthly recurring revenue from active plans and tools, plan and tool invoices paid through Stripe, and customer card payments processed for restaurants (their money, not Mar-Khoor's). Amounts are per currency, not converted.</p></div></div>
+  <div id="revenue-mrr" class="row-list muted">Loading…</div>
+  <h3>Active plans and tools</h3>
+  <div id="revenue-plans" class="row-list muted"></div>
+  <h3>Payments by month</h3>
+  <div id="revenue-monthly" class="row-list muted"></div>
  </section>
 
  <section class="card card-pad" id="plan-orders" tabindex="-1">
@@ -208,7 +218,7 @@
 <script>
 (() => {
  // One section at a time: the left menu picks which card is shown.
- const VIEWS = ['overview','directory','biz-restaurant','biz-clinic','biz-hotel','biz-salon','subscriptions','plan-orders','integration-health','custom-domains','phone-numbers','number-routes','whatsapp-worker','whatsapp-numbers','voice-assistants'];
+ const VIEWS = ['overview','directory','biz-restaurant','biz-clinic','biz-hotel','biz-salon','subscriptions','revenue','plan-orders','integration-health','custom-domains','phone-numbers','number-routes','whatsapp-worker','whatsapp-numbers','voice-assistants'];
  const side = document.getElementById('platform-side'), backdrop = document.getElementById('side-backdrop'), toggle = document.getElementById('menu-toggle');
  const heading = document.getElementById('platform-heading'), sub = document.querySelector('#overview .sub');
  const links = [...document.querySelectorAll('#platform-workspace .nav a')];

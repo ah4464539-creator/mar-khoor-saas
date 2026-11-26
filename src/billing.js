@@ -7,6 +7,7 @@ import { getUsdRates } from './fx-rates.js';
 import { provisionSubscriptionNumber } from './voice-autoprovision.js';
 import { toolCatalog, validateToolChoice, toolCartLines, activeTools, ensureToolsTable } from './tools.js';
 import { toolsCheckoutParams } from './stripe-billing.js';
+import { recordInvoice } from './payments/service.js';
 import { billingConfig, createStripeClient, ensureBillingTables, checkoutParams, verifyStripeSignature, applyBillingEvent, addonPeriodMinor, hasNumberAddon, TOOL_KEYS } from './stripe-billing.js';
 
 /** Stripe webhook. Mount BEFORE express.json(): the signature is over the raw body. */
@@ -18,6 +19,7 @@ export function billingWebhookRouter(pool, { config = billingConfig(), stripe = 
     if (!event) return res.status(400).json({ error: 'Invalid signature' });
     try {
       const outcome = await applyBillingEvent(pool, event, { stripe });
+      if (outcome.result !== 'duplicate') await recordInvoice(pool, event, outcome); // revenue report; never throws
       if (outcome.restaurantId) audit(pool, { restaurantId: outcome.restaurantId, action: 'billing.' + event.type + ':' + outcome.result });
       // Same as a super admin confirming payment: plans with a dedicated number get one now.
       if (outcome.activated) provision(pool, outcome.restaurantId).catch(() => {});
