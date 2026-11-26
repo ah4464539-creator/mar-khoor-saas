@@ -177,6 +177,7 @@ form.addEventListener('submit', async event => {
       [loadWorkerSwitch, '#worker-switch-status'],
       [loadRoutes, '#route-list'],
       [loadSubscriptions, '#subscription-list'],
+      [loadRevenue, '#revenue-mrr'],
       [loadOrders, '#order-list'],
       [loadNumbers, '#number-list'],
       [loadHealth, '#health-status'],
@@ -264,6 +265,18 @@ const subscriptionActions = {
   cancelled: [],
 };
 const subscriptionStatus = message => { document.querySelector('#subscription-status').textContent = message; };
+const revenueMoney = (minor, currency) => { try { return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(Number(minor) / 100); } catch { return (Number(minor) / 100).toFixed(2) + ' ' + currency; } };
+async function loadRevenue() {
+  const report = await platformApi('/api/platform/revenue');
+  const line = text => { const p = document.createElement('p'); p.textContent = text; return p; };
+  const mrr = Object.entries(report.mrr_minor_by_currency || {});
+  document.querySelector('#revenue-mrr').replaceChildren(...(mrr.length ? mrr.map(([currency, minor]) => line('MRR ' + currency + ': ' + revenueMoney(minor, currency) + ' / month')) : [line('No active paid plans yet.')]),
+    line('Subscription statuses: ' + ((report.subscription_statuses || []).map(s => s.status + ' ' + s.count).join(' · ') || 'none')));
+  const plans = [...(report.plans || []).map(p => ({ ...p, name: p.plan_key })), ...(report.tools || []).map(t => ({ ...t, name: 'tool: ' + t.tool_key }))];
+  document.querySelector('#revenue-plans').replaceChildren(...(plans.length ? plans.map(p => line(p.name + ' (' + p.billing_cycle + ') · ' + p.subscriptions + ' active · ' + revenueMoney(p.mrr_minor, p.currency) + ' / month')) : [line('None active.')]));
+  const kinds = { subscription: 'Plan invoices', tool: 'Tool invoices', order: 'Customer card payments' };
+  document.querySelector('#revenue-monthly').replaceChildren(...((report.monthly || []).length ? report.monthly.map(m => line(m.month + ' · ' + (kinds[m.kind] || m.kind) + ' · ' + m.payments + ' payments · ' + revenueMoney(m.amount_minor, m.currency) + (Number(m.refunded_minor) ? ' (refunded ' + revenueMoney(m.refunded_minor, m.currency) + ')' : '') + (Number(m.fee_minor) ? ' · platform fees ' + revenueMoney(m.fee_minor, m.currency) : ''))) : [line('No payments recorded yet. Plan invoices appear here after Stripe sends invoice.paid.')]));
+}
 async function loadSubscriptions() {
   const { subscriptions } = await platformApi('/api/platform/subscriptions');
   const root = document.querySelector('#subscription-list');

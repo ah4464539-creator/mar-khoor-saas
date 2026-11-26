@@ -3,6 +3,7 @@
 import { getProfile, ensureBookingTables, createBooking, notifyNewBooking, BUSINESS_TYPES } from './bookings.js';
 import { bookingContext, bookingPrompt, runAvailability, buildBookingDraft } from './booking-assistant.js';
 import { myBookings, cancelByCustomer, rescheduleByCustomer, getTransferPhone, getAiNotes } from './booking-extras.js';
+import { withinLimit } from './usage-limits.js';
 
 export const VOICE_BOOKING_SQL = `CREATE TABLE IF NOT EXISTS voice_booking_requests (
  assistant_id VARCHAR(128) NOT NULL,
@@ -41,6 +42,7 @@ export async function runVoiceBookingTool(pool, { assistantId, name, args, messa
     return name === 'cancel_booking' ? cancelByCustomer(pool, business.id, caller, args.booking_id, 'Phone call') : rescheduleByCustomer(pool, business.id, caller, args, 'Phone call');
   }
   if (name !== 'book_appointment') return { error: 'Unsupported tool' };
+  if (!await withinLimit(pool, Number(business.id), 'ai_call_minutes')) return { error: "This business's AI call minutes for this month are used up. Apologise, take the caller's name and what they want, and say the restaurant will call back (or transfer the call to staff)." };
   if (args?.confirmed !== true) return { error: 'Read the booking back to the caller and get a clear yes, then call again with confirmed true' };
   const callId = message?.call?.id;
   if (typeof callId !== 'string' || !/^[-a-zA-Z0-9_:]{1,128}$/.test(callId)) return { error: 'Missing call ID' };

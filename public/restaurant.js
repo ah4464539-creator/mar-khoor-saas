@@ -317,6 +317,22 @@ function orderCard(order, labels, methods, payments) {
  const money = ownerText('div', '', 'money');
  money.append(ownerText('span', 'Total', 'total-label'), ownerText('strong', ownerMoney(order.total_minor), 'total'));
  let payBox = null;
+ // Paid online (card, through the restaurant's own Stripe account): status tag and a refund button.
+ if (order.payment_method === 'stripe') {
+  const online = {paid:['Paid online','tag-ok'],refunded:['Refunded','tag-warn'],failed:['Online payment not completed — collect cash','tag-warn'],pending:['Online payment pending','tag-warn'],unpaid:['Online payment pending','tag-warn']}[order.payment_status] || ['Online payment','tag-warn'];
+  money.append(ownerText('span', online[0], 'tag ' + online[1]));
+  if (order.payment_status === 'paid') {
+   payBox = ownerText('div', '', 'owner-payment-check');
+   const refund = ownerText('button', 'Refund payment', 'btn btn-sm btn-ghost'); refund.type = 'button';
+   refund.addEventListener('click', async () => {
+    if (!confirm('Refund the full online payment for order #' + order.id + ' to the customer\'s card?')) return;
+    refund.disabled = true;
+    try { await api('/api/restaurants/' + restaurantId + '/orders/' + order.id + '/refund', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'}); status.textContent = 'Order #' + order.id + ' refunded'; await refresh(); }
+    catch (e) { status.textContent = e.message; refund.disabled = false; }
+   });
+   payBox.append(refund);
+  }
+ }
  if (order.payment_type) {
   const states = {awaiting:'Not paid yet',submitted:'Check payment',confirmed:'Paid',rejected:'Not received'};
   money.append(ownerText('span', order.payment_label + ' · ' + (states[order.payment_state] || order.payment_state), 'tag ' + (order.payment_state === 'confirmed' ? 'tag-ok' : 'tag-warn')));
@@ -494,6 +510,7 @@ async function openRestaurant(restaurant) {
  document.querySelector('#site-preview-frame').removeAttribute('srcdoc');
  restaurantId = restaurant.id;
  window.mkWhatsAppConnect?.init({ restaurantId, api });
+ window.mkOnlinePayments?.init({ restaurantId, api });
  window.mkSiteContent?.init({ restaurantId, api });
  window.mkOwnerApp?.init({ restaurantId, api });
  window.mkCallHistory?.init({ restaurantId, api });

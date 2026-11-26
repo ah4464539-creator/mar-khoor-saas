@@ -19,6 +19,7 @@ import { retryPendingSubscriptionNumbers } from './voice-autoprovision.js';
 import { sitesRouter } from './sites.js';
 import { widgetRouter } from './widget.js';
 import { billingRouter, billingWebhookRouter } from './billing.js';
+import { paymentsRouter, paymentsWebhookRouter } from './payments/routes.js';
 import { i18nRouter } from './i18n.js';
 import { ensureFemaleVoices, ensureSpeechRules } from './vapi-voice.js';
 import { callingDiagnostics } from './whatsapp-calling.js';
@@ -57,6 +58,7 @@ const pool = mysql.createPool({
 useSessionStore(createDbSessionStore(pool));
 app.use('/integrations', integrationRouter(pool));
 app.use(billingWebhookRouter(pool)); // raw body for Stripe signatures, before express.json
+app.use(paymentsWebhookRouter(pool)); // customer order payments (Stripe Connect), raw body too
 app.use('/auth/password', rateLimit({ windowMs: 15 * 60 * 1000, max: 10, methods: ['POST'], name: 'password-reset' }));
 app.use(['/auth/login', '/auth/platform-login'], rateLimit({ windowMs: 15 * 60 * 1000, max: 30, methods: ['POST'], name: 'login' }));
 app.use('/api/public', rateLimit({ windowMs: 60 * 1000, max: 120, name: 'public' }));
@@ -107,6 +109,7 @@ app.use(integrationHealthRouter(pool));
 app.use(bookingsRouter(pool));
 app.use(widgetRouter(pool));
 app.use(billingRouter(pool));
+app.use(paymentsRouter(pool));
 app.use(sitesRouter(pool));
 app.use('/voice-tools', voiceToolsRouter(pool));
 app.use('/integrations/vapi', vapiToolAdapterRouter(pool));

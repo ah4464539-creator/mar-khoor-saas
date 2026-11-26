@@ -1,6 +1,8 @@
 import express from 'express';
 import crypto from 'node:crypto';
 import { notifyNewOrder } from './web-push.js';
+import { withinLimit } from './usage-limits.js';
+export const CALL_LIMIT_SAY = "This restaurant's AI call minutes for this month are used up. Apologise, take the caller's name and what they want, and say the restaurant will call back (or transfer the call to staff).";
 
 function authorized(req){
  const secret=process.env.VAPI_TOOL_SECRET;
@@ -52,6 +54,8 @@ export function createVoiceOrderHandler(pool){
    const [mapped]=await connection.execute('SELECT restaurant_id FROM voice_assistants WHERE assistant_id=? AND active=1 LIMIT 1',[assistantId]);
    if(!mapped.length){await connection.rollback();return res.status(404).json({error:'Assistant not mapped'});}
    const restaurantId=mapped[0].restaurant_id;
+   // Monthly AI call minutes (plan limit + grace) used up: no new orders by AI until upgrade or next month.
+   if(!await withinLimit(pool,Number(restaurantId),'ai_call_minutes')){await connection.rollback();return res.status(429).json({error:CALL_LIMIT_SAY});}
    const [claim]=await connection.execute('INSERT INTO voice_order_requests(assistant_id,call_id,restaurant_id) VALUES (?,?,?) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)',[assistantId,call_id,restaurantId]);
    if(claim.affectedRows!==1){
     const [existing]=await connection.execute('SELECT order_id FROM voice_order_requests WHERE assistant_id=? AND call_id=?',[assistantId,call_id]);

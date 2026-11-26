@@ -217,7 +217,10 @@ orderForm.addEventListener('submit', async event => {
     const done = node('div', null, 'notice notice-ok');
     const text = node('div');
     const pay = data.payment;
-    const payText = !pay ? 'Pay in cash on ' + (orderType === 'delivery' ? 'delivery.' : 'pickup.')
+    const online = typeof data.payment_url === 'string' && /^https:\/\/checkout\.stripe\.com\//.test(data.payment_url);
+    const payText = online ? 'Taking you to the secure card payment page…'
+      : data.payment_fallback === 'cash' ? 'Online payment is not available right now. Please pay in cash on ' + (orderType === 'delivery' ? 'delivery.' : 'pickup.')
+      : !pay ? 'Pay in cash on ' + (orderType === 'delivery' ? 'delivery.' : 'pickup.')
       : pay.method_type === 'card_on_delivery' ? 'Pay by card on ' + (orderType === 'delivery' ? 'delivery.' : 'pickup.')
       : pay.status === 'submitted' ? 'We sent your transaction ID to the restaurant. They will confirm your payment.'
       : 'Send ' + document.querySelector('#cart-subtotal').textContent + ' to ' + pay.method_label + ' ' + pay.account_number + ' (' + pay.account_title + '), then add the transaction ID on the tracking page.';
@@ -235,6 +238,7 @@ orderForm.addEventListener('submit', async event => {
     cart.clear();
     renderCart();
     document.querySelector('#pay-reference').value = '';
+    if (online) location.assign(data.payment_url);
   } catch (error) {
     orderStatus.replaceChildren(node('p', error.message, 'notice notice-bad'));
   } finally {
