@@ -53,7 +53,11 @@ export function integrationRouter(pool){
   try{
    const result=await processVapiEvent(pool,payload);
    return res.status(202).json({received:true,processed:result.processed});
-  }catch{return res.status(503).json({error:'Call storage unavailable'});}
+  }catch(error){
+   // Logged (code and masked message only) so a storage failure is visible; Vapi retries on 503.
+   console.error(JSON.stringify({event:'vapi_event_failed',type:String(payload.message?.type||'').slice(0,40),code:/^[A-Z][A-Z0-9_]{1,63}$/.test(error?.code??'')?error.code:'UNKNOWN',message:String(error?.sqlMessage||error?.message||'').replace(/\d{6,}/g,'[n]').slice(0,200)}));
+   return res.status(503).json({error:'Call storage unavailable'});
+  }
  });
  // Meta WhatsApp Cloud API verification and signed event intake.
  router.get('/webhooks/whatsapp',(req,res)=>{

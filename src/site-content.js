@@ -101,8 +101,9 @@ export async function updateContent(pool, restaurantId, kind, id, input) {
   v.slug = await uniqueSlug(pool, restaurantId, kind, v.slug, id);
   const [result] = await pool.execute(
     'UPDATE site_content SET slug=?,title=?,category=?,excerpt=?,body=?,status=?,show_in_nav=?,'
-    + "published_at=CASE WHEN ?='published' THEN COALESCE(published_at,CURRENT_TIMESTAMP) ELSE NULL END WHERE id=? AND restaurant_id=? AND kind=?",
-    [v.slug, v.title, v.category, v.excerpt, v.body, v.status, v.show_in_nav, v.status, id, restaurantId, kind]);
+    // Decided in JS: comparing a bound value with a literal fails on production MariaDB (mixed collations).
+    + 'published_at=' + (v.status === 'published' ? 'COALESCE(published_at,CURRENT_TIMESTAMP)' : 'NULL') + ' WHERE id=? AND restaurant_id=? AND kind=?',
+    [v.slug, v.title, v.category, v.excerpt, v.body, v.status, v.show_in_nav, id, restaurantId, kind]);
   if (!result.affectedRows) return { status: 404, body: { error: 'Not found' } };
   return { status: 200, body: { id, ...v } };
 }

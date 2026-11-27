@@ -66,10 +66,13 @@ export async function processVapiEvent(pool, payload) {
   }
 
   if (event.kind === 'status-update') {
+    // "ended" is decided here, not by comparing a bound value with a literal in SQL: production MariaDB
+    // rejects that comparison when connection and server collations differ ("Illegal mix of collations").
+    const ended = event.status === 'ended';
     await pool.execute(
-      "INSERT INTO voice_calls(assistant_id,call_id,restaurant_id,status,ended_at) VALUES (?,?,?,?,IF(?='ended',NOW(),NULL)) " +
-      "ON DUPLICATE KEY UPDATE status=IF(status='ended',status,VALUES(status)),ended_at=IF(ended_at IS NULL AND VALUES(status)='ended',NOW(),ended_at)",
-      [event.assistantId, event.callId, restaurantId, event.status, event.status]
+      'INSERT INTO voice_calls(assistant_id,call_id,restaurant_id,status,ended_at) VALUES (?,?,?,?,' + (ended ? 'NOW()' : 'NULL') + ') ' +
+      "ON DUPLICATE KEY UPDATE status=IF(status='ended',status,VALUES(status))" + (ended ? ',ended_at=COALESCE(ended_at,NOW())' : ''),
+      [event.assistantId, event.callId, restaurantId, event.status]
     );
     return { processed: true };
   }
