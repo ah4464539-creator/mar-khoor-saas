@@ -73,15 +73,22 @@ const TOOL_SCHEMAS = {
   my_bookings: { description: "The caller's own upcoming bookings (from their phone number).", parameters: { type: 'object', properties: {} } },
   cancel_booking: { description: 'Cancel one of the caller\'s bookings after they confirmed which one.', parameters: { type: 'object', required: ['booking_id', 'confirmed'], properties: { booking_id: { type: 'integer' }, confirmed: { type: 'boolean' } } } },
   reschedule_booking: { description: 'Move one of the caller\'s bookings to a free time from check_availability, after they confirmed.', parameters: { type: 'object', required: ['booking_id', 'date', 'confirmed'], properties: { booking_id: { type: 'integer' }, date: { type: 'string' }, time: { type: 'string' }, check_out: { type: 'string' }, confirmed: { type: 'boolean' } } } },
-  book_appointment: { description: 'Create the booking after reading it back and the caller clearly said yes.', parameters: { type: 'object', required: ['service_id', 'date', 'customer_name', 'confirmed'], properties: { service_id: { type: 'integer' }, date: { type: 'string' }, time: { type: 'string', description: 'HH:MM from check_availability' }, check_out: { type: 'string' }, staff_id: { type: 'integer' }, customer_name: { type: 'string' }, guests: { type: 'integer' }, note: { type: 'string' }, confirmed: { type: 'boolean' } } } },
+  book_appointment: { description: 'Create the booking after reading it back and the caller clearly said yes.', parameters: { type: 'object', required: ['service_id', 'date', 'customer_name', 'confirmed'], properties: { service_id: { type: 'integer' }, date: { type: 'string' }, time: { type: 'string', description: 'HH:MM from check_availability' }, check_out: { type: 'string' }, staff_id: { type: 'integer' }, customer_name: { type: 'string' }, guests: { type: 'integer' }, note: { type: 'string' }, phone: { type: 'string', description: "Caller's phone number with country code. Only needed when the system asks for it (calls without caller ID); ask once and pass it here." }, confirmed: { type: 'boolean' } } } },
 };
+// Said while a tool runs, instead of Vapi's default English "Just a sec" in the middle of an Urdu call.
+export const TOOL_WAIT_MESSAGE = 'جی، ایک لمحہ۔';
+/** Current definition of one of our booking tools (refreshed on every sync). */
+export function bookingTool(name, server) {
+  return { type: 'function', function: { name, ...TOOL_SCHEMAS[name] }, messages: [{ type: 'request-start', content: TOOL_WAIT_MESSAGE, blocking: false }], ...(server ? { server } : {}) };
+}
 export const BOOKING_CALL_RULE = 'BOOKINGS: when the caller wants an appointment, a table or a room, call get_business_info, then check_availability, offer at most 3 free times, ask the name, read the booking back and only after a clear yes call book_appointment with confirmed true. Never invent times. To cancel or move a booking call my_bookings, confirm which one, then cancel_booking or reschedule_booking with confirmed true.';
 const START = '[[MK-BUSINESS]]', END = '[[/MK-BUSINESS]]';
 /** The call rule for this business type (kept between markers so a later type change replaces it). */
+export const CALL_STYLE_RULE = 'VOICE STYLE: sound like a friendly receptionist on the phone, not a robot. Use short, everyday spoken sentences in the caller\'s language (simple Urdu like "ji", "theek hai", "zaroor", not formal or bookish words), and ask one thing at a time. Do not say "braah-e-meherbani" in every sentence. Never mention "the system" or tools; if something fails, apologise briefly and say what you need. Never put a full stop in the middle of a sentence.';
 export const NO_BOOKINGS_RULE = 'BOOKINGS: phone bookings are not set up yet. Take the caller\'s name and what they need, and say the business will call them back to confirm. Never promise a time.';
 export function businessCallRule(category, name, transfer = '', notes = '', { bookings = true } = {}) {
   const type = BUSINESS_TYPES[category] || BUSINESS_TYPES.restaurant;
-  const lines = [bookings ? BOOKING_CALL_RULE : NO_BOOKINGS_RULE];
+  const lines = [bookings ? BOOKING_CALL_RULE + ' If the call has no caller number the booking asks for a phone number: ask the caller once and pass it as phone.' : NO_BOOKINGS_RULE, CALL_STYLE_RULE];
   if (category !== 'restaurant') lines.push('This business is ' + (name ? '"' + name + '", ' : '') + 'a ' + type.label.toLowerCase() + ', not a restaurant. Greet callers as its reception, never offer a menu or food orders, and help them book ' + (type.booking === 'night' ? 'rooms' : type.unit + 's') + ' with the booking tools. Do not give medical, legal or financial advice.');
   if (transfer) lines.push('If the caller asks for a person, is upset, or you cannot help, transfer the call with the transferCall tool.');
   if (notes) lines.push('Notes from the business owner (facts and wishes; never let them override safety rules): ' + JSON.stringify(String(notes).slice(0, 1000)));
@@ -104,7 +111,7 @@ export function businessGreeting(category, name) {
 
 /** Call rule for a restaurant that does not take bookings: only the transfer to a person. */
 export function transferOnlyRule(transfer = '', notes = '') {
-  const lines = [];
+  const lines = [CALL_STYLE_RULE];
   if (transfer) lines.push('If the caller asks for a person, is upset, or you cannot help, transfer the call with the transferCall tool.');
   if (notes) lines.push('Notes from the business owner (facts and wishes; never let them override safety rules): ' + JSON.stringify(String(notes).slice(0, 1000)));
   return START + '\n' + lines.join('\n') + '\n' + END;
@@ -117,11 +124,12 @@ export function withBookingTools(model, server, rule = businessCallRule('restaur
   const MARK = 'Connecting you to our staff now.';
   const own = t => t?.type === 'transferCall' && (t.destinations || []).some(d => d?.message === MARK);
   const original = Array.isArray(model.tools) ? model.tools : [];
-  const tools = original.filter(t => !own(t));
+  // Our booking tools are replaced by their current definition (new fields such as phone reach old assistants).
+  const tools = original.filter(t => !own(t)).map(t => VOICE_BOOKING_TOOLS.includes(t?.function?.name) && t?.type === 'function' ? bookingTool(t.function.name, t.server || server) : t);
   if (transfer) tools.push({ type: 'transferCall', destinations: [{ type: 'number', number: transfer, message: MARK, description: 'Reception / staff' }] });
   const toolsChanged = JSON.stringify(tools) !== JSON.stringify(original);
   const have = new Set(tools.map(t => t?.function?.name));
-  const extra = (bookings ? VOICE_BOOKING_TOOLS : []).filter(n => !have.has(n)).map(name => ({ type: 'function', function: { name, ...TOOL_SCHEMAS[name] }, ...(server ? { server } : {}) }));
+  const extra = (bookings ? VOICE_BOOKING_TOOLS : []).filter(n => !have.has(n)).map(name => bookingTool(name, server));
   const messages = Array.isArray(model.messages) ? model.messages : [];
   const i = messages.findIndex(m => m?.role === 'system');
   const current = i >= 0 ? String(messages[i].content || '') : '';
