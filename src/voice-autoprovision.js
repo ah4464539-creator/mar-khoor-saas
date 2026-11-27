@@ -74,7 +74,7 @@ async function markCaller(pool, restaurantId, status, detail) {
     [status, detail.slice(0, 500), restaurantId]).catch(() => {});
 }
 
-async function ensureAssistant(pool, restaurant, deps) {
+export async function ensureAssistant(pool, restaurant, deps) {
   const [rows] = await pool.execute('SELECT assistant_id FROM voice_assistants WHERE restaurant_id=? AND active=1 LIMIT 2', [restaurant.id]);
   if (rows.length === 1) return rows[0].assistant_id;
   if (rows.length > 1) throw Object.assign(Error('This restaurant has more than one active voice assistant; keep one in Voice integrations'), { needsReview: true });

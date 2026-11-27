@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
 <link rel="stylesheet" href="/summit.css?v=20261122-n3">
-<link rel="stylesheet" href="/owner.css?v=20261126-c1">
+<link rel="stylesheet" href="/owner.css?v=20261127-o1">
 <script src="/session-guard.js?v=20261122-1"></script>
 <script src="/i18n.js?v=20261122-n1" data-position="right" defer></script>
 </head>
@@ -254,6 +254,14 @@
   <section class="card card-pad bk-card"><div class="card-head"><div><h2>AI phone calls</h2><p class="small muted">The AI Caller answers your number. Set the reception phone it transfers callers to.</p></div></div>
    <div class="bk-inline"><input class="input" id="ai-transfer" type="tel" maxlength="20" placeholder="+ country code and number"><button type="button" class="btn btn-ghost btn-sm" id="ai-transfer-save">Save</button></div>
    <p class="small" id="ai-transfer-note"></p></section>
+  <section class="card card-pad bk-card own-line-card" id="own-line-card" hidden><div class="card-head"><div><h2>Use your own number</h2><p class="small muted">Keep your existing number (any country). Connect a spare SIM, a landline or your office phone system, and the AI answers calls on it. No new number to buy.</p></div></div>
+   <div id="own-line-form" class="own-line-form">
+    <label class="field"><span>Your number (with country code)</span><input class="input" id="own-line-phone" type="tel" maxlength="20" placeholder="+923001234567"></label>
+    <label class="field"><span>How is it connected?</span><select class="input" id="own-line-type"></select></label>
+    <button type="button" class="btn btn-primary btn-sm" id="own-line-save">Connect my number</button>
+   </div>
+   <p class="small" id="own-line-note" role="status"></p>
+   <div id="own-line-details" translate="no"></div></section>
   <section class="card card-pad bk-card"><div class="card-head"><div><h2>What the AI should know</h2><p class="small muted">Short facts and wishes for WhatsApp AI and AI calls, for example: "Parking is free behind the building. We do not take card. Ask new patients to bring old reports."</p></div></div>
    <textarea class="input" id="ai-notes" rows="5" maxlength="1000"></textarea>
    <div class="bk-inline ai-save"><span class="small muted" id="ai-notes-count"></span><button type="button" class="btn btn-primary" id="ai-notes-save">Save notes</button></div>
@@ -664,6 +672,7 @@
 <script src="/online-payments.js?v=20261126-2"></script>
 <script src="/phone-input.js?v=20261121-1"></script>
 <script src="/privacy-settings.js?v=20261126-1"></script>
+<script src="/own-line.js?v=20261127-1"></script>
 <script src="/whatsapp-connect.js?v=20261122-3"></script>
 <script src="/call-forwarding.js?v=20261122-1"></script>
 <script src="/site-content.js?v=20261122-1"></script>

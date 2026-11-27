@@ -512,6 +512,7 @@ async function openRestaurant(restaurant) {
  window.mkWhatsAppConnect?.init({ restaurantId, api });
  window.mkOnlinePayments?.init({ restaurantId, api });
  window.mkSiteContent?.init({ restaurantId, api });
+ window.mkOwnLine?.init({ restaurantId, api });
  window.mkPrivacySettings?.init({ restaurantId, api });
  window.mkOwnerApp?.init({ restaurantId, api });
  window.mkCallHistory?.init({ restaurantId, api });

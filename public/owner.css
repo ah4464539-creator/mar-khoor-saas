@@ -790,3 +790,15 @@ body.owner-app[data-role="staff"] #bk-new{display:inline-flex}
 .owner-app .call-transcript li.from-ai{border-style:dashed}
 .owner-app .call-transcript-text{white-space:pre-wrap;overflow-wrap:anywhere;max-height:60vh;overflow:auto;font:14px var(--font)}
 .owner-app #call-detail audio{width:100%;margin:6px 0}
+/* Use your own number (AI Caller) */
+.owner-app .own-line-form{display:grid;gap:10px;grid-template-columns:1fr 1fr auto;align-items:end}
+@media (max-width:720px){.owner-app .own-line-form{grid-template-columns:1fr}}
+.owner-app .own-line-settings{display:grid;gap:6px;margin:12px 0}
+.owner-app .own-line-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;overflow-wrap:anywhere}
+.owner-app .own-line-row code{display:block;font-size:14px}
+.owner-app .own-line-actions{display:flex;gap:6px;flex-shrink:0}
+.owner-app .own-line-status{padding:10px 12px;border-radius:12px;border:1px solid var(--line)}
+.owner-app .own-line-status.ok{border-color:#2f9e44}
+.owner-app .own-line-status.bad{border-color:#e03131}
+.owner-app .own-line-forward{margin:10px 0}
+.owner-app .own-line-forward summary{cursor:pointer;font-weight:600}

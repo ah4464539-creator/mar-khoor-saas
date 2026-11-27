@@ -40,6 +40,7 @@ import { parseTrustProxy, securityHeaders, rateLimit, jsonErrorHandler, jsonGuar
 import { log, requestId, requestLog, installProcessHandlers, workerHealth } from './observability.js';
 import { startRetentionWorker } from './retention.js';
 import { privacyRouter } from './privacy.js';
+import { ownLineRouter } from './own-line-routes.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -121,6 +122,7 @@ app.use(billingRouter(pool));
 app.use(paymentsRouter(pool));
 app.use(sitesRouter(pool));
 app.use(privacyRouter(pool));
+app.use(ownLineRouter(pool));
 app.use('/voice-tools', voiceToolsRouter(pool));
 app.use('/integrations/vapi', vapiToolAdapterRouter(pool));
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'mar-khoor-api', release: process.env.APP_RELEASE || null, uptime_seconds: Math.round(process.uptime()) }));

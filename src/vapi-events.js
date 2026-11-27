@@ -13,6 +13,7 @@
 
 import { notifyCallEnded } from './web-push.js';
 import { callDetails, saveCallDetails, transcriptLine, saveTranscriptLine } from './vapi-call-log.js';
+import { markOwnLineCall } from './own-line.js';
 import crypto from 'node:crypto';
 import { resolveIncomingWhatsAppSip } from './whatsapp-sip-routing.js';
 import { emitWhatsAppCallLog, sipFailClosedEnabled } from './whatsapp-sip-identifiers.js';
@@ -59,6 +60,9 @@ export async function processVapiEvent(pool, payload) {
   const resolved = await resolveCallRestaurant(pool, payload, event);
   if (resolved.reason) return { processed: false, reason: resolved.reason };
   const restaurantId = resolved.restaurantId;
+  // A call on a business's own line (gateway / phone system) proves the line works.
+  const phoneNumberId = payload.message?.call?.phoneNumberId;
+  if (phoneNumberId && event.kind !== 'transcript') await markOwnLineCall(pool, restaurantId, phoneNumberId);
 
   if (event.kind === 'transcript') {
     await saveTranscriptLine(pool, { assistantId: event.assistantId, callId: event.callId, restaurantId, line: event.line });
