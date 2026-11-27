@@ -94,6 +94,8 @@ test('own line on MariaDB: create on Vapi, password sealed, first call connects,
     const reset = await resetOwnLinePassword(pool, restaurantId, { env, fetcher });
     assert.notEqual(reset.body.line.settings.password, line.settings.password);
     assert.equal(calls[0].body.authentication.password, reset.body.line.settings.password);
+    assert.equal(reset.body.line.settings.username, line.settings.username, 'username stays the same on a password reset');
+    assert.equal(calls[0].body.authentication.username, line.settings.username);
     calls.length = 0;
     assert.deepEqual((await removeOwnLine(pool, restaurantId, { env, fetcher })).body, { removed: true });
     assert.deepEqual(calls.map(c => c.method + ' ' + c.url.replace('https://api.vapi.ai', '')), ['DELETE /phone-number/pn-' + tag]);
