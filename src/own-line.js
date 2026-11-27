@@ -155,15 +155,17 @@ export async function connectOwnLine(pool, restaurantId, body, { env = process.e
   return { status: 201, body: { line: ownLineView(await getOwnLine(pool, restaurantId), env) } };
 }
 
-/** New device password (e.g. it was shared by mistake). The gateway must be updated afterwards. */
+/** New device password (e.g. it was shared by mistake). The username stays the same, so only the
+ *  password has to be changed on the device afterwards. */
 export async function resetOwnLinePassword(pool, restaurantId, { env = process.env, fetcher = fetch } = {}) {
   const row = await getOwnLine(pool, restaurantId);
   if (!row?.vapi_phone_id) return { status: 404, body: { error: 'No own line connected' } };
   const config = ownLineConfig(env);
   if (!config.ready) return { status: 503, body: { error: 'Not set up on the server' } };
-  const { username, password } = newCredentials(restaurantId);
+  const username = row.sip_username;
+  const { password } = newCredentials(restaurantId);
   await updateSipLine({ apiKey: config.vapiKey, id: row.vapi_phone_id, username, password, fetcher });
-  await pool.execute("UPDATE restaurant_own_lines SET sip_username=?,sip_password_enc=?,status='waiting_call' WHERE restaurant_id=?", [username, seal(password, env), restaurantId]);
+  await pool.execute("UPDATE restaurant_own_lines SET sip_password_enc=?,status='waiting_call' WHERE restaurant_id=?", [seal(password, env), restaurantId]);
   return { status: 200, body: { line: ownLineView(await getOwnLine(pool, restaurantId), env) } };
 }
 

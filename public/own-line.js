@@ -62,7 +62,7 @@
     const s = line.settings;
     const settings = el('div', 'own-line-settings');
     settings.append(el('strong', null, 'Settings for your ' + (line.line_type === 'pbx' ? 'phone system' : 'gateway')),
-      copyRow('SIP server', s.sip_server), copyRow('Port', s.port), copyRow('Username', s.username),
+      copyRow('SIP server', s.sip_server), el('p', 'hint', 'Port: ' + s.port + ' (usually filled in automatically)'), copyRow('Username', s.username),
       s.password ? copyRow('Password', s.password, { secret: true }) : el('p', 'hint', 'Password unavailable: press "New password".'),
       copyRow('Send calls to (SIP destination)', s.destination), copyRow('Full SIP address', s.sip_uri));
     const steps = el('ol', 'fwd-steps');
@@ -78,8 +78,8 @@
     const more = el('div', 'form-actions');
     const reset = el('button', 'btn btn-ghost btn-sm', 'New password'); reset.type = 'button';
     reset.addEventListener('click', async () => {
-      if (!confirm('Create a new password? You must then type it into your gateway or phone system again.')) return;
-      try { render({ ...data, line: (await ctx.api(url('/reset-password'), { method: 'POST' })).line }); $('own-line-note').textContent = 'New password created. Update your device.'; }
+      if (!confirm('Create a new password? The username stays the same; only the password must be changed on your gateway or phone system.')) return;
+      try { render({ ...data, line: (await ctx.api(url('/reset-password'), { method: 'POST' })).line }); $('own-line-note').textContent = 'New password created (username unchanged). Put the new password into your device.'; }
       catch (error) { $('own-line-note').textContent = error.message; }
     });
     const remove = el('button', 'btn btn-quiet btn-sm', 'Disconnect'); remove.type = 'button';
