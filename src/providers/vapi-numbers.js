@@ -33,3 +33,39 @@ export async function findTelnyxCredential({ apiKey, fetcher = fetch }) {
   if (!telnyx.length) throw Error('No Telnyx credential in Vapi. Add one under Integrations → Telnyx.');
   return telnyx[0].id.slice(0, 64);
 }
+
+// Free SIP "phone number" on Vapi (provider "vapi"): a SIP address the assistant answers. Used for a
+// business's own line through a GSM/FXO gateway or an office phone system. Digest authentication is
+// always set: without it Vapi accepts any password, so anyone could call the address and use minutes.
+async function vapiCall(fetcher, apiKey, path, options = {}) {
+  const response = await fetcher('https://api.vapi.ai' + path, {
+    ...options,
+    headers: { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+    redirect: 'error',
+    signal: AbortSignal.timeout(20000),
+  });
+  let data = null;
+  try { data = await response.json(); } catch { /* ignore */ }
+  if (!response.ok) {
+    const message = Array.isArray(data?.message) ? data.message.join('; ') : data?.message;
+    throw Object.assign(Error(String(message ?? 'Vapi request failed').slice(0, 200)), { providerStatus: response.status });
+  }
+  return data;
+}
+export async function createSipLine({ apiKey, sipUser, username, password, assistantId, name, fetcher = fetch }) {
+  const data = await vapiCall(fetcher, apiKey, '/phone-number', { method: 'POST', body: JSON.stringify({
+    provider: 'vapi', sipUri: 'sip:' + sipUser + '@sip.vapi.ai', authentication: { username, password }, assistantId, name: String(name).slice(0, 40),
+  }) });
+  if (typeof data?.id !== 'string') throw Error('Vapi returned no phone number id');
+  return { id: data.id.slice(0, 64) };
+}
+export async function updateSipLine({ apiKey, id, assistantId, username, password, fetcher = fetch }) {
+  const body = {};
+  if (assistantId) body.assistantId = assistantId;
+  if (username && password) body.authentication = { username, password };
+  await vapiCall(fetcher, apiKey, '/phone-number/' + encodeURIComponent(id), { method: 'PATCH', body: JSON.stringify(body) });
+}
+export async function deleteSipLine({ apiKey, id, fetcher = fetch }) {
+  try { await vapiCall(fetcher, apiKey, '/phone-number/' + encodeURIComponent(id), { method: 'DELETE' }); }
+  catch (error) { if (error.providerStatus !== 404) throw error; }
+}

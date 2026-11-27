@@ -25,6 +25,7 @@ Multi-business AI SaaS for restaurants, clinics, salons and hotels: AI website, 
 | Customer card payments for orders (Stripe Connect, restaurant's own account) and refunds | Built and tested; needs Stripe Connect enabled + webhook |
 | Super-admin revenue (MRR, invoices, card payments) | Built |
 | Logging, error alerts, `/health`, `/health/database`, `/health/workers`, rate limits, security headers, data retention, privacy page | Built |
+| AI Caller on the business's own number (spare SIM / landline via a gateway, or PBX / VoIP), any country, no number purchase | Built (`docs/own-number.md`); needs one live test with real hardware |
 | WhatsApp calling (SIP) | Pilot; needs a media bridge (VPS) |
 | JazzCash / Easypaisa online gateways | Not built; plug in through `src/payments/provider.js` |
 
