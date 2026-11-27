@@ -5,8 +5,9 @@
 import { randomUUID } from 'node:crypto';
 import { searchNumbers, orderNumber, getOrderStatus, E164 } from './providers/telnyx.js';
 import { importTelnyxNumber } from './providers/vapi-numbers.js';
+import { numberSalesEnabled, NUMBER_SALES_OFF_MESSAGE } from './number-sales.js';
 
-const defaultDeps = () => ({ fetcher: fetch, telnyxKey: process.env.TELNYX_API_KEY, vapiKey: process.env.VAPI_API_KEY, credentialId: process.env.VAPI_TELNYX_CREDENTIAL_ID });
+const defaultDeps = () => ({ fetcher: fetch, telnyxKey: process.env.TELNYX_API_KEY, vapiKey: process.env.VAPI_API_KEY, credentialId: process.env.VAPI_TELNYX_CREDENTIAL_ID, allowPurchases: numberSalesEnabled() });
 const fail = (status, error) => ({ status, body: { error } });
 const configured = d => Boolean(d.telnyxKey && d.vapiKey && d.credentialId);
 
@@ -50,6 +51,7 @@ async function singleAssistant(pool, restaurantId) {
 }
 
 export async function purchaseNumber(pool, orderId, phoneNumber, deps = defaultDeps()) {
+  if (deps.allowPurchases !== true) return fail(403, NUMBER_SALES_OFF_MESSAGE);
   if (typeof phoneNumber !== 'string' || !E164.test(phoneNumber)) return fail(400, 'Invalid phone number');
   const ctx = await loadContext(pool, orderId);
   if (ctx.error) return ctx.error;

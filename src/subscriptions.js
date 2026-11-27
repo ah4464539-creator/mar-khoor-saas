@@ -8,6 +8,7 @@
 // Usage limits are enforced in usage-limits.js: the AI pauses for a channel at limit + 10% grace
 // (USAGE_LIMIT_MODE=soft restores "never stop").
 import { convertUsdMinor } from './fx-rates.js';
+import { numberSalesEnabled } from './number-sales.js';
 
 export const BASE_CURRENCY = 'USD';
 export const FEATURES = Object.freeze(['ai_assistant', 'whatsapp', 'ai_caller', 'website']);
@@ -40,7 +41,7 @@ const validLimit = value => Number.isSafeInteger(value) && value >= 0 && value <
  * fx: { rates: {PKR: 280.1, ...}, asOf, source } from getUsdRates(), or null.
  * Prices are in the restaurant's currency when an explicit price or a rate exists, otherwise USD.
  */
-export function planCatalog(currency, { pricesJson = process.env.SUBSCRIPTION_PRICES_JSON, limitsJson = process.env.SUBSCRIPTION_LIMITS_JSON, fx = null } = {}) {
+export function planCatalog(currency, { pricesJson = process.env.SUBSCRIPTION_PRICES_JSON, limitsJson = process.env.SUBSCRIPTION_LIMITS_JSON, fx = null, numberSales = numberSalesEnabled() } = {}) {
   const configured = parseJson(pricesJson) ?? {};
   const limitOverrides = parseJson(limitsJson) ?? {};
   const explicitLocal = currency !== BASE_CURRENCY ? configured[currency] : null;
@@ -67,7 +68,10 @@ export function planCatalog(currency, { pricesJson = process.env.SUBSCRIPTION_PR
       key: plan.key, name: plan.name, features: [...FEATURES], limits,
       currency: shownCurrency, price_minor: price,
       base_currency: BASE_CURRENCY, base_price_minor: base,
-      dedicated_number: { included: plan.number.included, addon_price_minor: addon, addon_base_price_minor: addonUsd },
+      // available=false: numbers are not sold (own number only), so no plan includes or offers one.
+      dedicated_number: numberSales
+        ? { available: true, included: plan.number.included, addon_price_minor: addon, addon_base_price_minor: addonUsd }
+        : { available: false, included: false, addon_price_minor: null, addon_base_price_minor: null },
       converted: shownCurrency !== BASE_CURRENCY && !explicitLocal,
     };
   });

@@ -3,6 +3,7 @@
 // like plans. AI Calling with a new number adds the number's real monthly cost (Telnyx).
 // No express import: testable with mock pools.
 import { convertUsdMinor } from './fx-rates.js';
+import { numberSalesEnabled } from './number-sales.js';
 
 export const TOOLS_SQL = `CREATE TABLE IF NOT EXISTS restaurant_tools (
  restaurant_id BIGINT UNSIGNED NOT NULL,
@@ -50,7 +51,7 @@ const local = (usdMinor, currency, fx) => currency === 'USD' ? usdMinor : conver
 /** Tool prices for one restaurant (currency + country), as shown in the cart. */
 export function toolCatalog(currency, country, { fx = null, env = process.env } = {}) {
   const shown = currency === 'USD' || fx?.rates?.[currency] ? currency : 'USD';
-  const numberUsd = numberCostUsd(country, env);
+  const numberUsd = numberSalesEnabled(env) ? numberCostUsd(country, env) : null;
   return TOOL_KEYS.map(key => {
     const tool = TOOLS[key];
     const entry = {
@@ -89,7 +90,7 @@ export function toolCartLines(catalog, { tools, cycle, numberMode }) {
   }
   if (numberMode === 'new') {
     const calling = catalog.find(item => item.key === 'calling');
-    if (!calling?.number?.available) return { error: 'A new number is not available in your country yet. Connect your own number instead.' };
+    if (!calling?.number?.available) return { error: 'A new number is not available. Connect your own number instead.' };
     lines.push({ key: 'number', name: 'Dedicated AI phone number', amount_minor: calling.number.price_minor[cycle] });
   }
   if (lines.some(line => !Number.isSafeInteger(line.amount_minor) || line.amount_minor < 1)) return { error: 'These tools have no confirmed price in your currency yet' };

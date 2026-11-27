@@ -1031,6 +1031,7 @@ function planPrice(plan, cycle) {
 function numberLine(plan) {
  const number = plan.dedicated_number;
  if (!number) return '';
+ if (number.available === false) return 'AI answers calls on your own number (no number fee)';
  if (number.included) return 'Dedicated AI phone number included';
  if (number.addon_price_minor == null) return 'Dedicated AI phone number: optional add-on';
  return 'Dedicated AI phone number: +' + money(number.addon_price_minor, plan.currency) + ' / month add-on';
@@ -1125,7 +1126,7 @@ function adaptCallOptions() {
  const pk = setupCountry === 'PK';
  for (const option of select.options) option.textContent = CALL_MODE_TEXT[option.value] + (pk && option.value === 'import' ? ' (recommended, cheaper)' : pk && option.value === 'new' ? ' (costs more in Pakistan)' : '');
  hint.hidden = !pk;
- hint.textContent = 'In Pakistan a new number from us costs much more each month. Put a spare SIM or number on the AI Caller instead: we give you the call minutes, you pay no number fee.';
+ hint.textContent = 'Put a spare SIM, a landline or your office number on the AI Caller: the call minutes are included and there is no number fee.';
 }
 function fillConnectStep() {
  adaptCallOptions();
@@ -1529,6 +1530,7 @@ function renderCart(){
  const plan=billingPlan(),cycle=billingCycle(),lines=billingEl('cart-lines');if(!lines)return;
  const number=billingEl('billing-number'),numberPrice=billingEl('billing-number-price');
  const addon=addonFor(plan,cycle);
+ const numberSold=plan?.dedicated_number?.available!==false;number.closest('label').hidden=!numberSold;if(!numberSold)number.checked=false;
  if(plan?.dedicated_number?.included){number.checked=true;number.disabled=true;numberPrice.textContent='· included in '+plan.name}
  else{number.disabled=addon==null;if(addon==null)number.checked=false;numberPrice.textContent=addon==null?'· not available yet':'· +'+billingMoney(addon,plan.currency)+(cycle==='yearly'?' / year':' / month')+(setupCountry==='PK'?' · tip: a spare SIM of your own costs nothing extra; your plan already includes the call minutes':'')}
  lines.replaceChildren();
@@ -1663,9 +1665,9 @@ function renderToolsCart(){
  const numberField=billingEl('tool-number-field');numberField.hidden=!picked.includes('calling');
  const newRadio=billingForm.querySelector('input[name="call_number"][value="new"]');
  const numberAvailable=Boolean(calling?.number?.available);
- newRadio.disabled=!numberAvailable;if(!numberAvailable&&newRadio.checked)billingForm.querySelector('input[name="call_number"][value="own"]').checked=true;
+ newRadio.disabled=!numberAvailable;newRadio.closest('label').hidden=!numberAvailable;if(!numberAvailable&&newRadio.checked)billingForm.querySelector('input[name="call_number"][value="own"]').checked=true;
  billingEl('tool-number-price').textContent=numberAvailable?'· +'+billingMoney(calling.number.price_minor[cycle],calling.currency)+(cycle==='yearly'?' / year':' / month')+' (the number\'s real cost)':'· not available in your country yet';
- const hint=billingEl('tool-number-hint');hint.hidden=!calling?.number?.recommend_own;hint.textContent='Recommended: put a spare SIM or number of your own on the AI Caller. The call minutes are included; a new number from us costs much more here.';
+ const hint=billingEl('tool-number-hint');hint.hidden=!numberAvailable||!calling?.number?.recommend_own;hint.textContent='Recommended: put a spare SIM or number of your own on the AI Caller. The call minutes are included; a new number from us costs much more here.';
  lines.replaceChildren();
  const line=(name,value,cls)=>{const li=document.createElement('li');if(cls)li.className=cls;const a=document.createElement('span');a.textContent=name;const b=document.createElement('span');b.textContent=value;li.append(a,b);lines.append(li)};
  let total=0;const currency=tools[0]?.currency||'USD';

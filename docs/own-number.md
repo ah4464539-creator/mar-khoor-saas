@@ -1,6 +1,8 @@
 # AI Caller on the business's own number (any country)
 
-A business keeps its existing number. Nothing is bought from Telnyx and there is no monthly number fee. The AI answers calls on the business's own line through the internet (SIP).
+A business keeps its existing number. Nothing is bought from Telnyx and there is no monthly number fee.
+
+This is the only way to get AI calling while new numbers are not sold (`VOICE_AUTOPROVISION_ENABLED` unset, the default): plans show "AI answers calls on your own number", the single-tool cart and the setup box have no "new number" option, and the server refuses any request for one (`src/number-sales.js`). Setting `VOICE_AUTOPROVISION_ENABLED=1` brings number sales back (the setup box option `new` would then need to be added back to `public/restaurant.html`). The AI answers calls on the business's own line through the internet (SIP).
 
 ## How it works
 1. Owner: Dashboard → **AI receptionist** → **Use your own number** → enter the number with its country code and choose how it is connected:
