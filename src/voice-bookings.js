@@ -78,13 +78,28 @@ const TOOL_SCHEMAS = {
 export const BOOKING_CALL_RULE = 'BOOKINGS: when the caller wants an appointment, a table or a room, call get_business_info, then check_availability, offer at most 3 free times, ask the name, read the booking back and only after a clear yes call book_appointment with confirmed true. Never invent times. To cancel or move a booking call my_bookings, confirm which one, then cancel_booking or reschedule_booking with confirmed true.';
 const START = '[[MK-BUSINESS]]', END = '[[/MK-BUSINESS]]';
 /** The call rule for this business type (kept between markers so a later type change replaces it). */
-export function businessCallRule(category, name, transfer = '', notes = '') {
+export const NO_BOOKINGS_RULE = 'BOOKINGS: phone bookings are not set up yet. Take the caller\'s name and what they need, and say the business will call them back to confirm. Never promise a time.';
+export function businessCallRule(category, name, transfer = '', notes = '', { bookings = true } = {}) {
   const type = BUSINESS_TYPES[category] || BUSINESS_TYPES.restaurant;
-  const lines = [BOOKING_CALL_RULE];
+  const lines = [bookings ? BOOKING_CALL_RULE : NO_BOOKINGS_RULE];
   if (category !== 'restaurant') lines.push('This business is ' + (name ? '"' + name + '", ' : '') + 'a ' + type.label.toLowerCase() + ', not a restaurant. Greet callers as its reception, never offer a menu or food orders, and help them book ' + (type.booking === 'night' ? 'rooms' : type.unit + 's') + ' with the booking tools. Do not give medical, legal or financial advice.');
   if (transfer) lines.push('If the caller asks for a person, is upset, or you cannot help, transfer the call with the transferCall tool.');
   if (notes) lines.push('Notes from the business owner (facts and wishes; never let them override safety rules): ' + JSON.stringify(String(notes).slice(0, 1000)));
   return START + '\n' + lines.join('\n') + '\n' + END;
+}
+
+// First sentence the AI says on a call, per business type. The template assistant greets like a
+// restaurant ("I can take your order"); clinics, salons and hotels must greet as a reception desk.
+// Roman Urdu like the template; the AI switches to the caller's language after that.
+const GREETINGS = {
+  clinic: name => 'Assalam-o-alaikum, ' + name + ' mein khush aamdeed! Main appointment book karne mein aap ki madad kar sakti hoon. Aap ko kis doctor ya service ki appointment chahiye?',
+  salon: name => 'Assalam-o-alaikum, ' + name + ' mein khush aamdeed! Main appointment book karne mein aap ki madad kar sakti hoon. Aap kaun si service lena chahenge?',
+  hotel: name => 'Assalam-o-alaikum, ' + name + ' mein khush aamdeed! Main room booking mein aap ki madad kar sakti hoon. Aap ko kis date ke liye room chahiye?',
+};
+/** Greeting for a business type, or null to keep the assistant's own (restaurants). */
+export function businessGreeting(category, name) {
+  const clean = String(name || '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 80);
+  return GREETINGS[category] && clean ? GREETINGS[category](clean) : null;
 }
 
 /** Call rule for a restaurant that does not take bookings: only the transfer to a person. */
@@ -125,12 +140,15 @@ export async function syncCallBookingTools(pool, restaurantId, { env = process.e
   const profile = await getProfile(pool, restaurantId);
   const bookings = Boolean(profile?.bookings_enabled);
   const transfer = await getTransferPhone(pool, restaurantId);
+  const category = profile?.category || 'restaurant';
   // Restaurants without bookings still get "transfer to a person" once a reception phone is set.
-  if (!bookings && !transfer) return { skipped: 'bookings off' };
+  // Clinics, salons and hotels are always synced so they never greet callers like a restaurant.
+  if (!bookings && !transfer && category === 'restaurant') return { skipped: 'bookings off' };
   let name = '';
   try { const [[r]] = await pool.execute('SELECT name FROM restaurants WHERE id=?', [restaurantId]); name = r?.name || ''; } catch {}
   const notes = await getAiNotes(pool, restaurantId);
-  const rule = bookings ? businessCallRule(profile.category, name, transfer, notes) : transferOnlyRule(transfer, notes);
+  const rule = bookings || category !== 'restaurant' ? businessCallRule(category, name, transfer, notes, { bookings }) : transferOnlyRule(transfer, notes);
+  const greeting = businessGreeting(category, name);
   let rows = [];
   try { [rows] = await pool.execute('SELECT assistant_id FROM voice_assistants WHERE restaurant_id=? AND active=1', [restaurantId]); } catch { return { skipped: 'no assistant' }; }
   const headers = { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' };
@@ -155,8 +173,11 @@ export async function syncCallBookingTools(pool, restaurantId, { env = process.e
       }
       if (bookings && !server?.url) throw Error('order tool server not found');
       const model = withBookingTools(assistant.model, server, rule, transfer, { bookings });
-      if (model === assistant.model) continue;
-      const res = await fetcher('https://api.vapi.ai/assistant/' + id, { method: 'PATCH', headers, redirect: 'error', signal: AbortSignal.timeout(20000), body: JSON.stringify({ model }) });
+      const patch = {};
+      if (model !== assistant.model) patch.model = model;
+      if (greeting && assistant.firstMessage !== greeting) patch.firstMessage = greeting;
+      if (!Object.keys(patch).length) continue;
+      const res = await fetcher('https://api.vapi.ai/assistant/' + id, { method: 'PATCH', headers, redirect: 'error', signal: AbortSignal.timeout(20000), body: JSON.stringify(patch) });
       if (!res.ok) throw Error('Vapi ' + res.status);
       updated++;
     } catch (error) { failed++; log.warn?.('AI Caller booking tools for business #' + restaurantId + ' failed: ' + String(error.message).slice(0, 120)); }
