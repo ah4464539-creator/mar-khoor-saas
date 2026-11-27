@@ -286,6 +286,8 @@ body.mk{margin:0}
 .owner-app .owner-order-estimate .btn{min-height:32px;padding:0 10px}
 .owner-app span.owner-menu-thumb{font-size:10px;text-align:center;line-height:1.2;padding:4px}
 @media(max-width:959px){
+ /* summit.css hides the sidebar footer on phones; owners still need "Sign out" there. */
+ .mk.owner-app .shell>.side .side-foot{display:flex;justify-content:flex-end;margin-top:-4px}
  .owner-app .nav-group{display:contents}
  .owner-app .nav-group .nav-label{display:none}
  .owner-app .menu-editor{order:-1}

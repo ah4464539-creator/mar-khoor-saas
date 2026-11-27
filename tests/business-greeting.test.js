@@ -90,3 +90,11 @@ test('every call rule asks for a natural, friendly phone style', () => {
   assert.ok(withBookingTools({ messages: [{ role: 'system', content: 'Host.' }], tools: [] }, { url: 'https://x' }).messages[0].content.includes(CALL_STYLE_RULE));
   assert.ok(transferOnlyRule('+923001234567').includes(CALL_STYLE_RULE));
 });
+
+import { readFileSync as readFile } from 'node:fs';
+test('a spoken phone number is read back before booking', () => {
+  assert.match(withBookingTools({ messages: [{ role: 'system', content: 'Host.' }], tools: [] }, { url: 'https://x' }).messages[0].content, /read the number back digit by digit/);
+});
+test('owners can sign out on phones (sidebar footer is not hidden on small screens)', () => {
+  assert.match(readFile('public/owner.css', 'utf8'), /\.mk\.owner-app \.shell>\.side \.side-foot\{display:flex/);
+});
