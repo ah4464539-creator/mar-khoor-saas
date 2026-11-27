@@ -1,4 +1,5 @@
 import test from 'node:test';
+process.env.VOICE_AUTOPROVISION_ENABLED = '1'; // these tests cover selling new numbers (switched on here)
 import assert from 'node:assert/strict';
 import express from 'express';
 import { provisionSubscriptionNumber, retryPendingSubscriptionNumbers, pickNumber, includesNumber, missingConfig } from '../src/voice-autoprovision.js';

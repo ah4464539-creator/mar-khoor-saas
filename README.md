@@ -113,7 +113,7 @@ Set them in hPanel → Websites → mar-khoor.com → Node.js → Environment va
 | `VAPI_WEBHOOK_SECRET` or `VAPI_WEBHOOK_HMAC_SECRET` (+ `VAPI_HMAC_SIGNATURE_HEADER`, `VAPI_HMAC_TIMESTAMP_HEADER`) | Webhook auth |
 | `VAPI_TOOL_SECRET` | Tool URL auth |
 | `VAPI_API_KEY`, `VAPI_TEMPLATE_ASSISTANT_ID`, `VAPI_TELNYX_CREDENTIAL_ID`, `VAPI_VOICE_JSON` | Assistant sync and auto-provisioning |
-| `TELNYX_API_KEY`, `TELNYX_MAX_MONTHLY_USD`, `TELNYX_MAX_UPFRONT_USD`, `VOICE_AUTOPROVISION_ENABLED`, `REGISTRATION_VOICE_POOL_ENABLED` | Automatic phone numbers (spends money) |
+| `TELNYX_API_KEY`, `TELNYX_MAX_MONTHLY_USD`, `TELNYX_MAX_UPFRONT_USD`, `VOICE_AUTOPROVISION_ENABLED`, `REGISTRATION_VOICE_POOL_ENABLED` | Selling new phone numbers (spends money). **Off** unless `VOICE_AUTOPROVISION_ENABLED=1`: then no plan, tool cart, setup step or super-admin action offers or buys a number, and businesses use their own number ([docs/own-number.md](docs/own-number.md)) |
 
 **Plans, payments, limits (Stripe)**
 | Name | Purpose |

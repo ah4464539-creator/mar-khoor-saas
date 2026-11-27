@@ -63,7 +63,7 @@ test('finish connects what is possible and reports honest pending steps', async 
 
 test('already linked WhatsApp, active number and published site are connected; AI replies switched on', async () => {
   const pool = fakePool({ whatsapp: [{ restaurant_id: 4, phone_number_id: '123' }], numbers: [{ restaurant_id: 4, phone_number: '+15550001' }], sites: [{ restaurant_id: 4, published: 1 }] });
-  await saveSetup(pool, 4, { whatsapp: { mode: 'meta_signup', value: '+923001234567' }, ai_caller: { mode: 'new', value: '+923001234567' }, website: { mode: 'builder' } });
+  await saveSetup(pool, 4, { whatsapp: { mode: 'meta_signup', value: '+923001234567' }, ai_caller: { mode: 'import', value: '+923001234567' }, website: { mode: 'builder' } });
   const by = Object.fromEntries((await finishSetup(pool, 4, {})).body.integrations.map(i => [i.kind, i.status]));
   assert.deepEqual(by, { whatsapp: 'connected', ai_caller: 'connected', website: 'connected' });
   assert.equal(pool.s.aiSettings.get(4), true);

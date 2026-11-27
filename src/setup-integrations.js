@@ -3,6 +3,7 @@
 // an honest status per item: connected, pending (with the next action) or skipped.
 // No express import: testable with mock pools.
 import { normalizePhone } from './order-fulfillment.js';
+import { numberSalesEnabled, NUMBER_SALES_OFF_MESSAGE } from './number-sales.js';
 
 export const KINDS = Object.freeze(['whatsapp', 'ai_caller', 'website']);
 export const MODES = Object.freeze({
@@ -22,7 +23,7 @@ export function normalizeDomain(value) {
 }
 
 /** Validates the setup box submission. Unknown kinds are rejected; missing kinds stay unchanged. */
-export function validateSetup(body) {
+export function validateSetup(body, env = process.env) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) return { error: 'Invalid setup' };
   const out = {};
   for (const [kind, entry] of Object.entries(body)) {
@@ -30,6 +31,7 @@ export function validateSetup(body) {
     if (!entry || typeof entry !== 'object') return { error: 'Invalid setup item' };
     if (entry.skip === true) { out[kind] = { mode: null, value: null, skipped: true }; continue; }
     if (!MODES[kind].includes(entry.mode)) return { error: 'Choose how to connect ' + label(kind) };
+    if (kind === 'ai_caller' && entry.mode === 'new' && !numberSalesEnabled(env)) return { error: NUMBER_SALES_OFF_MESSAGE };
     let value = null;
     if (kind === 'whatsapp' || kind === 'ai_caller') {
       value = normalizePhone(entry.value);
@@ -100,7 +102,7 @@ async function connectAiCaller(pool, restaurantId, entry, deps) {
     return { status: 'connected', detail: 'Your AI Caller number is ' + number + '. Forward calls from ' + entry.value + ' to it (ask your phone provider for "call forwarding").' };
   if (number) return { status: 'connected', detail: 'AI Caller is answering on ' + number + '.' };
   if (entry.mode === 'forward') return { status: 'pending', detail: 'No AI Caller number is free in your country yet. We will assign one and show it here.' };
-  if (entry.mode === 'import') return { status: 'pending', detail: 'Our team will connect ' + entry.value + ' through a phone provider (Twilio, Vonage or Telnyx) and confirm here.' };
+  if (entry.mode === 'import') return { status: 'pending', detail: 'Open AI receptionist → Use your own number to connect ' + entry.value + ' (spare SIM, landline or office phone system).' };
   return { status: 'pending', detail: 'A new local number will be bought for you after your plan payment is confirmed.' };
 }
 

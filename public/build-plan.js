@@ -13,7 +13,7 @@ const PLAN_KEYS = ['starter', 'premium', 'enterprise'];
 const ALIASES = { professional: 'premium', pro: 'premium' };
 const BLURBS = {
   starter: 'For a single restaurant getting started with online orders and AI.',
-  premium: 'For busy restaurants that want a dedicated AI phone line.',
+  premium: 'For busy restaurants with more chats, messages and AI call minutes.',
   enterprise: 'For high-volume restaurants and groups with several branches.',
 };
 const METRICS = { ai_chats: 'AI chats', whatsapp_messages: 'WhatsApp messages', ai_call_minutes: 'AI call minutes' };
@@ -69,7 +69,8 @@ function render() {
       if (plan.limits?.[metric] != null) list.append(el('li', plan.limits[metric].toLocaleString() + ' ' + label + ' / month'));
     }
     const number = plan.dedicated_number;
-    if (number?.included) list.append(el('li', 'Dedicated AI phone number included'));
+    if (number?.available === false) list.append(el('li', 'AI answers calls on your own number (no number fee)'));
+    else if (number?.included) list.append(el('li', 'Dedicated AI phone number included'));
     else if (number?.addon_price_minor != null) list.append(el('li', 'Dedicated AI phone number: +' + money(number.addon_price_minor, plan.currency) + ' / month', 'muted-line'));
     else if (number) list.append(el('li', 'Dedicated AI phone number: optional add-on', 'muted-line'));
     for (const feature of FEATURES) list.append(el('li', feature));

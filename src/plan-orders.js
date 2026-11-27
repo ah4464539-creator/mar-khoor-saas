@@ -2,6 +2,7 @@
 // No express import here, so it can be tested with a mock pool.
 import { quotePlan, readCatalog } from './plan-quote.js';
 import { catalogWithRoutes, isOrderable, orderTotals, NEXT_STATUS } from './number-routes.js';
+import { numberSalesEnabled, NUMBER_SALES_OFF_MESSAGE } from './number-sales.js';
 
 // strict=true throws when routes cannot be read (orders must never use a partial price list).
 export async function loadCatalog(pool, { strict = false } = {}) {
@@ -19,9 +20,10 @@ const parseQuote = text => { try { return JSON.parse(text); } catch { return nul
 const present = row => ({ ...row, features: String(row.features).split(','), quote: parseQuote(row.quote) });
 
 // The country always comes from the restaurant's own record, never from the request.
-export async function createPlanOrder(pool, restaurantId, body) {
+export async function createPlanOrder(pool, restaurantId, body, { env = process.env } = {}) {
   const { features, numberMode = 'existing' } = body ?? {};
   if (!Array.isArray(features) || features.some(key => typeof key !== 'string')) return { status: 400, body: { error: 'Select valid services' } };
+  if (numberMode === 'new' && features.includes('voice') && !numberSalesEnabled(env)) return { status: 409, body: { error: NUMBER_SALES_OFF_MESSAGE } };
   try {
     const [restaurants] = await pool.execute('SELECT country_code FROM restaurants WHERE id=? LIMIT 1', [restaurantId]);
     if (!restaurants.length) return { status: 404, body: { error: 'Restaurant not found' } };

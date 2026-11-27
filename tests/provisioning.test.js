@@ -65,7 +65,7 @@ function db({order={id:5,restaurant_id:3,country_code:'AE',number_mode:'new',sta
   return [{affectedRows:1}];
  }};
 }
-const keys={telnyxKey:'T',vapiKey:'V',credentialId:'cred'};
+const keys={telnyxKey:'T',vapiKey:'V',credentialId:'cred',allowPurchases:true};
 const statuses=pool=>pool.log.filter(q=>q.sql.startsWith('UPDATE restaurant_numbers')).map(q=>q.sql);
 
 test('candidates are listed only for paid new-number orders routed to Telnyx',async()=>{
