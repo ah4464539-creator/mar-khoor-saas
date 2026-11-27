@@ -46,7 +46,7 @@ test('processVapiEvent resolves the restaurant from the assistant mapping, not t
  assert.deepEqual(result,{processed:true});
  assert.deepEqual(pool.queries[0].args,['asst-1']);
  assert.match(pool.queries[1].sql,/INSERT INTO voice_calls/);
- assert.deepEqual(pool.queries[1].args,['asst-1','call-1',42,'ringing','ringing']);
+ assert.deepEqual(pool.queries[1].args,['asst-1','call-1',42,'ringing']);
  assert.ok(!pool.queries.some(q=>q.args.includes(999)));
 });
 

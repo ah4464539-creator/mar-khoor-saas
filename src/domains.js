@@ -185,7 +185,8 @@ export function domainsRouter(pool, { resolver = dns, env = process.env, client 
     if (!Number.isSafeInteger(id) || !['verified', 'connected'].includes(status)) return res.status(400).json({ error: 'Invalid request' });
     try {
       await ensureDomainsTable(pool);
-      const [result] = await pool.execute("UPDATE restaurant_domains SET status=?,connected_at=IF(?='connected',CURRENT_TIMESTAMP,NULL) WHERE restaurant_id=? AND status IN ('verified','connected')", [status, status, id]);
+      // Decided in JS: comparing a bound value with a literal fails on production MariaDB (mixed collations).
+      const [result] = await pool.execute("UPDATE restaurant_domains SET status=?,connected_at=" + (status === 'connected' ? 'CURRENT_TIMESTAMP' : 'NULL') + " WHERE restaurant_id=? AND status IN ('verified','connected')", [status, id]);
       if (!result.affectedRows) return res.status(409).json({ error: 'Only a verified domain can be marked connected' });
       await audit(pool, { actorUserId: req.user.id, restaurantId: id, action: 'site.domain_' + status });
       res.json({ status });
