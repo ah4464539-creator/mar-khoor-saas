@@ -1,12 +1,14 @@
-// Female voice for every AI Caller (owner's choice): OpenAI "marin" through gpt-4o-mini-tts,
-// told to sound like a professional restaurant host. If Vapi does not accept marin for its
-// TTS pipeline we fall back to OpenAI "coral"; if OpenAI is down Vapi falls back to Azure.
-// VAPI_VOICE_JSON ({"PK":{...},"default":{...}}) can replace them without a code change.
-const PROFESSIONAL = 'Speak as a professional, calm and warm restaurant host on the phone: clear, polite, moderate pace, friendly but not playful. '
-  + 'Pronounce Urdu naturally with a Pakistani accent and English words (Chicken, Total, Order) as in English.';
+// Female voice for every AI Caller (owner's choice, 27 Nov 2026): ElevenLabs "Jessica" on Eleven v4 Turbo,
+// which speaks Urdu, English and Arabic with real-time latency (~100 ms). Flash v2.5 has no Urdu and
+// Eleven v3 is not a real-time model, so v4 Turbo is used everywhere. Speech is generated per whole
+// sentence (chunkPlan) so it is not cut mid-sentence. If ElevenLabs is unavailable Vapi falls back to
+// Azure female voices. VAPI_VOICE_JSON ({"PK":{...},"default":{...}}) can replace them without a code change.
+export const ELEVEN_FEMALE = 'cgSgspJ2msm6clMCkdW9'; // ElevenLabs "Jessica"
+export const SENTENCE_CHUNKS = Object.freeze({ enabled: true, minCharacters: 60, punctuationBoundaries: ['.', '!', '?', '۔'] });
+const JESSICA = { provider: '11labs', voiceId: ELEVEN_FEMALE, model: 'eleven_v4_turbo', stability: 0.45, similarityBoost: 0.8, chunkPlan: SENTENCE_CHUNKS };
 const BUILT_IN = {
-  PK: { provider: 'openai', model: 'gpt-4o-mini-tts', voiceId: 'marin', instructions: PROFESSIONAL, fallback: { provider: 'azure', voiceId: 'ur-PK-UzmaNeural' } },
-  default: { provider: 'openai', model: 'gpt-4o-mini-tts', voiceId: 'marin', instructions: PROFESSIONAL.replace(' with a Pakistani accent', ''), fallback: { provider: 'azure', voiceId: 'en-US-JennyMultilingualNeural' } },
+  PK: { ...JESSICA, fallback: { provider: 'azure', voiceId: 'ur-PK-UzmaNeural' } },
+  default: { ...JESSICA, fallback: { provider: 'azure', voiceId: 'en-US-JennyMultilingualNeural' } },
 };
 export const SECOND_CHOICE_VOICE = 'coral';
 export const VOICE_SETTINGS_SQL = `CREATE TABLE IF NOT EXISTS app_settings (
@@ -14,7 +16,7 @@ export const VOICE_SETTINGS_SQL = `CREATE TABLE IF NOT EXISTS app_settings (
  setting_value TEXT NULL,
  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`;
-const MARKER = 'vapi_female_voice_v3_openai_marin';
+const MARKER = 'vapi_female_voice_v4_elevenlabs_jessica_v4turbo';
 
 function table(env = process.env) {
   try {
@@ -66,8 +68,8 @@ export async function ensureFemaleVoices(pool, { env = process.env, fetcher = fe
       failed++; log.warn?.('AI Caller voice update failed for ' + String(id).slice(0, 8) + '…: ' + error.message);
     }
   }
-  log.log?.(`AI Caller OpenAI female voice: ${ok} assistant(s) updated (${ok - secondChoice} marin, ${secondChoice} coral), ${failed} failed`);
-  if (!failed) await pool.query('INSERT IGNORE INTO app_settings (setting_key,setting_value) VALUES (?,?)', [MARKER, JSON.stringify({ ok, marin: ok - secondChoice, coral: secondChoice, at: new Date().toISOString() })]);
+  log.log?.(`AI Caller female voice (ElevenLabs Jessica): ${ok} assistant(s) updated, ${failed} failed`);
+  if (!failed) await pool.query('INSERT IGNORE INTO app_settings (setting_key,setting_value) VALUES (?,?)', [MARKER, JSON.stringify({ ok, at: new Date().toISOString() })]);
   return { ok, failed, secondChoice };
 }
 
