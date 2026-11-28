@@ -84,9 +84,27 @@ const clean = (value, max, { newlines = false } = {}) => {
   return text.replace(/[ \t]+/g, ' ').trim().slice(0, max);
 };
 
+const TAGLINES = {
+  restaurant: name => 'Order online from ' + name,
+  clinic: name => 'Book an appointment at ' + name,
+  salon: name => 'Book your appointment at ' + name,
+  hotel: name => 'Book your stay at ' + name,
+};
+/** Default tagline for the business type (restaurants order, others book). */
+export function categoryTagline(name, category) {
+  return (TAGLINES[category] || TAGLINES.restaurant)(clean(name, 80) || 'Our restaurant');
+}
+/** Sites created before business types kept the food default ("Order online from …").
+ *  For clinics, salons and hotels show their booking line instead; owner-written text is kept. */
+export function displayTagline(tagline, name, category) {
+  const text = clean(tagline, 160);
+  if (category && category !== 'restaurant' && (!text || text === categoryTagline(name, 'restaurant'))) return categoryTagline(name, category);
+  return text;
+}
+
 export function defaultSiteConfig(restaurant) {
   const name = clean(restaurant?.name, 80) || 'Our restaurant';
-  return { template: 'classic', theme: 'green', headline: name, tagline: 'Order online from ' + name, about: '', hours: '', phone: '', address: '', sections: [...DEFAULT_SECTIONS] };
+  return { template: 'classic', theme: 'green', headline: name, tagline: categoryTagline(name, restaurant?.category), about: '', hours: '', phone: '', address: '', sections: [...DEFAULT_SECTIONS] };
 }
 
 // Accepts untrusted input (owner form or AI output) and returns a config that is always safe to store.
@@ -270,6 +288,7 @@ function extraLinks(list) {
 // Public storefront markup. All restaurant copy and item data are escaped before rendering.
 export function renderSitePage({ restaurant, config, items }, { assistant = '', links = null, page = null, booking = null } = {}) {
   const c = sanitizeSiteConfig(config, restaurant);
+  c.tagline = displayTagline(c.tagline, restaurant.name, booking?.category);
   const t = { bg: '#0b0b0d', ink: '#fff8ef', accent: '#ff952f', accentInk: '#190d05', card: '#181719', muted: '#bfb6ae' };
   const slug = /^[a-z0-9-]{1,160}$/.test(restaurant.slug) ? restaurant.slug : '';
   const restaurantName = escapeHtml(clean(restaurant.name, 160).toUpperCase());

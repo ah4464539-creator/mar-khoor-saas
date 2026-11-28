@@ -4,7 +4,7 @@
 // tagline, logo, and the phone / WhatsApp / address the business shows on its website).
 // No express import in the core: testable with mock pools.
 import express from 'express';
-import { sanitizeSiteConfig } from './site-builder.js';
+import { sanitizeSiteConfig, displayTagline } from './site-builder.js';
 import { isBusinessType } from './bookings.js';
 import { assistantAllowed } from './widget-core.js';
 
@@ -59,7 +59,7 @@ export async function listBusinesses(pool, { q = '', category = '', country = ''
     return {
       name: String(row.name).slice(0, 160), slug: row.slug, url: '/r/' + row.slug,
       category: isBusinessType(row.category) ? row.category : 'restaurant',
-      country: row.country_code || null, tagline: config.tagline || '', logo: config.logo || null,
+      country: row.country_code || null, tagline: displayTagline(config.tagline, row.name, isBusinessType(row.category) ? row.category : 'restaurant'), logo: config.logo || null,
       phone: phoneDigits(config.phone), whatsapp: waNumber(config.whatsapp),
       address: config.address || '',
       // The business page's AI assistant: chat, and live voice when voice is switched on.
