@@ -1,9 +1,9 @@
 /* Mar-Khoor homepage hero "Orbit": the four kinds of business circle one AI desk; every few
    seconds the next one comes to the front, the colour shifts and its booking card flips in.
-   Also the animated channels cards below it. Night Karakoram palette from landing.css. */
-.lp .ob{--oc:#E8590C;position:relative;overflow:hidden;padding:56px 0 0}
+   Also the animated channels cards below it. Uses the shared Orbit daylight palette. */
+.lp .ob{--oc:var(--ember);background:var(--ground);position:relative;overflow:hidden;padding:56px 0 0}
 .lp .ob .wrap{position:relative;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:40px;align-items:center;min-height:calc(100svh - 150px);padding-bottom:110px}
-.lp .ob-blob{position:absolute;right:-12%;top:-18%;width:70vw;max-width:880px;aspect-ratio:1;border-radius:42% 58% 63% 37%/45% 38% 62% 55%;background:var(--oc);opacity:.13;animation:ob-morph 12s ease-in-out infinite,ob-spin 40s linear infinite;transition:background .6s;pointer-events:none}
+.lp .ob-blob{position:absolute;right:-12%;top:-18%;width:70vw;max-width:880px;aspect-ratio:1;border-radius:42% 58% 63% 37%/45% 38% 62% 55%;background:var(--oc);opacity:.12;animation:ob-morph 12s ease-in-out infinite,ob-spin 40s linear infinite;transition:background .6s;pointer-events:none}
 @keyframes ob-morph{50%{border-radius:61% 39% 38% 62%/59% 55% 45% 41%}}
 @keyframes ob-spin{to{transform:rotate(360deg)}}
 .lp .ob-copy{position:relative;z-index:2}
@@ -15,33 +15,33 @@
 .lp .ob h1 .hl.out{opacity:0;transform:translateY(-24px)}
 .lp .ob-copy>p{font:400 19px/1.55 var(--f);color:var(--slate-2);margin:0 0 24px;max-width:46ch}
 .lp .ob-copy .row{display:flex;flex-wrap:wrap;gap:10px}
-.lp .ob .b-go{background:var(--oc);transition:background .6s,transform .2s;animation:ob-pulse 2.4s infinite}
-.lp .ob .b-go:hover{transform:translateY(-2px)}
+.lp .ob .b-go{background:color-mix(in srgb,var(--oc) 75%,#12131A);color:#fff;transition:background .6s,transform .2s;animation:ob-pulse 2.4s infinite}
+.lp .ob .b-go:hover{background:color-mix(in srgb,var(--oc) 62%,#12131A);transform:translateY(-2px)}
 @keyframes ob-pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--oc) 60%,transparent)}70%{box-shadow:0 0 0 14px transparent}100%{box-shadow:0 0 0 0 transparent}}
 .lp .ob-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-top:26px}
-.lp .ob-tabs button{height:44px;padding:0 16px;border-radius:999px;border:1.5px solid var(--ice);background:transparent;color:var(--slate-2);font:600 15px var(--f);cursor:pointer;transition:border-color .3s,background .3s,color .3s}
-.lp .ob-tabs button[aria-pressed="true"]{border-color:var(--oc);background:color-mix(in srgb,var(--oc) 16%,transparent);color:var(--slate)}
+.lp .ob-tabs button{height:44px;padding:0 16px;border-radius:999px;border:1.5px solid var(--line-strong);background:var(--surface);color:var(--slate-2);font:600 15px var(--f);cursor:pointer;transition:border-color .3s,background .3s,color .3s}
+.lp .ob-tabs button[aria-pressed="true"]{border-color:var(--oc);background:color-mix(in srgb,var(--oc) 12%,var(--surface));color:var(--slate)}
 .lp .ob-sys{--rot:0deg;position:relative;width:min(470px,84vw);aspect-ratio:1;justify-self:center;margin-bottom:40px}
 .lp .ob-ring{position:absolute;inset:0;border-radius:50%;border:2px dashed color-mix(in srgb,var(--oc) 50%,transparent);transform:rotate(var(--rot));transition:transform 1.2s cubic-bezier(.5,0,.2,1),border-color .6s}
 .lp .ob-ping{position:absolute;inset:22%;border-radius:50%;border:2px solid var(--oc);animation:ob-ping 2.6s ease-out infinite;transition:border-color .6s}
 .lp .ob-ping+.ob-ping{animation-delay:1.3s}
 @keyframes ob-ping{from{transform:scale(.8);opacity:.8}to{transform:scale(1.9);opacity:0}}
-.lp .ob-core{position:absolute;inset:28%;border-radius:50%;background:var(--oc);display:grid;place-items:center;box-shadow:0 24px 60px -16px var(--oc);transition:background .6s,box-shadow .6s;animation:ob-breathe 4s ease-in-out infinite}
+.lp .ob-core{position:absolute;inset:28%;border-radius:50%;background:var(--oc);display:grid;place-items:center;box-shadow:0 24px 50px -16px var(--oc);transition:background .6s,box-shadow .6s;animation:ob-breathe 4s ease-in-out infinite}
 .lp .ob-core img{width:46%;height:46%}
 @keyframes ob-breathe{50%{transform:scale(1.06)}}
 .lp .ob-planet{position:absolute;width:21%;aspect-ratio:1;left:39.5%;top:-10.5%;transform-origin:center 288%}
-.lp .ob-pl{width:100%;height:100%;border-radius:50%;background:#16212C;border:3px solid #2A3A4A;box-shadow:0 10px 24px #0008;display:grid;place-items:center;transform:rotate(calc(-1 * var(--rot) - var(--a)));transition:transform 1.2s cubic-bezier(.5,0,.2,1),border-color .5s,box-shadow .5s}
+.lp .ob-pl{width:100%;height:100%;border-radius:50%;background:var(--surface);border:3px solid var(--line);box-shadow:0 10px 24px #12131a1f;display:grid;place-items:center;transform:rotate(calc(-1 * var(--rot) - var(--a)));transition:transform 1.2s cubic-bezier(.5,0,.2,1),border-color .5s,box-shadow .5s}
 .lp .ob-pl svg{width:58%;height:58%}
-.lp .ob-planet.now .ob-pl{border-color:var(--oc);box-shadow:0 0 0 8px color-mix(in srgb,var(--oc) 25%,transparent),0 14px 30px #0009;scale:1.22;transition:transform 1.2s cubic-bezier(.5,0,.2,1),scale .5s .7s,border-color .5s,box-shadow .5s}
-.lp .ob-card{position:absolute;left:50%;bottom:-8%;width:min(280px,72vw);translate:-50% 0;z-index:3;background:#16212C;color:var(--slate);border:1px solid #2A3A4A;border-left:6px solid var(--oc);border-radius:18px;padding:14px 16px;box-shadow:0 24px 50px -14px #000c;transition:border-color .6s}
+.lp .ob-planet.now .ob-pl{border-color:var(--oc);box-shadow:0 0 0 8px color-mix(in srgb,var(--oc) 20%,transparent),0 14px 30px #12131a2e;scale:1.22;transition:transform 1.2s cubic-bezier(.5,0,.2,1),scale .5s .7s,border-color .5s,box-shadow .5s}
+.lp .ob-card{position:absolute;left:50%;bottom:-8%;width:min(280px,72vw);translate:-50% 0;z-index:3;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-left:6px solid var(--oc);border-radius:18px;padding:14px 16px;box-shadow:0 20px 40px -12px #12131a4d;transition:border-color .6s}
 .lp .ob-card.flip{animation:ob-flip .7s ease}
 @keyframes ob-flip{50%{transform:rotateX(90deg)}}
 .lp .ob-card small{display:block;font:600 13px var(--f);color:var(--stone)}
 .lp .ob-card b{display:block;font:700 17px var(--f);margin:2px 0 6px}
 .lp .ob-card span{display:block;font:14px/1.45 var(--f);color:var(--slate-2)}
-.lp .ob-tick{position:absolute;left:0;right:0;bottom:0;background:#0A1018;border-top:1px solid #1A2633;overflow:hidden;padding:14px 0}
+.lp .ob-tick{position:absolute;left:0;right:0;bottom:0;background:var(--night);overflow:hidden;padding:14px 0}
 .lp .ob-tick div{display:flex;gap:44px;width:max-content;animation:ob-marq 36s linear infinite}
-.lp .ob-tick span{white-space:nowrap;font:500 15px var(--f);color:var(--slate-2)}
+.lp .ob-tick span{white-space:nowrap;font:500 15px var(--f);color:var(--night-text)}
 .lp .ob-tick span::before{content:"●";color:var(--oc);margin-right:10px;transition:color .6s}
 @keyframes ob-marq{to{transform:translateX(-50%)}}
 
@@ -55,7 +55,7 @@
 .lp .chc{position:relative;border-radius:22px;padding:24px;overflow:hidden;isolation:isolate;opacity:0;transform:translateY(50px) scale(.95);transition:opacity .6s,transform .8s cubic-bezier(.2,1.2,.3,1);transition-delay:calc(var(--i) * 150ms)}
 .lp .chc.in{opacity:1;transform:none}
 .lp .chc::before{content:"";position:absolute;inset:-60%;z-index:-2;background:conic-gradient(from 0deg,transparent 0 70%,var(--c) 85%,transparent 100%);animation:ob-spin 5s linear infinite;animation-delay:calc(var(--i) * -1.6s)}
-.lp .chc::after{content:"";position:absolute;inset:2px;border-radius:20px;z-index:-1;background:#16212C}
+.lp .chc::after{content:"";position:absolute;inset:2px;border:1px solid var(--line);border-radius:20px;z-index:-1;background:var(--surface)}
 .lp .chc h3{font:700 22px var(--f);margin:16px 0 8px;letter-spacing:-.015em}
 .lp .chc p{font:16px/1.6 var(--f);color:var(--slate-2);margin:0}
 .lp .ch-ico{width:54px;height:54px;border-radius:16px;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 20%,transparent);color:var(--c);position:relative}
@@ -78,7 +78,7 @@
 .lp .ch-wave{display:flex;align-items:center;gap:4px;height:44px;flex:1}
 .lp .ch-wave i{flex:1;max-width:6px;height:20%;border-radius:3px;background:#4DABF7;animation:ch-eq 1s ease-in-out infinite alternate;animation-delay:calc(var(--k) * -.13s)}
 @keyframes ch-eq{to{height:100%}}
-.lp .ch-info{position:absolute;left:14px;right:14px;bottom:10px;display:flex;justify-content:space-between;color:var(--slate-2)}
+.lp .ch-info{position:absolute;left:14px;right:14px;bottom:10px;display:flex;justify-content:space-between;color:var(--night-text)}
 .lp .ch-info b{color:#4DABF7;font-variant-numeric:tabular-nums}
 .lp .ch-web .bar{height:24px;display:flex;gap:5px;align-items:center;padding:0 10px;background:#1C2A37}
 .lp .ch-web .bar i{width:8px;height:8px;border-radius:50%;background:#FF6B6B}.lp .ch-web .bar i:nth-child(2){background:#FFD43B}.lp .ch-web .bar i:nth-child(3){background:#51CF66}
@@ -98,26 +98,3 @@
 }
 @media (max-width:600px){.lp .ob{padding-top:28px}.lp .ob h1{font-size:40px}}
 .lp .ob h1 .nw{white-space:nowrap}
-
-/* Orbit daylight: the hero and the top bar sit on white, as in the approved Orbit design.
-   The sections below keep the Night Karakoram palette. */
-.lp .ob,.lp .topbar{--snow:#FFFFFF;--glacier:#F1F2F6;--ice:#D7D9E0;--slate:#12131A;--slate-2:#4A4D5C;--stone:#6B6F80;color-scheme:light}
-.lp .ob{background:#FFFFFF;color:var(--slate)}
-.lp .topbar{background:#FFFFFFeb}
-.lp .topbar.solid{border-color:#E6E8EE}
-.lp .ob .b-go,.lp .topbar .b-go{color:#FFFFFF}
-.lp .ob .b-line,.lp .topbar .b-line{background:#FFFFFF;color:var(--slate);border-color:var(--ice)}
-.lp .ob .b-line:hover,.lp .topbar .b-line:hover{border-color:var(--slate-2)}
-.lp .ob-blob{opacity:.12}
-.lp .ob-kick{background:#F1F2F6}
-.lp .ob-pl{background:#FFFFFF;border-color:#E6E8EE;box-shadow:0 10px 24px #12131a1f}
-.lp .ob-planet.now .ob-pl{box-shadow:0 0 0 8px color-mix(in srgb,var(--oc) 20%,transparent),0 14px 30px #12131a2e}
-.lp .ob-core{box-shadow:0 24px 50px -16px var(--oc)}
-.lp .ob-card{background:#FFFFFF;color:#12131A;border-color:#E6E8EE;border-left-color:var(--oc);box-shadow:0 20px 40px -12px #12131a4d}
-.lp .ob-card small{color:#6B6F80}.lp .ob-card span{color:#4A4D5C}
-.lp .ob-tick{background:#12131A;border-top:0}
-.lp .ob-tick span{color:#EAF0F4}
-.lp .ob-tabs button{background:#FFFFFF}
-.lp .ob-tabs button[aria-pressed="true"]{background:color-mix(in srgb,var(--oc) 12%,#FFFFFF)}
-.lp .topbar{--ink:#12131A;--ember-text:#B4540E;--ember-soft:#FFF0E6;--ember-line:#F5C9A6;background:#FFFFFF}
-body.lp{margin:0}
