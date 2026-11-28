@@ -1,6 +1,5 @@
-/* Mar-Khoor landing page v3: alpine daylight. Cool snow ground, slate ink, pine as the second
-   colour, brand ember only on actions. One bold element: the live desk in the hero. */
-.lp{--snow:#F6F8FA;--glacier:#E3ECF2;--ice:#C9D8E2;--slate:#16232D;--slate-2:#33444F;--stone:#5E6E7A;--pine:#1E4F46;--pine-soft:#E2EFEA;--ember:#E8701A;--ember-deep:#B4540E;
+/* Mar-Khoor landing page on the shared Orbit daylight palette. */
+.lp{--snow:var(--ground);--glacier:var(--sunk);--ice:var(--line);--slate:var(--ink);--slate-2:var(--ink-2);--stone:var(--muted);--pine:var(--ok);--pine-soft:var(--ok-bg);--ember-deep:var(--ember-text);
  --f:'Schibsted Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;
  background:var(--snow);color:var(--slate);font-family:var(--f)}
 .lp *{font-family:inherit}
@@ -11,14 +10,14 @@
 
 /* Buttons */
 .lp .b{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding:0 22px;border-radius:10px;font:600 16px var(--f);text-decoration:none;border:1.5px solid transparent;cursor:pointer;transition:background .15s,border-color .15s}
-.lp .b-go{background:var(--ember);color:#fff}
-.lp .b-go:hover{background:var(--ember-deep)}
-.lp .b-line{border-color:var(--ice);color:var(--slate);background:#fff}
+.lp .b-go{background:var(--ember);color:var(--ember-ink)}
+.lp .b-go:hover{background:var(--ember-deep);color:#fff}
+.lp .b-line{border-color:var(--line-strong);color:var(--slate);background:#fff}
 .lp .b-line:hover{border-color:var(--slate-2)}
 .lp .b-sm{height:40px;padding:0 16px;font-size:15px}
 
 /* Nav */
-.lp .topbar{position:sticky;top:0;z-index:40;background:#F6F8FAe6;backdrop-filter:blur(12px);border-bottom:1px solid transparent;transition:border-color .2s}
+.lp .topbar{position:sticky;top:0;z-index:40;background:var(--ground);backdrop-filter:blur(12px);border-bottom:1px solid transparent;transition:border-color .2s}
 .lp .topbar.solid{border-color:var(--glacier)}
 .lp .topbar .wrap{display:flex;align-items:center;gap:28px;height:72px}
 .lp .logo{display:flex;align-items:center;gap:10px;text-decoration:none;font:800 21px var(--f);letter-spacing:-.02em;color:var(--slate)}
@@ -42,7 +41,7 @@
 .lp .switch-hint{font:15px var(--f);color:var(--stone);margin-left:14px}
 
 /* The live desk: the one bold element */
-.lp .desk{position:relative;border-radius:22px;background:var(--slate);color:#E8EEF2;padding:22px;box-shadow:0 40px 80px -30px #16232d80}
+.lp .desk{position:relative;border-radius:22px;background:var(--night);color:var(--night-text);padding:22px;box-shadow:0 40px 80px -30px #16232d80}
 .lp .desk-bar{display:flex;align-items:center;gap:10px;padding:0 4px 18px;font:500 14px var(--f);color:#9FB2BF}
 .lp .desk-bar .live{width:9px;height:9px;border-radius:50%;background:#43D18A;box-shadow:0 0 0 4px #43d18a33}
 .lp .desk-bar strong{color:#fff;font-weight:700}
@@ -111,7 +110,7 @@
 .lp .ptable tbody th{font-weight:500;color:var(--slate-2)}
 .lp .ptable td{font-weight:600}
 .lp .ptable .pick{background:#FFF6EE}
-.lp .ptable .flag{display:inline-block;margin-bottom:8px;padding:3px 10px;border-radius:999px;background:var(--ember);color:#fff;font:700 12px var(--f)}
+.lp .ptable .flag{display:inline-block;margin-bottom:8px;padding:3px 10px;border-radius:999px;background:var(--ember);color:var(--ember-ink);font:700 12px var(--f)}
 .lp .pnote{margin:20px 0 0;color:var(--stone);font:15px var(--f)}
 .lp .pnote a{color:var(--ember-deep);font-weight:600}
 .lp .tools{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin-top:20px;border-top:2px solid var(--slate)}
@@ -189,21 +188,4 @@
 }
 .lp .topbar{display:block}
 
-/* Theme: Night Karakoram (owner's choice). Same layout, night palette. */
-.lp{--snow:#0E1620;--glacier:#1A2633;--ice:#2A3A4A;--slate:#EAF0F4;--slate-2:#B8C6D1;--stone:#8C9DAA;--pine:#7FD1B3;--pine-soft:#173A33;--ember:#F08A2E;--ember-deep:#FFB066;color-scheme:dark}
-.lp .topbar{background:#0E1620e6}
-.lp .b-go{color:#140C05}.lp .b-go:hover{background:#FF9F4A}
-.lp .b-line{background:transparent;color:var(--slate)}.lp .b-line:hover{border-color:var(--slate-2)}
-.lp .desk{background:#16212C;border:1px solid #2A3A4A}.lp .lane{background:#1C2A37}.lp .from{background:#24384A}
-.lp .reply{background:var(--surface);color:var(--ink)}
-.lp .done{background:#173A33;color:#BFEBD9;border-color:#2F6B5B}.lp .done b{color:#E6FFF5}.lp .done small{color:#7FD1B3}
-.lp .switch button[aria-pressed="true"]{background:#2A3A4A;color:#fff;box-shadow:none}
-.lp .col q{background:#1A2633}
-.lp .cols,.lp .biz,.lp .steps li,.lp .tools,.lp .ptable thead th{border-top-color:#EAF0F4}
-.lp .price{background:#121C27;border-color:#1A2633}
-.lp .ptable thead th{border-bottom-color:#EAF0F4}
-.lp .ptable .pick{background:#2A1E12}.lp .flag{color:#140C05}
-.lp .tongues{background:linear-gradient(90deg,#0E1620f5 0%,#0E1620cc 45%,#0E162033 100%),url('/assets/approved-mountain.webp') right 30%/cover no-repeat}
-.lp .demo-wrap{background:#121C27;border-color:#2A3A4A;--surface:#16212C;--line:#2A3A4A;--line-strong:#3A4D5F;--ink:#EAF0F4;--ink-2:#B8C6D1;--muted:#8C9DAA;--sunk:#1C2A37;--ember-soft:#2A1E12;--ember-line:#5A3A1A}
-.lp .demo-wrap .btn-ghost{color:var(--slate);border-color:#3A4D5F;background:transparent}
-.lp .foot{border-color:#1A2633}
+.lp .demo-wrap .btn-ghost{color:var(--slate);border-color:var(--line-strong)}
