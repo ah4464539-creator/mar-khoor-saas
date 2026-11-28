@@ -1,0 +1,71 @@
+// Two Trusted Web Activity apps from one project (same website, no WebView):
+//   business  -> "Mar-Khoor Business" (com.markhoor.business), opens the owner dashboard
+//   customer  -> "Mar-Khoor"          (com.markhoor.app),      opens the customer home (/app)
+// Release signing reads the upload key from environment variables; the keystore is never in git:
+//   MK_UPLOAD_STORE_FILE, MK_UPLOAD_STORE_PASSWORD, MK_UPLOAD_KEY_ALIAS, MK_UPLOAD_KEY_PASSWORD
+plugins {
+    id 'com.android.application'
+}
+
+def host = 'mar-khoor.com'
+def env = System.getenv()
+
+android {
+    namespace 'com.markhoor.twa'
+    compileSdk 36
+
+    defaultConfig {
+        minSdk 24
+        targetSdk 36
+        versionCode 1
+        versionName '1.0.0'
+        resValue 'string', 'hostName', host
+        resValue 'string', 'assetStatements', '[{ "relation": ["delegate_permission/common.handle_all_urls"], "target": {"namespace": "web", "site": "https://' + host + '"}}]'
+        manifestPlaceholders = [hostName: host]
+    }
+
+    flavorDimensions = ['audience']
+    productFlavors {
+        business {
+            dimension 'audience'
+            applicationId 'com.markhoor.business'
+            resValue 'string', 'appName', 'Mar-Khoor Business'
+            resValue 'string', 'launchUrl', 'https://' + host + '/restaurant.html#order-desk'
+            resValue 'string', 'providerAuthority', 'com.markhoor.business.fileprovider'
+        }
+        customer {
+            dimension 'audience'
+            applicationId 'com.markhoor.app'
+            resValue 'string', 'appName', 'Mar-Khoor'
+            resValue 'string', 'launchUrl', 'https://' + host + '/app'
+            resValue 'string', 'providerAuthority', 'com.markhoor.app.fileprovider'
+        }
+    }
+
+    signingConfigs {
+        upload {
+            if (env.MK_UPLOAD_STORE_FILE) {
+                storeFile file(env.MK_UPLOAD_STORE_FILE)
+                storePassword env.MK_UPLOAD_STORE_PASSWORD
+                keyAlias env.MK_UPLOAD_KEY_ALIAS ?: 'upload'
+                keyPassword env.MK_UPLOAD_KEY_PASSWORD ?: env.MK_UPLOAD_STORE_PASSWORD
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (env.MK_UPLOAD_STORE_FILE) signingConfig signingConfigs.upload
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.8.0'
+}
