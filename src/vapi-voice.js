@@ -40,8 +40,12 @@ async function patchVoice(fetcher, apiKey, id, voice) {
     headers: { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({ voice }),
   });
-  if (!response.ok) throw Error('Vapi ' + response.status);
+  if (!response.ok) throw Object.assign(Error('Vapi ' + response.status), { status: response.status });
 }
+
+// A deleted assistant (Vapi 404) is not a failure to retry: nothing is left to update. Counting it as
+// failed kept the one-time sync from ever finishing, so it re-ran on every restart.
+const gone = error => error?.status === 404;
 
 /** One-time switch of the template and every existing restaurant assistant to the female voice. */
 export async function ensureFemaleVoices(pool, { env = process.env, fetcher = fetch, log = console } = {}) {
@@ -56,11 +60,12 @@ export async function ensureFemaleVoices(pool, { env = process.env, fetcher = fe
     const [rows] = await pool.query('SELECT va.assistant_id, r.country_code FROM voice_assistants va JOIN restaurants r ON r.id=va.restaurant_id');
     for (const row of rows) targets.push([row.assistant_id, row.country_code]);
   } catch { /* table missing: template only */ }
-  let ok = 0, failed = 0, secondChoice = 0;
+  let ok = 0, failed = 0, secondChoice = 0, missing = 0;
   for (const [id, country] of targets) {
     const voice = femaleVoice(country, env);
     try { await patchVoice(fetcher, apiKey, id, voice); ok++; }
     catch (error) {
+      if (gone(error)) { missing++; log.log?.('AI Caller voice: assistant ' + String(id).slice(0, 8) + '… no longer exists on Vapi, skipped'); continue; }
       // Vapi may only allow marin with realtime models: retry once with the next best voice.
       if (voice.provider === 'openai' && voice.voiceId === 'marin') {
         try { await patchVoice(fetcher, apiKey, id, { ...voice, voiceId: SECOND_CHOICE_VOICE }); ok++; secondChoice++; continue; } catch {}
@@ -68,9 +73,9 @@ export async function ensureFemaleVoices(pool, { env = process.env, fetcher = fe
       failed++; log.warn?.('AI Caller voice update failed for ' + String(id).slice(0, 8) + '…: ' + error.message);
     }
   }
-  log.log?.(`AI Caller female voice (ElevenLabs Jessica): ${ok} assistant(s) updated, ${failed} failed`);
-  if (!failed) await pool.query('INSERT IGNORE INTO app_settings (setting_key,setting_value) VALUES (?,?)', [MARKER, JSON.stringify({ ok, at: new Date().toISOString() })]);
-  return { ok, failed, secondChoice };
+  log.log?.(`AI Caller female voice (ElevenLabs Jessica): ${ok} assistant(s) updated, ${failed} failed, ${missing} deleted on Vapi`);
+  if (!failed) await pool.query('INSERT IGNORE INTO app_settings (setting_key,setting_value) VALUES (?,?)', [MARKER, JSON.stringify({ ok, missing, at: new Date().toISOString() })]);
+  return { ok, failed, secondChoice, missing };
 }
 
 /** One-time: add the Urdu speech rules to the template and every restaurant assistant's prompt. */
@@ -85,12 +90,13 @@ export async function ensureSpeechRules(pool, { env = process.env, fetcher = fet
   const ids = [];
   if (env.VAPI_TEMPLATE_ASSISTANT_ID) ids.push(env.VAPI_TEMPLATE_ASSISTANT_ID);
   try { const [rows] = await pool.query('SELECT assistant_id FROM voice_assistants'); for (const r of rows) ids.push(r.assistant_id); } catch {}
-  let ok = 0, failed = 0;
+  let ok = 0, failed = 0, missing = 0;
   for (const id of [...new Set(ids)]) {
     try {
       if (!/^[a-zA-Z0-9_-]{1,128}$/.test(id)) throw Error('bad id');
       const headers = { Authorization: 'Bearer ' + apiKey, 'Content-Type': 'application/json' };
       const got = await fetcher('https://api.vapi.ai/assistant/' + id, { headers, redirect: 'error', signal: AbortSignal.timeout(20000) });
+      if (got.status === 404) { missing++; continue; }
       if (!got.ok) throw Error('Vapi ' + got.status);
       const assistant = await got.json();
       if (!assistant?.model) { ok++; continue; }
@@ -101,7 +107,7 @@ export async function ensureSpeechRules(pool, { env = process.env, fetcher = fet
       ok++;
     } catch (error) { failed++; log.warn?.('AI Caller speech rules failed for ' + String(id).slice(0, 8) + '…: ' + error.message); }
   }
-  log.log?.(`AI Caller Urdu speech rules: ${ok} assistant(s) ready, ${failed} failed`);
+  log.log?.(`AI Caller Urdu speech rules: ${ok} assistant(s) ready, ${failed} failed, ${missing} deleted on Vapi`);
   if (!failed) await pool.query('INSERT IGNORE INTO app_settings (setting_key,setting_value) VALUES (?,?)', [key, JSON.stringify({ ok, at: new Date().toISOString() })]);
-  return { ok, failed };
+  return { ok, failed, missing };
 }
