@@ -36,14 +36,14 @@ body.mk{margin:0}
 .owner-app .restaurant-picker button:hover{background:var(--sunk)}
 
 /* Setup banner */
-.owner-app .setup-banner{display:flex;flex-wrap:wrap;align-items:center;gap:14px 18px;padding:16px 20px;border-radius:var(--r-lg);background:var(--ink);color:var(--ground);margin-bottom:22px}
+.owner-app .setup-banner{display:flex;flex-wrap:wrap;align-items:center;gap:14px 18px;padding:16px 20px;border-radius:var(--r-lg);background:var(--surface);border:1px solid var(--ember-line);color:var(--ink);margin-bottom:22px}
 .owner-app .setup-icon{width:40px;height:40px;border-radius:12px;background:var(--ember);color:var(--ember-ink);display:grid;place-items:center;flex:none}
 .owner-app .setup-text{flex:1 1 260px;display:grid;gap:2px}
-.owner-app .setup-text p{color:#D9CBBE;font-size:14px}
+.owner-app .setup-text p{color:var(--ink-2);font-size:14px}
 .owner-app .setup-banner .setup-progress{flex-basis:100%;order:5}
 .owner-app .setup-banner .usage-meter{flex-basis:100%;order:6}
 .owner-app .setup-progress{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
-.owner-app .setup-progress li{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:#2A221D;font-size:13px}
+.owner-app .setup-progress li{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:var(--sunk);font-size:13px}
 .owner-app .setup-progress li strong{font-weight:600}
 .owner-app .setup-badge{font-size:12px;padding:2px 8px;border-radius:999px;background:#3A2F28;color:#FFC48A}
 .owner-app .setup-progress li[data-status=connected] .setup-badge{background:#1F6B4F;color:#E3F3EB}
