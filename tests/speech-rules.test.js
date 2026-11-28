@@ -35,7 +35,7 @@ test('one-time job patches template and assistants with the rules', async () => 
     return { ok: true, json: async () => ({ model: { messages: [{ role: 'system', content: 'Prompt' }] } }) };
   };
   const result = await ensureSpeechRules(pool, { env: { VAPI_API_KEY: 'k', VAPI_TEMPLATE_ASSISTANT_ID: 't1' }, fetcher, log: { log() {}, warn() {} } });
-  assert.deepEqual(result, { ok: 2, failed: 0 });
+  assert.deepEqual(result, { ok: 2, failed: 0, missing: 0 });
   assert.deepEqual(patched, [['t1', true], ['a1', true]]);
   assert.deepEqual(await ensureSpeechRules(pool, { env: { VAPI_API_KEY: 'k' }, fetcher }), { skipped: 'done' });
 });

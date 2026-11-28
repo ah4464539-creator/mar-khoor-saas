@@ -30,7 +30,7 @@ test('existing assistants are switched once, and only the voice is sent', async 
   const fetcher = async (url, options) => { sent.push([url, JSON.parse(options.body), options.method]); return { ok: true }; };
   const log = { log() {}, warn() {} };
   const result = await ensureFemaleVoices(pool, { env: { VAPI_API_KEY: 'k', VAPI_TEMPLATE_ASSISTANT_ID: 'tmpl-1' }, fetcher, log });
-  assert.deepEqual(result, { ok: 3, failed: 0, secondChoice: 0 });
+  assert.deepEqual(result, { ok: 3, failed: 0, secondChoice: 0, missing: 0 });
   assert.deepEqual(sent.map(s => [s[0].split('/').pop(), s[2], Object.keys(s[1]), s[1].voice.voiceId]), [
     ['tmpl-1', 'PATCH', ['voice'], ELEVEN_FEMALE], ['asst-pk', 'PATCH', ['voice'], ELEVEN_FEMALE], ['asst-us', 'PATCH', ['voice'], ELEVEN_FEMALE]]);
   assert.equal((await ensureFemaleVoices(pool, { env: { VAPI_API_KEY: 'k' }, fetcher, log })).skipped, 'done');
@@ -41,7 +41,7 @@ test('a failed update is retried on the next start', async () => {
   let inserted = false;
   const pool = { async query(sql) { if (sql.startsWith('INSERT')) inserted = true; return [[]]; } };
   const result = await ensureFemaleVoices(pool, { env: { VAPI_API_KEY: 'k', VAPI_TEMPLATE_ASSISTANT_ID: 't' }, fetcher: async () => ({ ok: false, status: 400 }), log: { log() {}, warn() {} } });
-  assert.deepEqual(result, { ok: 0, failed: 1, secondChoice: 0 });
+  assert.deepEqual(result, { ok: 0, failed: 1, secondChoice: 0, missing: 0 });
   assert.equal(inserted, false);
 });
 
@@ -51,6 +51,21 @@ test('if an OpenAI marin override is refused by Vapi, the job falls back to cora
   const fetcher = async (url, o) => { const v = JSON.parse(o.body).voice.voiceId; sent.push(v); return { ok: v !== 'marin', status: 400 }; };
   const env = { VAPI_API_KEY: 'k', VAPI_TEMPLATE_ASSISTANT_ID: 't', VAPI_VOICE_JSON: '{"PK":{"provider":"openai","model":"gpt-4o-mini-tts","voiceId":"marin"}}' };
   const result = await ensureFemaleVoices(pool, { env, fetcher, log: { log() {}, warn() {} } });
-  assert.deepEqual(result, { ok: 1, failed: 0, secondChoice: 1 });
+  assert.deepEqual(result, { ok: 1, failed: 0, secondChoice: 1, missing: 0 });
   assert.deepEqual(sent, ['marin', 'coral']);
+});
+
+test('an assistant deleted on Vapi (404) is skipped, so the one-time switch still finishes', async () => {
+  let inserted = null;
+  const pool = { async query(sql, params) {
+    if (sql.startsWith('SELECT va.assistant_id')) return [[{ assistant_id: 'gone-1', country_code: 'PK' }]];
+    if (sql.startsWith('INSERT IGNORE INTO app_settings')) inserted = params;
+    return [[]];
+  } };
+  const fetcher = async url => ({ ok: !url.endsWith('/gone-1'), status: url.endsWith('/gone-1') ? 404 : 200 });
+  const warnings = [];
+  const result = await ensureFemaleVoices(pool, { env: { VAPI_API_KEY: 'k', VAPI_TEMPLATE_ASSISTANT_ID: 't' }, fetcher, log: { log() {}, warn: m => warnings.push(m) } });
+  assert.deepEqual(result, { ok: 1, failed: 0, secondChoice: 0, missing: 1 });
+  assert.ok(inserted, 'marker written: the job does not re-run on every restart');
+  assert.equal(warnings.length, 0);
 });
