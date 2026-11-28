@@ -79,8 +79,9 @@ export async function platformWaba({ env = process.env, fetcher = fetch } = {}) 
     const data = await graph(fetcher, 'https://graph.facebook.com/' + graphVersion(env) + '/debug_token?' + new URLSearchParams({ input_token: token }), { token });
     const scope = (data?.data?.granular_scopes || []).find(s => s.scope === 'whatsapp_business_management');
     const ids = (scope?.target_ids || []).filter(id => /^[0-9]{5,64}$/.test(id));
+    if (!ids.length) console.warn(JSON.stringify({ event: 'whatsapp_waba_not_found', hint: 'set WHATSAPP_WABA_ID', scopes: (data?.data?.granular_scopes || []).map(s => s.scope).slice(0, 10) }));
     return ids.length === 1 ? ids[0] : (ids[0] || null);
-  } catch { return null; }
+  } catch (error) { console.warn(JSON.stringify({ event: 'whatsapp_waba_lookup_failed', hint: 'set WHATSAPP_WABA_ID', code: error?.code ?? null })); return null; }
 }
 
 const base = env => 'https://graph.facebook.com/' + graphVersion(env) + '/';

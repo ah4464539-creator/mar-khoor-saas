@@ -138,6 +138,8 @@
       // "+92 0300…" or "0300…" typed locally: drop the trunk 0 and add the code.
       if (value.startsWith(code)) value = code + ' ' + value.slice(code.length).trim().replace(/^0+/, '');
       else if (/^0[1-9]/.test(value)) value = code + ' ' + value.replace(/^0+/, '');
+      // A local number typed without the code (e.g. Greek "694 363 6836" has no trunk 0): add the chosen code.
+      else if (/^[1-9][\d\s().-]{5,}$/.test(value)) value = code + ' ' + value;
       input.value = value;
     });
   }
