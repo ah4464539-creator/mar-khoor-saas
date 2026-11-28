@@ -14,6 +14,7 @@ import { buildRestaurantChatInput, normalizeAssistantHistory } from './restauran
 import { classifyAssistantProviderFailure } from './ai-provider-diagnostics.js';
 import { trackSiteEvent, loadSiteAnalytics } from './site-analytics.js';
 import { KINDS, listContent, createContent, updateContent, deleteContent, publishedList, publishedItem, siteLinks, blogListHtml, articleHtml, draftPost } from './site-content.js';
+import { renderChatPage } from './chat-page.js';
 import { assistantAllowed, ensureWidgetTable, parseWidgetConfig, frameAncestors, inkOn } from './widget-core.js';
 
 const notFound = '<!doctype html><meta charset="utf-8"><title>Not found</title><p>This restaurant website is not available.</p>';
@@ -387,7 +388,7 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
     + '</style></head><body><details id="assistant" class="restaurant-assistant" open><summary>AI Assistant</summary><div class="assistant-panel"><div class="assistant-heading"><strong>' + esc(site.restaurant.name) + '</strong><button type="button" data-close-assistant aria-label="Close assistant">×</button></div><div class="assistant-body"><div data-assistant-messages role="log" aria-live="polite"><p class="assistant-reply">' + esc(greeting) + '</p></div><section id="assistant-order-card" class="assistant-order-card" aria-label="Order details and live tracking" hidden><strong>Order details &amp; live tracking</strong><div id="assistant-order-details"></div><p id="assistant-order-status" role="status"></p><a id="assistant-order-link" target="_blank" rel="noopener">Full order tracking</a></section>'
     + assistantControls(req.params.slug, false, category)
     + '<p class="assistant-powered">Powered by <a href="https://mar-khoor.com" target="_blank" rel="noopener">Mar-Khoor</a></p></div></div></details>'
-    + '<script src="/embed-frame.js" defer></script><script src="/restaurant-assistant-panel.js?v=20261128-1" defer></script>' + (voiceEnabled() ? voiceScript : '') + '</body></html>');
+    + '<script src="/embed-frame.js" defer></script><script src="/restaurant-assistant-panel.js?v=20261128-m1" defer></script>' + (voiceEnabled() ? voiceScript : '') + '</body></html>');
   } catch { res.status(503).type('html').send(notFound); }
  });
 
@@ -412,10 +413,29 @@ export function sitesRouter(pool, { assistantFetch = fetch, voiceFetch = fetch }
    const assistant = showAssistant
     ? '<details id="assistant" class="restaurant-assistant"><summary>AI Assistant</summary><div class="assistant-panel"><div class="assistant-heading"><strong>AI Assistant</strong><button type="button" data-close-assistant aria-label="Close assistant">×</button></div><div class="assistant-body"><div data-assistant-messages role="log" aria-live="polite"><p class="assistant-reply">' + greeting + '</p></div><section id="assistant-order-card" class="assistant-order-card" aria-label="Order details and live tracking" hidden><strong>Order details &amp; live tracking</strong><div id="assistant-order-details"></div><p id="assistant-order-status" role="status"></p><a id="assistant-order-link" target="_self">Full order tracking</a></section>' +
       assistantControls(req.params.slug, site.config.assistantRecording === true, category) +
-      '</div></div></details><script src="/restaurant-assistant-panel.js?v=20261128-1" defer></script>' + (voiceEnabled() ? voiceScript : '')
+      '</div></div></details><script src="/restaurant-assistant-panel.js?v=20261128-m1" defer></script>' + (voiceEnabled() ? voiceScript : '')
     : '';
    res.type('html').send(renderSitePage(site, { assistant, links: await siteLinks(pool, site.restaurant), booking }));
    trackSiteEvent(pool, site.restaurant.id, 'page_views', req);
+  } catch { res.status(503).type('html').send(notFound); }
+ });
+
+ // Mar-Khoor app messenger: a full-screen chat with this business's AI (text, ordering, live call).
+ router.get('/r/:slug/chat', async (req, res) => {
+  try {
+   const site = await loadPublicSite(pool, req.params.slug);
+   if (!site || !assistantEnabled(site)) return res.status(404).type('html').send(notFound);
+   const booking = await siteBooking(pool, site.restaurant);
+   const category = booking?.category || 'restaurant';
+   res.set('Content-Security-Policy', assistantCsp);
+   if (voiceEnabled()) res.set('Permissions-Policy', 'camera=(), microphone=(self), geolocation=(), payment=()');
+   res.set('Cache-Control', 'no-cache');
+   res.type('html').send(renderChatPage({
+    slug: req.params.slug, name: site.restaurant.name, category, voice: voiceEnabled(),
+    controls: assistantControls(req.params.slug, site.config.assistantRecording === true, category),
+    panelScript: '<script src="/restaurant-assistant-panel.js?v=20261128-m1" defer></script>',
+    voiceScript: voiceEnabled() ? voiceScript : '',
+   }));
   } catch { res.status(503).type('html').send(notFound); }
  });
 

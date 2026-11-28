@@ -82,8 +82,8 @@ test('customers can chat or talk with the business AI inside the app', async () 
   const off = await listBusinesses(fakePool([{ ...row, website_assistant_provisioned: 0 }]), {}, { RESTAURANT_WEBSITE_VOICE_ENABLED: 'true' });
   assert.deepEqual([off[0].ai_chat, off[0].ai_voice], [false, false]);
   const js = readFileSync('public/customer-app.js', 'utf8');
-  assert.match(js, /url \+ '#assistant'/);
-  assert.match(js, /url \+ '#assistant-talk'/);
+  assert.match(js, /url \+ '\/chat'/);
+  assert.match(js, /url \+ '\/chat#call'/);
   assert.match(readFileSync('public/restaurant-assistant-panel.js', 'utf8'), /location\.hash === '#assistant-talk'/);
 });
 

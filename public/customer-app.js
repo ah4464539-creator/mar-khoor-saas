@@ -35,8 +35,8 @@
     const actions = el('div', 'cust-actions');
     actions.append(link('cust-btn cust-btn-main', url, ACTION[b.category] || 'Open', (ACTION[b.category] || 'Open') + ': ' + b.name));
     // Talk to the business's AI inside the app (no WhatsApp needed): chat, or a live voice call.
-    if (b.ai_chat === true) actions.append(link('cust-btn cust-btn-ai', url + '#assistant', 'Chat with AI', 'Chat with the AI of ' + b.name));
-    if (b.ai_voice === true) actions.append(link('cust-btn cust-btn-ai', url + '#assistant-talk', 'Talk to AI', 'Talk to the AI of ' + b.name));
+    if (b.ai_chat === true) actions.append(link('cust-btn cust-btn-ai', url + '/chat', '💬 Chat with AI', 'Chat with the AI of ' + b.name));
+    if (b.ai_voice === true) actions.append(link('cust-btn cust-btn-ai', url + '/chat#call', '📞 Call AI', 'Call the AI of ' + b.name));
     if (typeof b.phone === 'string' && /^\+?[0-9]{7,15}$/.test(b.phone)) actions.append(link('cust-btn', 'tel:' + b.phone, 'Call', 'Call ' + b.name));
     if (typeof b.whatsapp === 'string' && /^[0-9]{7,15}$/.test(b.whatsapp)) {
       const wa = link('cust-btn cust-btn-wa', 'https://wa.me/' + b.whatsapp, 'WhatsApp', 'WhatsApp ' + b.name);

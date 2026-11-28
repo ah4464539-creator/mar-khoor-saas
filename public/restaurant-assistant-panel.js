@@ -48,7 +48,8 @@ input.addEventListener('keydown', event => {
   }
 });
 const messages = assistant.querySelector('[data-assistant-messages]');
-const history = []; // Current tab and restaurant only.
+const history = []; // Current tab and restaurant only (restored from the phone in the messenger).
+const chatMode = document.body.dataset.chatPersist === '1';
 const voiceRows = new Map();
 const card = document.querySelector('#assistant-order-card');
 const details = document.querySelector('#assistant-order-details');
@@ -204,6 +205,7 @@ if (location.hash === '#assistant' || location.hash === '#assistant-talk') openP
 if (location.hash === '#assistant-talk') { const talk = document.querySelector('#start-voice'); if (talk) { talk.classList.add('voice-ready'); talk.focus({ preventScroll: true }); talk.scrollIntoView({ block: 'nearest' }); } }
 function openPanel() { assistant.open = true; input.focus({preventScroll:true}); }
 function closePanel() {
+  if (chatMode) return; // Messenger screen in the Mar-Khoor app: the chat is the whole page.
   window.dispatchEvent(new Event('mar-khoor-assistant-close'));
   assistant.open = false; launcher.focus();
 }
@@ -408,3 +410,45 @@ form.addEventListener('submit', async event => {
     messages.scrollTop = messages.scrollHeight;
   }
 });
+
+// ---- Messenger mode (Mar-Khoor app, /r/<slug>/chat): keep the conversation on this phone ----
+if (chatMode) {
+  const chatKey = 'mar-khoor.chat.' + slug;
+  const listKey = 'mar-khoor.chats';
+  const load = key => { try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch { return null; } };
+  const saved = load(chatKey);
+  if (Array.isArray(saved?.messages) && saved.messages.length) {
+    messages.replaceChildren(...saved.messages.slice(-60).map(m => messageNode(m.role === 'user' ? 'user' : 'assistant', String(m.text || '').slice(0, 2000))));
+    // Give the AI the end of the earlier conversation as context, like the live tab does.
+    const pairs = saved.messages.slice(-6).filter(m => m.text && m.text !== 'Thinking…').map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: String(m.text).slice(0, 1200) }));
+    history.push(...pairs);
+    while (history.length > 6 || history.reduce((size, entry) => size + entry.content.length, 0) > 4000) history.splice(0, 2);
+  }
+  let saveTimer;
+  const persist = () => {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      const rows = [...messages.querySelectorAll('.assistant-question,.assistant-reply')]
+        .map(row => ({ role: row.classList.contains('assistant-question') ? 'user' : 'assistant', text: (row.querySelector('span') || row).textContent.trim() }))
+        .filter(m => m.text && m.text !== 'Thinking…');
+      try {
+        localStorage.setItem(chatKey, JSON.stringify({ messages: rows.slice(-60), at: Date.now() }));
+        const last = rows[rows.length - 1];
+        if (rows.some(m => m.role === 'user')) {
+          const list = (load(listKey) || []).filter(c => c && c.slug !== slug);
+          list.unshift({ slug, name: document.body.dataset.chatName || slug, category: document.body.dataset.chatCategory || 'restaurant', last: last ? last.text.slice(0, 120) : '', at: Date.now() });
+          localStorage.setItem(listKey, JSON.stringify(list.slice(0, 50)));
+        }
+      } catch { /* storage full or blocked: the chat still works */ }
+    }, 300);
+  };
+  new MutationObserver(persist).observe(messages, { childList: true, subtree: true, characterData: true });
+  assistant.open = true;
+  messages.scrollTop = messages.scrollHeight;
+  // Header "Call" button starts the live voice conversation (same as the microphone button).
+  const call = document.querySelector('[data-chat-call]');
+  const voiceButton = document.querySelector('#start-voice');
+  if (call && voiceButton) call.addEventListener('click', () => voiceButton.click());
+  else if (call) call.hidden = true;
+  if (location.hash === '#call' && voiceButton) { voiceButton.classList.add('voice-ready'); call?.focus({ preventScroll: true }); }
+}
