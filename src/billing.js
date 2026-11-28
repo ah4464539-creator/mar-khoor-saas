@@ -5,7 +5,7 @@ import { audit, rateLimit } from './security.js';
 import { chooseSubscription, getSubscription, planCatalog, validateSubscriptionChoice } from './subscriptions.js';
 import { getUsdRates } from './fx-rates.js';
 import { provisionSubscriptionNumber } from './voice-autoprovision.js';
-import { toolCatalog, validateToolChoice, toolCartLines, activeTools, ensureToolsTable } from './tools.js';
+import { toolCatalog, validateToolChoice, toolCartLines, activeTools, ensureToolsTable, freeTestTools, activateFreeTools } from './tools.js';
 import { toolsCheckoutParams } from './stripe-billing.js';
 import { recordInvoice } from './payments/service.js';
 import { billingConfig, createStripeClient, ensureBillingTables, checkoutParams, verifyStripeSignature, applyBillingEvent, addonPeriodMinor, hasNumberAddon, TOOL_KEYS } from './stripe-billing.js';
@@ -114,9 +114,29 @@ export function billingRouter(pool, { config = billingConfig(), stripe = createS
   // Single tools without a full plan: AI Website Builder, WhatsApp Business AI, AI Calling.
   router.post('/api/restaurants/:restaurantId/billing/tools-checkout', requireAuth, restaurantAdmin,
     rateLimit({ windowMs: 60000, max: 6, name: 'billing-tools-checkout' }), async (req, res) => {
-      if (!config) return res.status(503).json({ error: 'Online payment is not available yet. The platform will confirm your payment manually.' });
       const choice = validateToolChoice(req.body);
       if (choice.error) return res.status(400).json({ error: choice.error });
+      // Testing: tools listed in FREE_TOOLS_FOR_TESTING are switched on without payment.
+      const free = freeTestTools();
+      const freeChosen = choice.value.tools.filter(key => free.has(key));
+      if (freeChosen.length && freeChosen.length !== choice.value.tools.length)
+        return res.status(409).json({ error: 'Free test tools are activated on their own. Untick the paid tools first.' });
+      if (freeChosen.length) {
+        if (choice.value.numberMode === 'new') return res.status(409).json({ error: 'A new number is not available. Connect your own number instead.' });
+        try {
+          await ensureToolsTable(pool);
+          const owned = (await activeTools(pool, req.restaurant.id)).filter(row => row.status === 'active').map(row => row.tool_key);
+          const again = freeChosen.filter(key => owned.includes(key));
+          if (again.length) return res.status(409).json({ error: 'Already active: ' + again.join(', ') + '. Remove it from the cart.' });
+          await activateFreeTools(pool, req.restaurant.id, choice.value, req.restaurant.currency || 'USD');
+          await audit(pool, { actorUserId: req.user.id, restaurantId: req.restaurant.id, action: 'billing.tools_free_test:' + freeChosen.join(',') });
+          return res.json({ activated: freeChosen, free_test: true });
+        } catch (error) {
+          console.error(JSON.stringify({ event: 'free_test_tools_failed', code: error?.code }));
+          return res.status(503).json({ error: 'Could not activate the tool. Please try again in a minute.' });
+        }
+      }
+      if (!config) return res.status(503).json({ error: 'Online payment is not available yet. The platform will confirm your payment manually.' });
       try {
         await ensureToolsTable(pool);
         const catalog = toolCatalog(req.restaurant.currency, req.restaurant.country_code, { fx: await loadRates() });

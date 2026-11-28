@@ -1649,7 +1649,7 @@ function renderToolCards(){
   const label=document.createElement('label');label.className='billing-plan';
   const input=document.createElement('input');input.type='checkbox';input.name='tool_buy';input.value=tool.key;input.checked=chosen.has(tool.key);input.disabled=owned.has(tool.key);
   const name=document.createElement('strong');name.textContent=tool.name;
-  const price=document.createElement('span');price.className='billing-price';price.textContent=billingMoney(tool.price_minor[cycle],tool.currency)+(cycle==='yearly'?' / year':' / month')+(tool.key==='calling'?' + number':'');
+  const price=document.createElement('span');price.className='billing-price';price.textContent=tool.free_test?'Free while testing':billingMoney(tool.price_minor[cycle],tool.currency)+(cycle==='yearly'?' / year':' / month')+(tool.key==='calling'?' + number':'');
   const inc=document.createElement('small');inc.className='muted';inc.textContent=tool.includes;
   label.append(input,name,price,inc);
   if(owned.has(tool.key)){const tag=document.createElement('span');tag.className='tag tag-ok';tag.textContent='Active';label.append(tag)}
@@ -1671,14 +1671,16 @@ function renderToolsCart(){
  lines.replaceChildren();
  const line=(name,value,cls)=>{const li=document.createElement('li');if(cls)li.className=cls;const a=document.createElement('span');a.textContent=name;const b=document.createElement('span');b.textContent=value;li.append(a,b);lines.append(li)};
  let total=0;const currency=tools[0]?.currency||'USD';
- for(const key of picked){const t=tools.find(x=>x.key===key);total+=t.price_minor[cycle];line(t.name+' ('+cycle+')',billingMoney(t.price_minor[cycle],t.currency),'cart-plan')}
+ for(const key of picked){const t=tools.find(x=>x.key===key);if(t.free_test){line(t.name,'Free (testing)','cart-plan');continue}total+=t.price_minor[cycle];line(t.name+' ('+cycle+')',billingMoney(t.price_minor[cycle],t.currency),'cart-plan')}
  const wantsNew=picked.includes('calling')&&newRadio.checked&&numberAvailable;
  if(picked.includes('calling'))line(wantsNew?'Dedicated AI phone number':'Your own number',wantsNew?billingMoney(calling.number.price_minor[cycle],currency):'No fee','cart-tool');
  if(wantsNew)total+=calling.number.price_minor[cycle];
  if(!picked.length)line('No tool selected yet','—','cart-tool cart-empty');
  billingEl('cart-total').textContent=picked.length?billingMoney(total,currency):'—';
  billingEl('cart-renews').textContent=picked.length?(cycle==='yearly'?'Billed every year':'Billed every month')+'. Price in '+currency+(tools[0]?.converted?' (converted from USD at today’s rate)':'')+(picked.includes('calling')?'. Extra call minutes: '+billingMoney(calling.extra_minute_minor,currency)+' each.':'.'):'';
- const pay=billingEl('billing-pay');pay.disabled=!billingData.enabled||!picked.length;pay.textContent=picked.length?'Checkout & pay '+billingMoney(total,currency):'Choose a tool';
+ const allFree=picked.length>0&&picked.every(k=>tools.find(x=>x.key===k)?.free_test);
+ const pay=billingEl('billing-pay');pay.disabled=(!billingData.enabled&&!allFree)||!picked.length;pay.textContent=!picked.length?'Choose a tool':allFree?'Activate free':'Checkout & pay '+billingMoney(total,currency);
+ if(allFree)billingEl('cart-renews').textContent='Free while we test. No card needed.';
 }
 function goToTools(toolKey,message){
  if(location.hash!=='#plan')location.hash='#plan';
@@ -1694,7 +1696,9 @@ billingForm?.addEventListener('submit',async event=>{
   const tools=[...billingForm.querySelectorAll('input[name="tool_buy"]:checked')].map(i=>i.value);
   if(!tools.length){note.textContent='Choose a tool.';return}
   button.disabled=true;note.textContent='Opening secure payment…';
-  try{const data=await api('/api/restaurants/'+restaurantId+'/billing/tools-checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tools,billing_cycle:billingCycle(),call_number:billingForm.querySelector('input[name="call_number"]:checked')?.value||'own'})});note.textContent='Redirecting to Stripe…';location.assign(data.url)}
+  try{const data=await api('/api/restaurants/'+restaurantId+'/billing/tools-checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tools,billing_cycle:billingCycle(),call_number:billingForm.querySelector('input[name="call_number"]:checked')?.value||'own'})});
+   if(data.activated){note.textContent='Activated. Set it up below.';for(const i of billingForm.querySelectorAll('input[name="tool_buy"]:checked'))i.checked=false;await loadBilling();button.disabled=false;billingEl('plan-integrations')?.scrollIntoView({behavior:'smooth',block:'start'});return}
+   note.textContent='Redirecting to Stripe…';location.assign(data.url)}
   catch(e){note.textContent=e.message;button.disabled=false}
   return;
  }

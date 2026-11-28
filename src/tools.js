@@ -46,16 +46,23 @@ export function numberCostUsd(country, env = process.env) {
   return Number.isSafeInteger(value) && value > 0 && value <= 100000 ? value : null;
 }
 
+/** Tools given away free while testing: FREE_TOOLS_FOR_TESTING="whatsapp" (comma list of tool keys).
+ *  Empty by default. Turning it off stops new free activations; tools already activated stay active. */
+export function freeTestTools(env = process.env) {
+  return new Set(String(env.FREE_TOOLS_FOR_TESTING || '').split(',').map(key => key.trim()).filter(key => TOOL_KEYS.includes(key)));
+}
+
 const local = (usdMinor, currency, fx) => currency === 'USD' ? usdMinor : convertUsdMinor(usdMinor, currency, fx);
 
 /** Tool prices for one restaurant (currency + country), as shown in the cart. */
 export function toolCatalog(currency, country, { fx = null, env = process.env } = {}) {
   const shown = currency === 'USD' || fx?.rates?.[currency] ? currency : 'USD';
   const numberUsd = numberSalesEnabled(env) ? numberCostUsd(country, env) : null;
+  const free = freeTestTools(env);
   return TOOL_KEYS.map(key => {
     const tool = TOOLS[key];
     const entry = {
-      key, name: tool.name, includes: tool.includes, currency: shown, converted: shown !== 'USD',
+      key, name: tool.name, includes: tool.includes, currency: shown, converted: shown !== 'USD', free_test: free.has(key),
       price_minor: { monthly: local(tool.usd, shown, fx), yearly: local(tool.usd * YEARLY_MONTHS, shown, fx) },
       base_price_minor: { monthly: tool.usd, yearly: tool.usd * YEARLY_MONTHS },
     };
@@ -95,6 +102,16 @@ export function toolCartLines(catalog, { tools, cycle, numberMode }) {
   }
   if (lines.some(line => !Number.isSafeInteger(line.amount_minor) || line.amount_minor < 1)) return { error: 'These tools have no confirmed price in your currency yet' };
   return { lines, currency: catalog[0].currency, total_minor: lines.reduce((sum, line) => sum + line.amount_minor, 0) };
+}
+
+/** Activates free test tools without payment (price 0, billing_cycle 'free_test', no Stripe id). */
+export async function activateFreeTools(db, restaurantId, { tools, numberMode }, currency) {
+  for (const key of tools) {
+    await db.execute(
+      "INSERT INTO restaurant_tools(restaurant_id,tool_key,billing_cycle,status,number_mode,currency,price_minor,stripe_subscription_id) VALUES (?,?,'free_test','active',?,?,0,NULL) "
+      + "ON DUPLICATE KEY UPDATE billing_cycle='free_test',status='active',number_mode=VALUES(number_mode),currency=VALUES(currency),price_minor=0,stripe_subscription_id=NULL",
+      [restaurantId, key, key === 'calling' ? (numberMode || 'own') : null, currency]);
+  }
 }
 
 export async function activeTools(db, restaurantId) {
