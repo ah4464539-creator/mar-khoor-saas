@@ -1,3 +1,4 @@
+import { businessDirectoryRouter } from './business-directory.js';
 import 'dotenv/config';
 import { quotePlan } from './plan-quote.js';
 import { publicAssistantRouter } from './public-assistant.js';
@@ -79,6 +80,11 @@ app.use(jsonGuard);
 // Verified restaurant domains (e.g. myrestaurant.pk) show that restaurant's website at "/".
 app.use(customDomainRouting(pool));
 const publicDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
+// Customer app home (Android app start page and "Add to Home Screen"): /app serves public/app.html.
+app.get('/app', (_req, res) => {
+  res.set('Cache-Control', 'no-cache');
+  res.sendFile(path.resolve(publicDirectory, 'app.html'));
+});
 app.get('/super-admin', (_req, res) => {
   res.set('X-Robots-Tag', 'noindex, nofollow');
   res.sendFile(path.resolve(publicDirectory, '../src/views/super-admin.html'), { cacheControl: false });
@@ -121,6 +127,7 @@ app.use(widgetRouter(pool));
 app.use(billingRouter(pool));
 app.use(paymentsRouter(pool));
 app.use(sitesRouter(pool));
+app.use(businessDirectoryRouter(pool));
 app.use(privacyRouter(pool));
 app.use(ownLineRouter(pool));
 app.use('/voice-tools', voiceToolsRouter(pool));
