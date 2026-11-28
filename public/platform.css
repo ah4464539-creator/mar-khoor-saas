@@ -1,20 +1,20 @@
 /* Super admin (platform console) — Summit design, platform accent. Builds on /summit.css. */
 body.mk{margin:0}
 .platform-app svg[width],.platform-app .nav svg{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
-.platform-app .nav a[aria-current]{background:#E8EEF2;color:#0F1418;font-weight:650}
-.platform-app .side .nav-label{color:#9FB3BF}
-.platform-app .side-tenant small{color:#9FB3BF}
-.platform-app .side-foot .btn{color:#E8EEF2}
-.platform-app .side-foot .btn:hover{background:#ffffff12}
+.platform-app .nav a[aria-current]{background:var(--teal-bg);color:var(--teal);font-weight:650}
+.platform-app .side .nav-label{color:var(--muted)}
+.platform-app .side-tenant small{color:var(--muted)}
+.platform-app .side-foot .btn{color:var(--ink-2)}
+.platform-app .side-foot .btn:hover{background:var(--sunk)}
 .platform-app .main>section,.platform-app .main>.split{scroll-margin-top:16px}
 .platform-app .split{margin:0}
 
 /* Login */
-.platform-login-screen{min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:32px 16px;background:radial-gradient(ellipse at 20% 0%,#1c3a3a 0,transparent 55%),radial-gradient(ellipse at 90% 100%,#3a2414 0,transparent 50%),#0F1418}
+.platform-login-screen{min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:32px 16px;background:radial-gradient(ellipse at 20% 0%,var(--teal-bg) 0,transparent 55%),radial-gradient(ellipse at 90% 100%,var(--ember-soft) 0,transparent 50%),var(--ground)}
 .platform-login-screen[hidden]{display:none}
 .platform-app .login-card{width:min(460px,100%);padding:clamp(24px,5vw,36px);display:grid;gap:18px}
 .platform-app .login-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.platform-app .platform-tag{background:#0F1418;color:#7FD3C5}
+.platform-app .platform-tag{background:var(--teal-bg);color:var(--teal)}
 .platform-app .login-title{display:grid;gap:6px}
 .platform-app .login-title h1{font-size:28px;font-weight:800}
 .platform-app .login-status{margin:0;padding:10px 12px;border-radius:12px;background:var(--sunk);font-size:14px;color:var(--ink-2)}
@@ -69,7 +69,7 @@ body.mk{margin:0}
  .mk.platform-app .shell>.side{padding:22px 16px;gap:16px}
  .mk.platform-app .shell>.side .nav{display:flex;flex-direction:column;overflow:visible;gap:2px;padding-bottom:0}
  .mk.platform-app .shell>.side .nav-label,.mk.platform-app .shell>.side .side-foot{display:block}
- .platform-app .side-close{display:grid;place-items:center;position:absolute;top:14px;right:12px;width:36px;height:36px;border:0;border-radius:10px;background:#ffffff14;color:#fff;font-size:22px;cursor:pointer}
+ .platform-app .side-close{display:grid;place-items:center;position:absolute;top:14px;right:12px;width:36px;height:36px;border:0;border-radius:10px;background:var(--sunk);color:var(--ink);font-size:22px;cursor:pointer}
  .platform-app .side-backdrop{position:fixed;inset:0;background:#0b0f1299;z-index:55}
  .platform-app .menu-toggle{display:inline-grid;place-items:center;width:44px;height:44px;padding:0;margin-right:10px;flex:none}
  .mk.platform-app .topbar{display:flex;align-items:flex-start;justify-content:flex-start;gap:6px;text-align:start}
@@ -133,7 +133,7 @@ body.mk{margin:0}
 .platform-app .worker-metrics>div{padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
 .platform-app .worker-metrics>div dd{margin:4px 0 0}
 /* One page per type of business */
-.platform-app .nav .nav-count{margin-left:auto;font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:#ffffff1a}
+.platform-app .nav .nav-count{margin-left:auto;font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--line)}
 .platform-app .nav .nav-count:empty{display:none}
 .platform-app .biz-page{margin:0}
 .platform-app .biz-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;align-items:flex-start}
