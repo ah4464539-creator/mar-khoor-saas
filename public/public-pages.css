@@ -6,11 +6,10 @@ body.mk{margin:0}
 @media(max-width:820px){.mk .site-nav nav{display:none}}
 
 /* Auth-style pages (registration) */
-.mk .auth-chef{background:linear-gradient(160deg,#16120ff0 10%,#16120f99 60%,#16120fd9),url('/assets/approved-mountain.webp') center/cover no-repeat}
 .mk .auth-copy{display:grid;gap:16px;max-width:520px}
-.mk .auth-copy .eyebrow{color:#FFC48A}
-.mk .auth-points{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:10px 22px;color:#EFE6DD;font-size:14px}
-.mk .auth-points li::before{content:"✓ ";color:#FFC48A;font-weight:700}
+.mk .auth-copy .eyebrow{color:var(--ember-text)}
+.mk .auth-points{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:10px 22px;color:var(--ink-2);font-size:14px}
+.mk .auth-points li::before{content:"✓ ";color:var(--ember-text);font-weight:700}
 .register-page .register-card{gap:18px}
 .register-page .auth-title{display:grid;gap:6px}
 .register-page .register-steps{list-style:none;margin:0;padding:0;display:flex;gap:6px;flex-wrap:wrap}
@@ -148,14 +147,13 @@ body.mk{margin:0}
 @media(max-width:720px){.home-page .hero-art{min-height:300px}.home-page .sector-art{min-height:0;padding:20px}.home-page .sector-grid{grid-template-columns:1fr 1fr;gap:10px}.home-page .sector-tile{padding:14px}.home-page .section{padding:52px 0}}
 
 /* Footer */
-.mk .site-footer{background:var(--night);color:var(--night-text)}
+.mk .site-footer{background:var(--sunk);color:var(--ink)}
 .mk .footer-row{display:flex;flex-wrap:wrap;gap:28px;justify-content:space-between;padding:44px 0 28px}
 .mk .footer-brand{display:grid;gap:10px;max-width:340px}
-.mk .footer-brand .brand b{color:#fff}
-.mk .footer-brand p{color:var(--night-muted);font-size:14px}
+.mk .footer-brand p{color:var(--muted);font-size:14px}
 .mk .site-footer nav{display:flex;flex-wrap:wrap;gap:10px 24px;font-size:14px}
-.mk .site-footer nav a{color:#D9CBBE}
-.mk .footer-copy{border-top:1px solid var(--night-line);padding:16px 0;font-size:13px;color:var(--night-muted)}
+.mk .site-footer nav a{color:var(--ink-2)}
+.mk .footer-copy{border-top:1px solid var(--line);padding:16px 0;font-size:13px;color:var(--muted)}
 
 /* Homepage AI chat */
 #mk-ai-launch{position:fixed;right:20px;bottom:20px;z-index:1000;border-radius:999px;box-shadow:0 10px 30px #1c171440}
@@ -245,7 +243,7 @@ body.mk{margin:0}
 .order-page .track-bar{height:10px}
 .order-page .order-progress{list-style:none;margin:0;padding:0;display:grid;gap:0}
 .order-page .order-progress li{display:flex;align-items:center;gap:14px;padding:10px 0;color:var(--faint)}
-.order-page .order-progress li span{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--line);color:#fff;font-size:14px;flex:none}
+.order-page .order-progress li span{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--sunk);color:var(--ink-2);font-size:14px;flex:none}
 .order-page .order-progress li.done{color:var(--ink)}
 .order-page .order-progress li.done span{background:var(--ink);color:var(--ground)}
 .order-page .order-progress li[aria-current=step]{color:var(--ink)}
