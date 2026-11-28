@@ -440,6 +440,9 @@ export function assistantCss(t) {
 
 }
 .assistant-voice{position:static}
+.assistant-voice button.voice-ready{outline:3px solid ${t.accent};outline-offset:2px;animation:voice-ready 1.2s ease-in-out 3}
+@keyframes voice-ready{50%{transform:scale(1.12)}}
+@media (prefers-reduced-motion:reduce){.assistant-voice button.voice-ready{animation:none}}
 .assistant-voice-orb{position:absolute;inset-inline-end:50%;transform:translateX(50%);bottom:calc(100% + 18px);width:176px;height:176px;border-radius:50%;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:9px;text-align:center;z-index:4;background:radial-gradient(circle at 35% 25%,#69caff,#5840c9 54%,#191452);color:white;box-shadow:0 0 40px #6254c888, inset 0 0 34px #ffffff44;overflow:hidden}
 .assistant-voice-orb .orb-glow{position:absolute;width:90px;height:90px;border:3px solid #a5eaff99;border-radius:50%;animation:assistant-pulse 1.6s ease-in-out infinite;pointer-events:none}
 .assistant-voice-orb span{position:relative;z-index:2;font-weight:700;text-shadow:0 2px 4px #0009;margin-top:70px;font-size:13px}

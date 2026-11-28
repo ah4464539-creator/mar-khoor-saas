@@ -199,7 +199,9 @@ launcher.addEventListener('click', event => {
   if (assistant.open) closePanel();
   else openPanel();
 });
-if (location.hash === '#assistant') openPanel();
+if (location.hash === '#assistant' || location.hash === '#assistant-talk') openPanel();
+// From the Mar-Khoor app "Talk to AI": open the assistant with the live-voice button ready (a tap starts it).
+if (location.hash === '#assistant-talk') { const talk = document.querySelector('#start-voice'); if (talk) { talk.classList.add('voice-ready'); talk.focus({ preventScroll: true }); talk.scrollIntoView({ block: 'nearest' }); } }
 function openPanel() { assistant.open = true; input.focus({preventScroll:true}); }
 function closePanel() {
   window.dispatchEvent(new Event('mar-khoor-assistant-close'));
