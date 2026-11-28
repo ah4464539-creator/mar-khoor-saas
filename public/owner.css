@@ -8,8 +8,8 @@ body.mk{margin:0}
 .owner-app svg use{fill:none}
 .owner-app svg[width]{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .owner-app .side-foot{justify-content:flex-start}
-.owner-app .side-foot .btn{color:var(--night-text)}
-.owner-app .side-foot .btn:hover{background:#ffffff12}
+.owner-app .side-foot .btn{color:var(--ink-2)}
+.owner-app .side-foot .btn:hover{background:var(--sunk)}
 
 /* Signed-out: full-screen login, no sidebar or topbar */
 .owner-app.signing-in .side,.owner-app.signing-in .owner-topbar,.owner-app.signing-in #status:empty{display:none}
@@ -17,7 +17,7 @@ body.mk{margin:0}
 .owner-app:not(.signing-in) .mk-login-grid{display:none}
 .owner-app .auth{min-height:100vh}
 .owner-app .auth-copy{display:grid;gap:16px;max-width:520px}
-.owner-app .auth-copy .eyebrow{color:#FFC48A}
+.owner-app .auth-copy .eyebrow{color:var(--ember-text)}
 .owner-app .auth-title{display:grid;gap:6px;margin:14px 0 18px}
 .owner-app #login-view .auth-title{margin-top:0}
 .owner-app .label-row{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
@@ -45,14 +45,14 @@ body.mk{margin:0}
 .owner-app .setup-progress{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
 .owner-app .setup-progress li{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:var(--sunk);font-size:13px}
 .owner-app .setup-progress li strong{font-weight:600}
-.owner-app .setup-badge{font-size:12px;padding:2px 8px;border-radius:999px;background:#3A2F28;color:#FFC48A}
+.owner-app .setup-badge{font-size:12px;padding:2px 8px;border-radius:999px;background:var(--ember-soft);color:var(--ember-text)}
 .owner-app .setup-progress li[data-status=connected] .setup-badge{background:#1F6B4F;color:#E3F3EB}
 .owner-app .setup-progress li[data-status=failed] .setup-badge{background:#A12F2E;color:#fff}
-.owner-app .setup-progress li small{color:#B7A79A}
+.owner-app .setup-progress li small{color:var(--muted)}
 .owner-app .usage-meter{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
-.owner-app .usage-row{display:grid;gap:6px;font-size:13px;color:#D9CBBE}
+.owner-app .usage-row{display:grid;gap:6px;font-size:13px;color:var(--ink-2)}
 .owner-app .usage-row meter{width:100%;height:8px}
-.owner-app .usage-row[data-warning="100"]{color:#FFB4A9}
+.owner-app .usage-row[data-warning="100"]{color:var(--bad)}
 
 /* KPI cards (rendered by restaurant.js) */
 .owner-app .kpi-cards{margin-bottom:22px}
@@ -299,7 +299,7 @@ body.mk{margin:0}
  .owner-app .site-actions #site-status{grid-column:1/-1}
  .owner-app .site-actions #site-status:empty{display:none}
 }
-.owner-app [data-template=summit] .site-template-thumb{background:var(--ground)}.owner-app [data-template=summit] .site-template-thumb i{background:var(--surface)}.owner-app [data-template=summit] .site-template-thumb b{background:#E8701A}.owner-app [data-template=summit] .site-template-thumb em{background:var(--surface);border:1px solid #ECE2D7}
+.owner-app [data-template=summit] .site-template-thumb{background:#FBF7F2}.owner-app [data-template=summit] .site-template-thumb i{background:var(--surface)}.owner-app [data-template=summit] .site-template-thumb b{background:#E8701A}.owner-app [data-template=summit] .site-template-thumb em{background:var(--surface);border:1px solid #ECE2D7}
 @media(max-width:1250px){.owner-app .site-template-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:700px){.owner-app .site-template-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .owner-app .site-analytics{margin-bottom:16px}

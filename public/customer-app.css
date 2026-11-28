@@ -1,6 +1,6 @@
 /* Mar-Khoor customer app home (/app). Uses the Summit tokens from summit.css. */
 .cust-app{min-height:100vh;background:var(--ground)}
-.cust-head{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;padding-top:max(12px,env(safe-area-inset-top));background:var(--night);border-bottom:1px solid var(--line)}
+.cust-head{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;padding-top:max(12px,env(safe-area-inset-top));background:var(--surface);border-bottom:1px solid var(--line)}
 .cust-brand{display:flex;align-items:center;gap:10px;color:var(--ink);text-decoration:none;font-family:var(--display);font-size:20px}
 .cust-brand span{color:var(--ember)}
 .cust-main{max-width:760px;margin:0 auto;padding:20px 16px 32px}
@@ -23,7 +23,7 @@
 .mk .cust-btn{display:inline-flex;align-items:center;min-height:40px;padding:0 16px;border-radius:999px;border:1px solid var(--line-strong);background:var(--sunk);color:var(--ink);font-weight:600;font-size:14px;text-decoration:none}
 .mk .cust-btn:hover,.mk .cust-btn:focus-visible{border-color:var(--ember-line)}
 .mk .cust-btn-main{background:var(--ember);border-color:var(--ember);color:var(--ember-ink)}
-.mk .cust-btn-wa{color:#7FE0A8}
+.mk .cust-btn-wa{color:var(--ok)}
 .cust-group{list-style:none;margin:18px 0 4px}
 .cust-group-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
 .cust-group-title{font-family:var(--display);font-size:20px;margin:0}
@@ -36,7 +36,7 @@
 .cust-foot{text-align:center;color:var(--faint);font-size:13px;padding:16px 16px calc(16px + env(safe-area-inset-bottom))}
 .cust-foot a{color:var(--ink-2)}
 .cust-sub{color:var(--muted);margin:-6px 0 16px}
-.mk .cust-btn-ai{color:var(--info);border-color:#2E3F66}
+.mk .cust-btn-ai{color:var(--info);border-color:var(--line-strong)}
 .acct-card{padding:16px;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);margin-bottom:12px}
 .acct-form{display:grid;gap:10px}
 .acct-who{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
@@ -55,7 +55,7 @@
 .chat-row-time{color:var(--faint);font-size:12px;align-self:flex-start;margin-top:4px}
 .concierge{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--ground);z-index:10}
 .concierge[hidden]{display:none}
-.concierge-top{display:flex;align-items:center;gap:10px;min-height:60px;padding:0 10px;padding-top:env(safe-area-inset-top);background:var(--night);border-bottom:1px solid var(--line)}
+.concierge-top{display:flex;align-items:center;gap:10px;min-height:60px;padding:0 10px;padding-top:env(safe-area-inset-top);background:var(--surface);border-bottom:1px solid var(--line)}
 .concierge-top div{display:flex;flex-direction:column}
 .concierge-top small{color:var(--ok);font-size:12px}
 .mk .chat-back-link{display:grid;place-items:center;width:44px;height:44px;font-size:28px;color:var(--ink);text-decoration:none}
@@ -66,6 +66,6 @@
 .concierge-cards{display:grid;gap:8px;align-self:stretch}
 .concierge-card{display:flex;flex-direction:column;gap:4px;padding:12px;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface)}
 .concierge-card span{color:var(--muted);font-size:13px}
-.concierge-form{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--night)}
+.concierge-form{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--surface)}
 .concierge-form .input{flex:1;border-radius:24px}
 .concierge-form .btn{border-radius:50%;width:48px;min-width:48px;padding:0}

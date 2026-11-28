@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       mariadb:
-        image: mariadb:11
+        image: mariadb:11.8.9  # pinned: 11.8.10 no longer reproduces the production collation error tests/sql-collation.test.js checks
         env:
           MARIADB_ROOT_PASSWORD: test-root-password
           MARIADB_DATABASE: markhoor_test
