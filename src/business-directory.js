@@ -31,6 +31,16 @@ export function waNumber(value) {
 
 const aiChat = (row, env) => assistantAllowed({ slug: row.slug, websiteAssistantProvisioned: Number(row.website_assistant_provisioned) === 1 }, env);
 
+// Test and demo businesses stay off the public directory (their own pages still work):
+// slugs starting mkqa- / mar-khoor-qa-, plus any listed in DIRECTORY_HIDDEN_SLUGS (comma list).
+// DIRECTORY_SHOW_TEST=1 lists the test businesses again (for testing the customer app).
+const TEST_SLUG = /^(mkqa-|mar-khoor-qa-)/;
+export function listed(slug, env = process.env) {
+  const hidden = String(env.DIRECTORY_HIDDEN_SLUGS || '').split(',').map(s => s.trim()).filter(Boolean);
+  if (hidden.includes(slug)) return false;
+  return env.DIRECTORY_SHOW_TEST === '1' || !TEST_SLUG.test(slug);
+}
+
 export async function listBusinesses(pool, { q = '', category = '', country = '' } = {}, env = process.env) {
   const query = cleanQuery(q);
   const cat = isBusinessType(category) ? category : '';
@@ -53,7 +63,7 @@ export async function listBusinesses(pool, { q = '', category = '', country = ''
     [rows] = await pool.execute('SELECT r.id,r.name,r.slug,r.country_code,r.website_assistant_provisioned,s.config,NULL AS category FROM restaurants r JOIN restaurant_sites s ON s.restaurant_id=r.id WHERE '
       + where.join(' AND ') + ' ORDER BY r.name LIMIT ' + MAX, params);
   }
-  return rows.filter(row => /^[a-z0-9-]{1,160}$/.test(row.slug)).map(row => {
+  return rows.filter(row => /^[a-z0-9-]{1,160}$/.test(row.slug) && listed(row.slug, env)).map(row => {
     let config = {};
     try { config = sanitizeSiteConfig(JSON.parse(row.config || '{}'), row); } catch { config = {}; }
     return {

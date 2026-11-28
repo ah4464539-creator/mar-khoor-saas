@@ -92,3 +92,14 @@ test('directory shows a booking line for clinics instead of the old food default
   const [b] = await listBusinesses(pool);
   assert.equal(b.tagline, 'Book an appointment at Cheema Clinic');
 });
+
+test('test businesses and hidden slugs stay off the public directory', async () => {
+  const { listed } = await import('../src/business-directory.js');
+  assert.equal(listed('mkqa-bistro-20261123', {}), false);
+  assert.equal(listed('mar-khoor-qa-check-fde298', {}), false);
+  assert.equal(listed('urban-cafe', {}), true);
+  assert.equal(listed('urban-cafe', { DIRECTORY_HIDDEN_SLUGS: 'x, urban-cafe' }), false);
+  assert.equal(listed('mkqa-bistro-20261123', { DIRECTORY_SHOW_TEST: '1' }), true);
+  const pool = fakePool([{ id: 1, name: 'QA', slug: 'mkqa-clinic-1', country_code: 'PK', config: '{}', category: 'clinic' }, { id: 2, name: 'Real', slug: 'real-cafe', country_code: 'PK', config: '{}', category: null }]);
+  assert.deepEqual((await listBusinesses(pool, {}, {})).map(b => b.slug), ['real-cafe']);
+});
