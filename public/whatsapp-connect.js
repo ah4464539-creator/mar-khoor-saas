@@ -46,7 +46,7 @@
     const strongNot = make('strong', { text: 'not' });
     form.append(
       make('p', { class: 'wa-otp-title' }, [make('strong', { text: 'Activate WhatsApp with your number' })]),
-      field('WhatsApp number for your restaurant', make('input', { class: 'input', 'data-phone': '', name: 'wa-otp-phone', type: 'tel', inputmode: 'tel', autocomplete: 'tel', maxlength: '32', placeholder: '+92 300 1234567' })),
+      field('WhatsApp number for your business', make('input', { class: 'input', 'data-phone': '', name: 'wa-otp-phone', type: 'tel', inputmode: 'tel', autocomplete: 'tel', maxlength: '32', placeholder: '+92 300 1234567' })),
       field('Name customers will see', make('input', { class: 'input', name: 'wa-otp-name', maxlength: '120', placeholder: 'e.g. Urban Cafe' })),
       make('div', { class: 'wa-otp-row' }, [
         make('select', { class: 'input', name: 'wa-otp-method', 'aria-label': 'How to receive the code' }, [make('option', { value: 'SMS', text: 'Code by SMS' }), make('option', { value: 'VOICE', text: 'Code by phone call' })]),

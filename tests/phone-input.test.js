@@ -28,3 +28,17 @@ test('every phone box carries the country picker', () => {
   assert.match(source, /\['PK','92','Pakistan','300 1234567'\]/);
   assert.match(source, /\['AE','971','United Arab Emirates','50 123 4567'\]/);
 });
+
+test('every country is offered once, including Greece, with a usable placeholder', () => {
+  const rows = [...source.matchAll(/\['([A-Z]{2})','(\d{1,4})',/g)];
+  const isos = rows.map(r => r[1]);
+  assert.ok(isos.length >= 190, 'about every country: ' + isos.length);
+  assert.equal(new Set(isos).size, isos.length, 'no duplicates');
+  for (const iso of ['GR', 'JP', 'BR', 'MX', 'KR', 'PH', 'TH', 'VN', 'PL', 'CH', 'AT', 'BE', 'DK', 'FI', 'IL', 'LB', 'HK']) assert.ok(isos.includes(iso), iso);
+  const phone = load();
+  assert.equal(phone.countryOf('+30 691 234 5678'), 'GR');
+  assert.equal(phone.countryOf('+1 876 555 0123'), 'JM');
+  assert.equal(phone.countryOf('+1 201 555 0123'), 'US');
+  assert.equal(phone.countryOf('+7 912 345 6789'), 'RU');
+  assert.match(source, /BY\[iso\]\[3\] \|\| 'phone number'/);
+});
