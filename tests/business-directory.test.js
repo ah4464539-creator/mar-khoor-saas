@@ -86,3 +86,9 @@ test('customers can chat or talk with the business AI inside the app', async () 
   assert.match(js, /url \+ '#assistant-talk'/);
   assert.match(readFileSync('public/restaurant-assistant-panel.js', 'utf8'), /location\.hash === '#assistant-talk'/);
 });
+
+test('directory shows a booking line for clinics instead of the old food default', async () => {
+  const pool = fakePool([{ id: 2, name: 'Cheema Clinic', slug: 'cheema-clinic', country_code: 'PK', config: JSON.stringify({ tagline: 'Order online from Cheema Clinic' }), category: 'clinic' }]);
+  const [b] = await listBusinesses(pool);
+  assert.equal(b.tagline, 'Book an appointment at Cheema Clinic');
+});

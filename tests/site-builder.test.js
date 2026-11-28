@@ -128,3 +128,16 @@ test('templates are allowlisted, existing sites stay classic and each preset has
  }
  assert.match(renderSitePage({restaurant,config:{template:'<img>',headline:'Bad'},items}),/<body class="site-template-classic">/);
 });
+
+test('default tagline follows the business type; old food default is replaced only for booking businesses', async () => {
+  const { categoryTagline, displayTagline, defaultSiteConfig } = await import('../src/site-builder.js');
+  assert.equal(categoryTagline('Cheema Clinic', 'clinic'), 'Book an appointment at Cheema Clinic');
+  assert.equal(categoryTagline('Glow', 'salon'), 'Book your appointment at Glow');
+  assert.equal(categoryTagline('Hill Inn', 'hotel'), 'Book your stay at Hill Inn');
+  assert.equal(categoryTagline('Cafe', 'restaurant'), 'Order online from Cafe');
+  assert.equal(defaultSiteConfig({ name: 'Hill Inn', category: 'hotel' }).tagline, 'Book your stay at Hill Inn');
+  assert.equal(displayTagline('Order online from Cheema Clinic', 'Cheema Clinic', 'clinic'), 'Book an appointment at Cheema Clinic');
+  assert.equal(displayTagline('Best doctors in Lahore', 'Cheema Clinic', 'clinic'), 'Best doctors in Lahore', 'owner text is kept');
+  assert.equal(displayTagline('Order online from Cafe', 'Cafe', 'restaurant'), 'Order online from Cafe');
+  assert.equal(displayTagline('Order online from Cafe', 'Cafe', undefined), 'Order online from Cafe');
+});
