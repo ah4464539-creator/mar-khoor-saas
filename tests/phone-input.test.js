@@ -42,3 +42,7 @@ test('every country is offered once, including Greece, with a usable placeholder
   assert.equal(phone.countryOf('+7 912 345 6789'), 'RU');
   assert.match(source, /BY\[iso\]\[3\] \|\| 'phone number'/);
 });
+
+test('a local number typed without the country code gets the chosen code on blur', () => {
+  assert.match(source, /else if \(\/\^\[1-9\]\[\\d\\s\(\)\.-\]\{5,\}\$\/\.test\(value\)\) value = code \+ ' ' \+ value;/);
+});
