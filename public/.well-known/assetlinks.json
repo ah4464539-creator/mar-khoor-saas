@@ -1,0 +1,22 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.markhoor.business",
+      "sha256_cert_fingerprints": [
+        "59:0A:08:D7:59:5E:B1:8A:7C:B2:B0:18:4C:70:DC:65:B1:7D:E2:4C:87:BB:87:8B:03:98:4C:42:77:7E:7A:BE"
+      ]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.markhoor.app",
+      "sha256_cert_fingerprints": [
+        "59:0A:08:D7:59:5E:B1:8A:7C:B2:B0:18:4C:70:DC:65:B1:7D:E2:4C:87:BB:87:8B:03:98:4C:42:77:7E:7A:BE"
+      ]
+    }
+  }
+]
