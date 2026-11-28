@@ -1,6 +1,7 @@
 import express from 'express';
 import { newTrackingToken, hashTrackingToken, getOrderTracking } from './order-tracking.js';
-import { notifyNewOrder, notifyPaymentReference } from './web-push.js';
+import { notifyNewOrder, notifyPaymentReference, vapidKeys } from './web-push.js';
+import { subscribeOrder } from './customer-push.js';
 import { validateFulfillment, isMissingFulfillmentSchema } from './order-fulfillment.js';
 import { ensurePaymentTables, loadPaymentSettings, resolvePaymentOption, normalizeReference, paymentView } from './payment-options.js';
 import { CASH_METHOD_FOR } from './order-fulfillment.js';
@@ -94,6 +95,15 @@ export function checkoutRouter(pool){
    res.json({status:'submitted'});
    notifyPaymentReference(pool,{orderId});
   }catch{res.status(503).json({error:'Payment update unavailable'});}
+ });
+ // Customer notifications ("your order is ready"): the browser needs the public VAPID key first.
+ router.get('/public/push-key',async(_req,res)=>{
+  try{const keys=await vapidKeys(pool);res.set('Cache-Control','public, max-age=3600').json({public_key:keys.publicKey});}
+  catch{res.status(503).json({error:'Notifications unavailable'});}
+ });
+ router.post('/public/orders/:orderId/notifications',express.json({limit:'4kb'}),async(req,res)=>{
+  try{const result=await subscribeOrder(pool,Number(req.params.orderId),req.get('x-tracking-token'),req.body?.subscription);res.status(result.status).json(result.body);}
+  catch{res.status(503).json({error:'Notifications unavailable'});}
  });
  // The token is sent in a header so it stays out of URLs and logs.
  router.get('/public/orders/:orderId/status',async(req,res)=>{

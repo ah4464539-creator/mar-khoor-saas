@@ -12,7 +12,7 @@
 <link rel="stylesheet" href="/summit.css?v=20261122-n3">
 <link rel="stylesheet" href="/public-pages.css?v=20261122-n2">
 <title>Your order | Mar-Khoor</title>
-<script type="module" src="/track.js?v=20261120-s3"></script>
+<script type="module" src="/track.js?v=20261128-n1"></script>
 </head>
 <body class="mk order-page">
 <header class="wrap site-nav slim"><a class="brand" href="/"><img src="/assets/markhor-mark-tile.svg" width="30" height="30" alt=""><b>Mar<span>-</span>Khoor</b></a><a id="order-history-link" class="btn btn-ghost btn-sm" href="/orders.html">Order history</a></header>
@@ -20,6 +20,11 @@
  <h1 class="visually-hidden">Your order</h1>
  <nav class="tabs order-tabs" aria-label="Order information" id="track-tabs" hidden></nav>
  <section class="card card-pad order-card" id="track-content" aria-live="polite">Loading order…</section>
+ <section class="card card-pad order-card track-notify" id="track-notify" hidden>
+  <p><strong>Get a notification when your order is ready</strong><br><span class="small muted">Even when this app or page is closed.</span></p>
+  <button type="button" class="btn btn-dark" id="track-notify-btn">Notify me</button>
+  <p class="small" id="track-notify-status" role="status"></p>
+ </section>
  <p class="small muted order-foot">This page refreshes automatically while your order is in progress.</p>
 </main>
 </body>
