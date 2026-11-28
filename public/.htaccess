@@ -1,0 +1,8 @@
+# Hostinger serves these files straight from public_html (not through Express), and sends HTML
+# without Cache-Control, so browsers kept old dashboard pages for hours after a deploy.
+# Pages must always be revalidated; scripts and styles are versioned with ?v= in the HTML.
+<IfModule mod_headers.c>
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>
