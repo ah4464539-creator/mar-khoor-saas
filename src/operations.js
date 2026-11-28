@@ -8,6 +8,7 @@ import { ensurePaymentTables, loadPaymentSettings, sanitizePaymentSettings, publ
 import { audit, rateLimit } from './security.js';
 import { validateTemplate, sendTemplateMessage } from './whatsapp-templates.js';
 import { startNumber, verifyNumber, onboardingStatus } from './whatsapp-number-onboarding.js';
+import { notifyCustomerOrderStatus } from './customer-push.js';
 import { vapidKeys, saveSubscription, removeSubscription, deviceCount, pushToRestaurant, getPreferences, savePreferences } from './web-push.js';
 import { getSignupConfig, completeSignup, connectionStatus, tokenForNumber, graphVersion } from './whatsapp-signup-core.js';
 export function operationsRouter(pool) {
@@ -319,7 +320,9 @@ export function operationsRouter(pool) {
   const allowed={accepted:['pending'],preparing:['accepted'],ready:['preparing'],completed:['ready'],cancelled:['pending','accepted']};
   try{const [result]=await pool.query('UPDATE orders SET status=? WHERE id=? AND restaurant_id=? AND status IN (?)',[status,id,req.restaurantId,allowed[status]]);if(!result.affectedRows)return res.status(409).json({error:'Order missing or invalid status transition'});res.json({updated:true});
    // Orders placed on WhatsApp: tell the customer about the new status (never blocks the owner).
-   notifyOrderStatus(pool,req.restaurantId,id,status,{tokenFor:phoneId=>tokenForNumber(pool,phoneId)}).catch(()=>{});}
+   notifyOrderStatus(pool,req.restaurantId,id,status,{tokenFor:phoneId=>tokenForNumber(pool,phoneId)}).catch(()=>{});
+   // Customers who turned on notifications on the tracking page (app or browser).
+   notifyCustomerOrderStatus(pool,req.restaurantId,id,status).catch(()=>{});}
   catch{res.status(503).json({error:'Database unavailable'});}
  });
  return router;

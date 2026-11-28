@@ -150,6 +150,7 @@ async function load() {
     order = await response.json();
     if (!order.restaurant_slug && !order.restaurant_name) throw Error('Tracking is unavailable. Please try again.');
     if (document.activeElement?.id !== 'track-reference') render();
+    showNotify();
     if (!['completed', 'cancelled'].includes(order.status)) timer = setTimeout(load, 15000);
   } catch (error) {
     if (!order) content.textContent = error.message;
@@ -160,6 +161,36 @@ window.addEventListener('hashchange', () => {
   const next = new URLSearchParams(location.hash.slice(1));
   if (Number(next.get('id')) !== id || (next.get('t') || '') !== token) location.reload();
   else render();
+});
+// "Notify me": push notifications for this order, through the same service worker as the apps.
+const notifyBox = document.querySelector('#track-notify');
+const notifyBtn = document.querySelector('#track-notify-btn');
+const notifyStatus = document.querySelector('#track-notify-status');
+const notifyKey = 'mar-khoor.notify.' + id;
+const pushSupported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+const storedOn = () => { try { return localStorage.getItem(notifyKey) === '1'; } catch { return false; } };
+function showNotify() {
+  if (!notifyBox || !pushSupported || !order || ['completed', 'cancelled'].includes(order.status)) { if (notifyBox) notifyBox.hidden = true; return; }
+  notifyBox.hidden = false;
+  if (storedOn() && Notification.permission === 'granted') { notifyBtn.hidden = true; notifyStatus.textContent = '🔔 Notifications are on for this order.'; }
+  else if (Notification.permission === 'denied') { notifyBtn.hidden = true; notifyStatus.textContent = 'Notifications are blocked. Allow them in your phone or browser settings for this site.'; }
+}
+const keyBytes = b64 => { const raw = atob(b64.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - b64.length % 4) % 4)); return Uint8Array.from(raw, c => c.charCodeAt(0)); };
+notifyBtn?.addEventListener('click', async () => {
+  notifyBtn.disabled = true; notifyStatus.textContent = 'Turning on…';
+  try {
+    if (await Notification.requestPermission() !== 'granted') throw Error('Notifications were not allowed.');
+    const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' }).then(() => navigator.serviceWorker.ready);
+    const keyRes = await fetch('/api/public/push-key');
+    if (!keyRes.ok) throw Error('Notifications are unavailable right now.');
+    const { public_key: publicKey } = await keyRes.json();
+    const subscription = (await reg.pushManager.getSubscription()) || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(publicKey) });
+    const r = await fetch('/api/public/orders/' + id + '/notifications', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Tracking-Token': token }, body: JSON.stringify({ subscription }) });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw Error(data.error || 'Could not turn on notifications.');
+    try { localStorage.setItem(notifyKey, '1'); } catch {}
+    showNotify();
+  } catch (error) { notifyStatus.textContent = error.message || 'Could not turn on notifications.'; notifyBtn.disabled = false; }
 });
 window.addEventListener('pagehide', () => clearTimeout(timer));
 window.addEventListener('pageshow', event => { if (event.persisted) load(); });
