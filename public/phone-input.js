@@ -2,7 +2,7 @@
  *  input marked data-phone. The input keeps one plain value like "+92 300 1234567", so the
  *  server sees exactly what it did before. */
 (() => {
-  // [ISO, dial code, English name, mobile example]
+  // [ISO, dial code, English name, mobile example]. Common countries first, then the rest A–Z.
   const C = [
     ['PK','92','Pakistan','300 1234567'], ['AE','971','United Arab Emirates','50 123 4567'], ['SA','966','Saudi Arabia','50 123 4567'],
     ['IN','91','India','98765 43210'], ['BD','880','Bangladesh','1812 345678'], ['GB','44','United Kingdom','7400 123456'],
@@ -15,6 +15,47 @@
     ['IT','39','Italy','312 345 6789'], ['ES','34','Spain','612 34 56 78'], ['NL','31','Netherlands','6 12345678'], ['IE','353','Ireland','85 012 3456'],
     ['SE','46','Sweden','70 123 45 67'], ['NO','47','Norway','406 12 345'], ['PT','351','Portugal','912 345 678'], ['RU','7','Russia','912 345 67 89'],
     ['NG','234','Nigeria','802 123 4567'], ['ZA','27','South Africa','71 123 4567'], ['KE','254','Kenya','712 123456'], ['NZ','64','New Zealand','21 123 4567'],
+    // Every other country, A–Z (no local example).
+    ['AL','355','Albania',''], ['DZ','213','Algeria',''], ['AD','376','Andorra',''], ['AO','244','Angola',''],
+    ['AG','1268','Antigua and Barbuda',''], ['AR','54','Argentina',''], ['AM','374','Armenia',''], ['AW','297','Aruba',''],
+    ['AT','43','Austria',''], ['AZ','994','Azerbaijan',''], ['BS','1242','Bahamas',''], ['BB','1246','Barbados',''],
+    ['BY','375','Belarus',''], ['BE','32','Belgium',''], ['BZ','501','Belize',''], ['BJ','229','Benin',''],
+    ['BM','1441','Bermuda',''], ['BT','975','Bhutan',''], ['BO','591','Bolivia',''], ['BA','387','Bosnia and Herzegovina',''],
+    ['BW','267','Botswana',''], ['BR','55','Brazil',''], ['BN','673','Brunei',''], ['BG','359','Bulgaria',''],
+    ['BF','226','Burkina Faso',''], ['BI','257','Burundi',''], ['KH','855','Cambodia',''], ['CM','237','Cameroon',''],
+    ['CV','238','Cape Verde',''], ['KY','1345','Cayman Islands',''], ['CF','236','Central African Republic',''], ['TD','235','Chad',''],
+    ['CL','56','Chile',''], ['CO','57','Colombia',''], ['KM','269','Comoros',''], ['CG','242','Congo',''],
+    ['CD','243','Congo (DRC)',''], ['CR','506','Costa Rica',''], ['HR','385','Croatia',''], ['CU','53','Cuba',''],
+    ['CW','599','Curaçao',''], ['CY','357','Cyprus',''], ['CZ','420','Czechia',''], ['CI','225',"Côte d'Ivoire",''],
+    ['DK','45','Denmark',''], ['DJ','253','Djibouti',''], ['DM','1767','Dominica',''], ['DO','1809','Dominican Republic',''],
+    ['EC','593','Ecuador',''], ['SV','503','El Salvador',''], ['GQ','240','Equatorial Guinea',''], ['ER','291','Eritrea',''],
+    ['EE','372','Estonia',''], ['SZ','268','Eswatini',''], ['ET','251','Ethiopia',''], ['FJ','679','Fiji',''],
+    ['FI','358','Finland',''], ['GA','241','Gabon',''], ['GM','220','Gambia',''], ['GE','995','Georgia',''],
+    ['GH','233','Ghana',''], ['GI','350','Gibraltar',''], ['GR','30','Greece',''], ['GD','1473','Grenada',''],
+    ['GU','1671','Guam',''], ['GT','502','Guatemala',''], ['GN','224','Guinea',''], ['GW','245','Guinea-Bissau',''],
+    ['GY','592','Guyana',''], ['HT','509','Haiti',''], ['HN','504','Honduras',''], ['HK','852','Hong Kong',''],
+    ['HU','36','Hungary',''], ['IS','354','Iceland',''], ['IL','972','Israel',''], ['JM','1876','Jamaica',''],
+    ['JP','81','Japan',''], ['KZ','7','Kazakhstan',''], ['XK','383','Kosovo',''], ['KG','996','Kyrgyzstan',''],
+    ['LA','856','Laos',''], ['LV','371','Latvia',''], ['LB','961','Lebanon',''], ['LS','266','Lesotho',''],
+    ['LR','231','Liberia',''], ['LY','218','Libya',''], ['LI','423','Liechtenstein',''], ['LT','370','Lithuania',''],
+    ['LU','352','Luxembourg',''], ['MO','853','Macao',''], ['MG','261','Madagascar',''], ['MW','265','Malawi',''],
+    ['MV','960','Maldives',''], ['ML','223','Mali',''], ['MT','356','Malta',''], ['MR','222','Mauritania',''],
+    ['MU','230','Mauritius',''], ['MX','52','Mexico',''], ['MD','373','Moldova',''], ['MC','377','Monaco',''],
+    ['MN','976','Mongolia',''], ['ME','382','Montenegro',''], ['MZ','258','Mozambique',''], ['MM','95','Myanmar',''],
+    ['NA','264','Namibia',''], ['NI','505','Nicaragua',''], ['NE','227','Niger',''], ['MK','389','North Macedonia',''],
+    ['PS','970','Palestine',''], ['PA','507','Panama',''], ['PG','675','Papua New Guinea',''], ['PY','595','Paraguay',''],
+    ['PE','51','Peru',''], ['PH','63','Philippines',''], ['PL','48','Poland',''], ['PR','1787','Puerto Rico',''],
+    ['RO','40','Romania',''], ['RW','250','Rwanda',''], ['KN','1869','Saint Kitts and Nevis',''], ['LC','1758','Saint Lucia',''],
+    ['VC','1784','Saint Vincent and the Grenadines',''], ['WS','685','Samoa',''], ['SM','378','San Marino',''], ['SN','221','Senegal',''],
+    ['RS','381','Serbia',''], ['SC','248','Seychelles',''], ['SL','232','Sierra Leone',''], ['SK','421','Slovakia',''],
+    ['SI','386','Slovenia',''], ['SB','677','Solomon Islands',''], ['SO','252','Somalia',''], ['KR','82','South Korea',''],
+    ['SS','211','South Sudan',''], ['SD','249','Sudan',''], ['SR','597','Suriname',''], ['CH','41','Switzerland',''],
+    ['SY','963','Syria',''], ['TW','886','Taiwan',''], ['TJ','992','Tajikistan',''], ['TZ','255','Tanzania',''],
+    ['TH','66','Thailand',''], ['TL','670','Timor-Leste',''], ['TG','228','Togo',''], ['TO','676','Tonga',''],
+    ['TT','1868','Trinidad and Tobago',''], ['TN','216','Tunisia',''], ['TM','993','Turkmenistan',''], ['TC','1649','Turks and Caicos Islands',''],
+    ['UG','256','Uganda',''], ['UA','380','Ukraine',''], ['UY','598','Uruguay',''], ['UZ','998','Uzbekistan',''],
+    ['VU','678','Vanuatu',''], ['VE','58','Venezuela',''], ['VN','84','Vietnam',''], ['YE','967','Yemen',''],
+    ['ZM','260','Zambia',''], ['ZW','263','Zimbabwe',''],
   ];
   const BY = Object.fromEntries(C.map(c => [c[0], c]));
   const ZONES = { 'Asia/Karachi':'PK', 'Asia/Dubai':'AE', 'Asia/Riyadh':'SA', 'Asia/Kolkata':'IN', 'Asia/Calcutta':'IN', 'Asia/Dhaka':'BD', 'Europe/London':'GB',
@@ -69,8 +110,9 @@
       current = iso; select.value = iso;
       // Collapsed select shows only flag and code; the open list shows names too.
       for (const o of select.options) o.textContent = flag(o.value) + ' +' + BY[o.value][1] + (o.value === iso ? '' : '  ' + BY[o.value][2]);
-      if (!/^Using /.test(input.placeholder)) input.placeholder = '+' + BY[iso][1] + ' ' + BY[iso][3];
-      input.title = 'Example: +' + BY[iso][1] + ' ' + BY[iso][3];
+      const example = BY[iso][3] || 'phone number';
+      if (!/^Using /.test(input.placeholder)) input.placeholder = '+' + BY[iso][1] + ' ' + example;
+      input.title = 'Example: +' + BY[iso][1] + ' ' + example;
     };
     field.show = show;
     field.sync = () => show(countryOf(input.value, select.value) || select.value);
