@@ -63,7 +63,7 @@ export function friendly(error) {
   const msg = String(error?.error_user_msg || error?.message || 'Meta did not accept the request');
   const code = Number(error?.code), sub = Number(error?.error_subcode);
   if (/already.*(registered|in use|exists)|account.*exists/i.test(msg) || sub === 2388001) return 'This number is still active on WhatsApp. Open WhatsApp on that phone → Settings → Account → Delete account (or use a new SIM), then try again.';
-  if (/limit|maximum number of phone numbers/i.test(msg)) return 'Mar-Khoor has reached Meta\'s limit of WhatsApp numbers for now. Our team has been told; please try again later.';
+  if (/limit|maximum number of phone numbers|additional numbers|delete an existing one/i.test(msg)) return 'Mar-Khoor has reached Meta\'s limit of WhatsApp numbers for now. Our team has been told; please try again later.';
   if (/code.*(invalid|incorrect|expired)|verification code/i.test(msg) || code === 136025) return 'That code is not correct or has expired. Check the SMS/call and try again, or ask for a new code.';
   if (/too many|rate/i.test(msg) || code === 136024) return 'Too many code requests. Please wait a few minutes and try again.';
   if (/display name|verified_name/i.test(msg)) return 'Meta did not accept this display name. Use your restaurant name exactly as on your signboard.';
