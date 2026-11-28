@@ -1,4 +1,4 @@
-import { savedOrders, trackingLink } from './order-history.js';
+import { savedOrders, trackingLink, syncAccountOrders, customerSession } from './order-history.js?v=20261128-a1';
 
 const restaurant = new URLSearchParams(location.search).get('restaurant');
 if (restaurant && /^[a-z0-9-]{1,160}$/.test(restaurant)) {
@@ -37,3 +37,6 @@ function render() {
 }
 window.addEventListener('hashchange', render);
 render();
+// Signed in: show the orders from every phone; otherwise offer to sign in.
+const foot = document.querySelector('#orders-account');
+if (customerSession()) { if (foot) foot.textContent = 'Signed in: your orders from every phone are shown.'; syncAccountOrders().then(render).catch(() => {}); }

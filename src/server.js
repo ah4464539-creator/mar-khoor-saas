@@ -1,3 +1,4 @@
+import { customerAccountRouter } from './customer-account-routes.js';
 import { businessDirectoryRouter } from './business-directory.js';
 import 'dotenv/config';
 import { quotePlan } from './plan-quote.js';
@@ -130,6 +131,7 @@ app.use(billingRouter(pool));
 app.use(paymentsRouter(pool));
 app.use(sitesRouter(pool));
 app.use(businessDirectoryRouter(pool));
+app.use(customerAccountRouter(pool));
 app.use(privacyRouter(pool));
 app.use(ownLineRouter(pool));
 app.use('/voice-tools', voiceToolsRouter(pool));

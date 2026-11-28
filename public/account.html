@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#0E1620">
+<link rel="manifest" href="/customer.webmanifest">
+<link rel="icon" type="image/svg+xml" href="/assets/markhor-mark-tile.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="/summit.css?v=20261122-n3">
+<link rel="stylesheet" href="/customer-app.css?v=20261128-5">
+<title>My account | Mar-Khoor</title>
+<script type="module" src="/account.js?v=20261128-a1"></script>
+</head>
+<body class="mk cust-app">
+<header class="cust-head">
+ <a class="cust-brand" href="/app"><img src="/assets/markhor-mark-tile.svg" width="32" height="32" alt=""><b>Mar<span>-</span>Khoor</b></a>
+ <a class="btn btn-ghost btn-sm" href="/app">Find a business</a>
+</header>
+<main class="cust-main">
+ <h1 class="cust-title">My account</h1>
+
+ <section class="acct-card" id="acct-signin" hidden>
+  <p class="cust-sub">Sign in with your email to see your orders and bookings on every phone. No password: we email you a sign-in link.</p>
+  <form id="acct-form" class="acct-form">
+   <label class="label" for="acct-email">Email</label>
+   <input class="input" id="acct-email" type="email" autocomplete="email" inputmode="email" maxlength="254" required placeholder="you@example.com">
+   <button class="btn btn-dark" type="submit">Email me a sign-in link</button>
+  </form>
+ </section>
+
+ <section id="acct-signedin" hidden>
+  <div class="acct-card acct-who"><span>Signed in as <strong id="acct-who"></strong></span><button type="button" class="btn btn-ghost btn-sm" id="acct-signout">Sign out</button></div>
+  <h2 class="cust-group-title acct-h">My orders</h2>
+  <ul class="cust-list" id="acct-orders"></ul>
+  <h2 class="cust-group-title acct-h">My bookings</h2>
+  <ul class="cust-list" id="acct-bookings"></ul>
+ </section>
+
+ <p class="cust-status" id="acct-status" role="status" aria-live="polite"></p>
+</main>
+<footer class="cust-foot"><a href="/privacy.html">Privacy</a></footer>
+</body>
+</html>

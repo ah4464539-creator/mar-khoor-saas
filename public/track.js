@@ -1,4 +1,4 @@
-import { trackingLink } from './order-history.js';
+import { trackingLink } from './order-history.js?v=20261128-a1';
 
 const params = new URLSearchParams(location.hash.slice(1));
 const id = Number(params.get('id'));

@@ -10,7 +10,10 @@
   const money = m => { try { return new Intl.NumberFormat(undefined, { style: 'currency', currency: info.business.currency, maximumFractionDigits: m % 100 ? 2 : 0 }).format(m / 100); } catch { return info.business.currency + ' ' + m / 100; } };
   const today = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
   const plus = (date, n) => { const d = new Date(date + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
-  const api = async (path, options) => { const r = await fetch('/api/public/book/' + slug + path, options); const data = await r.json().catch(() => ({})); if (!r.ok) throw Error(data.error || 'Something went wrong'); return data; };
+  const session = (() => { try { const v = localStorage.getItem('mar-khoor.customer-session') || ''; return /^[a-f0-9]{64}$/.test(v) ? v : ''; } catch { return ''; } })();
+  // Signed-in customers: the booking is added to their Mar-Khoor account.
+  const withSession = options => session ? { ...(options || {}), headers: { ...((options || {}).headers || {}), 'X-Customer-Session': session } } : options;
+  const api = async (path, options) => { const r = await fetch('/api/public/book/' + slug + path, withSession(options)); const data = await r.json().catch(() => ({})); if (!r.ok) throw Error(data.error || 'Something went wrong'); return data; };
 
   async function start() {
     if (!slug) { $('book-name').textContent = 'Booking link is incomplete'; return; }

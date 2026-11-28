@@ -1,4 +1,4 @@
-import { rememberOrder, savedOrders, trackingLink } from './order-history.js';
+import { rememberOrder, savedOrders, trackingLink } from './order-history.js?v=20261128-a1';
 
 const status = document.querySelector('#status');
 const target = document.querySelector('#menu');

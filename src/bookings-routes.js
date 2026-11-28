@@ -1,4 +1,5 @@
 // HTTP routes for business type and bookings: owner management + public booking.
+import { customerFromSession, linkBooking } from './customer-accounts.js';
 import express from 'express';
 import { requireAuth, hashPassword } from './auth.js';
 import { rateLimit, audit } from './security.js';
@@ -295,6 +296,8 @@ export function bookingsRouter(pool) {
       if (result.error) return res.status(409).json({ error: result.error });
       notifyNewBooking(pool, req.business.id, result.booking, 'Website');
       const token = await bookingToken(pool, req.business.id, result.booking.id);
+      // Signed-in customers (Mar-Khoor app): the booking shows in their account on every phone.
+      customerFromSession(pool, req.get('x-customer-session')).then(account => linkBooking(pool, account, req.business.id, result.booking.id)).catch(() => {});
       const svc = (await listServices(pool, req.business.id, { activeOnly: true })).find(x => x.id === Number(b.service_id));
       const pay = publicPaymentOptions(await loadPaymentSettings(pool, req.business.id)).filter(o => o.type !== 'cash' && o.type !== 'card_on_delivery');
       res.status(201).json({ booking: { id: result.booking.id, service: result.booking.service, start_at: result.booking.start_at, end_at: result.booking.end_at, price_minor: result.booking.price_minor, status: result.booking.status }, token, deposit_minor: svc?.deposit_minor || 0, pay_options: pay });

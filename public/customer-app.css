@@ -37,3 +37,8 @@
 .cust-foot a{color:var(--ink-2)}
 .cust-sub{color:var(--muted);margin:-6px 0 16px}
 .mk .cust-btn-ai{color:var(--info);border-color:#2E3F66}
+.acct-card{padding:16px;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);margin-bottom:12px}
+.acct-form{display:grid;gap:10px}
+.acct-who{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.acct-h{margin:22px 0 10px}
+.cust-nav{display:flex;gap:8px}
