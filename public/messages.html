@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0A1018">
+<link rel="manifest" href="/customer.webmanifest">
+<link rel="icon" type="image/svg+xml" href="/assets/markhor-mark-tile.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="/summit.css?v=20261122-n3">
+<link rel="stylesheet" href="/customer-app.css?v=20261128-6">
+<title>Chats | Mar-Khoor</title>
+<script src="/messages.js?v=20261128-m1" defer></script>
+</head>
+<body class="mk cust-app">
+<header class="cust-head">
+ <a class="cust-brand" href="/app"><img src="/assets/markhor-mark-tile.svg" width="32" height="32" alt=""><b>Mar<span>-</span>Khoor</b></a>
+ <nav class="cust-nav"><a class="btn btn-ghost btn-sm" href="/app">Find</a><a class="btn btn-ghost btn-sm" href="/account.html">Account</a></nav>
+</header>
+
+<main class="cust-main" id="chats-view">
+ <h1 class="cust-title">Chats</h1>
+ <ul class="chat-list" id="chat-list">
+  <li><a class="chat-row chat-row-pinned" href="#assistant"><span class="chat-row-avatar">✨</span><span class="chat-row-text"><strong>Mar-Khoor Assistant</strong><span>Tell me what you need: food, a doctor, a salon or a hotel</span></span></a></li>
+ </ul>
+ <p class="cust-status" id="chat-empty">Your chats with businesses appear here. <a href="/app">Find a business</a> and tap <b>Chat with AI</b>.</p>
+</main>
+
+<section class="concierge" id="assistant-view" hidden aria-label="Mar-Khoor Assistant">
+ <header class="concierge-top"><a class="chat-back-link" href="#" aria-label="Back to chats">‹</a><span class="chat-row-avatar">✨</span><div><strong>Mar-Khoor Assistant</strong><small>Finds the right business for you</small></div></header>
+ <div class="concierge-log" id="concierge-log" role="log" aria-live="polite">
+  <p class="bubble bubble-ai">Assalam o alaikum! What do you need today? For example: "2 chicken biryani", "dentist kal shaam", or "Lahore mein hotel room".</p>
+ </div>
+ <form class="concierge-form" id="concierge-form">
+  <label class="visually-hidden" for="concierge-input">Message</label>
+  <input class="input" id="concierge-input" maxlength="600" autocomplete="off" placeholder="Message Mar-Khoor Assistant…" required>
+  <button class="btn btn-dark" type="submit" aria-label="Send">➤</button>
+ </form>
+</section>
+</body>
+</html>

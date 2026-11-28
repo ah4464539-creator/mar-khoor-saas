@@ -15,6 +15,7 @@
                 <data android:scheme="https" android:host="${hostName}" android:pathPrefix="/businesses" />
                 <data android:scheme="https" android:host="${hostName}" android:pathPrefix="/book.html" />
                 <data android:scheme="https" android:host="${hostName}" android:pathPrefix="/menu.html" />
+                <data android:scheme="https" android:host="${hostName}" android:pathPrefix="/messages" />
             </intent-filter>
         </activity>
     </application>
