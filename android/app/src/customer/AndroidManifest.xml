@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application>
         <activity android:name="com.google.androidbrowserhelper.trusted.LauncherActivity" android:exported="true">
-            <!-- Business pages, order tracking and order history links open in the app. -->
+            <!-- Business pages, ordering, booking, tracking, order history and account sign-in links open in the app. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -11,6 +11,10 @@
                 <data android:scheme="https" android:host="${hostName}" android:pathPrefix="/r/" />
                 <data android:scheme="https" android:host="${hostName}" android:pathPrefix="/track" />
                 <data android:scheme="https" android:host="${hostName}" android:pathPrefix="/orders.html" />
+                <data android:scheme="https" android:host="${hostName}" android:pathPrefix="/account.html" />
+                <data android:scheme="https" android:host="${hostName}" android:pathPrefix="/businesses" />
+                <data android:scheme="https" android:host="${hostName}" android:pathPrefix="/book.html" />
+                <data android:scheme="https" android:host="${hostName}" android:pathPrefix="/menu.html" />
             </intent-filter>
         </activity>
     </application>
