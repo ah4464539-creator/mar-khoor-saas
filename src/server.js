@@ -83,7 +83,7 @@ const publicDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)
 // Android app links (Trusted Web Activity): express.static skips dot-folders, so serve this one explicitly.
 app.use('/.well-known', express.static(path.resolve(publicDirectory, '.well-known'), { maxAge: '1h' }));
 // Customer app home (Android app start page and "Add to Home Screen"): /app serves public/app.html.
-app.get('/app', (_req, res) => {
+app.get(['/app', '/businesses'], (_req, res) => {
   res.set('Cache-Control', 'no-cache');
   res.sendFile(path.resolve(publicDirectory, 'app.html'));
 });

@@ -19,8 +19,9 @@ test('only published sites are listed, with public fields only', async () => {
   assert.deepEqual(list.map(b => [b.slug, b.category, b.url]), [['urban-cafe', 'restaurant', '/r/urban-cafe'], ['cheema-clinic', 'clinic', '/r/cheema-clinic']]);
   assert.equal(list[0].tagline, 'Best chai');
   assert.equal(list[0].logo, '/media/1-0123456789abcdef.png');
-  assert.deepEqual(Object.keys(list[0]).sort(), ['category', 'country', 'logo', 'name', 'slug', 'tagline', 'url']);
-  assert.ok(!JSON.stringify(list).includes('+923001234567'), 'no private config fields');
+  assert.deepEqual(Object.keys(list[0]).sort(), ['address', 'ai_chat', 'ai_voice', 'category', 'country', 'logo', 'name', 'phone', 'slug', 'tagline', 'url', 'whatsapp']);
+  assert.equal(list[0].phone, '+923001234567', 'the phone the business shows on its own website');
+  assert.ok(!('template' in list[0]) && !('sections' in list[0]), 'no other site settings');
 });
 
 test('search, category and country become bound parameters; no "?=\'\'" in SQL', async () => {
@@ -49,5 +50,39 @@ test('customer app page and manifest point at /app and use no inline script', ()
   assert.equal(manifest.start_url, '/app');
   const js = readFileSync('public/customer-app.js', 'utf8');
   assert.ok(!/innerHTML/.test(js), 'text only, no HTML injection');
-  assert.match(readFileSync('src/server.js', 'utf8'), /app\.get\('\/app'/);
+  assert.match(readFileSync('src/server.js', 'utf8'), /app\.get\(\['\/app', '\/businesses'\]/);
+});
+
+test('contact buttons: phone and WhatsApp the business already shows on its website', async () => {
+  const { phoneDigits, waNumber } = await import('../src/business-directory.js');
+  assert.equal(phoneDigits('+92 300 1234567'), '+923001234567');
+  assert.equal(phoneDigits('0300-1234567'), '03001234567');
+  assert.equal(phoneDigits('12'), null);
+  assert.equal(waNumber('+92 300 1234567'), '923001234567');
+  assert.equal(waNumber('0300 1234567'), null, 'wa.me needs the international number');
+  const pool = fakePool([{ id: 1, name: 'Cafe', slug: 'cafe', country_code: 'PK', config: JSON.stringify({ phone: '+92 42 1234567', whatsapp: '+92 300 1234567', address: 'Gulberg, Lahore' }), category: null }]);
+  const [b] = await listBusinesses(pool);
+  assert.deepEqual([b.phone, b.whatsapp, b.address], ['+92421234567', '923001234567', 'Gulberg, Lahore']);
+});
+
+test('directory page groups by category and links from the home page', () => {
+  const js = readFileSync('public/customer-app.js', 'utf8');
+  assert.match(js, /ORDER = \['restaurant', 'clinic', 'salon', 'hotel'\]/);
+  assert.match(js, /'tel:' \+ b\.phone/);
+  assert.match(js, /'https:\/\/wa\.me\/' \+ b\.whatsapp/);
+  assert.match(readFileSync('public/index.html', 'utf8'), /href="\/businesses">Find a business<\/a>/);
+});
+
+test('customers can chat or talk with the business AI inside the app', async () => {
+  const row = { id: 1, name: 'Cafe', slug: 'cafe', country_code: 'PK', config: '{}', category: null, website_assistant_provisioned: 1 };
+  const on = await listBusinesses(fakePool([row]), {}, { RESTAURANT_WEBSITE_VOICE_ENABLED: 'true' });
+  assert.deepEqual([on[0].ai_chat, on[0].ai_voice], [true, true]);
+  const noVoice = await listBusinesses(fakePool([row]), {}, {});
+  assert.deepEqual([noVoice[0].ai_chat, noVoice[0].ai_voice], [true, false]);
+  const off = await listBusinesses(fakePool([{ ...row, website_assistant_provisioned: 0 }]), {}, { RESTAURANT_WEBSITE_VOICE_ENABLED: 'true' });
+  assert.deepEqual([off[0].ai_chat, off[0].ai_voice], [false, false]);
+  const js = readFileSync('public/customer-app.js', 'utf8');
+  assert.match(js, /url \+ '#assistant'/);
+  assert.match(js, /url \+ '#assistant-talk'/);
+  assert.match(readFileSync('public/restaurant-assistant-panel.js', 'utf8'), /location\.hash === '#assistant-talk'/);
 });
