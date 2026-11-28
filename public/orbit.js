@@ -5,10 +5,10 @@
   const hero = document.getElementById('orbit-hero');
   if (!hero) return;
   const DESKS = [
-    { key: 'restaurant', word: 'restaurant', colour: '#F08A2E', icon: 'ob-pot', biz: 'Lahore Grill', title: 'Order #1044 confirmed', detail: 'Family deal · delivery · Rs 3,499' },
-    { key: 'clinic', word: 'clinic', colour: '#7FD6D0', icon: 'ob-plus', biz: 'City Care Clinic', title: 'Appointment booked', detail: 'Mon 9:30 · Dr. Ayesha Khan' },
-    { key: 'salon', word: 'salon', colour: '#F783AC', icon: 'ob-scissors', biz: 'Glow Studio', title: 'Booking confirmed', detail: 'Sat 3:00 pm · Haircut · Sana' },
-    { key: 'hotel', word: 'hotel', colour: '#9DB8FF', icon: 'ob-key', biz: 'Hunza View Hotel', title: 'Reservation held', detail: 'Fri–Sun · Room 101 · 2 nights' },
+    { key: 'restaurant', word: 'restaurant', colour: '#E8590C', icon: 'ob-pot', biz: 'Lahore Grill', title: 'Order #1044 confirmed', detail: 'Family deal · delivery · Rs 3,499' },
+    { key: 'clinic', word: 'clinic', colour: '#0B7285', icon: 'ob-plus', biz: 'City Care Clinic', title: 'Appointment booked', detail: 'Mon 9:30 · Dr. Ayesha Khan' },
+    { key: 'salon', word: 'salon', colour: '#C2255C', icon: 'ob-scissors', biz: 'Glow Studio', title: 'Booking confirmed', detail: 'Sat 3:00 pm · Haircut · Sana' },
+    { key: 'hotel', word: 'hotel', colour: '#5F3DC4', icon: 'ob-key', biz: 'Hunza View Hotel', title: 'Reservation held', detail: 'Fri–Sun · Room 101 · 2 nights' },
   ];
   const svgNS = 'http://www.w3.org/2000/svg';
   const sys = document.getElementById('ob-sys'), ring = document.getElementById('ob-ring');
