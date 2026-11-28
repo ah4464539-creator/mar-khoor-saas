@@ -81,3 +81,8 @@ test('setup and inbox boxes show the number + code form', () => {
   assert.match(js, /one-time-code/);
   assert.match(readFileSync('src/operations.js', 'utf8'), /number_code:\{available/);
 });
+
+test("Meta's number cap on the WABA reads as Mar-Khoor's limit, not a raw Meta instruction", () => {
+  const text = friendly({ message: "To use this phone number, you'll need to delete an existing one from Meta Business Suite or request additional numbers on your account." });
+  assert.match(text, /limit of WhatsApp numbers/);
+});
