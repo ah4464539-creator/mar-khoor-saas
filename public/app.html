@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Order food and book appointments, salons and hotels near you with Mar-Khoor.">
+<meta name="theme-color" content="#0E1620">
+<link rel="manifest" href="/customer.webmanifest">
+<link rel="icon" type="image/svg+xml" href="/assets/markhor-mark-tile.svg">
+<link rel="apple-touch-icon" href="/app-icons/apple-touch-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mar-Khoor">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&amp;family=Inter:wght@400;500;600;700&amp;display=swap">
+<link rel="stylesheet" href="/summit.css?v=20261122-n3">
+<link rel="stylesheet" href="/customer-app.css?v=20261128-1">
+<title>Mar-Khoor</title>
+<script src="/customer-app.js?v=20261128-1" defer></script>
+</head>
+<body class="mk cust-app">
+<header class="cust-head">
+ <a class="cust-brand" href="/app"><img src="/assets/markhor-mark-tile.svg" width="32" height="32" alt=""><b>Mar<span>-</span>Khoor</b></a>
+ <a class="btn btn-ghost btn-sm" href="/orders.html">My orders</a>
+</header>
+<main class="cust-main">
+ <h1 class="cust-title">What would you like today?</h1>
+ <form class="cust-search" role="search" id="cust-search">
+  <label class="visually-hidden" for="cust-q">Search businesses</label>
+  <input class="input" id="cust-q" name="q" type="search" maxlength="60" placeholder="Search a restaurant, clinic, salon or hotel" autocomplete="off">
+ </form>
+ <div class="cust-chips" role="group" aria-label="Category" id="cust-chips">
+  <button type="button" class="cust-chip" data-category="" aria-pressed="true">All</button>
+  <button type="button" class="cust-chip" data-category="restaurant" aria-pressed="false">Food</button>
+  <button type="button" class="cust-chip" data-category="clinic" aria-pressed="false">Clinics</button>
+  <button type="button" class="cust-chip" data-category="salon" aria-pressed="false">Salons</button>
+  <button type="button" class="cust-chip" data-category="hotel" aria-pressed="false">Hotels</button>
+ </div>
+ <p class="cust-status" id="cust-status" role="status" aria-live="polite">Loading…</p>
+ <ul class="cust-list" id="cust-list"></ul>
+</main>
+<footer class="cust-foot"><a href="/">For businesses: get Mar-Khoor</a> · <a href="/privacy.html">Privacy</a></footer>
+</body>
+</html>
